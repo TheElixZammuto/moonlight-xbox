@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\libgamestream\client.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\libgamestream\http.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\libgamestream\mkcert.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\libgamestream\sps.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\libgamestream\xml.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\h264bitstream\h264_nal.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\h264bitstream\h264_sei.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\h264bitstream\h264_stream.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="winrt.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Progetti\moonlight-xbox\libgamestream\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{1A401420-0303-3A3B-84D2-CC42A18A36BA}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="winrt.h" />
+  </ItemGroup>
+</Project>

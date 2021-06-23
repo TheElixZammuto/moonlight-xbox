@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Comune">
+      <UniqueIdentifier>21c1c5c0-0f3e-40c4-b5fa-4aa31847d090</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Asset">
+      <UniqueIdentifier>7a7b8c84-9eea-41a9-82d7-b5355c688f72</UniqueIdentifier>
+      <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
+    </Filter>
+    <Filter Include="Contenuto">
+      <UniqueIdentifier>b1cfebfc-f2ba-415b-87d9-5081ea0514bb</UniqueIdentifier>
+    </Filter>
+    <Image Include="Assets\LockScreenLogo.scale-200.png">
+      <Filter>Asset</Filter>
+    </Image>
+    <Image Include="Assets\SplashScreen.scale-200.png">
+      <Filter>Asset</Filter>
+    </Image>
+    <Image Include="Assets\Square150x150Logo.scale-200.png">
+      <Filter>Asset</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.scale-200.png">
+      <Filter>Asset</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png">
+      <Filter>Asset</Filter>
+    </Image>
+    <Image Include="Assets\Wide310x150Logo.scale-200.png">
+      <Filter>Asset</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\StoreLogo.png">
+      <Filter>Asset</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="third_party\SDL\src\main\winrt\SDL_winrt_main_NonXAML.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="decode.c" />
+    <ClCompile Include="ffmpeg.c" />
+    <ClCompile Include="sdl.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="third_party\SDL\src\main\winrt\SDL2-WinRTResource_BlankCursor.cur" />
+    <None Include="third_party\h264bitstream\LICENSE" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="third_party\SDL\src\main\winrt\SDL2-WinRTResources.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ffmpeg.h" />
+    <ClInclude Include="video.h" />
+    <ClInclude Include="sdl-state.h" />
+  </ItemGroup>
+</Project>
