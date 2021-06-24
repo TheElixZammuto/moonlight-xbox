@@ -1,49 +1,53 @@
 #include <SDL.h>
 #include <wrl.h>
+#include <SDL_ttf.h>
 
 extern "C" {
     #include <libgamestream/client.h>
     #include "sdl-state.h"
 }
 
-int red = 0;
-int green = 0;
-int blue = 0;
 bool run = false;
 SERVER_DATA server;
 STREAM_CONFIGURATION config;
 
+
 int init_stream(void *data) {
+    char* folder = SDL_GetPrefPath("Moonlight", "Xbox");
+    strcat(folder, "ip_address");
+    char ipAddress[256];
+    FILE *fp = fopen(folder, "r");
+    if (fp == NULL) {
+        char errorMsg[2048];
+        strcat(errorMsg, "Error in opening ");
+        strcat(errorMsg, folder);
+        set_text(errorMsg);
+    }
+    fgets(ipAddress, 256, fp);
     int status = 0;
-    status = gs_init(&server, "10.1.0.2", SDL_GetPrefPath("Moonlight","Xbox"), 0, 0);
-    blue = 127;
-    printf("Init got: " + status);
+    status = gs_init(&server, ipAddress, SDL_GetPrefPath("Moonlight","Xbox"), 0, 0);
+    set_text("Init complete");
     if (!server.paired) {
         char pin[5];
-        sprintf(pin, "%d%d%d%d", 1,2,3,4);
-        printf("Please enter the following PIN on the target PC: %s\n", pin);
-        blue = 255;
+        sprintf(pin, "%d%d%d%d", rand() % 10,rand()%10,rand()%10,rand() % 10);
+        char printText[1024];
+        sprintf(printText, "PIN to Pair: %s", pin);
+        set_text(printText);
         if ((status = gs_pair(&server, &pin[0])) != 0) {
-            fprintf(stderr, "Failed to pair to server");
-            blue = 0;
-            red = 255;
+            gs_unpair(&server);
+            set_text("Failed to pair to server");
+            return 1;
         }
         else {
-            printf("Succesfully paired\n");
-            blue = 0;
-            red = 0;
-            green = 255;
+            set_text("Succesfully paired\n");
         }
     }
     else {
-        printf("Succesfully paired\n");
-        blue = 0;
-        red = 0;
-        green = 255;
+        set_text("Succesfully paired\n");
     }
     PAPP_LIST list;
     gs_applist(&server, &list);
-    while (strncmp(list->name, "Desktop",0) == -1) {
+    while (strcmp(list->name, "Desktop") == -1) {
         list = list->next;
     }
     config.width = 1920;
@@ -55,12 +59,12 @@ int init_stream(void *data) {
     int a = gs_start_app(&server, &config, list->id, false, true, 0);
     CONNECTION_LISTENER_CALLBACKS callbacks;
     DECODER_RENDERER_CALLBACKS rCallbacks = get_video_callback();
+    set_text("");
     LiStartConnection(&server.serverInfo, &config,NULL, &rCallbacks, NULL, NULL, 0, NULL, 0);
     return 0;
 }
 
 int main(int argc, char** argv) {
-    SDL_CreateThread(init_stream,"",NULL);
     SDL_DisplayMode mode; SDL_Window* window = NULL; SDL_Renderer* renderer = NULL; SDL_Event evt;
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -71,5 +75,6 @@ int main(int argc, char** argv) {
         return 1;
     }
     sdl_init(mode.w, mode.h, true);
+    SDL_CreateThread(init_stream, "", NULL);
     sdl_loop();
 }

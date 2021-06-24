@@ -26,11 +26,14 @@
 #define SDL_TOGGLE_FULLSCREEN 4
 
 #define SDL_CODE_FRAME 0
+#define SDL_CODE_TEXT 1
 
 #define SDL_BUFFER_FRAMES 2
 
 void sdl_init(int width, int height, bool fullscreen);
 void sdl_loop();
+void set_text(char* message);
+extern char* message;
 DECODER_RENDERER_CALLBACKS get_video_callback();
 
 extern SDL_mutex *mutex;

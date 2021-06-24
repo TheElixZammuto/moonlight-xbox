@@ -17,7 +17,7 @@
  * along with Moonlight; if not, see <http://www.gnu.org/licenses/>.
  */
 #include "sdl-state.h"
-
+#include <SDL_ttf.h>
 #include <Limelight.h>
 
 static bool done;
@@ -26,12 +26,21 @@ static int fullscreen_flags;
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 static SDL_Texture *bmp;
-
+static TTF_Font* font;
+char* message = "Ciao";
+static SDL_Color white = {
+   255,255,255
+};
 SDL_mutex *mutex;
 
 int sdlCurrentFrame, sdlNextFrame;
 
+
 void sdl_init(int width, int height, bool fullscreen) {
+    char* path = SDL_GetPrefPath("Moonlight", "Xbox");
+    strcat(path, "font.ttf\0");
+    TTF_Init();
+  font = TTF_OpenFont(path, 16);
   sdlCurrentFrame = sdlNextFrame = 0;
   if (SDL_CreateWindowAndRenderer(width, height, SDL_WINDOW_FULLSCREEN, &window, &renderer) != 0) {
       return 1;
@@ -49,22 +58,41 @@ void sdl_init(int width, int height, bool fullscreen) {
   }
 }
 
+void set_text(char* msg) {
+    message = msg;
+    SDL_Event event;
+    event.type = SDL_USEREVENT;
+    event.user.code = SDL_CODE_TEXT;
+    SDL_PushEvent(&event);
+}
+
 void sdl_loop() {
   SDL_Event event;
   while(!done && SDL_WaitEvent(&event)) {
       if (event.type == SDL_QUIT)
         done = true;
       else if (event.type == SDL_USEREVENT) {
-        if (event.user.code == SDL_CODE_FRAME) {
+        if (event.user.code == SDL_CODE_FRAME || event.user.code == SDL_CODE_TEXT) {
           if (++sdlCurrentFrame <= sdlNextFrame - SDL_BUFFER_FRAMES) {
             //Skip frame
           } else if (SDL_LockMutex(mutex) == 0) {
-            Uint8** data = ((Uint8**) event.user.data1);
-            int* linesize = ((int*) event.user.data2);
-            SDL_UpdateYUVTexture(bmp, NULL, data[0], linesize[0], data[1], linesize[1], data[2], linesize[2]);
+            if (event.user.code == SDL_CODE_FRAME) {
+                Uint8** data = ((Uint8**)event.user.data1);
+                int* linesize = ((int*)event.user.data2);
+                SDL_UpdateYUVTexture(bmp, NULL, data[0], linesize[0], data[1], linesize[1], data[2], linesize[2]);
+            }
             SDL_UnlockMutex(mutex);
             SDL_RenderClear(renderer);
             SDL_RenderCopy(renderer, bmp, NULL, NULL);
+            if (strlen(message) > 0) {
+                SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, message, white);
+                SDL_Texture* MessageSurface = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+                SDL_Rect Message_rect; //create a rect
+                Message_rect.x = 8;  //controls the rect's x coordinate 
+                Message_rect.y = 64; // controls the rect's y coordinte
+                TTF_SizeText(font, message, &(Message_rect.w), &(Message_rect.h));
+                SDL_RenderCopy(renderer, MessageSurface, NULL, &Message_rect);
+            }
             SDL_RenderPresent(renderer);
           } else
             fprintf(stderr, "Couldn't lock mutex\n");

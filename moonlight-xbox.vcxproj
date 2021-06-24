@@ -318,7 +318,7 @@
     <ClCompile>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(IntermediateOutputPath);$(ProjectDir)third_party\h264bitstream;$(ProjectDir)third_party\moonlight-common-c\src;$(ProjectDir)third_party\SDL\include;$(ProjectDir)vcpkg\installed\x64-uwp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(IntermediateOutputPath);$(ProjectDir)third_party\h264bitstream;$(ProjectDir)third_party\moonlight-common-c\src;$(ProjectDir)third_party\SDL\include;$(ProjectDir)vcpkg\installed\x64-uwp\include;$(ProjectDir)third_party\SDL_ttf;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_NONSTDC_NO_DEPRECATE ;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -367,6 +367,9 @@
     </ProjectReference>
     <ProjectReference Include="third_party\SDL\VisualC-WinRT\UWP_VS2015\SDL-UWP.vcxproj">
       <Project>{89e9b32e-a86a-47c3-a948-d2b1622925ce}</Project>
+    </ProjectReference>
+    <ProjectReference Include="third_party\SDL_ttf\VisualC-WinRT\WinRT81_VS2013\SDL_ttf-WinRT81.vcxproj">
+      <Project>{90ca40dc-84b4-4d06-91d1-dc82a7a1e4d0}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
