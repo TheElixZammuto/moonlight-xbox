@@ -91,6 +91,15 @@ int ffmpeg_init(int videoFormat, int width, int height, int perf_lvl, int buffer
   decoder_ctx->height = height;
   decoder_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
 
+  /*static AVBufferRef* hw_device_ctx = NULL;
+  int err2;
+  if ((err2 = av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_D3D11VA,NULL, NULL, 0)) < 0) {
+      fprintf(stderr, "Failed to create specified HW device.\n");
+      decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+      return err2;
+      
+  }*/
+  
   int err = avcodec_open2(decoder_ctx, decoder, NULL);
   if (err < 0) {
     printf("Couldn't open codec");

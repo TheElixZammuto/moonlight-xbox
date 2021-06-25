@@ -10,6 +10,7 @@ extern "C" {
 bool run = false;
 SERVER_DATA server;
 STREAM_CONFIGURATION config;
+SDL_DisplayMode mode;
 
 
 int init_stream(void *data) {
@@ -19,12 +20,14 @@ int init_stream(void *data) {
     FILE *fp = fopen(folder, "r");
     if (fp == NULL) {
         char errorMsg[2048];
-        strcat(errorMsg, "Error in opening ");
-        strcat(errorMsg, folder);
-        set_text(errorMsg);
+        set_text("Error in opening ip_address in LocalState");
+        return 1;
     }
     fgets(ipAddress, 256, fp);
     int status = 0;
+    char connectionMsg[2048];
+    sprintf(connectionMsg, "Connecting to %s", ipAddress);
+    set_text(connectionMsg);
     status = gs_init(&server, ipAddress, SDL_GetPrefPath("Moonlight","Xbox"), 0, 0);
     set_text("Init complete");
     if (!server.paired) {
@@ -47,25 +50,25 @@ int init_stream(void *data) {
     }
     PAPP_LIST list;
     gs_applist(&server, &list);
-    while (strcmp(list->name, "Desktop") == -1) {
+    while (strcmp(list->name, "Desktop") != 0) {
         list = list->next;
     }
-    config.width = 1920;
-    config.height = 1080;
-    config.bitrate = 8000;
+    config.width = mode.w;
+    config.height = mode.h;
+    config.bitrate = 4000;
     config.fps = 60;
     config.packetSize = 1024;
     config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
     int a = gs_start_app(&server, &config, list->id, false, true, 0);
     CONNECTION_LISTENER_CALLBACKS callbacks;
     DECODER_RENDERER_CALLBACKS rCallbacks = get_video_callback();
-    set_text("");
+    set_text("OK");
     LiStartConnection(&server.serverInfo, &config,NULL, &rCallbacks, NULL, NULL, 0, NULL, 0);
     return 0;
 }
 
 int main(int argc, char** argv) {
-    SDL_DisplayMode mode; SDL_Window* window = NULL; SDL_Renderer* renderer = NULL; SDL_Event evt;
+    SDL_Window* window = NULL; SDL_Renderer* renderer = NULL; SDL_Event evt;
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         return 1;

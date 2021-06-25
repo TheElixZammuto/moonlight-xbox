@@ -37,7 +37,7 @@ int sdlCurrentFrame, sdlNextFrame;
 
 
 void sdl_init(int width, int height, bool fullscreen) {
-    char* path = SDL_GetPrefPath("Moonlight", "Xbox");
+    char* path = SDL_GetBasePath();
     strcat(path, "font.ttf\0");
     TTF_Init();
   font = TTF_OpenFont(path, 16);
