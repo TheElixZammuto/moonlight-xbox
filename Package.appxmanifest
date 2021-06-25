@@ -8,14 +8,14 @@
 
   <Identity
     Name="fd3442fd-c64d-4adb-ace8-ed2d8a599792"
-    Publisher="CN=Elia Zammuto"
-    Version="1.0.0.0" />
+    Publisher="CN=TheElixZammuto"
+    Version="1.0.3.0" />
 
   <mp:PhoneIdentity PhoneProductId="fd3442fd-c64d-4adb-ace8-ed2d8a599792" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>moonlight-xbox</DisplayName>
-    <PublisherDisplayName>Elia Zammuto</PublisherDisplayName>
+    <DisplayName>Moonlight</DisplayName>
+    <PublisherDisplayName>TheElixZammuto</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -32,7 +32,7 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="moonlight_xbox.App">
       <uap:VisualElements
-        DisplayName="moonlight-xbox"
+        DisplayName="Moonlight"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png"
         Description="moonlight-xbox"
