@@ -42,9 +42,8 @@ void sdl_init(int width, int height, bool fullscreen) {
     TTF_Init();
   font = TTF_OpenFont(path, 16);
   sdlCurrentFrame = sdlNextFrame = 0;
-  if (SDL_CreateWindowAndRenderer(width, height, SDL_WINDOW_FULLSCREEN, &window, &renderer) != 0) {
-      return 1;
-  }
+  window = SDL_CreateWindow("Moonlight", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_FULLSCREEN);
+  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
   bmp = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, width, height);
   if (!bmp) {
     fprintf(stderr, "SDL: could not create texture - exiting\n");
@@ -69,6 +68,7 @@ void set_text(char* msg) {
 void sdl_loop() {
   SDL_Event event;
   while(!done && SDL_WaitEvent(&event)) {
+      sdlinput_handle_event(&event);
       if (event.type == SDL_QUIT)
         done = true;
       else if (event.type == SDL_USEREVENT) {
@@ -88,7 +88,7 @@ void sdl_loop() {
                 SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, message, white);
                 SDL_Texture* MessageSurface = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
                 SDL_Rect Message_rect; //create a rect
-                Message_rect.x = 8;  //controls the rect's x coordinate 
+                Message_rect.x = 250;  //controls the rect's x coordinate 
                 Message_rect.y = 64; // controls the rect's y coordinte
                 TTF_SizeText(font, message, &(Message_rect.w), &(Message_rect.h));
                 SDL_RenderCopy(renderer, MessageSurface, NULL, &Message_rect);

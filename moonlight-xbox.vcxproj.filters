@@ -29,6 +29,10 @@
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
       <Filter>Asset</Filter>
     </Image>
+    <Filter Include="Libraries">
+      <UniqueIdentifier>{159113c3-ad6e-412c-b3c8-4fdc6c4582c1}</UniqueIdentifier>
+      <Extensions>dll</Extensions>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\StoreLogo.png">
@@ -44,10 +48,12 @@
     <ClCompile Include="decode.c" />
     <ClCompile Include="ffmpeg.c" />
     <ClCompile Include="sdl.c" />
+    <ClCompile Include="input\sdlinput.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="third_party\SDL\src\main\winrt\SDL2-WinRTResource_BlankCursor.cur" />
     <None Include="third_party\h264bitstream\LICENSE" />
+    <None Include="moonlight-xbox_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="third_party\SDL\src\main\winrt\SDL2-WinRTResources.rc" />
@@ -56,5 +62,80 @@
     <ClInclude Include="ffmpeg.h" />
     <ClInclude Include="video.h" />
     <ClInclude Include="sdl-state.h" />
+    <ClInclude Include="input\sdlinput.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avcodec-58.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avdevice-58.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avfilter-7.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avformat-58.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avutil-56.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\brotlicommon.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\brotlidec.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\brotlienc.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\bz2.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\freetype.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libcrypto-1_1-x64.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libcurl.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libexpat.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libpng16.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libssl-1_1-x64.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="font.ttf">
+      <Filter>Asset</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="third_party\SDL_GameControllerDB\gamecontrollerdb.txt">
+      <Filter>Asset</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\postproc-55.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\pthreadVC3.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\pthreadVCE3.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\pthreadVSE3.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\swresample-3.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\swscale-5.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\zlib1.dll">
+      <Filter>Libraries</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

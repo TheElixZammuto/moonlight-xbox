@@ -385,6 +385,7 @@
   <ItemGroup>
     <ClCompile Include="decode.c" />
     <ClCompile Include="ffmpeg.c" />
+    <ClCompile Include="input\sdlinput.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="sdl.c" />
     <ClCompile Include="third_party\SDL\src\main\winrt\SDL_winrt_main_NonXAML.cpp">
@@ -559,6 +560,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ffmpeg.h" />
+    <ClInclude Include="input\sdlinput.h" />
     <ClInclude Include="sdl-state.h" />
     <ClInclude Include="video.h" />
   </ItemGroup>
@@ -566,6 +568,12 @@
     <CopyFileToFolders Include="font.ttf">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="third_party\SDL_GameControllerDB\gamecontrollerdb.txt">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </CopyFileToFolders>
   </ItemGroup>

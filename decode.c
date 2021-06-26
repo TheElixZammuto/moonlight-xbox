@@ -26,14 +26,15 @@
 #include <SDL_thread.h>
 #define SDL_BUFFER_FRAMES 2
 
-#define DECODER_BUFFER_SIZE 92*1024
+#define DECODER_BUFFER_SIZE 1024 * 1024
 
 static unsigned char* ffmpeg_buffer;
+FILE* file;
 
 static int sdl_setup(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
-  int avc_flags = SLICE_THREADING;
+  int avc_flags = LOW_LATENCY_DECODE | SLICE_THREADING;
 
-  if (ffmpeg_init(videoFormat, width, height, avc_flags, SDL_BUFFER_FRAMES,1) < 0) {
+  if (ffmpeg_init(videoFormat, width, height, avc_flags, SDL_BUFFER_FRAMES,4) < 0) {
     fprintf(stderr, "Couldn't initialize video decoding\n");
     return -1;
   }
@@ -45,6 +46,9 @@ static int sdl_setup(int videoFormat, int width, int height, int redrawRate, voi
     return -1;
   }
 
+  char* pFile[2048];
+  sprintf(pFile, "%s%s", SDL_GetPrefPath("Moonlight","Xbox"), "performance.log");
+  file = fopen(pFile, "w");
   return 0;
 }
 
@@ -61,8 +65,10 @@ static int sdl_submit_decode_unit(PDECODE_UNIT decodeUnit) {
       length += entry->length;
       entry = entry->next;
     }
+    int t = SDL_GetTicks();
     ffmpeg_decode(ffmpeg_buffer, length);
-
+    int t2 = SDL_GetTicks();
+    fprintf(file, "Got %d ticks for decoding frame %d of type %d\r\n", t2 - t, decodeUnit->frameNumber,decodeUnit->frameType);
     if (SDL_LockMutex(mutex) == 0) {
       AVFrame* frame = ffmpeg_get_frame(false);
       if (frame != NULL) {
@@ -78,9 +84,12 @@ static int sdl_submit_decode_unit(PDECODE_UNIT decodeUnit) {
 
       SDL_UnlockMutex(mutex);
     } else
-      fprintf(stderr, "Couldn't lock mutex\n");
+      set_text(stderr, "Couldn't lock mutex\n");
   } else {
-    fprintf(stderr, "Video decode buffer too small");
+      char errorText[2048];
+      sprintf("Buffer to small, got %d", decodeUnit->fullLength);
+      set_text(errorText);
+    //fprintf(stderr, "Video decode buffer too small");
     //exit(1);
   }
 
