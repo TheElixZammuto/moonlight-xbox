@@ -45,10 +45,10 @@
   <ItemGroup>
     <ClCompile Include="third_party\SDL\src\main\winrt\SDL_winrt_main_NonXAML.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="decode.c" />
     <ClCompile Include="ffmpeg.c" />
     <ClCompile Include="sdl.c" />
     <ClCompile Include="input\sdlinput.c" />
+    <ClCompile Include="decode.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="third_party\SDL\src\main\winrt\SDL2-WinRTResource_BlankCursor.cur" />

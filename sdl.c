@@ -44,7 +44,7 @@ void sdl_init(int width, int height, bool fullscreen) {
   sdlCurrentFrame = sdlNextFrame = 0;
   window = SDL_CreateWindow("Moonlight", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_FULLSCREEN);
   renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-  bmp = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, width, height);
+  bmp = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_NV12, SDL_TEXTUREACCESS_STREAMING, width, height);
   if (!bmp) {
     fprintf(stderr, "SDL: could not create texture - exiting\n");
     exit(1);
@@ -79,7 +79,8 @@ void sdl_loop() {
             if (event.user.code == SDL_CODE_FRAME) {
                 Uint8** data = ((Uint8**)event.user.data1);
                 int* linesize = ((int*)event.user.data2);
-                SDL_UpdateYUVTexture(bmp, NULL, data[0], linesize[0], data[1], linesize[1], data[2], linesize[2]);
+                SDL_UpdateNVTexture(bmp, NULL, data[0], linesize[0], data[1], linesize[1]);
+                //SDL_UpdateYUVTexture(bmp, NULL, data[0], linesize[0], data[1], linesize[1], data[2], linesize[2]);
             }
             SDL_UnlockMutex(mutex);
             SDL_RenderClear(renderer);

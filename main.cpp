@@ -55,8 +55,12 @@ int init_stream(void *data) {
     }
     PAPP_LIST list;
     gs_applist(&server, &list);
-    while (strcmp(list->name, "Desktop") != 0) {
+    while (list != NULL && strcmp(list->name, "Desktop") != 0) {
         list = list->next;
+    }
+    if (list == NULL) {
+        set_text("Missing 'Desktop' app in Host");
+        return 0;
     }
     config.width = mode.w;
     config.height = mode.h;
@@ -71,9 +75,13 @@ int init_stream(void *data) {
     set_text("Streaming Setup...");
     int e = LiStartConnection(&server.serverInfo, &config,NULL, &rCallbacks, NULL, NULL, 0, NULL, 0);
     if (e != 0) {
-        set_text("Error!");
+        char errorLi[256];
+        sprintf(errorLi, "Error from Moonlight: %d", e);
+        set_text(errorLi);
     }
-    set_text("OK");
+    else {
+        set_text("OK");
+    }
     return 0;
 }
 

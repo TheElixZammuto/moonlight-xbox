@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <libavutil/pixfmt.h>
 
 // General decoder and renderer state
 static AVPacket pkt;
@@ -76,7 +77,7 @@ int ffmpeg_init(int videoFormat, int width, int height, int perf_lvl, int buffer
     return -1;
   }
 
-  /*static AVBufferRef* hw_device_ctx = NULL;
+  static AVBufferRef* hw_device_ctx = NULL;
   int err2;
   if ((err2 = av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_D3D11VA, NULL, NULL, 0)) < 0) {
       fprintf(stderr, "Failed to create specified HW device.\n");
@@ -84,27 +85,21 @@ int ffmpeg_init(int videoFormat, int width, int height, int perf_lvl, int buffer
 
   }
   
-  decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);*/
+  decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 
 
-  if (perf_lvl & DISABLE_LOOP_FILTER)
-    // Skip the loop filter for performance reasons
-    decoder_ctx->skip_loop_filter = AVDISCARD_ALL;
-
-  if (perf_lvl & LOW_LATENCY_DECODE)
-    // Use low delay single threaded encoding
-    decoder_ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
-
-  if (perf_lvl & SLICE_THREADING)
-    decoder_ctx->thread_type = FF_THREAD_SLICE;
-  else
-    decoder_ctx->thread_type = FF_THREAD_FRAME;
+  
+  decoder_ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
+  decoder_ctx->flags |= AV_CODEC_FLAG_OUTPUT_CORRUPT;
+  decoder_ctx->flags2 |= AV_CODEC_FLAG2_SHOW_ALL;
+  decoder_ctx->err_recognition = AV_EF_EXPLODE;
+  decoder_ctx->thread_type = FF_THREAD_SLICE;
 
   decoder_ctx->thread_count = thread_count;
 
   decoder_ctx->width = width;
   decoder_ctx->height = height;
-  decoder_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+  decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
 
   
   int err = avcodec_open2(decoder_ctx, decoder, NULL);
@@ -127,12 +122,6 @@ int ffmpeg_init(int videoFormat, int width, int height, int perf_lvl, int buffer
       return -1;
     }
   }
-
-  #ifdef HAVE_VAAPI
-  if (ffmpeg_decoder == VAAPI)
-    vaapi_init(decoder_ctx);
-  #endif
-
   return 0;
 }
 
@@ -163,25 +152,33 @@ AVFrame* ffmpeg_get_frame(bool native_frame) {
   } else if (err != AVERROR(EAGAIN)) {
     char errorstring[512];
     av_strerror(err, errorstring, sizeof(errorstring));
-    set_text(errorstring);
+    char errorstringnew[1024];
+    sprintf(errorstringnew, "Error from FFMPEG: %s", errorstring);
+    set_text(errorstringnew);
   }
   return NULL;
 }
 
 // packets must be decoded in order
 // indata must be inlen + AV_INPUT_BUFFER_PADDING_SIZE in length
-int ffmpeg_decode(unsigned char* indata, int inlen) {
+int ffmpeg_decode(unsigned char* indata, int inlen,bool isKey) {
   int err;
 
   pkt.data = indata;
   pkt.size = inlen;
+  if (isKey) {
+      pkt.flags = AV_PKT_FLAG_KEY;
+  }
+  else {
+      pkt.flags = 0;
+  }
 
   err = avcodec_send_packet(decoder_ctx, &pkt);
   if (err < 0) {
-    char errorstring[512];
+    /*char errorstring[512];
     av_strerror(err, errorstring, sizeof(errorstring));
-    set_text(errorstring);
+    set_text(errorstring);*/
+    return DR_NEED_IDR;
   }
-
-  return err < 0 ? err : 0;
+  return DR_OK;
 }
