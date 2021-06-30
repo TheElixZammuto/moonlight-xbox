@@ -33,7 +33,6 @@
 
 static unsigned char* ffmpeg_buffer;
 
-FILE* file;
 /*ID3D11Device* device;
 ID3D11DeviceContext* deviceContext;*/
 AVFrame* destFrame;
@@ -52,9 +51,6 @@ static int sdl_setup(int videoFormat, int width, int height, int redrawRate, voi
     return -1;
   }
 
-  char* pFile[2048];
-  sprintf(pFile, "%s%s", SDL_GetPrefPath("Moonlight","Xbox"), "performance.log");
-  file = fopen(pFile, "w");
   /*D3D_FEATURE_LEVEL fl[1] = {
       D3D_FEATURE_LEVEL_11_0
   };
@@ -81,7 +77,6 @@ static int sdl_submit_decode_unit(PDECODE_UNIT decodeUnit) {
     int status = ffmpeg_decode(ffmpeg_buffer, length, decodeUnit->frameType == FRAME_TYPE_IDR);
     if (status == DR_NEED_IDR)return DR_NEED_IDR;
     int t2 = SDL_GetTicks();
-    fprintf(file, "Got %d ticks for decoding frame %d of type %d\r\n", t2 - t, decodeUnit->frameNumber,decodeUnit->frameType);
     if (SDL_LockMutex(mutex) == 0) {
       AVFrame* frame = ffmpeg_get_frame(false);
       if (frame != NULL) {
