@@ -73,38 +73,19 @@ static int sdl_submit_decode_unit(PDECODE_UNIT decodeUnit) {
       length += entry->length;
       entry = entry->next;
     }
-    int t = SDL_GetTicks();
-    int status = ffmpeg_decode(ffmpeg_buffer, length, decodeUnit->frameType == FRAME_TYPE_IDR);
-    if (status == DR_NEED_IDR)return DR_NEED_IDR;
-    int t2 = SDL_GetTicks();
     if (SDL_LockMutex(mutex) == 0) {
-      AVFrame* frame = ffmpeg_get_frame(false);
-      if (frame != NULL) {
+        int t = SDL_GetTicks();
+        int status = ffmpeg_decode(ffmpeg_buffer, length, decodeUnit->frameType == FRAME_TYPE_IDR);
+        if (status == DR_NEED_IDR) {
+            SDL_UnlockMutex(mutex);
+            return DR_NEED_IDR;
+        }
+        int t2 = SDL_GetTicks();
+        AVFrame* frame = ffmpeg_get_frame(false);
+        if (frame != NULL) {
         sdlNextFrame++;
-        /*ID3D11Texture2D *d3dTexture = NULL;
-        d3dTexture = frame->data[0];
-        D3D11_MAPPED_SUBRESOURCE mappedResource;
-        D3D11_TEXTURE2D_DESC desc,destDesc;
-        memset(&destDesc, 0, sizeof(D3D11_TEXTURE2D_DESC));
-        d3dTexture->lpVtbl->GetDesc(d3dTexture, &desc);
-        ID3D11Texture2D* copyTexture;
-        destDesc.Usage = D3D11_USAGE_STAGING;
-        destDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        destDesc.Width = desc.Width;
-        destDesc.Height = desc.Height;
-        destDesc.SampleDesc = desc.SampleDesc;
-        destDesc.Format = DXGI_FORMAT_NV12;
-        destDesc.MipLevels = 1;
-        destDesc.ArraySize = 1;
-        destDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;*/
-        //AVFrame *destFrame = av_frame_alloc();
-        
         destFrame->format = AV_PIX_FMT_NV12;
         int r = av_hwframe_transfer_data(destFrame, frame, 0);
-        //HRESULT res = device->lpVtbl->CreateTexture2D(device, &destDesc, NULL, &copyTexture);
-        //deviceContext->lpVtbl->CopyResource(deviceContext, &copyTexture, &d3dTexture);
-        //deviceContext->lpVtbl->CopySubresourceRegion(deviceContext,copyTexture, 0, 0, 0, 0, d3dTexture, index, NULL);
-       // res = deviceContext->lpVtbl->Map(deviceContext, copyTexture,0, D3D11_MAP_READ, 0, &mappedResource);
         SDL_Event event;
         event.type = SDL_USEREVENT;
         event.user.code = SDL_CODE_FRAME;
@@ -112,7 +93,6 @@ static int sdl_submit_decode_unit(PDECODE_UNIT decodeUnit) {
         event.user.data2 = &destFrame->linesize;
         SDL_PushEvent(&event);
       }
-
       SDL_UnlockMutex(mutex);
     } else
       set_text(stderr, "Couldn't lock mutex\n");
