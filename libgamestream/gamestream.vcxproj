@@ -93,7 +93,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\third_party\moonlight-common-c\src;$(ProjectDir)..\third_party\h264bitstream;$(ProjectDir)vcpkg\installed\x64-uwp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\third_party\moonlight-common-c\src;$(ProjectDir)..\third_party\h264bitstream;$(ProjectDir)..\vcpkg\installed\x64-uwp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <CompileAs>CompileAsC</CompileAs>
       <CompileAsWinRT>false</CompileAsWinRT>
