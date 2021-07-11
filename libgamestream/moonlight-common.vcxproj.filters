@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\AudioStream.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\ByteBuffer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\Connection.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\ConnectionTester.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\ControlStream.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\FakeCallbacks.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\InputStream.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\LinkedBlockingQueue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\Misc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\Platform.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\PlatformCrypto.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\PlatformSockets.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\RtpAudioQueue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\RtpVideoQueue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\RtspConnection.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\RtspParser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\SdpGenerator.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\SimpleStun.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\VideoDepacketizer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\src\VideoStream.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\reedsolomon\rs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Progetti\moonlight-xbox\libgamestream\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{1A401420-0303-3A3B-84D2-CC42A18A36BA}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

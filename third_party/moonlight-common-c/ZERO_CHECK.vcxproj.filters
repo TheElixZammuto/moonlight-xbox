@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\Progetti\moonlight-xbox\third_party\moonlight-common-c\CMakeFiles\f7846b72d7107140e3a7975c2c985af0\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{D274D4EF-ED18-3868-B893-0AD4ED7B9937}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

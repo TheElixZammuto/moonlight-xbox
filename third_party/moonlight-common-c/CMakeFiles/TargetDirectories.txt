@@ -1,0 +1,3 @@
+D:/Progetti/moonlight-xbox/third_party/moonlight-common-c/CMakeFiles/moonlight-common-c.dir
+D:/Progetti/moonlight-xbox/third_party/moonlight-common-c/CMakeFiles/ALL_BUILD.dir
+D:/Progetti/moonlight-xbox/third_party/moonlight-common-c/CMakeFiles/ZERO_CHECK.dir

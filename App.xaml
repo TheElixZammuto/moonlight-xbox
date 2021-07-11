@@ -1,0 +1,7 @@
+﻿<Application
+    x:Class="moonlight_xbox_dx.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx">
+
+</Application>
