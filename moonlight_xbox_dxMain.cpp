@@ -59,6 +59,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			Update();
 			if (Render())
 			{
+				m_deviceResources->GetD3DDeviceContext()->Flush();
 				m_deviceResources->Present();
 			}
 		}

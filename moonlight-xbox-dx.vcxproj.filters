@@ -89,4 +89,29 @@
   <ItemGroup>
     <Page Include="DirectXPage.xaml" />
   </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avcodec-58.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avdevice-58.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avfilter-7.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avformat-58.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avutil-56.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\brotlicommon.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\brotlidec.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\brotlienc.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\bz2.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\freetype.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libcrypto-1_1-x64.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libcurl.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libexpat.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libpng16.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libssl-1_1-x64.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libx264-157.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\postproc-55.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\pthreadVC3.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\pthreadVCE3.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\pthreadVSE3.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\swresample-3.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\swscale-5.dll" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\zlib1.dll" />
+  </ItemGroup>
 </Project>

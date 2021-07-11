@@ -70,8 +70,8 @@ void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,in
 		//set_text("Missing 'Desktop' app in Host");
 		return;
 	}
-	config.width = 1920;
-	config.height = 1080;
+	config.width = 1280;
+	config.height = 720;
 	config.bitrate = 2000;
 	config.clientRefreshRateX100 = 60 * 100;
 	config.colorRange = COLOR_RANGE_LIMITED;
