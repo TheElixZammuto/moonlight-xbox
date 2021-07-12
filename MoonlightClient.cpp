@@ -10,7 +10,7 @@ extern "C" {
 using namespace moonlight_xbox_dx;
 
 AVFrame* MoonlightClient::GetLastFrame() {
-	if (!FFMpegDecoder::getInstance()->setup)return NULL;
+	if (FFMpegDecoder::getInstance() == NULL || !FFMpegDecoder::getInstance()->setup)return NULL;
 	return FFMpegDecoder::getInstance()->GetLastFrame();
 }
 
