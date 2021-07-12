@@ -172,26 +172,32 @@ namespace moonlight_xbox_dx {
 	}
 
 	AVFrame* FFMpegDecoder::GetFrame() {
+		resources->decodeMutex.lock();
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
 		if (err == 0) {
-			int a = av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
-			if (a == 0) {
+			/*int a = av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
+			if (a == 0) {*/
 				current_frame = next_frame;
 				next_frame = (current_frame + 1) % dec_frames_cnt;
 				setup = true;
-				return ready_frames[current_frame];
-			}
+				resources->decodeMutex.unlock();
+				return dec_frames[current_frame];
+			/*}*/
 		}
 		else if (err != AVERROR(EAGAIN)) {
 			char errorstring[512];
 			av_strerror(err, errorstring, sizeof(errorstring));
 			fprintf(stderr, "Receive failed - %d/%s\n", err, errorstring);
+			resources->decodeMutex.unlock();
+		}
+		else {
+			resources->decodeMutex.unlock();
 		}
 		return NULL;
 	}
 
 	AVFrame* FFMpegDecoder::GetLastFrame() {
-		return ready_frames[current_frame];
+		return dec_frames[current_frame];
 	}
 
 	

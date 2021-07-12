@@ -40,11 +40,11 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 // Renders one frame using the vertex and pixel shaders.
 void Sample3DSceneRenderer::Render()
 {
-	/*Microsoft::WRL::ComPtr<ID3D11Device> ffmpegDevice;
+	Microsoft::WRL::ComPtr<ID3D11Device> ffmpegDevice;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> ffmpegDeviceContext;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> sharedTexture;
 	Microsoft::WRL::ComPtr<IDXGIResource> dxgiResource;
-	HANDLE sharedHandle = nullptr;*/
+	HANDLE sharedHandle = nullptr;
 
 	// Loading is asynchronous. Only draw geometry after it's loaded.
 	if (!m_loadingComplete)
@@ -55,49 +55,40 @@ void Sample3DSceneRenderer::Render()
 		AVFrame* frame = client.GetLastFrame();
 		HRESULT hr;
 		if (frame == NULL)return;
-		//D3D11_TEXTURE2D_DESC frameDesc;
-		//frameTexture->GetDesc(&frameDesc);
-		//frameTexture->GetDevice(ffmpegDevice.GetAddressOf());
-		//ffmpegDevice->GetImmediateContext(ffmpegDeviceContext.GetAddressOf());
+		m_deviceResources->decodeMutex.lock();
+		D3D11_TEXTURE2D_DESC frameDesc;
+		ID3D11Texture2D* frameTexture = (ID3D11Texture2D *)frame->data[0];
+		int frameIndex = (int)frame->data[1];
+		frameTexture->GetDesc(&frameDesc);
+		frameTexture->GetDevice(ffmpegDevice.GetAddressOf());
+		ffmpegDevice->GetImmediateContext(ffmpegDeviceContext.GetAddressOf());
 		//Create a rendering texture
 		D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
 		stagingDesc.Width = frame->width;
 		stagingDesc.Height = frame->height;
 		stagingDesc.ArraySize = 1;
 		stagingDesc.Format = DXGI_FORMAT_NV12;
-		stagingDesc.Usage = D3D11_USAGE_STAGING;
+		stagingDesc.Usage = D3D11_USAGE_DEFAULT;
 		stagingDesc.MipLevels = 1;
+		stagingDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		stagingDesc.SampleDesc.Quality = 0;
 		stagingDesc.SampleDesc.Count = 1;
-		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		stagingDesc.MiscFlags = 0;
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, stagingTexture.GetAddressOf()));
-		D3D11_TEXTURE2D_DESC textureDesc = { 0 };
-		memcpy(&textureDesc, &stagingDesc, sizeof(D3D11_TEXTURE2D_DESC));
-		textureDesc.Usage = D3D11_USAGE_DEFAULT;
-		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		textureDesc.CPUAccessFlags = 0;
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&textureDesc, NULL, renderTexture.GetAddressOf()));
-		/*DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
+		stagingDesc.CPUAccessFlags = 0;
+		stagingDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, renderTexture.GetAddressOf()));
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, finalTexture.GetAddressOf()));
+		DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
 		DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&sharedHandle));
 		DX::ThrowIfFailed(ffmpegDevice->OpenSharedResource(sharedHandle, __uuidof(ID3D11Texture2D), (void**)sharedTexture.GetAddressOf()));
-		ffmpegDeviceContext->CopySubresourceRegion(sharedTexture.Get(), 0, 0, 0, 0, frameTexture, 0, NULL);*/
-		D3D11_MAPPED_SUBRESOURCE ms;
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDeviceContext()->Map(stagingTexture.Get(), 0, D3D11_MAP_WRITE, 0, &ms));
-		int luminanceLength = frame->height * frame->linesize[0];
-		int chrominanceLength = frame->height * (frame->linesize[1]/2);
-		unsigned char* texturePointer = (unsigned char*) ms.pData;
-		memcpy(texturePointer, frame->data[0], luminanceLength);
-		memcpy((texturePointer + luminanceLength + 1), frame->data[1], chrominanceLength);
-		//memcpy((texturePointer + luminanceLength + chrominanceLength), frame->data[2], chrominance2Length);
-		m_deviceResources->GetD3DDeviceContext()->Unmap(stagingTexture.Get(), 0);
-		m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), stagingTexture.Get());
+		ffmpegDeviceContext->CopySubresourceRegion(sharedTexture.Get(), 0, 0, 0, 0, frameTexture, frameIndex, NULL);
+		m_deviceResources->GetD3DDeviceContext()->CopyResource(finalTexture.Get(), renderTexture.Get());
+		m_deviceResources->decodeMutex.unlock();
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
 		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
-		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, &m_luminance_shader_resource_view));
-		D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, &m_chrominance_shader_resource_view));
+		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(finalTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(finalTexture.Get(), &luminance_desc, &m_luminance_shader_resource_view));
+		D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(finalTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(finalTexture.Get(), &chrominance_desc, &m_chrominance_shader_resource_view));
 		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, &m_luminance_shader_resource_view);
 		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, &m_chrominance_shader_resource_view);
 
@@ -167,7 +158,7 @@ void Sample3DSceneRenderer::Render()
 			0
 		);
 		renderTexture->Release();
-		stagingTexture->Release();
+		//stagingTexture->Release();
 		m_luminance_shader_resource_view->Release();
 		m_chrominance_shader_resource_view->Release();
 }

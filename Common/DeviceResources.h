@@ -1,5 +1,5 @@
 ﻿#pragma once
-
+#include <mutex>
 namespace DX
 {
 	// Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
@@ -50,7 +50,7 @@ namespace DX
 		IDWriteFactory3*			GetDWriteFactory() const				{ return m_dwriteFactory.Get(); }
 		IWICImagingFactory2*		GetWicImagingFactory() const			{ return m_wicFactory.Get(); }
 		D2D1::Matrix3x2F			GetOrientationTransform2D() const		{ return m_orientationTransform2D; }
-
+		std::mutex decodeMutex;
 	private:
 		void CreateDeviceIndependentResources();
 		void CreateDeviceResources();
