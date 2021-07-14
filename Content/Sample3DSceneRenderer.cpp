@@ -40,72 +40,22 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 // Renders one frame using the vertex and pixel shaders.
 void Sample3DSceneRenderer::Render()
 {
-	Microsoft::WRL::ComPtr<ID3D11Device> ffmpegDevice;
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext> ffmpegDeviceContext;
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> sharedTexture;
-	Microsoft::WRL::ComPtr<IDXGIResource> dxgiResource;
-	HANDLE sharedHandle = nullptr;
-
-	// Loading is asynchronous. Only draw geometry after it's loaded.
-	if (!m_loadingComplete)
-	{
-		return;
-	}
-
-		AVFrame* frame = client.GetLastFrame();
-		HRESULT hr;
-		if (frame == NULL)return;
-		m_deviceResources->decodeMutex.lock();
-		D3D11_TEXTURE2D_DESC frameDesc;
-		ID3D11Texture2D* frameTexture = (ID3D11Texture2D *)frame->data[0];
-		int frameIndex = (int)frame->data[1];
-		frameTexture->GetDesc(&frameDesc);
-		frameTexture->GetDevice(ffmpegDevice.GetAddressOf());
-		ffmpegDevice->GetImmediateContext(ffmpegDeviceContext.GetAddressOf());
-		//Create a rendering texture
-		D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
-		stagingDesc.Width = frame->width;
-		stagingDesc.Height = frame->height;
-		stagingDesc.ArraySize = 1;
-		stagingDesc.Format = DXGI_FORMAT_NV12;
-		stagingDesc.Usage = D3D11_USAGE_DEFAULT;
-		stagingDesc.MipLevels = 1;
-		stagingDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		stagingDesc.SampleDesc.Quality = 0;
-		stagingDesc.SampleDesc.Count = 1;
-		stagingDesc.CPUAccessFlags = 0;
-		stagingDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, renderTexture.GetAddressOf()));
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, finalTexture.GetAddressOf()));
-		DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
-		DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&sharedHandle));
-		DX::ThrowIfFailed(ffmpegDevice->OpenSharedResource(sharedHandle, __uuidof(ID3D11Texture2D), (void**)sharedTexture.GetAddressOf()));
-		ffmpegDeviceContext->CopySubresourceRegion(sharedTexture.Get(), 0, 0, 0, 0, frameTexture, frameIndex, NULL);
-		m_deviceResources->GetD3DDeviceContext()->CopyResource(finalTexture.Get(), renderTexture.Get());
-		m_deviceResources->decodeMutex.unlock();
+		// Loading is asynchronous. Only draw geometry after it's loaded.
+		if (!m_loadingComplete || renderTexture == NULL)
+		{
+			return;
+		}
+		client.GetLastFrame();
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
 		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
-		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(finalTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(finalTexture.Get(), &luminance_desc, &m_luminance_shader_resource_view));
-		D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(finalTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(finalTexture.Get(), &chrominance_desc, &m_chrominance_shader_resource_view));
+		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, &m_luminance_shader_resource_view));
+		D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, &m_chrominance_shader_resource_view));
 		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, &m_luminance_shader_resource_view);
 		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, &m_chrominance_shader_resource_view);
 
 		auto context = m_deviceResources->GetD3DDeviceContext();
-
-		// Prepare the constant buffer to send it to the graphics device.
-		/*context->UpdateSubresource1(
-			m_constantBuffer.Get(),
-			0,
-			NULL,
-			&m_constantBufferData,
-			0,
-			0,
-			0
-		);*/
-
-		// Each vertex is one instance of the VertexPositionColor struct.
 		UINT stride = sizeof(VertexPositionColor);
 		UINT offset = 0;
 		context->IASetVertexBuffers(
@@ -115,52 +65,20 @@ void Sample3DSceneRenderer::Render()
 			&stride,
 			&offset
 		);
-
 		context->IASetIndexBuffer(
 			m_indexBuffer.Get(),
-			DXGI_FORMAT_R16_UINT, // Each index is one 16-bit unsigned integer (short).
+			DXGI_FORMAT_R16_UINT,
 			0
 		);
-
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 		context->IASetInputLayout(m_inputLayout.Get());
-
 		// Attach our vertex shader.
-		context->VSSetShader(
-			m_vertexShader.Get(),
-			nullptr,
-			0
-		);
-
-		// Send the constant buffer to the graphics device.
-		/*context->VSSetConstantBuffers1(
-			0,
-			1,
-			m_constantBuffer.GetAddressOf(),
-			nullptr,
-			nullptr
-		);*/
-
+		context->VSSetShader(m_vertexShader.Get(),nullptr,0);
 		context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
-
-		// Attach our pixel shader.
-		context->PSSetShader(
-			m_pixelShader.Get(),
-			nullptr,
-			0
-		);
-
-		// Draw the objects.
-		context->DrawIndexed(
-			m_indexCount,
-			0,
-			0
-		);
-		renderTexture->Release();
-		//stagingTexture->Release();
-		m_luminance_shader_resource_view->Release();
-		m_chrominance_shader_resource_view->Release();
+		context->PSSetShader(m_pixelShader.Get(),nullptr,0);
+		context->DrawIndexed(m_indexCount,0,0);
+		//m_luminance_shader_resource_view->Release();
+		//m_chrominance_shader_resource_view->Release();
 }
 
 void Sample3DSceneRenderer::CreateDeviceDependentResources()
@@ -306,6 +224,26 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf());
 
 	Windows::Foundation::Size s = m_deviceResources->GetOutputSize();
+
+	Microsoft::WRL::ComPtr<IDXGIResource> dxgiResource;
+	//Create a rendering texture
+	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
+	stagingDesc.Width = 1820;
+	stagingDesc.Height = 720;
+	stagingDesc.ArraySize = 1;
+	stagingDesc.Format = DXGI_FORMAT_NV12;
+	stagingDesc.Usage = D3D11_USAGE_DEFAULT;
+	stagingDesc.MipLevels = 1;
+	stagingDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	stagingDesc.SampleDesc.Quality = 0;
+	stagingDesc.SampleDesc.Count = 1;
+	stagingDesc.CPUAccessFlags = 0;
+	stagingDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, renderTexture.GetAddressOf()));
+	DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
+	//DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
+	//DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
+	DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&m_deviceResources->sharedHandle));
 	
 	// Once the cube is loaded, the object is ready to be rendered.
 	createCubeTask.then([this] () {

@@ -48,10 +48,7 @@ namespace moonlight_xbox_dx {
             return -1;
         }
 
-
-
-
-        decoder_ctx = avcodec_alloc_context3(decoder);
+		decoder_ctx = avcodec_alloc_context3(decoder);
         if (decoder_ctx == NULL) {
             printf("Couldn't allocate context");
             return -1;
@@ -71,13 +68,10 @@ namespace moonlight_xbox_dx {
 		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 		AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
 		AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
-		//d3d11va_device_ctx->device = resources->GetD3DDevice();
-
-        //decoder_ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
-
-        decoder_ctx->width = width;
+		ffmpegDevice = (ID3D11Device1*) d3d11va_device_ctx->device;
+		ffmpegDeviceContext = d3d11va_device_ctx->device_context;
+		decoder_ctx->width = width;
         decoder_ctx->height = height;
-		//decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
 
         int err = avcodec_open2(decoder_ctx, decoder, NULL);
         if (err < 0) {
@@ -150,8 +144,8 @@ namespace moonlight_xbox_dx {
 			sprintf(errorstringnew, "Error from FFMPEG: %d", AVERROR(err));
 			return DR_NEED_IDR;
 		}
-		AVFrame *frame = GetFrame();
-		if (frame == NULL)return DR_NEED_IDR;
+		ffmpegDevice->OpenSharedResource(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture);
+		setup = true;
 		return DR_OK;
 	}
 
@@ -172,32 +166,22 @@ namespace moonlight_xbox_dx {
 	}
 
 	AVFrame* FFMpegDecoder::GetFrame() {
-		resources->decodeMutex.lock();
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
 		if (err == 0) {
-			/*int a = av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
-			if (a == 0) {*/
-				current_frame = next_frame;
-				next_frame = (current_frame + 1) % dec_frames_cnt;
-				setup = true;
-				resources->decodeMutex.unlock();
-				return dec_frames[current_frame];
-			/*}*/
+			ffmpegTexture = (ID3D11Texture2D*)dec_frames[next_frame]->data[0];
+			int index = (int)dec_frames[next_frame]->data[1];
+			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture,index, NULL);
 		}
 		else if (err != AVERROR(EAGAIN)) {
 			char errorstring[512];
 			av_strerror(err, errorstring, sizeof(errorstring));
 			fprintf(stderr, "Receive failed - %d/%s\n", err, errorstring);
-			resources->decodeMutex.unlock();
-		}
-		else {
-			resources->decodeMutex.unlock();
 		}
 		return NULL;
 	}
 
 	AVFrame* FFMpegDecoder::GetLastFrame() {
-		return dec_frames[current_frame];
+		return GetFrame();
 	}
 
 	

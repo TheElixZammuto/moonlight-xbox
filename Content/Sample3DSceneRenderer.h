@@ -30,10 +30,8 @@ namespace moonlight_xbox_dx
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>	m_vertexShader;
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShader;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_constantBuffer;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D>		renderTexture;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D>		stagingTexture;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D>		finalTexture;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>	samplerState;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D>		renderTexture;
 
 		// System resources for cube geometry.
 		ModelViewProjectionConstantBuffer	m_constantBufferData;

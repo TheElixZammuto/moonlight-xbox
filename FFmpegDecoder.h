@@ -38,5 +38,9 @@ namespace moonlight_xbox_dx
 		AVFrame** ready_frames;
 		int next_frame, current_frame;
 		std::shared_ptr<DX::DeviceResources> resources;
+		Microsoft::WRL::ComPtr<ID3D11Device1> ffmpegDevice;
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext> ffmpegDeviceContext;
+		ID3D11Texture2D* sharedTexture;
+		ID3D11Texture2D* ffmpegTexture;
 	};
 }
