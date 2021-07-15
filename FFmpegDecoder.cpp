@@ -161,13 +161,13 @@ namespace moonlight_xbox_dx {
 			av_strerror(err, errorstring, sizeof(errorstring));
 			fprintf(stderr, "Decode failed - %s\n", errorstring);
 		}
-
+		GetFrame();
 		return err < 0 ? err : 0;
 	}
 
 	AVFrame* FFMpegDecoder::GetFrame() {
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
-		if (err == 0) {
+		if (err == 0 && sharedTexture != NULL) {
 			ffmpegTexture = (ID3D11Texture2D*)dec_frames[next_frame]->data[0];
 			int index = (int)dec_frames[next_frame]->data[1];
 			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture,index, NULL);
