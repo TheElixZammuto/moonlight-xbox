@@ -14,6 +14,11 @@ AVFrame* MoonlightClient::GetLastFrame() {
 	return FFMpegDecoder::getInstance()->GetLastFrame();
 }
 
+void log_message(const char* fmt, ...);
+void connection_started();
+void connection_status_update(int status);
+void stage_failed(int stage, int err);
+
 void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int height) {
 	SERVER_DATA server;
 	STREAM_CONFIGURATION config;
@@ -44,7 +49,7 @@ void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,in
 	//set_text("Init complete");
 	if (!server.paired) {
 		char pin[5];
-		sprintf(pin, "%d%d%d%d", rand() % 10, rand() % 10, rand() % 10, rand() % 10);
+		sprintf(pin, "%d%d%d%d", 1,2,3,4);
 		char printText[1024];
 		sprintf(printText, "PIN to Pair: %s", pin);
 		//set_text(printText);
@@ -79,15 +84,43 @@ void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,in
 	config.fps = 60;
 	config.packetSize = 1024;
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
+	config.supportsHevc = false;
 	int a = gs_start_app(&server, &config, list->id, false, true, 0);
 	CONNECTION_LISTENER_CALLBACKS callbacks;
+	callbacks.logMessage = log_message;
+	callbacks.connectionStarted = connection_started;
+	callbacks.connectionStatusUpdate = connection_status_update;
+	callbacks.connectionTerminated = connection_status_update;
+	callbacks.stageStarting = connection_status_update;
+	callbacks.stageFailed = stage_failed;
+	callbacks.stageComplete = connection_status_update;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
-	int e = LiStartConnection(&server.serverInfo, &config, NULL, &rCallbacks, NULL, NULL, 0, NULL, 0);
+	int e = LiStartConnection(&server.serverInfo, &config, &callbacks, &rCallbacks, NULL, NULL, 0, NULL, 0);
 	if (e != 0) {
 		return;
 	}
 	else {
 		//set_text("OK");
 	}
+}
+
+void log_message(const char* fmt, ...) {
+	va_list argp;
+	va_start(argp, fmt);
+	char message[2048];
+	sprintf_s(message, fmt, 2048, argp);
+	OutputDebugStringA(message);
+}
+
+void connection_started() {
+
+}
+
+void connection_status_update(int status) {
+
+}
+
+void stage_failed(int stage, int err) {
+
 }

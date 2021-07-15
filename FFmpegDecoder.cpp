@@ -14,18 +14,14 @@ extern "C" {
 #define DECODER_BUFFER_SIZE 1048576
 namespace moonlight_xbox_dx {
 	
-	void ffmpeg_log_callback(void* avcl,int	level,const char* fmt,va_list 	vl) {
-		const size_t cSize = strlen(fmt) + 1;
-		wchar_t* wc = new wchar_t[cSize];
-		mbstowcs(wc, fmt, cSize);
-		wchar_t string[8192];
-		swprintf(string, 8192, wc);
-		OutputDebugString(string);
-		OutputDebugString(L"\r\n");
+	void ffmpeg_log_callback(void* avcl,int	level,const char* fmt,va_list vl) {
+		//char message[2048];
+		//sprintf_s(message, fmt, 2048, vl);
+		OutputDebugStringA(fmt);
 	}
 	
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
-		//av_log_set_callback(&ffmpeg_log_callback);
+		av_log_set_callback(&ffmpeg_log_callback);
 		av_log_set_level(AV_LOG_VERBOSE);
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
         avcodec_register_all();
