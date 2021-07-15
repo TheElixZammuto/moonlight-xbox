@@ -222,12 +222,12 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	samplerDesc.MaxLOD = FLT_MAX;
 	m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf());
 
-	Windows::Foundation::Size s = m_deviceResources->GetOutputSize();
+	
 
 	Microsoft::WRL::ComPtr<IDXGIResource> dxgiResource;
 	//Create a rendering texture
 	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
-	stagingDesc.Width = 1820;
+	stagingDesc.Width = 1280;
 	stagingDesc.Height = 720;
 	stagingDesc.ArraySize = 1;
 	stagingDesc.Format = DXGI_FORMAT_NV12;
