@@ -20,61 +20,7 @@ void connection_status_update(int status);
 void stage_failed(int stage, int err);
 
 void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int height) {
-	SERVER_DATA server;
 	STREAM_CONFIGURATION config;
-	Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
-	folderString = folderString->Concat(folderString,"\\");
-	char folder[2048];
-	wcstombs_s(NULL, folder, folderString->Data(), 2047);
-	char ipAddressFile[2048];
-	char mappingsFile[2048];
-	sprintf(ipAddressFile, "%s%s", folder, "ip_address");
-	char ipAddress[256];
-	FILE* fp = fopen(ipAddressFile, "r");
-	if (fp == NULL) {
-		char errorMsg[2048];
-		//set_text("Error in opening ip_address in LocalState");
-		return;
-	}
-	fgets(ipAddress, 256, fp);
-	fclose(fp);
-	int status = 0;
-	char connectionMsg[2048];
-	sprintf(connectionMsg, "Connecting to %s", ipAddress);
-	//set_text(connectionMsg);
-	status = gs_init(&server, ipAddress, folder, 0, 0);
-	if (status != 0) {
-		return;
-	}
-	//set_text("Init complete");
-	if (!server.paired) {
-		char pin[5];
-		sprintf(pin, "%d%d%d%d", 1,2,3,4);
-		char printText[1024];
-		sprintf(printText, "PIN to Pair: %s", pin);
-		//set_text(printText);
-		if ((status = gs_pair(&server, &pin[0])) != 0) {
-			gs_unpair(&server);
-			//set_text("Failed to pair to server");
-			return;
-		}
-		else {
-			//set_text("Succesfully paired\n");
-		}
-	}
-	else {
-		//set_text("Succesfully paired\n");
-	}
-	PAPP_LIST list;
-	gs_applist(&server, &list);
-	if (list == NULL)return;
-	while (list != NULL && strcmp(list->name, "Desktop") != 0) {
-		list = list->next;
-	}
-	if (list == NULL) {
-		//set_text("Missing 'Desktop' app in Host");
-		return;
-	}
 	config.width = 1280;
 	config.height = 720;
 	config.bitrate = 2000;
@@ -85,7 +31,7 @@ void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,in
 	config.packetSize = 1024;
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
 	config.supportsHevc = false;
-	int a = gs_start_app(&server, &config, list->id, false, true, 0);
+	int a = gs_start_app(&serverData, &config, appID, false, true, 0);
 	CONNECTION_LISTENER_CALLBACKS callbacks;
 	callbacks.logMessage = log_message;
 	callbacks.connectionStarted = connection_started;
@@ -96,7 +42,7 @@ void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,in
 	callbacks.stageComplete = connection_status_update;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
-	int e = LiStartConnection(&server.serverInfo, &config, &callbacks, &rCallbacks, NULL, NULL, 0, NULL, 0);
+	int e = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, NULL, NULL, 0, NULL, 0);
 	if (e != 0) {
 		return;
 	}
@@ -123,4 +69,68 @@ void connection_status_update(int status) {
 
 void stage_failed(int stage, int err) {
 
+}
+
+//Singleton Helpers
+MoonlightClient* client;
+
+MoonlightClient* MoonlightClient::GetInstance() {
+	if (client != NULL)return client;
+	client = new MoonlightClient();
+	return client;
+}
+
+int MoonlightClient::Connect(char* hostname) {
+	this->hostname = (char*)malloc(2048 * sizeof(char));
+	strcpy_s(this->hostname, 2048,hostname);
+	Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+	folderString = folderString->Concat(folderString, "\\");
+	char folder[2048];
+	wcstombs_s(NULL, folder, folderString->Data(), 2047);
+	int status = 0;
+	status = gs_init(&serverData, this->hostname, folder, 0, 0);
+	if (status != 0) {
+		return status;
+	}
+	return 0;
+}
+
+bool MoonlightClient::IsPaired() {
+	return serverData.paired;
+}
+
+char *MoonlightClient::GeneratePIN() {
+	srand(time(NULL));
+	if (connectionPin == NULL)connectionPin = (char*)malloc(5 * sizeof(char));
+	sprintf(connectionPin, "%d%d%d%d", rand() % 10, rand() % 10, rand() % 10, rand() % 10);
+	return connectionPin;
+}
+
+int MoonlightClient::Pair() {
+	if (serverData.paired)return -7;
+	int status;
+	if ((status = gs_pair(&serverData, &connectionPin[0])) != 0) {
+		gs_unpair(&serverData);
+		return status;
+	}
+	return 0;
+}
+
+std::vector<MoonlightApplication> MoonlightClient::GetApplications() {
+	PAPP_LIST list;
+	gs_applist(&serverData, &list);
+	std::vector<MoonlightApplication> values;
+	if (list == NULL)return values;
+	while (list != NULL) {
+		MoonlightApplication a;
+		a.id = list->id;
+		a.name = list->name;
+		values.push_back(a);
+		list = list->next;
+	}
+	return values;
+}
+
+void MoonlightClient::SetAppID(int id) {
+	appID = id;
 }

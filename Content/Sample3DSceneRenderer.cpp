@@ -246,8 +246,8 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	
 	// Once the cube is loaded, the object is ready to be rendered.
 	createCubeTask.then([this] () {
-		client = MoonlightClient();
-		client.Init(m_deviceResources, 1280,720);
+		client = MoonlightClient::GetInstance();
+		client->Init(m_deviceResources, 1280,720);
 		m_loadingComplete = true;
 	});
 }

@@ -1,0 +1,30 @@
+﻿<Page
+    x:Class="moonlight_xbox_dx.MenuPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <StackPanel Padding="64">
+        <TextBlock FontSize="24">Moonlight</TextBlock>
+        <TextBlock Height="60">Experimental Software Ahead! Here be dragons!</TextBlock>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock>IP Address or Hostname:</TextBlock>
+            <TextBox Width="128" x:Name="ipAddressText"></TextBox>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <Button Click="ConnectButton_Click">Connect</Button>
+            <ProgressRing x:Name="progressRing" Margin="10"></ProgressRing>
+            <TextBlock x:Name="connectStatus"></TextBlock>
+        </StackPanel>
+        <StackPanel x:Name="appsPanel">
+            <TextBlock>Applications</TextBlock>
+            <StackPanel x:Name="appsGrid">
+                
+            </StackPanel>
+        </StackPanel>
+    </StackPanel>
+</Page>

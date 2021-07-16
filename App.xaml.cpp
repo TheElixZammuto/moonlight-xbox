@@ -69,19 +69,14 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 		// When the navigation stack isn't restored navigate to the first page,
 		// configuring the new page by passing required information as a navigation
 		// parameter
-		rootFrame->Navigate(TypeName(DirectXPage::typeid), e->Arguments);
+		rootFrame->Navigate(TypeName(MenuPage::typeid), e->Arguments);
 	}
 
-	if (m_directXPage == nullptr)
+	if (m_menuPage == nullptr)
 	{
-		m_directXPage = dynamic_cast<DirectXPage^>(rootFrame->Content);
+		m_menuPage = dynamic_cast<MenuPage^>(rootFrame->Content);
 	}
 
-	if (e->PreviousExecutionState == ApplicationExecutionState::Terminated)
-	{
-		m_directXPage->LoadInternalState(ApplicationData::Current->LocalSettings->Values);
-	}
-	
 	// Ensure the current window is active
 	Window::Current->Activate();
 }
@@ -97,7 +92,6 @@ void App::OnSuspending(Object^ sender, SuspendingEventArgs^ e)
 	(void) sender;	// Unused parameter
 	(void) e;	// Unused parameter
 
-	m_directXPage->SaveInternalState(ApplicationData::Current->LocalSettings->Values);
 }
 
 /// <summary>
@@ -109,8 +103,6 @@ void App::OnResuming(Object ^sender, Object ^args)
 {
 	(void) sender; // Unused parameter
 	(void) args; // Unused parameter
-
-	m_directXPage->LoadInternalState(ApplicationData::Current->LocalSettings->Values);
 }
 
 /// <summary>

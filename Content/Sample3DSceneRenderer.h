@@ -41,7 +41,7 @@ namespace moonlight_xbox_dx
 		bool	m_loadingComplete;
 		float	m_degreesPerSecond;
 		bool	m_tracking;
-		MoonlightClient client;
+		MoonlightClient *client;
 	};
 }
 

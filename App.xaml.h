@@ -6,7 +6,7 @@
 #pragma once
 
 #include "App.g.h"
-#include "DirectXPage.xaml.h"
+#include "MenuPage.xaml.h"
 
 namespace moonlight_xbox_dx
 {
@@ -23,6 +23,6 @@ namespace moonlight_xbox_dx
 		void OnSuspending(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ e);
 		void OnResuming(Platform::Object ^sender, Platform::Object ^args);
 		void OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Navigation::NavigationFailedEventArgs ^e);
-		DirectXPage^ m_directXPage;
+		MenuPage^ m_menuPage;
 	};
 }

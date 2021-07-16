@@ -255,6 +255,9 @@
     </ClInclude>
     <ClInclude Include="Common\DeviceResources.h" />
     <ClInclude Include="FFMpegDecoder.h" />
+    <ClInclude Include="MenuPage.xaml.h">
+      <DependentUpon>MenuPage.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="MoonlightClient.h" />
     <ClInclude Include="moonlight_xbox_dxMain.h" />
     <ClInclude Include="DirectXPage.xaml.h">
@@ -273,6 +276,9 @@
     </ClCompile>
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="FFMpegDecoder.cpp" />
+    <ClCompile Include="MenuPage.xaml.cpp">
+      <DependentUpon>MenuPage.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="MoonlightClient.cpp" />
     <ClCompile Include="moonlight_xbox_dxMain.cpp" />
     <ClCompile Include="DirectXPage.xaml.cpp">
@@ -309,6 +315,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Page Include="DirectXPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="MenuPage.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

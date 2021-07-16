@@ -88,6 +88,7 @@
   </ItemGroup>
   <ItemGroup>
     <Page Include="DirectXPage.xaml" />
+    <Page Include="MenuPage.xaml" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avcodec-58.dll" />
