@@ -55,8 +55,8 @@ void log_message(const char* fmt, ...) {
 	va_list argp;
 	va_start(argp, fmt);
 	char message[2048];
-	sprintf_s(message, fmt, 2048, argp);
-	OutputDebugStringA(message);
+	sprintf_s(message, fmt, 2047, argp);
+	//OutputDebugStringA(message);
 }
 
 void connection_started() {

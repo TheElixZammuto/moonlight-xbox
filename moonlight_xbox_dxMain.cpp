@@ -56,12 +56,17 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 		while (action->Status == AsyncStatus::Started)
 		{
 			critical_section::scoped_lock lock(m_criticalSection);
+			int t1 = GetTickCount64();
 			Update();
 			if (Render())
 			{
 				m_deviceResources->GetD3DDeviceContext()->Flush();
 				m_deviceResources->Present();
 			}
+			int t2 = GetTickCount64();
+			char msg[2084];
+			//sprintf(msg, "Got %d ms of rendering time\n", t2 - t1);
+			//OutputDebugStringA(msg);
 		}
 	});
 

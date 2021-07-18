@@ -21,7 +21,7 @@ namespace moonlight_xbox_dx
 		void Stop();
 		void Cleanup();
 		int SubmitDU(PDECODE_UNIT decodeUnit);
-		AVFrame* GetFrame();
+		int GetFrame();
 		AVFrame* GetLastFrame();
 		static FFMpegDecoder* getInstance();
 		static DECODER_RENDERER_CALLBACKS getDecoder();

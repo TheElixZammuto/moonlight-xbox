@@ -17,12 +17,12 @@ namespace moonlight_xbox_dx {
 	void ffmpeg_log_callback(void* avcl,int	level,const char* fmt,va_list vl) {
 		//char message[2048];
 		//sprintf_s(message, fmt, 2048, vl);
-		OutputDebugStringA(fmt);
+		//OutputDebugStringA(fmt);
 	}
 	
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
 		av_log_set_callback(&ffmpeg_log_callback);
-		av_log_set_level(AV_LOG_VERBOSE);
+		av_log_set_level(AV_LOG_INFO);
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
         avcodec_register_all();
 #endif
@@ -65,6 +65,7 @@ namespace moonlight_xbox_dx {
 		AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
 		AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
 		ffmpegDevice = (ID3D11Device1*) d3d11va_device_ctx->device;
+		D3D_FEATURE_LEVEL fl = ffmpegDevice->GetFeatureLevel();
 		ffmpegDeviceContext = d3d11va_device_ctx->device_context;
 		decoder_ctx->width = width;
         decoder_ctx->height = height;
@@ -101,6 +102,7 @@ namespace moonlight_xbox_dx {
 				return -1;
 			}
 		}
+		ffmpegDevice->OpenSharedResource(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture);
 		return 0;
 	}
 
@@ -121,6 +123,7 @@ namespace moonlight_xbox_dx {
 			printf("C");
 			return -1;
 		}
+		OutputDebugStringA("Got frame\n");
 		//frameLock.lock();
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
@@ -128,6 +131,10 @@ namespace moonlight_xbox_dx {
 			/*if (entry->bufferType == BUFFER_TYPE_SPS)
 				gs_sps_fix(entry, GS_SPS_BITSTREAM_FIXUP, ffmpeg_buffer, &length);
 			else {*/
+			/*if (entry->bufferType == BUFFER_TYPE_PICDATA)OutputDebugStringA("Got PICDATA\n");
+			if (entry->bufferType == BUFFER_TYPE_PPS)OutputDebugStringA("Got PPS\n");
+			if (entry->bufferType == BUFFER_TYPE_SPS)OutputDebugStringA("Got SPS\n");
+			if (entry->bufferType == BUFFER_TYPE_VPS)OutputDebugStringA("Got VPS\n");*/
 			memcpy(ffmpeg_buffer + length, entry->data, entry->length);
 			length += entry->length;
 			entry = entry->next;
@@ -140,7 +147,6 @@ namespace moonlight_xbox_dx {
 			sprintf(errorstringnew, "Error from FFMPEG: %d", AVERROR(err));
 			return DR_NEED_IDR;
 		}
-		ffmpegDevice->OpenSharedResource(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture);
 		setup = true;
 		return DR_OK;
 	}
@@ -150,34 +156,40 @@ namespace moonlight_xbox_dx {
 
 		pkt.data = indata;
 		pkt.size = inlen;
-
+		int ts = GetTickCount64();
 		err = avcodec_send_packet(decoder_ctx, &pkt);
 		if (err < 0) {
 			char errorstring[512];
 			av_strerror(err, errorstring, sizeof(errorstring));
-			fprintf(stderr, "Decode failed - %s\n", errorstring);
+			OutputDebugStringA(errorstring);
+			return -1;
 		}
-		GetFrame();
+		err = GetFrame();
+		if (err != 0)return err;
+		int te = GetTickCount64();
+		/*char msg[4096];
+		sprintf(msg, "Decoding took: %d ms\n", te - ts);
+		OutputDebugStringA(msg);*/
 		return err < 0 ? err : 0;
 	}
 
-	AVFrame* FFMpegDecoder::GetFrame() {
+	int FFMpegDecoder::GetFrame() {
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
+		if (dec_frames[next_frame]->key_frame) {
+			OutputDebugStringA("Got a KeyFrame\n");
+		}
 		if (err == 0 && sharedTexture != NULL) {
 			ffmpegTexture = (ID3D11Texture2D*)dec_frames[next_frame]->data[0];
 			int index = (int)dec_frames[next_frame]->data[1];
 			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture,index, NULL);
+			OutputDebugStringA("Decoded frame\n");
+			return 0;
 		}
-		else if (err != AVERROR(EAGAIN)) {
-			char errorstring[512];
-			av_strerror(err, errorstring, sizeof(errorstring));
-			fprintf(stderr, "Receive failed - %d/%s\n", err, errorstring);
-		}
-		return NULL;
+		return err;
 	}
 
 	AVFrame* FFMpegDecoder::GetLastFrame() {
-		return GetFrame();
+		return NULL;
 	}
 
 	
