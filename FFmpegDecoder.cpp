@@ -51,21 +51,28 @@ namespace moonlight_xbox_dx {
         }
 
 		//DirectX Initializazion
-		static AVBufferRef* hw_device_ctx = NULL;
+		static AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
+		AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
+		AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
+		D3D_FEATURE_LEVEL featureLevels[] = {
+			D3D_FEATURE_LEVEL_11_0,
+			D3D_FEATURE_LEVEL_10_1,
+			D3D_FEATURE_LEVEL_10_0,
+			D3D_FEATURE_LEVEL_9_3,
+			D3D_FEATURE_LEVEL_9_2,
+			D3D_FEATURE_LEVEL_9_1
+		};
+		D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG, featureLevels, 6, D3D11_SDK_VERSION, &(d3d11va_device_ctx->device), NULL, &(d3d11va_device_ctx->device_context));
+		//DX11-FFMpeg association
 		int err2;
-		AVDictionary* dictionary = NULL;
-		av_dict_set_int(&dictionary, "debug", 1, 0);
-		if ((err2 = av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_D3D11VA, NULL, dictionary, 0)) < 0) {
+		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
 			fprintf(stderr, "Failed to create specified HW device.\n");
 			return err2;
 
 		}
 
 		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-		AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
-		AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
-		ffmpegDevice = (ID3D11Device1*) d3d11va_device_ctx->device;
-		D3D_FEATURE_LEVEL fl = ffmpegDevice->GetFeatureLevel();
+		ffmpegDevice = (ID3D11Device1*)d3d11va_device_ctx->device;
 		ffmpegDeviceContext = d3d11va_device_ctx->device_context;
 		decoder_ctx->width = width;
         decoder_ctx->height = height;
@@ -103,6 +110,19 @@ namespace moonlight_xbox_dx {
 			}
 		}
 		ffmpegDevice->OpenSharedResource(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture);
+		//Create a Staging Texture
+		D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
+		stagingDesc.Width = 1280;
+		stagingDesc.Height = 720;
+		stagingDesc.ArraySize = 1;
+		stagingDesc.Format = DXGI_FORMAT_NV12;
+		stagingDesc.Usage = D3D11_USAGE_STAGING;
+		stagingDesc.MipLevels = 1;
+		stagingDesc.SampleDesc.Quality = 0;
+		stagingDesc.SampleDesc.Count = 1;
+		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		stagingDesc.MiscFlags = 0;
+		DX::ThrowIfFailed(ffmpegDevice->CreateTexture2D(&stagingDesc, NULL, &stagingTexture));
 		return 0;
 	}
 
@@ -179,9 +199,18 @@ namespace moonlight_xbox_dx {
 			OutputDebugStringA("Got a KeyFrame\n");
 		}
 		if (err == 0 && sharedTexture != NULL) {
-			ffmpegTexture = (ID3D11Texture2D*)dec_frames[next_frame]->data[0];
-			int index = (int)dec_frames[next_frame]->data[1];
-			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture,index, NULL);
+			av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
+			AVFrame *frame = ready_frames[next_frame];
+			D3D11_MAPPED_SUBRESOURCE ms;
+			DX::ThrowIfFailed(ffmpegDeviceContext->Map(stagingTexture, 0, D3D11_MAP_WRITE, 0, &ms));
+			int luminanceLength = frame->height * frame->linesize[0];
+			int chrominanceLength = frame->height * (frame->linesize[1] / 2);
+			unsigned char* texturePointer = (unsigned char*)ms.pData;
+			memcpy(texturePointer, frame->data[0], luminanceLength);
+			memcpy((texturePointer + luminanceLength + 1), frame->data[1], chrominanceLength);
+			//memcpy((texturePointer + luminanceLength + chrominanceLength), frame->data[2], chrominance2Length);
+			ffmpegDeviceContext->Unmap(stagingTexture, 0);
+			ffmpegDeviceContext->CopyResource(sharedTexture, stagingTexture);
 			OutputDebugStringA("Decoded frame\n");
 			return 0;
 		}

@@ -42,5 +42,6 @@ namespace moonlight_xbox_dx
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> ffmpegDeviceContext;
 		ID3D11Texture2D* sharedTexture;
 		ID3D11Texture2D* ffmpegTexture;
+		ID3D11Texture2D* stagingTexture;
 	};
 }
