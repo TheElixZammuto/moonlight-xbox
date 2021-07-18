@@ -11,12 +11,10 @@
     <StackPanel Padding="64">
         <TextBlock FontSize="24">Moonlight</TextBlock>
         <TextBlock Height="60">Experimental Software Ahead! Here be dragons!</TextBlock>
-        <StackPanel Orientation="Horizontal">
-            <TextBlock>IP Address or Hostname:</TextBlock>
-            <TextBox Width="128" x:Name="ipAddressText"></TextBox>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <Button Click="ConnectButton_Click">Connect</Button>
+        <TextBlock>IP Address or Hostname:</TextBlock>
+        <StackPanel Orientation="Horizontal"  XYFocusKeyboardNavigation="Enabled">
+            <TextBox Width="128" x:Name="ipAddressText" HorizontalAlignment="Left"></TextBox>
+            <Button Click="ConnectButton_Click" x:Name="ConnectButton">Connect</Button>
             <ProgressRing x:Name="progressRing" Margin="10"></ProgressRing>
             <TextBlock x:Name="connectStatus"></TextBlock>
         </StackPanel>

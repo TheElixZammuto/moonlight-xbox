@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "Sample3DSceneRenderer.h"
+#include "VideoRenderer.h"
 #include "MoonlightClient.h"
 #include "..\Common\DirectXHelper.h"
 #include <FFMpegDecoder.h>
@@ -15,7 +15,7 @@ using namespace DirectX;
 using namespace Windows::Foundation;
 
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
-Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
+VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_loadingComplete(false),
 	m_degreesPerSecond(45),
 	m_indexCount(0),
@@ -27,18 +27,18 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 }
 
 // Initializes view parameters when the window size changes.
-void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
+void VideoRenderer::CreateWindowSizeDependentResources()
 {
 }
 
 // Called once per frame, rotates the cube and calculates the model and view matrices.
-void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
+void VideoRenderer::Update(DX::StepTimer const& timer)
 {
 
 }
 
 // Renders one frame using the vertex and pixel shaders.
-void Sample3DSceneRenderer::Render()
+void VideoRenderer::Render()
 {
 		// Loading is asynchronous. Only draw geometry after it's loaded.
 		if (!m_loadingComplete || renderTexture == NULL)
@@ -80,7 +80,7 @@ void Sample3DSceneRenderer::Render()
 		//m_chrominance_shader_resource_view->Release();
 }
 
-void Sample3DSceneRenderer::CreateDeviceDependentResources()
+void VideoRenderer::CreateDeviceDependentResources()
 {
 	// Load shaders asynchronously.
 	auto loadVSTask = DX::ReadDataAsync(L"SampleVertexShader.cso");
@@ -252,7 +252,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	});
 }
 
-void Sample3DSceneRenderer::ReleaseDeviceDependentResources()
+void VideoRenderer::ReleaseDeviceDependentResources()
 {
 	m_loadingComplete = false;
 	m_vertexShader.Reset();

@@ -23,18 +23,12 @@
     <ClCompile Include="Common\DeviceResources.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClInclude Include="Content\Sample3DSceneRenderer.h">
-      <Filter>Content</Filter>
-    </ClInclude>
     <ClInclude Include="Content\SampleFpsTextRenderer.h">
       <Filter>Content</Filter>
     </ClInclude>
     <ClInclude Include="Content\ShaderStructures.h">
       <Filter>Content</Filter>
     </ClInclude>
-    <ClCompile Include="Content\Sample3DSceneRenderer.cpp">
-      <Filter>Content</Filter>
-    </ClCompile>
     <ClCompile Include="Content\SampleFpsTextRenderer.cpp">
       <Filter>Content</Filter>
     </ClCompile>
@@ -71,12 +65,18 @@
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="FFMpegDecoder.cpp" />
     <ClCompile Include="MoonlightClient.cpp" />
+    <ClCompile Include="Content\VideoRenderer.cpp">
+      <Filter>Content</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="moonlight_xbox_dxMain.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="FFMpegDecoder.h" />
     <ClInclude Include="MoonlightClient.h" />
+    <ClInclude Include="Content\VideoRenderer.h">
+      <Filter>Content</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\StoreLogo.png">
@@ -114,5 +114,8 @@
     <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\swresample-3.dll" />
     <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\swscale-5.dll" />
     <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\zlib1.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />
   </ItemGroup>
 </Project>
