@@ -8,6 +8,17 @@ extern "C" {
 #include "FFMpegDecoder.h"
 
 using namespace moonlight_xbox_dx;
+using namespace Windows::Gaming::Input;
+
+
+//Singleton Helpers
+MoonlightClient* client;
+
+MoonlightClient* MoonlightClient::GetInstance() {
+	if (client != NULL)return client;
+	client = new MoonlightClient();
+	return client;
+}
 
 AVFrame* MoonlightClient::GetLastFrame() {
 	if (FFMpegDecoder::getInstance() == NULL || !FFMpegDecoder::getInstance()->setup)return NULL;
@@ -71,15 +82,6 @@ void stage_failed(int stage, int err) {
 
 }
 
-//Singleton Helpers
-MoonlightClient* client;
-
-MoonlightClient* MoonlightClient::GetInstance() {
-	if (client != NULL)return client;
-	client = new MoonlightClient();
-	return client;
-}
-
 int MoonlightClient::Connect(char* hostname) {
 	this->hostname = (char*)malloc(2048 * sizeof(char));
 	strcpy_s(this->hostname, 2048,hostname);
@@ -133,4 +135,19 @@ std::vector<MoonlightApplication> MoonlightClient::GetApplications() {
 
 void MoonlightClient::SetAppID(int id) {
 	appID = id;
+}
+
+void MoonlightClient::SendGamepadReading(GamepadReading reading) {
+	int buttonFlags = 0;
+	GamepadButtons buttons[] = { GamepadButtons::A,GamepadButtons::B,GamepadButtons::X,GamepadButtons::Y,GamepadButtons::DPadLeft,GamepadButtons::DPadRight,GamepadButtons::DPadUp,GamepadButtons::DPadDown,GamepadButtons::LeftShoulder,GamepadButtons::RightShoulder,GamepadButtons::Menu,GamepadButtons::View };
+	int LiButtonFlags[] = { A_FLAG,B_FLAG,X_FLAG,Y_FLAG,LEFT_FLAG,RIGHT_FLAG,UP_FLAG,DOWN_FLAG,LB_FLAG,RB_FLAG,PLAY_FLAG,BACK_FLAG };
+	for (int i = 0; i < 12; i++) {
+		if ((reading.Buttons & buttons[i]) == buttons[i]) {
+			buttonFlags |= LiButtonFlags[i];
+		}
+	}
+	char output[1024];
+	//sprintf(output,"Got from gamepad: %d\n", buttonFlags);
+	OutputDebugStringA(output);
+	LiSendControllerEvent(buttonFlags, (short)(reading.LeftTrigger * 32767), (short)(reading.RightTrigger * 32767), (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
 }

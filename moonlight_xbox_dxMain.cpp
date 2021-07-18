@@ -15,7 +15,6 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
-	// TODO: Replace this with your app's content initialization.
 	m_sceneRenderer = std::unique_ptr<VideoRenderer>(new VideoRenderer(m_deviceResources));
 
 	m_fpsTextRenderer = std::unique_ptr<SampleFpsTextRenderer>(new SampleFpsTextRenderer(m_deviceResources));
@@ -96,6 +95,13 @@ void moonlight_xbox_dxMain::Update()
 // Process all input from the user before updating game state
 void moonlight_xbox_dxMain::ProcessInput()
 {
+	MoonlightClient *client = MoonlightClient::GetInstance();
+	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
+	if (gamepads->Size == 0)return;
+	Windows::Gaming::Input::Gamepad^ gamepad = gamepads->GetAt(0);
+	auto reading = gamepad->GetCurrentReading();
+	client->SendGamepadReading(reading);
+	
 }
 
 // Renders the current frame according to the current application state.

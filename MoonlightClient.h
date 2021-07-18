@@ -23,6 +23,7 @@ namespace moonlight_xbox_dx {
 		void SetAppID(int appID);
 		AVFrame* GetLastFrame();
 		static MoonlightClient* GetInstance();
+		void SendGamepadReading(Windows::Gaming::Input::GamepadReading reading);
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;
