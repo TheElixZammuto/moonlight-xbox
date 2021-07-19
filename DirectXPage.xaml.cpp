@@ -81,6 +81,9 @@ DirectXPage::DirectXPage():
 	m_inputLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
 
 	m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources));
+
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this,&DirectXPage::OnBackRequested);
 	m_main->StartRenderLoop();
 }
 
@@ -185,4 +188,12 @@ void DirectXPage::OnSwapChainPanelSizeChanged(Object^ sender, SizeChangedEventAr
 	critical_section::scoped_lock lock(m_main->GetCriticalSection());
 	m_deviceResources->SetLogicalSize(e->NewSize);
 	m_main->CreateWindowSizeDependentResources();
+}
+
+void DirectXPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequestedEventArgs^ args)
+{
+	// UWP on Xbox One triggers a back request whenever the B
+	// button is pressed which can result in the app being
+	// suspended if unhandled
+	args->Handled = true;
 }

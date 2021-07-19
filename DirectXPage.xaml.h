@@ -23,6 +23,7 @@ namespace moonlight_xbox_dx
 
 		void SaveInternalState(Windows::Foundation::Collections::IPropertySet^ state);
 		void LoadInternalState(Windows::Foundation::Collections::IPropertySet^ state);
+		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
 
 	private:
 		// XAML low-level rendering event handler.

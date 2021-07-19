@@ -80,6 +80,7 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 
 	// Ensure the current window is active
 	Window::Current->Activate();
+	
 }
 /// <summary>
 /// Invoked when application execution is being suspended.  Application state is saved
