@@ -109,7 +109,9 @@ namespace moonlight_xbox_dx {
 				return -1;
 			}
 		}
-		ffmpegDevice->OpenSharedResource(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture);
+		ffmpegDevice->OpenSharedResource1(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture);
+		if (sharedTexture == NULL)return 1;
+		DX::ThrowIfFailed(sharedTexture->QueryInterface(dxgiMutex.GetAddressOf()));
 		//Create a Staging Texture
 		D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
 		stagingDesc.Width = 1280;
@@ -210,7 +212,9 @@ namespace moonlight_xbox_dx {
 			memcpy((texturePointer + luminanceLength + 1), frame->data[1], chrominanceLength);
 			//memcpy((texturePointer + luminanceLength + chrominanceLength), frame->data[2], chrominance2Length);
 			ffmpegDeviceContext->Unmap(stagingTexture, 0);
+			dxgiMutex->AcquireSync(0, 1000);
 			ffmpegDeviceContext->CopyResource(sharedTexture, stagingTexture);
+			dxgiMutex->ReleaseSync(1);
 			OutputDebugStringA("Decoded frame\n");
 			return 0;
 		}

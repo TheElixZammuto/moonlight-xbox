@@ -40,6 +40,7 @@ namespace moonlight_xbox_dx
 		std::shared_ptr<DX::DeviceResources> resources;
 		Microsoft::WRL::ComPtr<ID3D11Device1> ffmpegDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> ffmpegDeviceContext;
+		Microsoft::WRL::ComPtr<IDXGIKeyedMutex> dxgiMutex;
 		ID3D11Texture2D* sharedTexture;
 		ID3D11Texture2D* ffmpegTexture;
 		ID3D11Texture2D* stagingTexture;

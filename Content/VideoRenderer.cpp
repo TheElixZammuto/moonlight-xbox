@@ -45,6 +45,7 @@ void VideoRenderer::Render()
 		{
 			return;
 		}
+		m_deviceResources->keyedMutex->AcquireSync(1, 1000);
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
 		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
 		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
@@ -78,6 +79,7 @@ void VideoRenderer::Render()
 		context->DrawIndexed(m_indexCount,0,0);
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
+		m_deviceResources->keyedMutex->ReleaseSync(0);
 }
 
 void VideoRenderer::CreateDeviceDependentResources()
@@ -224,7 +226,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 
 	
 
-	Microsoft::WRL::ComPtr<IDXGIResource> dxgiResource;
+	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
 	//Create a rendering texture
 	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
 	stagingDesc.Width = 1280;
@@ -237,12 +239,12 @@ void VideoRenderer::CreateDeviceDependentResources()
 	stagingDesc.SampleDesc.Quality = 0;
 	stagingDesc.SampleDesc.Count = 1;
 	stagingDesc.CPUAccessFlags = 0;
-	stagingDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+	stagingDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, renderTexture.GetAddressOf()));
 	DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
-	//DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
-	//DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
-	DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&m_deviceResources->sharedHandle));
+	DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
+	DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
+	//DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&m_deviceResources->sharedHandle));
 	
 	// Once the cube is loaded, the object is ready to be rendered.
 	createCubeTask.then([this] () {
