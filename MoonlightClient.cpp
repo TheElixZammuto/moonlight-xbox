@@ -34,7 +34,7 @@ void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,in
 	STREAM_CONFIGURATION config;
 	config.width = 1280;
 	config.height = 720;
-	config.bitrate = 2000;
+	config.bitrate = 8000;
 	config.clientRefreshRateX100 = 60 * 100;
 	config.colorRange = COLOR_RANGE_LIMITED;
 	config.encryptionFlags = 0;
@@ -53,6 +53,7 @@ void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,in
 	callbacks.stageComplete = connection_status_update;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
+	AUDIO_RENDERER_CALLBACKS aCallbacks;
 	int e = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, NULL, NULL, 0, NULL, 0);
 	if (e != 0) {
 		return;
