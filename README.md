@@ -1,0 +1,38 @@
+# moonlight-xbox
+A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games using GeForce Experience or [Sunshine](https://github.com/loki-47-6F-64/sunshine) for the Xbox One and Xbox Series X|S family of consoles
+
+
+**This Application uses [XBOX UWP Dev Mode](https://docs.microsoft.com/en-us/windows/uwp/xbox-apps/devkit-activation) to function properly**
+
+**This application is still in early stages of development. Expect things to not work or working badly**
+
+## Installation and Usage
+1. Enable the Dev Mode on your Xbox https://docs.microsoft.com/en-us/windows/uwp/xbox-apps/devkit-activation
+2. Using the Device Portal, install the Application, including dependencies
+3. Open Moonlight on Xbox and, if not already, your host app
+4. Insert your PC IP Address and press "Connect"
+5. If needed, pair with the PIN provided by Moonlight, and pressing again "Connect"
+6. Choose from the list below the application you want to run
+7. ???
+8. Profit!
+
+## What does work
+- Connection and Pairing
+- Application List fetching
+- Video Streaming (hardcoded at 720p with 8Mpbs of bitrate)
+- Gamepad Input
+
+## What does NOT work
+- Host configuration (for resolution and bitrate) and saved host history
+- Gamepad Rumble and other means of input
+- Audio
+- Everything else not listed above
+
+## Building
+You need [VCPKG](https://vcpkg.io/en/index.html) installed in the "vcpkg" folder inside the repository to handle the dependencies. 
+
+In particular, the FFMPEG port file (https://github.com/microsoft/vcpkg/blob/master/ports/ffmpeg/portfile.cmake) shoud be modified to include the `--enable-d3d11va` configure flag
+
+Required ports are `pthread:x64-uwp, pthreads:x64-uwp, curl:x64-uwp, openssl:x64-uwp, expat:x64-uwp, zlib:x64-uwp, ffmpeg:x64-uwp`
+
+After that, you can open and run the .sln fie
