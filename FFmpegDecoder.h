@@ -27,6 +27,8 @@ namespace moonlight_xbox_dx
 		static DECODER_RENDERER_CALLBACKS getDecoder();
 		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources);
 		bool setup = false;
+		int renderedFrameNumber = -1;
+		int decodedFrameNumber = -1;
 	private:
 		int Decode(unsigned char* indata, int inlen);
 		AVPacket pkt;

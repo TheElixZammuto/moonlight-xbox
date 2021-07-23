@@ -45,6 +45,7 @@ void VideoRenderer::Render()
 		{
 			return;
 		}
+		if (FFMpegDecoder::getInstance()->decodedFrameNumber < 0)return;
 		m_deviceResources->keyedMutex->AcquireSync(1, 1000);
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
 		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
@@ -79,6 +80,7 @@ void VideoRenderer::Render()
 		context->DrawIndexed(m_indexCount,0,0);
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
+		FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
 		m_deviceResources->keyedMutex->ReleaseSync(0);
 }
 

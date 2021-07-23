@@ -200,7 +200,8 @@ namespace moonlight_xbox_dx {
 		if (dec_frames[next_frame]->key_frame) {
 			OutputDebugStringA("Got a KeyFrame\n");
 		}
-		if (err == 0 && sharedTexture != NULL) {
+		decodedFrameNumber++;
+		if (err == 0 && sharedTexture != NULL && (decodedFrameNumber - renderedFrameNumber) <= 1) {
 			av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
 			AVFrame *frame = ready_frames[next_frame];
 			D3D11_MAPPED_SUBRESOURCE ms;
