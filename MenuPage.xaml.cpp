@@ -49,30 +49,12 @@ void moonlight_xbox_dx::MenuPage::ConnectButton_Click(Platform::Object^ sender, 
 		this->connectStatus->Text =String::Concat(L"Use PIN for pairing and then press Connect Again: ", p_string);
 		ProgressRing ^ring = progressRing;
 		TextBlock ^text = connectStatus;
-		//int status = client->Pair();
-		/*Concurrency::task<int> pair_task = Concurrency::create_task<int>([client]() -> int
-			{
-				return client->Pair();
-				/*ring->IsActive = false;
-				if (a == 0) {
-					text->Text = L"Paired Successfuly";
-				}
-				else {
-					char error[1000];
-					sprintf(error,"Error in Pairing: %d", a);
-					std::string s_str = std::string(error);
-					std::wstring wid_str = std::wstring(s_str.begin(), s_str.end());
-					const wchar_t* w_char = wid_str.c_str();
-					Platform::String^ p_string = ref new Platform::String(w_char);
-					text->Text = String::Concat(L"Use PIN for pairing: ", p_string);
-				}*/
-			/*});*/
-			auto t = Concurrency::create_async([]()
-			{
-					MoonlightClient* client = MoonlightClient::GetInstance();
-					int a = client->Pair();
-			});
-			this->progressRing->IsActive = false;
+		auto t = Concurrency::create_async([]()
+		{
+				MoonlightClient* client = MoonlightClient::GetInstance();
+				int a = client->Pair();
+		});
+		this->progressRing->IsActive = false;
 	}
 	else {
 		this->connectStatus->Text = L"Connected";

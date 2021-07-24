@@ -6,10 +6,18 @@ extern "C" {
 #include<libgamestream/client.h>
 }
 #include "FFMpegDecoder.h"
+#include <Utils.h>
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
 
+
+void log_message(const char* fmt, ...);
+void connection_started();
+void connection_status_update(int status);
+void connection_terminated(int status);
+void stage_failed(int stage, int err);
+void moonlight_log_callback(const char* fmt);
 
 //Singleton Helpers
 MoonlightClient* client;
@@ -17,6 +25,7 @@ MoonlightClient* client;
 MoonlightClient* MoonlightClient::GetInstance() {
 	if (client != NULL)return client;
 	client = new MoonlightClient();
+	client->SetErrorMessageCallback(moonlight_log_callback);
 	return client;
 }
 
@@ -25,12 +34,8 @@ AVFrame* MoonlightClient::GetLastFrame() {
 	return FFMpegDecoder::getInstance()->GetLastFrame();
 }
 
-void log_message(const char* fmt, ...);
-void connection_started();
-void connection_status_update(int status);
-void stage_failed(int stage, int err);
 
-void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int height) {
+int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int height) {
 	STREAM_CONFIGURATION config;
 	config.width = 1280;
 	config.height = 720;
@@ -47,20 +52,14 @@ void MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,in
 	callbacks.logMessage = log_message;
 	callbacks.connectionStarted = connection_started;
 	callbacks.connectionStatusUpdate = connection_status_update;
-	callbacks.connectionTerminated = connection_status_update;
+	callbacks.connectionTerminated = connection_terminated;
 	callbacks.stageStarting = connection_status_update;
 	callbacks.stageFailed = stage_failed;
 	callbacks.stageComplete = connection_status_update;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks;
-	int e = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, NULL, NULL, 0, NULL, 0);
-	if (e != 0) {
-		return;
-	}
-	else {
-		//set_text("OK");
-	}
+	return LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, NULL, NULL, 0, NULL, 0);
 }
 
 void log_message(const char* fmt, ...) {
@@ -79,8 +78,16 @@ void connection_status_update(int status) {
 
 }
 
-void stage_failed(int stage, int err) {
+void connection_terminated(int status) {
+	char message[4096];
+	sprintf(message, "Connection terminated with status %d", status);
+	client->errorCallback(message);
+}
 
+void stage_failed(int stage, int err) {
+	char message[4096];
+	sprintf(message, "Stage %d failed with error %d", stage, err);
+	client->errorCallback(message);
 }
 
 int MoonlightClient::Connect(char* hostname) {
@@ -151,4 +158,21 @@ void MoonlightClient::SendGamepadReading(GamepadReading reading) {
 	//sprintf(output,"Got from gamepad: %d\n", buttonFlags);
 	OutputDebugStringA(output);
 	LiSendControllerEvent(buttonFlags, (short)(reading.LeftTrigger * 32767), (short)(reading.RightTrigger * 32767), (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
+}
+
+void MoonlightClient::SetErrorMessageCallback(MoonlightErrorCallback callback) {
+	this->errorCallback = callback;
+}
+
+
+void moonlight_log_callback(const char* fmt) {
+	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+		Windows::UI::Core::CoreDispatcherPriority::Normal,
+		ref new Windows::UI::Core::DispatchedHandler([fmt]()
+			{
+				Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+				dialog->Content = StringPrintf(fmt, "");
+				dialog->CloseButtonText = L"OK";
+				dialog->ShowAsync();
+			}));
 }

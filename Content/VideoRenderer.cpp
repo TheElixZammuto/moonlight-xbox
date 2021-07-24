@@ -8,6 +8,7 @@ extern "C" {
 #include "libgamestream/client.h"
 #include <Limelight.h>
 #include <libavcodec/avcodec.h>
+#include <Utils.h>
 }
 
 using namespace moonlight_xbox_dx;
@@ -251,7 +252,13 @@ void VideoRenderer::CreateDeviceDependentResources()
 	// Once the cube is loaded, the object is ready to be rendered.
 	createCubeTask.then([this] () {
 		client = MoonlightClient::GetInstance();
-		client->Init(m_deviceResources, 1280,720);
+		int status = client->Init(m_deviceResources, 1280,720);
+		if (status != 0) {
+			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			dialog->Content = StringPrintf("Got status %d from Moonlight init", status);
+			dialog->CloseButtonText = L"OK";
+			dialog->ShowAsync();
+		}
 		m_loadingComplete = true;
 	});
 }

@@ -10,11 +10,12 @@ typedef struct MoonlightApplication {
 	int id;
 	char* name;
 };
+typedef void(*MoonlightErrorCallback)(const char *msg);
 namespace moonlight_xbox_dx {
 	class MoonlightClient
 	{
 	public:
-		void Init(std::shared_ptr<DX::DeviceResources> res, int width, int height);
+		int Init(std::shared_ptr<DX::DeviceResources> res, int width, int height);
 		int Connect(char* hostname);
 		bool IsPaired();
 		int Pair();
@@ -24,6 +25,8 @@ namespace moonlight_xbox_dx {
 		AVFrame* GetLastFrame();
 		static MoonlightClient* GetInstance();
 		void SendGamepadReading(Windows::Gaming::Input::GamepadReading reading);
+		void SetErrorMessageCallback(MoonlightErrorCallback callback);
+		MoonlightErrorCallback errorCallback;
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;
