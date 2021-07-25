@@ -9,7 +9,7 @@
   <Identity
     Name="366ee3ec-fb9b-4569-b1ef-04f4a94124b5"
     Publisher="CN=TheElixZammuto"
-    Version="1.0.2.0" />
+    Version="1.0.6.0" />
 
   <mp:PhoneIdentity PhoneProductId="366ee3ec-fb9b-4569-b1ef-04f4a94124b5" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
