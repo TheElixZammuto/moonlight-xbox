@@ -8,6 +8,7 @@ extern "C" {
 #include "FFMpegDecoder.h"
 #include "AudioPlayer.h"
 #include <Utils.h>
+#define LOG_LINES 16
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
@@ -18,7 +19,6 @@ void connection_started();
 void connection_status_update(int status);
 void connection_terminated(int status);
 void stage_failed(int stage, int err);
-void moonlight_log_callback(const char* fmt);
 
 //Singleton Helpers
 MoonlightClient* client;
@@ -26,7 +26,6 @@ MoonlightClient* client;
 MoonlightClient* MoonlightClient::GetInstance() {
 	if (client != NULL)return client;
 	client = new MoonlightClient();
-	client->SetErrorMessageCallback(moonlight_log_callback);
 	return client;
 }
 
@@ -67,28 +66,29 @@ void log_message(const char* fmt, ...) {
 	va_list argp;
 	va_start(argp, fmt);
 	char message[2048];
-	sprintf_s(message, fmt, 2047, argp);
-	//OutputDebugStringA(message);
+	sprintf_s(message, fmt,argp);
+	client->InsertLog(message);
 }
 
 void connection_started() {
-
+	char message[2048];
+	sprintf(message, "Connection Started\n");
+	client->InsertLog(message);
 }
 
 void connection_status_update(int status) {
-
 }
 
 void connection_terminated(int status) {
 	char message[4096];
-	sprintf(message, "Connection terminated with status %d", status);
-	client->errorCallback(message);
+	sprintf(message, "Connection terminated with status %d\n", status);
+	client->InsertLog(message);
 }
 
 void stage_failed(int stage, int err) {
 	char message[4096];
-	sprintf(message, "Stage %d failed with error %d", stage, err);
-	client->errorCallback(message);
+	sprintf(message, "Stage %d failed with error %d\n", stage, err);
+	client->InsertLog(message);
 }
 
 int MoonlightClient::Connect(char* hostname) {
@@ -100,10 +100,10 @@ int MoonlightClient::Connect(char* hostname) {
 	wcstombs_s(NULL, folder, folderString->Data(), 2047);
 	int status = 0;
 	status = gs_init(&serverData, this->hostname, folder, 0, 0);
-	if (status != 0) {
-		return status;
-	}
-	return 0;
+	char msg[4096];
+	sprintf(msg,"Got status %d from Moonlight\n", status);
+	this->InsertLog(msg);
+	return status;
 }
 
 bool MoonlightClient::IsPaired() {
@@ -161,17 +161,15 @@ void MoonlightClient::SendGamepadReading(GamepadReading reading) {
 	LiSendControllerEvent(buttonFlags, (short)(reading.LeftTrigger * 32767), (short)(reading.RightTrigger * 32767), (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
 }
 
-void MoonlightClient::SetErrorMessageCallback(MoonlightErrorCallback callback) {
-	this->errorCallback = callback;
+std::vector<std::wstring> MoonlightClient::GetLogLines() {
+	return logLines;
 }
 
-
-void moonlight_log_callback(const char* fmt) {
-	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
-		Windows::UI::Core::CoreDispatcherPriority::Normal,
-		ref new Windows::UI::Core::DispatchedHandler([fmt]()
-			{
-				Windows::UI::Popups::MessageDialog^ dialog = ref new Windows::UI::Popups::MessageDialog(StringPrintf(fmt,""));
-				dialog->ShowAsync();
-			}));
+void MoonlightClient::InsertLog(const char* fmt) {
+	int len = strlen(fmt) + 1;
+	wchar_t *stringBuf = (wchar_t*) malloc(sizeof(wchar_t) * len);
+	mbstowcs(stringBuf, fmt, len);
+	std::wstring string(stringBuf);
+	if (logLines.size() == LOG_LINES)logLines.pop_back();
+	logLines.push_back(string);
 }
