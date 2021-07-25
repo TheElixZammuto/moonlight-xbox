@@ -2,6 +2,7 @@
 #include "SampleFpsTextRenderer.h"
 
 #include "Common/DirectXHelper.h"
+#include <MoonlightClient.h>
 
 using namespace moonlight_xbox_dx;
 using namespace Microsoft::WRL;
@@ -22,7 +23,7 @@ SampleFpsTextRenderer::SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceRes
 			DWRITE_FONT_WEIGHT_LIGHT,
 			DWRITE_FONT_STYLE_NORMAL,
 			DWRITE_FONT_STRETCH_NORMAL,
-			32.0f,
+			16.0f,
 			L"en-US",
 			&textFormat
 			)
@@ -46,19 +47,19 @@ SampleFpsTextRenderer::SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceRes
 // Updates the text to be displayed.
 void SampleFpsTextRenderer::Update(DX::StepTimer const& timer)
 {
-	// Update display text.
-	uint32 fps = timer.GetFramesPerSecond();
-
-	m_text = (fps > 0) ? std::to_wstring(fps) + L" FPS" : L" - FPS";
-
+	m_text = L"";
+	std::vector<std::wstring> lines = MoonlightClient::GetInstance()->GetLogLines();
+	for (std::wstring line : lines) {
+		m_text += line;
+	}
 	ComPtr<IDWriteTextLayout> textLayout;
 	DX::ThrowIfFailed(
 		m_deviceResources->GetDWriteFactory()->CreateTextLayout(
 			m_text.c_str(),
 			(uint32) m_text.length(),
 			m_textFormat.Get(),
-			240.0f, // Max width of the input text.
-			50.0f, // Max height of the input text.
+			500.0f, // Max width of the input text.
+			16.0f * 50.0f, // Max height of the input text.
 			&textLayout
 			)
 		);
@@ -113,7 +114,7 @@ void SampleFpsTextRenderer::Render()
 void SampleFpsTextRenderer::CreateDeviceDependentResources()
 {
 	DX::ThrowIfFailed(
-		m_deviceResources->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush)
+		m_deviceResources->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Yellow), &m_whiteBrush)
 		);
 }
 void SampleFpsTextRenderer::ReleaseDeviceDependentResources()

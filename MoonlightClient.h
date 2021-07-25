@@ -25,12 +25,13 @@ namespace moonlight_xbox_dx {
 		AVFrame* GetLastFrame();
 		static MoonlightClient* GetInstance();
 		void SendGamepadReading(Windows::Gaming::Input::GamepadReading reading);
-		void SetErrorMessageCallback(MoonlightErrorCallback callback);
-		MoonlightErrorCallback errorCallback;
+		std::vector<std::wstring> GetLogLines();
+		void InsertLog(const char* msg);
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;
 		char* hostname = NULL;
 		int appID = 1;
+		std::vector<std::wstring> logLines;
 	};
 }
