@@ -169,6 +169,6 @@ void MoonlightClient::InsertLog(const char* fmt) {
 	wchar_t *stringBuf = (wchar_t*) malloc(sizeof(wchar_t) * len);
 	mbstowcs(stringBuf, fmt, len);
 	std::wstring string(stringBuf);
-	if (logLines.size() == LOG_LINES)logLines.pop_back();
+	if (logLines.size() == LOG_LINES)logLines.erase(logLines.begin());
 	logLines.push_back(string);
 }
