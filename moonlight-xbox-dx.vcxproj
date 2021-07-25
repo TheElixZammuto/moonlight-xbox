@@ -214,7 +214,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;swscale.lib;d2d1.lib; d3d11.lib; dxgi.lib; windowscodecs.lib; dwrite.lib; %(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>avcodec.lib;avutil.lib;swscale.lib;d2d1.lib; d3d11.lib; dxgi.lib; windowscodecs.lib; dwrite.lib;opus.lib; %(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg\installed\x64-uwp\lib;$(VCInstallDir)\lib\store\amd64;$(VCInstallDir)\lib\amd64</AdditionalLibraryDirectories>
     </Link>
     <ClCompile>
@@ -253,6 +253,7 @@
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="AudioPlayer.h" />
     <ClInclude Include="Common\DeviceResources.h" />
     <ClInclude Include="FFMpegDecoder.h" />
     <ClInclude Include="MenuPage.xaml.h">
@@ -275,6 +276,7 @@
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="AudioPlayer.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="FFMpegDecoder.cpp" />
     <ClCompile Include="MenuPage.xaml.cpp">
@@ -403,6 +405,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />
+    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\opus.dll">
+      <FileType>Document</FileType>
+    </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

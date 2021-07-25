@@ -6,6 +6,7 @@ extern "C" {
 #include<libgamestream/client.h>
 }
 #include "FFMpegDecoder.h"
+#include "AudioPlayer.h"
 #include <Utils.h>
 
 using namespace moonlight_xbox_dx;
@@ -58,8 +59,8 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	callbacks.stageComplete = connection_status_update;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
-	AUDIO_RENDERER_CALLBACKS aCallbacks;
-	return LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, NULL, NULL, 0, NULL, 0);
+	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
+	return LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
 }
 
 void log_message(const char* fmt, ...) {
@@ -170,9 +171,7 @@ void moonlight_log_callback(const char* fmt) {
 		Windows::UI::Core::CoreDispatcherPriority::Normal,
 		ref new Windows::UI::Core::DispatchedHandler([fmt]()
 			{
-				Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-				dialog->Content = StringPrintf(fmt, "");
-				dialog->CloseButtonText = L"OK";
+				Windows::UI::Popups::MessageDialog^ dialog = ref new Windows::UI::Popups::MessageDialog(StringPrintf(fmt,""));
 				dialog->ShowAsync();
 			}));
 }
