@@ -5,6 +5,7 @@ extern "C" {
 #include <Limelight.h>
 #include <opus/opus_multistream.h>
 }
+#define BUFFER_COUNT 64
 namespace moonlight_xbox_dx
 {
 
@@ -24,7 +25,10 @@ namespace moonlight_xbox_dx
 		IXAudio2MasteringVoice *xAudioMasteringVoice;
 		IXAudio2SourceVoice* pSourceVoice;
 		int channelCount;
-		opus_int16 pcmBuffer[240 * 6];
-		POPUS_MULTISTREAM_CONFIGURATION opusConfig;
+		int sampleCount;
+		opus_int16 pcmBuffer[240 * 6][BUFFER_COUNT];
+		XAUDIO2_BUFFER xaudioBuffers[BUFFER_COUNT];
+		int bufferIndex = 0;
+		FILE* file;
 	};
 }

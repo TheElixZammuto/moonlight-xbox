@@ -2,6 +2,7 @@
 #include <AudioPlayer.h>
 #include <opus/opus_multistream.h>
 #include <xaudio2.h>
+#include <MoonlightClient.h>
 namespace moonlight_xbox_dx {
 	//Helpers
 	AudioPlayer* instance;
@@ -43,8 +44,7 @@ namespace moonlight_xbox_dx {
 		HRESULT hr;
 		int rc;
 		decoder = opus_multistream_decoder_create(opusConfig->sampleRate, opusConfig->channelCount, opusConfig->streams, opusConfig->coupledStreams, opusConfig->mapping, &rc);
-
-		channelCount = opusConfig->channelCount;
+		
 		//Initialize XAudio2
 		if (FAILED(hr = XAudio2Create(xAudio.GetAddressOf(), 0, XAUDIO2_DEFAULT_PROCESSOR))) {
 			return hr;
@@ -52,17 +52,24 @@ namespace moonlight_xbox_dx {
 		if (FAILED(hr = xAudio->CreateMasteringVoice(&xAudioMasteringVoice, opusConfig->channelCount, opusConfig->sampleRate, 0))) {
 			return hr;
 		}
-		this->opusConfig = opusConfig;
-		PCMWAVEFORMAT  wfx = { 0 };
-		wfx.wf.wFormatTag = WAVE_FORMAT_PCM;
-		wfx.wf.nChannels = opusConfig->channelCount;
-		wfx.wf.nSamplesPerSec = opusConfig->sampleRate;
+		this->channelCount = opusConfig->channelCount;
+		this->sampleCount = opusConfig->samplesPerFrame;
+		WAVEFORMATEX  wfx = { 0 };
+		wfx.wFormatTag = WAVE_FORMAT_PCM;
+		wfx.nChannels = 2;
+		wfx.nSamplesPerSec = 48000L;
+		wfx.nAvgBytesPerSec = 192000L;
+		wfx.nBlockAlign = 4;
 		wfx.wBitsPerSample = 16;
-		wfx.wf.nAvgBytesPerSec = (wfx.wf.nSamplesPerSec * wfx.wBitsPerSample *wfx.wf.nChannels) / 8;
-		wfx.wf.nBlockAlign = (wfx.wf.nChannels * wfx.wBitsPerSample) / 8;
-		if (FAILED(hr = xAudio->CreateSourceVoice(&pSourceVoice, (WAVEFORMATEX*) &wfx))) {
+		wfx.cbSize = 0;
+		if (FAILED(hr = xAudio->CreateSourceVoice(&pSourceVoice, &wfx))) {
 			return hr;
 		}
+		Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+		folderString = folderString->Concat(folderString, "\\test.pcm");
+		char folder[2048];
+		wcstombs_s(NULL, folder, folderString->Data(), 2047);
+		file = fopen(folder, "w");
 		return 0;
 	}
 
@@ -72,19 +79,28 @@ namespace moonlight_xbox_dx {
 
 	int AudioPlayer::SubmitDU(char* sampleData, int sampleLength) {
 		HRESULT hr;
-		int decodeLen = opus_multistream_decode(decoder,(unsigned char*)sampleData, sampleLength, pcmBuffer, 240, 0);
+		int decodeLen = opus_multistream_decode(decoder,(unsigned char*)sampleData, sampleLength, pcmBuffer[bufferIndex], sampleCount, 0);
 		if (decodeLen > 0) {
-			XAUDIO2_BUFFER audioBuffer = { 0 };
-			audioBuffer.pAudioData = (byte*)pcmBuffer;
-			audioBuffer.AudioBytes = 1440;
-			audioBuffer.PlayLength = 0;
-			audioBuffer.PlayBegin = 0;
-			audioBuffer.Flags = 0;
-			audioBuffer.LoopCount = 0;
-			audioBuffer.pContext = NULL;
-			if (FAILED(hr = pSourceVoice->SubmitSourceBuffer(&audioBuffer))) {
+			if (file != NULL) {
+				fwrite(pcmBuffer[bufferIndex], sizeof(opus_int16), decodeLen * this->channelCount, file);
+			}
+			xaudioBuffers[bufferIndex];
+			xaudioBuffers[bufferIndex].pAudioData = (byte*)(pcmBuffer[bufferIndex]);
+			xaudioBuffers[bufferIndex].AudioBytes = decodeLen * this->channelCount * sizeof(opus_int16);
+			xaudioBuffers[bufferIndex].PlayBegin = 0;
+			xaudioBuffers[bufferIndex].PlayLength = 0;
+			xaudioBuffers[bufferIndex].Flags = 0;
+			xaudioBuffers[bufferIndex].LoopCount = 0;
+			xaudioBuffers[bufferIndex].pContext = NULL;
+			if (FAILED(hr = pSourceVoice->SubmitSourceBuffer(&(xaudioBuffers[bufferIndex])))) {
 				return hr;
 			}
+			XAUDIO2_PERFORMANCE_DATA state;
+			xAudio->GetPerformanceData(&state);
+			char msg[2048];
+			sprintf(msg, "Got queued this number of buffers %d\n", state.GlitchesSinceEngineStarted);
+			MoonlightClient::GetInstance()->InsertLog(msg);
+			bufferIndex = (bufferIndex + 1) % BUFFER_COUNT;
 		}
 		else {
 			
