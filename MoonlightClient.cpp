@@ -6,8 +6,8 @@ extern "C" {
 #include<libgamestream/client.h>
 }
 #include "FFMpegDecoder.h"
-#include "AudioPlayer.h"
 #include <Utils.h>
+#include <AudioPlayer.h>
 #define LOG_LINES 16
 
 using namespace moonlight_xbox_dx;

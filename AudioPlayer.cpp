@@ -1,11 +1,14 @@
 #include "pch.h"
-#include <AudioPlayer.h>
 #include <opus/opus_multistream.h>
-#include <xaudio2.h>
 #include <MoonlightClient.h>
+#include <AudioPlayer.h>
+#define MINIAUDIO_IMPLEMENTATION
+#include "third_party/miniaudio.h"
 namespace moonlight_xbox_dx {
 	//Helpers
 	AudioPlayer* instance;
+	ma_pcm_rb rb;
+	ma_device device;
 
 	int audioInitCallback(int audioConfiguration, const POPUS_MULTISTREAM_CONFIGURATION opusConfig, void* context, int arFlags) {
 		return instance->Init(audioConfiguration,opusConfig, context, arFlags);
@@ -40,67 +43,66 @@ namespace moonlight_xbox_dx {
 		return decoder_callbacks_sdl;
 	}
 
+	void requireAudioData(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
+	{
+		void* buffer;
+		ma_uint32 len = frameCount;
+		ma_result res = ma_pcm_rb_acquire_read(&rb, &len, &buffer);
+		if (res != MA_SUCCESS) {
+			printf("OG");
+		}
+		if (len > 0) {
+			memcpy(pOutput, buffer, len * ma_get_bytes_per_frame(pDevice->playback.format,pDevice->playback.channels));
+		}
+		ma_pcm_rb_commit_read(&rb, len, &buffer);
+	}
+
 	int AudioPlayer::Init(int audioConfiguration, const POPUS_MULTISTREAM_CONFIGURATION opusConfig, void* context, int arFlags) {
 		HRESULT hr;
 		int rc;
 		decoder = opus_multistream_decoder_create(opusConfig->sampleRate, opusConfig->channelCount, opusConfig->streams, opusConfig->coupledStreams, opusConfig->mapping, &rc);
-		
-		//Initialize XAudio2
-		if (FAILED(hr = XAudio2Create(xAudio.GetAddressOf(), 0, XAUDIO2_DEFAULT_PROCESSOR))) {
-			return hr;
+		if (rc != 0) {
+			return rc;
 		}
-		if (FAILED(hr = xAudio->CreateMasteringVoice(&xAudioMasteringVoice, opusConfig->channelCount, opusConfig->sampleRate, 0))) {
-			return hr;
-		}
+		ma_result result;
+		ma_device_config deviceConfig;
+		deviceConfig = ma_device_config_init(ma_device_type_playback);
+		deviceConfig.playback.format = ma_format_s16;
+		deviceConfig.playback.channels = opusConfig->channelCount;
+		deviceConfig.sampleRate = opusConfig->sampleRate;
+		this->samplePerFrame = opusConfig->samplesPerFrame;
 		this->channelCount = opusConfig->channelCount;
-		this->sampleCount = opusConfig->samplesPerFrame;
-		WAVEFORMATEX  wfx = { 0 };
-		wfx.wFormatTag = WAVE_FORMAT_PCM;
-		wfx.nChannels = 2;
-		wfx.nSamplesPerSec = 48000L;
-		wfx.nAvgBytesPerSec = 192000L;
-		wfx.nBlockAlign = 4;
-		wfx.wBitsPerSample = 16;
-		wfx.cbSize = 0;
-		if (FAILED(hr = xAudio->CreateSourceVoice(&pSourceVoice, &wfx))) {
-			return hr;
+		deviceConfig.dataCallback = requireAudioData;
+		if (ma_device_init(NULL, &deviceConfig, &device) != MA_SUCCESS) {
+			printf("Failed to open playback device.\n");
+			return -3;
 		}
-		Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
-		folderString = folderString->Concat(folderString, "\\test.pcm");
-		char folder[2048];
-		wcstombs_s(NULL, folder, folderString->Data(), 2047);
-		file = fopen(folder, "w");
-		return 0;
+		ma_result r = ma_pcm_rb_init(ma_format_s16, opusConfig->channelCount, 240 * 10, NULL, NULL, &rb);
+		return r;
 	}
 
 	void AudioPlayer::Cleanup() {
 		if (decoder != NULL) opus_multistream_decoder_destroy(decoder);
 	}
 
+	
+
 	int AudioPlayer::SubmitDU(char* sampleData, int sampleLength) {
+		int desiredSize = sizeof(short) * this->samplePerFrame * this->channelCount;
 		HRESULT hr;
-		int decodeLen = opus_multistream_decode(decoder,(unsigned char*)sampleData, sampleLength, pcmBuffer[bufferIndex], sampleCount, 0);
+		int decodeLen = opus_multistream_decode(decoder,(unsigned char*)sampleData, sampleLength,pcmBuffer, 240, 0);
 		if (decodeLen > 0) {
-			if (file != NULL) {
-				fwrite(pcmBuffer[bufferIndex], sizeof(opus_int16), decodeLen * this->channelCount, file);
+			void* buffer;
+			ma_uint32 len = decodeLen;
+			ma_result r = ma_pcm_rb_acquire_write(&rb, &len, &buffer);
+			if (r != MA_SUCCESS) {
+				printf("OHOH");
 			}
-			xaudioBuffers[bufferIndex];
-			xaudioBuffers[bufferIndex].pAudioData = (byte*)(pcmBuffer[bufferIndex]);
-			xaudioBuffers[bufferIndex].AudioBytes = decodeLen * this->channelCount * sizeof(opus_int16);
-			xaudioBuffers[bufferIndex].PlayBegin = 0;
-			xaudioBuffers[bufferIndex].PlayLength = 0;
-			xaudioBuffers[bufferIndex].Flags = 0;
-			xaudioBuffers[bufferIndex].LoopCount = 0;
-			xaudioBuffers[bufferIndex].pContext = NULL;
-			if (FAILED(hr = pSourceVoice->SubmitSourceBuffer(&(xaudioBuffers[bufferIndex])))) {
-				return hr;
+			memcpy(buffer, pcmBuffer, len * ma_get_bytes_per_frame(ma_format_s16,this->channelCount));
+			r = ma_pcm_rb_commit_write(&rb, len, buffer);
+			if (r != MA_SUCCESS) {
+				printf("OHOH");
 			}
-			XAUDIO2_PERFORMANCE_DATA state;
-			xAudio->GetPerformanceData(&state);
-			char msg[2048];
-			sprintf(msg, "Got queued this number of buffers %d\n", state.GlitchesSinceEngineStarted);
-			MoonlightClient::GetInstance()->InsertLog(msg);
-			bufferIndex = (bufferIndex + 1) % BUFFER_COUNT;
 		}
 		else {
 			
@@ -109,13 +111,17 @@ namespace moonlight_xbox_dx {
 	}
 
 	void AudioPlayer::Start() {
-		HRESULT hr;
-		if (FAILED(hr = pSourceVoice->Start(0))) {
-			OutputDebugStringA("Error while starting");
+		if (ma_device_start(&device) != MA_SUCCESS) {
+			printf("Failed to start playback device.\n");
+			ma_device_uninit(&device);
 		}
+
 	}
 
 	void AudioPlayer::Stop() {
-		pSourceVoice->Stop();
+		if (ma_device_stop(&device) != MA_SUCCESS) {
+			printf("Failed to start playback device.\n");
+			ma_device_uninit(&device);
+		}
 	}
 }
