@@ -52,9 +52,12 @@ namespace moonlight_xbox_dx {
 			printf("OG");
 		}
 		if (len > 0) {
-			memcpy(pOutput, buffer, len * ma_get_bytes_per_frame(pDevice->playback.format,pDevice->playback.channels));
+			memcpy(pOutput, buffer, len * ma_pcm_rb_get_bpf(&rb));
 		}
-		ma_pcm_rb_commit_read(&rb, len, &buffer);
+		res = ma_pcm_rb_commit_read(&rb, len, buffer);
+		if (res != MA_SUCCESS) {
+			printf("oh no");
+		}
 	}
 
 	int AudioPlayer::Init(int audioConfiguration, const POPUS_MULTISTREAM_CONFIGURATION opusConfig, void* context, int arFlags) {
@@ -98,7 +101,7 @@ namespace moonlight_xbox_dx {
 			if (r != MA_SUCCESS) {
 				printf("OHOH");
 			}
-			memcpy(buffer, pcmBuffer, len * ma_get_bytes_per_frame(ma_format_s16,this->channelCount));
+			memcpy(buffer, pcmBuffer, len * ma_pcm_rb_get_bpf(&rb));
 			r = ma_pcm_rb_commit_write(&rb, len, buffer);
 			if (r != MA_SUCCESS) {
 				printf("OHOH");
