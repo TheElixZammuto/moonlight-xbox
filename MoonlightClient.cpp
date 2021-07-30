@@ -7,6 +7,7 @@ extern "C" {
 }
 #include "FFMpegDecoder.h"
 #include <Utils.h>
+#include <AudioPlayer.h>
 #define LOG_LINES 16
 
 using namespace moonlight_xbox_dx;
@@ -57,8 +58,8 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	callbacks.stageComplete = connection_status_update;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
-	AUDIO_RENDERER_CALLBACKS aCallbacks;
-	return LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, NULL, NULL, 0, NULL, 0);
+	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
+	return LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
 }
 
 void log_message(const char* fmt, ...) {
