@@ -27,6 +27,11 @@ namespace moonlight_xbox_dx {
 		void SendGamepadReading(Windows::Gaming::Input::GamepadReading reading);
 		std::vector<std::wstring> GetLogLines();
 		void InsertLog(const char* msg);
+		void SendMousePosition(float x, float y);
+		void SendMousePressed();
+		void SendMouseReleased();
+		void SendKeyboardDown();
+		void SendKeyboardUp();
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;

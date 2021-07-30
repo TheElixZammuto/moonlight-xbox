@@ -66,7 +66,7 @@ void log_message(const char* fmt, ...) {
 	va_list argp;
 	va_start(argp, fmt);
 	char message[2048];
-	sprintf_s(message, fmt,argp);
+	vsprintf_s(message, fmt,argp);
 	client->InsertLog(message);
 }
 
@@ -172,4 +172,16 @@ void MoonlightClient::InsertLog(const char* fmt) {
 	std::wstring string(stringBuf);
 	if (logLines.size() == LOG_LINES)logLines.erase(logLines.begin());
 	logLines.push_back(string);
+}
+
+void MoonlightClient::SendMousePosition(float deltaX, float deltaY) {
+	LiSendMouseMoveEvent(deltaX, deltaY);
+}
+
+void MoonlightClient::SendMousePressed() {
+	LiSendMouseButtonEvent(BUTTON_ACTION_PRESS, BUTTON_LEFT);
+}
+
+void MoonlightClient::SendMouseReleased() {
+	LiSendMouseButtonEvent(BUTTON_ACTION_RELEASE, BUTTON_LEFT);
 }
