@@ -30,8 +30,6 @@ namespace moonlight_xbox_dx {
 		void SendMousePosition(float x, float y);
 		void SendMousePressed();
 		void SendMouseReleased();
-		void SendKeyboardDown();
-		void SendKeyboardUp();
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;
