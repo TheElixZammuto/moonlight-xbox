@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "moonlight_xbox_dxMain.h"
 #include "Common\DirectXHelper.h"
+using namespace Windows::Gaming::Input;
 
 
 using namespace moonlight_xbox_dx;
@@ -62,26 +63,35 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				m_deviceResources->GetD3DDeviceContext()->Flush();
 				m_deviceResources->Present();
 			}
-			int t2 = GetTickCount64();
-			char msg[2084];
-			//sprintf(msg, "Got %d ms of rendering time\n", t2 - t1);
-			//OutputDebugStringA(msg);
 		}
 	});
+	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
+	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == AsyncStatus::Started) {
+		return;
+	}
+	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action)
+		{
+			// Calculate the updated frame and render once per vertical blanking interval.
+			while (action->Status == AsyncStatus::Started)
+			{
+				ProcessInput();
+				Sleep(8); // 8ms = about 120Hz of polling rate (i guess)
+			}
+		});
 
 	// Run task on a dedicated high priority background thread.
-	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
+	m_inputLoopWorker = ThreadPool::RunAsync(inputItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
 }
 
 void moonlight_xbox_dxMain::StopRenderLoop()
 {
 	m_renderLoopWorker->Cancel();
+	m_inputLoopWorker->Cancel();
 }
 
 // Updates the application state once per frame.
 void moonlight_xbox_dxMain::Update() 
 {
-	ProcessInput();
 
 	// Update scene objects.
 	m_timer.Tick([&]()
@@ -95,12 +105,65 @@ void moonlight_xbox_dxMain::Update()
 // Process all input from the user before updating game state
 void moonlight_xbox_dxMain::ProcessInput()
 {
+	
 	MoonlightClient *client = MoonlightClient::GetInstance();
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	if (gamepads->Size == 0)return;
 	Windows::Gaming::Input::Gamepad^ gamepad = gamepads->GetAt(0);
 	auto reading = gamepad->GetCurrentReading();
-	client->SendGamepadReading(reading);
+	//If this combination is pressed on gamed we should handle some magic things :)
+	GamepadButtons magicKey[] = { GamepadButtons::LeftShoulder,GamepadButtons::RightShoulder,GamepadButtons::Menu,GamepadButtons::View };
+	bool isCurrentlyPressed = true;
+	for (auto k : magicKey) {
+		if ((reading.Buttons & k) != k) {
+			isCurrentlyPressed = false;
+			break;
+		}
+	}
+	if (isCurrentlyPressed) {
+		if (magicCombinationPressed)return;
+		if ((reading.Buttons & GamepadButtons::Y) == GamepadButtons::Y) {
+			client->InsertLog("Mouse mode ");
+			client->InsertLog(mouseMode ? "disabled\n" : "enabled\n");
+			mouseMode = !mouseMode;
+			magicCombinationPressed = true;
+		}
+	}
+	else {
+		magicCombinationPressed = false;
+	}
+	//If mouse mode is enabled the gamepad acts as a mouse, instead we pass the raw events to the host
+	if (mouseMode) {
+		//Position
+		client->SendMousePosition(reading.LeftThumbstickX * 5, reading.LeftThumbstickY * -5);
+		//Left Click
+		if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {
+			if (!leftMouseButtonPressed) {
+				leftMouseButtonPressed = true;
+				client->SendMousePressed(BUTTON_LEFT);
+			}
+		}
+		else if (leftMouseButtonPressed) {
+			leftMouseButtonPressed = false;
+			client->SendMouseReleased(BUTTON_LEFT);
+		}
+		//Right Click
+		if ((reading.Buttons & GamepadButtons::X) == GamepadButtons::X) {
+			if (!rightMouseButtonPressed) {
+				rightMouseButtonPressed = true;
+				client->SendMousePressed(BUTTON_RIGHT);
+			}
+		}
+		else if (rightMouseButtonPressed) {
+			rightMouseButtonPressed = false;
+			client->SendMouseReleased(BUTTON_RIGHT);
+		}
+		//Scroll
+		client->SendScroll(reading.RightThumbstickY);
+	}
+	else {
+		client->SendGamepadReading(reading);
+	}
 	
 }
 

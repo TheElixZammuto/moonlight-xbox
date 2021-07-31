@@ -10,7 +10,8 @@
 
     <StackPanel Padding="64">
         <TextBlock FontSize="24">Moonlight</TextBlock>
-        <TextBlock Height="60">Experimental Software Ahead! Here be dragons!</TextBlock>
+        <TextBlock Margin="0,0,0,10">Experimental Software Ahead! Here be dragons!</TextBlock>
+        <TextBlock Margin="0,0,0,30">Mouse Mode: Press Menu+View+LB+RB+Y to enable it.<LineBreak></LineBreak>Move the pointer with the left stick, scroll with the right one<LineBreak></LineBreak>A button is the left mouse button, X is the right one</TextBlock>
         <TextBlock>IP Address or Hostname:</TextBlock>
         <StackPanel Orientation="Horizontal"  XYFocusKeyboardNavigation="Enabled">
             <TextBox Width="128" x:Name="ipAddressText" HorizontalAlignment="Left"></TextBox>
@@ -21,7 +22,7 @@
         <StackPanel x:Name="appsPanel">
             <TextBlock>Applications</TextBlock>
             <StackPanel x:Name="appsGrid">
-                
+
             </StackPanel>
         </StackPanel>
     </StackPanel>

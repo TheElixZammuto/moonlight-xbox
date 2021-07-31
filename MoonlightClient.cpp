@@ -178,10 +178,14 @@ void MoonlightClient::SendMousePosition(float deltaX, float deltaY) {
 	LiSendMouseMoveEvent(deltaX, deltaY);
 }
 
-void MoonlightClient::SendMousePressed() {
-	LiSendMouseButtonEvent(BUTTON_ACTION_PRESS, BUTTON_LEFT);
+void MoonlightClient::SendMousePressed(int button) {
+	LiSendMouseButtonEvent(BUTTON_ACTION_PRESS, button);
 }
 
-void MoonlightClient::SendMouseReleased() {
-	LiSendMouseButtonEvent(BUTTON_ACTION_RELEASE, BUTTON_LEFT);
+void MoonlightClient::SendMouseReleased(int button) {
+	LiSendMouseButtonEvent(BUTTON_ACTION_RELEASE, button);
+}
+
+void MoonlightClient::SendScroll(float value) {
+	LiSendScrollEvent((signed char)(value * 2.0f));
 }

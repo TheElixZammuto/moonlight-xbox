@@ -36,6 +36,7 @@ namespace moonlight_xbox_dx
 		std::unique_ptr<SampleFpsTextRenderer> m_fpsTextRenderer;
 
 		Windows::Foundation::IAsyncAction^ m_renderLoopWorker;
+		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;
 		Concurrency::critical_section m_criticalSection;
 
 		// Rendering loop timer.
@@ -43,5 +44,9 @@ namespace moonlight_xbox_dx
 
 		// Track current input pointer position.
 		float m_pointerLocationX;
+		bool magicCombinationPressed = false;
+		bool mouseMode = false;
+		bool leftMouseButtonPressed = false;
+		bool rightMouseButtonPressed = false;
 	};
 }
