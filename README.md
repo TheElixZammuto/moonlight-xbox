@@ -20,12 +20,12 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Connection and Pairing
 - Application List fetching
 - Video Streaming (hardcoded at 720p with 8Mpbs of bitrate)
-- Gamepad Input
+- Gamepad Input (also a mouse mode to move the pointer using the gamepad)
+- Audio (Stereo)
 
 ## What does NOT work
 - Host configuration (for resolution and bitrate) and saved host history
 - Gamepad Rumble and other means of input
-- Audio
 - Everything else not listed above
 
 ## Building
