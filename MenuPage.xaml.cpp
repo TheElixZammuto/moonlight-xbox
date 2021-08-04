@@ -66,23 +66,24 @@ void moonlight_xbox_dx::MenuPage::ConnectButton_Click(Platform::Object^ sender, 
 
 void moonlight_xbox_dx::MenuPage::UpdateApps() {
 	std::vector<MoonlightApplication> apps = MoonlightClient::GetInstance()->GetApplications();
-	this->appsGrid->Children->Clear();
+	this->appsPanel->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	this->appsComboBox->Items->Clear();
 	for (auto a : apps) {
-		Button^ button = ref new Button();
+		ComboBoxItem^ button = ref new ComboBoxItem();
 		std::string s_str = std::string(a.name);
 		std::wstring wid_str = std::wstring(s_str.begin(), s_str.end());
 		const wchar_t* w_char = wid_str.c_str();
 		Platform::String^ p_string = ref new Platform::String(w_char);
 		button->Content = p_string;
 		button->DataContext = a.id;
-		button->Click += ref new RoutedEventHandler(this,&moonlight_xbox_dx::MenuPage::OnAppClicked);
-		this->appsGrid->Children->Append(button);
+		this->appsComboBox->Items->Append(button);
 	}
 }
 
 void moonlight_xbox_dx::MenuPage::OnAppClicked(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
-	Button^ b = (Button^) e->OriginalSource;
-	MoonlightClient::GetInstance()->SetAppID((int) b->DataContext);
+	ComboBoxItem^ item = (ComboBoxItem^) this->appsComboBox->SelectedItem;
+	MoonlightClient::GetInstance()->SetAppID((int) item->DataContext);
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(DirectXPage::typeid), NULL, ref new Windows::UI::Xaml::Media::Animation::SuppressNavigationTransitionInfo());
 	
 }
+

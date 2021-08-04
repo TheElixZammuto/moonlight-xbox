@@ -135,20 +135,6 @@
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
-    <PostBuildEvent>
-      <Message>
-      </Message>
-      <Command>
-        setlocal
-        C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file $(ProjectDir)../../vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary D:/Progetti/moonlight-xbox/third_party/moonlight-common-c/Debug/moonlight-common-c.dll -installedDir D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/debug/bin -OutVariable out
-        if %errorlevel% neq 0 goto :cmEnd
-        :cmEnd
-        endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-    </PostBuildEvent>
     <Link>
       <AdditionalDependencies>ws2_32.lib;winmm.lib;WindowsApp.lib;libssl.lib;libexpat.lib;libcurl.lib;libssl.lib;libcrypto.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg\installed\x64-uwp\lib</AdditionalLibraryDirectories>
@@ -197,19 +183,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
-    <PostBuildEvent>
-      <Message>
-      </Message>
-      <Command>setlocal
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file D:/Progetti/moonlight-xbox/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary D:/Progetti/moonlight-xbox/third_party/moonlight-common-c/Release/moonlight-common-c.dll -installedDir D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/bin -OutVariable out
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-    </PostBuildEvent>
     <Link>
       <AdditionalDependencies>ws2_32.lib;winmm.lib;WindowsApp.lib;libssl.lib;libexpat.lib;libcurl.lib;libssl.lib;libcrypto.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg\installed\x64-uwp\lib</AdditionalLibraryDirectories>
@@ -258,19 +231,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
-    <PostBuildEvent>
-      <Message>
-      </Message>
-      <Command>setlocal
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file D:/Progetti/moonlight-xbox/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary D:/Progetti/moonlight-xbox/third_party/moonlight-common-c/MinSizeRel/moonlight-common-c.dll -installedDir D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/bin -OutVariable out
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-    </PostBuildEvent>
     <Link>
       <AdditionalDependencies>ws2_32.lib;winmm.lib;WindowsApp.lib;libssl.lib;libexpat.lib;libcurl.lib;libcrypto.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg\installed\x64-uwp\lib</AdditionalLibraryDirectories>
@@ -318,19 +278,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
-    <PostBuildEvent>
-      <Message>
-      </Message>
-      <Command>setlocal
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file D:/Progetti/moonlight-xbox/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary D:/Progetti/moonlight-xbox/third_party/moonlight-common-c/RelWithDebInfo/moonlight-common-c.dll -installedDir D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/bin -OutVariable out
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-    </PostBuildEvent>
     <Link>
       <AdditionalDependencies>ws2_32.lib;winmm.lib;WindowsApp.lib;libssl.lib;libexpat.lib;libcurl.lib;libcrypto.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg\installed\x64-uwp\lib</AdditionalLibraryDirectories>

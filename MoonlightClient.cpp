@@ -19,6 +19,7 @@ void connection_started();
 void connection_status_update(int status);
 void connection_terminated(int status);
 void stage_failed(int stage, int err);
+void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
 //Singleton Helpers
 MoonlightClient* client;
@@ -47,6 +48,9 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	config.packetSize = 1024;
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
 	config.supportsHevc = false;
+	char message[2048];
+	sprintf(message, "Inserted App ID %d\n", appID);
+	this->InsertLog(message);
 	int a = gs_start_app(&serverData, &config, appID, false, true, 0);
 	CONNECTION_LISTENER_CALLBACKS callbacks;
 	callbacks.logMessage = log_message;
@@ -56,6 +60,7 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	callbacks.stageStarting = connection_status_update;
 	callbacks.stageFailed = stage_failed;
 	callbacks.stageComplete = connection_status_update;
+	callbacks.rumble = connection_rumble;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
@@ -89,6 +94,10 @@ void stage_failed(int stage, int err) {
 	char message[4096];
 	sprintf(message, "Stage %d failed with error %d\n", stage, err);
 	client->InsertLog(message);
+}
+
+void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
+	client->InsertLog("Rumble\n");
 }
 
 int MoonlightClient::Connect(char* hostname) {

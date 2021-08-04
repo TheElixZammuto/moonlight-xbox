@@ -77,7 +77,8 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	{
 		m_menuPage = dynamic_cast<MenuPage^>(rootFrame->Content);
 	}
-
+	//Resize to make fullscreen on Xbox
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	// Ensure the current window is active
 	Window::Current->Activate();
 	

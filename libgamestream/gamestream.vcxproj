@@ -43,7 +43,7 @@
     <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
@@ -75,7 +75,7 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">gamestream.dir\Release\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">gamestream</TargetName>
-    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.dll</TargetExt>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">$(ProjectDir)MinSizeRel\</OutDir>
@@ -160,7 +160,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;UNICODE;_UNICODE;NDEBUG;CMAKE_INTDIR="Release";gamestream_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;UNICODE;_UNICODE;NDEBUG;CMAKE_INTDIR="Release";gamestream_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
@@ -177,22 +177,9 @@
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
-    <PostBuildEvent>
-      <Message>
-      </Message>
-      <Command>setlocal
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file D:/Progetti/moonlight-xbox/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary D:/Progetti/moonlight-xbox/libgamestream/Release/gamestream.dll -installedDir D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/bin -OutVariable out
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-    </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>Release\moonlight-common.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libcurl.lib;winmm.lib;ws2_32.lib;advapi32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\zlib.lib;crypt32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libexpat.lib;WindowsApp.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>D:/Progetti/moonlight-xbox/libgamestream/Release;D:/Progetti/moonlight-xbox/libgamestream/Release/$(Configuration);D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/debug/lib;D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/debug/lib/$(Configuration);D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/lib;D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/lib/$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>moonlight-common-c.lib;libcurl.lib;winmm.lib;ws2_32.lib;advapi32.lib;libssl.lib;libcrypto.lib;zlib.lib;crypt32.lib;libexpat.lib;WindowsApp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)$(Configuration);../vcpkg/installed/x64-uwp/debug/lib;../third_party/moonlight-common-c/$(Configuration);../vcpkg/installed/x64-uwp/lib;D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/lib/$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
@@ -236,21 +223,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
-    <PostBuildEvent>
-      <Message>
-      </Message>
-      <Command>setlocal
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file D:/Progetti/moonlight-xbox/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary D:/Progetti/moonlight-xbox/libgamestream/MinSizeRel/gamestream.dll -installedDir D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/bin -OutVariable out
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-    </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>MinSizeRel\moonlight-common.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libcurl.lib;winmm.lib;ws2_32.lib;advapi32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\zlib.lib;crypt32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libexpat.lib;WindowsApp.lib</AdditionalDependencies>
+      <AdditionalDependencies>MinSizeRel\moonlight-common-c.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libcurl.lib;winmm.lib;ws2_32.lib;advapi32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\zlib.lib;crypt32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libexpat.lib;WindowsApp.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:/Progetti/moonlight-xbox/libgamestream/MinSizeRel;D:/Progetti/moonlight-xbox/libgamestream/MinSizeRel/$(Configuration);D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/debug/lib;D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/debug/lib/$(Configuration);D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/lib;D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/lib/$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -294,21 +268,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
-    <PostBuildEvent>
-      <Message>
-      </Message>
-      <Command>setlocal
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noprofile -executionpolicy Bypass -file D:/Progetti/moonlight-xbox/vcpkg/scripts/buildsystems/msbuild/applocal.ps1 -targetBinary D:/Progetti/moonlight-xbox/libgamestream/RelWithDebInfo/gamestream.dll -installedDir D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/bin -OutVariable out
-if %errorlevel% neq 0 goto :cmEnd
-:cmEnd
-endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
-:cmErrorLevel
-exit /b %1
-:cmDone
-if %errorlevel% neq 0 goto :VCEnd</Command>
-    </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>RelWithDebInfo\moonlight-common.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libcurl.lib;winmm.lib;ws2_32.lib;advapi32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\zlib.lib;crypt32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libexpat.lib;WindowsApp.lib</AdditionalDependencies>
+      <AdditionalDependencies>RelWithDebInfo\moonlight-common-c.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libcurl.lib;winmm.lib;ws2_32.lib;advapi32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\zlib.lib;crypt32.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libssl.lib;$(ProjectDir)vcpkg\installed\x64-uwp\debug\lib\libcrypto.lib;$(ProjectDir)vcpkg\installed\x64-uwp\lib\libexpat.lib;WindowsApp.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:/Progetti/moonlight-xbox/libgamestream/RelWithDebInfo;D:/Progetti/moonlight-xbox/libgamestream/RelWithDebInfo/$(Configuration);D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/debug/lib;D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/debug/lib/$(Configuration);D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/lib;D:/Progetti/moonlight-xbox/vcpkg/installed/x64-uwp/lib/$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>

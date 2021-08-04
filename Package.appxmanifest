@@ -7,14 +7,14 @@
   IgnorableNamespaces="uap mp">
 
   <Identity
-    Name="366ee3ec-fb9b-4569-b1ef-04f4a94124b5"
-    Publisher="CN=TheElixZammuto"
-    Version="1.0.6.0" />
+    Name="50497EliaZammuto.MoonlightUWP"
+    Publisher="CN=CE07B73A-712E-4E05-932B-D08CE2C8A87C"
+    Version="1.1.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="366ee3ec-fb9b-4569-b1ef-04f4a94124b5" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="24c51639-c33b-4519-81c5-3f3b697bb5a1" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>moonlight-xbox-dx</DisplayName>
+    <DisplayName>Moonlight UWP</DisplayName>
     <PublisherDisplayName>Elia Zammuto</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -32,12 +32,12 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="moonlight_xbox_dx.App">
       <uap:VisualElements
-        DisplayName="moonlight-xbox-dx"
+        DisplayName="Moonlight UWP"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png"
         Description="moonlight-xbox-dx"
         BackgroundColor="transparent">
-        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" Square71x71Logo="Assets\SmallTile.png" Square310x310Logo="Assets\LargeTile.png"/>
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
     </Application>
