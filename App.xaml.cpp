@@ -78,7 +78,7 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 		m_menuPage = dynamic_cast<MenuPage^>(rootFrame->Content);
 	}
 	//Resize to make fullscreen on Xbox
-	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
+	//Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	// Ensure the current window is active
 	Window::Current->Activate();
 	
@@ -115,6 +115,10 @@ void App::OnResuming(Object ^sender, Object ^args)
 /// <param name="e">Details about the navigation failure</param>
 void App::OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Navigation::NavigationFailedEventArgs ^e)
 {
-	throw ref new FailureException("Failed to load Page " + e->SourcePageType.Name);
+	Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+	dialog->Content = e->Exception.ToString();
+	dialog->CloseButtonText = L"OK";
+	dialog->ShowAsync();
+	//throw ref new FailureException("Failed to load Page " + e->SourcePageType.Name);
 }
 

@@ -25,6 +25,7 @@
                 <ComboBox x:Name="appsComboBox">
                 </ComboBox>
                 <Button Click="OnAppClicked">Open</Button>
+                <TextBlock x:Name="ConnectStatusText"></TextBlock>
             </StackPanel>
         </StackPanel>
     </StackPanel>

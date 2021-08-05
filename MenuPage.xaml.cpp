@@ -83,7 +83,9 @@ void moonlight_xbox_dx::MenuPage::UpdateApps() {
 void moonlight_xbox_dx::MenuPage::OnAppClicked(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
 	ComboBoxItem^ item = (ComboBoxItem^) this->appsComboBox->SelectedItem;
 	MoonlightClient::GetInstance()->SetAppID((int) item->DataContext);
-	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(DirectXPage::typeid), NULL, ref new Windows::UI::Xaml::Media::Animation::SuppressNavigationTransitionInfo());
-	
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(DirectXPage::typeid));
+	if (!result) {
+		this->ConnectStatusText->Text = L"Unable to Navigate onto DirectX Page";
+	}
 }
 
