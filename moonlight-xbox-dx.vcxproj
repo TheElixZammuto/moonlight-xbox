@@ -308,15 +308,15 @@
     </ClInclude>
     <ClInclude Include="AudioPlayer.h" />
     <ClInclude Include="Common\DeviceResources.h" />
+    <ClInclude Include="StreamPage.xaml.h">
+      <DependentUpon>StreamPage.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="FFMpegDecoder.h" />
     <ClInclude Include="MenuPage.xaml.h">
       <DependentUpon>MenuPage.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="MoonlightClient.h" />
     <ClInclude Include="moonlight_xbox_dxMain.h" />
-    <ClInclude Include="DirectXPage.xaml.h">
-      <DependentUpon>DirectXPage.xaml</DependentUpon>
-    </ClInclude>
     <ClInclude Include="Common\DirectXHelper.h" />
     <ClInclude Include="Common\StepTimer.h" />
     <ClInclude Include="Content\VideoRenderer.h" />
@@ -334,15 +334,15 @@
     </ClCompile>
     <ClCompile Include="AudioPlayer.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />
+    <ClCompile Include="StreamPage.xaml.cpp">
+      <DependentUpon>StreamPage.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="FFMpegDecoder.cpp" />
     <ClCompile Include="MenuPage.xaml.cpp">
       <DependentUpon>MenuPage.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="MoonlightClient.cpp" />
     <ClCompile Include="moonlight_xbox_dxMain.cpp" />
-    <ClCompile Include="DirectXPage.xaml.cpp">
-      <DependentUpon>DirectXPage.xaml</DependentUpon>
-    </ClCompile>
     <ClCompile Include="Content\SampleFpsTextRenderer.cpp" />
     <ClCompile Include="Content\VideoRenderer.cpp" />
     <ClCompile Include="pch.cpp">
@@ -373,7 +373,7 @@
     <ApplicationDefinition Include="App.xaml">
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Page Include="DirectXPage.xaml">
+    <Page Include="StreamPage.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Include="MenuPage.xaml">

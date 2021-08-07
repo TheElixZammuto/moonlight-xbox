@@ -19,7 +19,7 @@
             <ProgressRing x:Name="progressRing" Margin="10"></ProgressRing>
             <TextBlock x:Name="connectStatus"></TextBlock>
         </StackPanel>
-        <StackPanel x:Name="appsPanel" Visibility="Collapsed">
+        <StackPanel x:Name="appsPanel">
             <TextBlock>Applications</TextBlock>
             <StackPanel Orientation="Horizontal">
                 <ComboBox x:Name="appsComboBox">

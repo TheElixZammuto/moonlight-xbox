@@ -89,8 +89,8 @@
     <AppxManifest Include="Package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="DirectXPage.xaml" />
     <Page Include="MenuPage.xaml" />
+    <Page Include="StreamPage.xaml" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avcodec-58.dll">

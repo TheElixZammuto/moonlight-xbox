@@ -5,7 +5,7 @@
 
 #include "pch.h"
 #include "MenuPage.xaml.h"
-#include "DirectXPage.xaml.h"
+#include "StreamPage.xaml.h"
 #include <ppltasks.h>
 
 using namespace moonlight_xbox_dx;
@@ -83,8 +83,11 @@ void moonlight_xbox_dx::MenuPage::UpdateApps() {
 void moonlight_xbox_dx::MenuPage::OnAppClicked(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
 	ComboBoxItem^ item = (ComboBoxItem^) this->appsComboBox->SelectedItem;
 	MoonlightClient::GetInstance()->SetAppID((int) item->DataContext);
-	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(DirectXPage::typeid));
-	if (!result) {
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid));
+	if (result) {
+		this->ConnectStatusText->Text = L"OK";
+	}
+	else {
 		this->ConnectStatusText->Text = L"Unable to Navigate onto DirectX Page";
 	}
 }

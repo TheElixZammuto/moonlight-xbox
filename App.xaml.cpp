@@ -4,7 +4,6 @@
 //
 
 #include "pch.h"
-#include "DirectXPage.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -115,6 +114,7 @@ void App::OnResuming(Object ^sender, Object ^args)
 /// <param name="e">Details about the navigation failure</param>
 void App::OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Navigation::NavigationFailedEventArgs ^e)
 {
+	e->Handled = true;
 	Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 	dialog->Content = e->Exception.ToString();
 	dialog->CloseButtonText = L"OK";
