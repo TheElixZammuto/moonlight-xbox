@@ -13,8 +13,9 @@ namespace moonlight_xbox_dx
 	
 	class FFMpegDecoder {
 	public: 
-		FFMpegDecoder(std::shared_ptr<DX::DeviceResources> r) {
+		FFMpegDecoder(std::shared_ptr<DX::DeviceResources> r, bool use) {
 			resources = r;
+			useSoftwareEncoder = use;
 		};
 		int Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags);
 		void Start();
@@ -25,8 +26,9 @@ namespace moonlight_xbox_dx
 		AVFrame* GetLastFrame();
 		static FFMpegDecoder* getInstance();
 		static DECODER_RENDERER_CALLBACKS getDecoder();
-		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources);
+		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources,bool useSoftwareEncoder);
 		bool setup = false;
+		bool useSoftwareEncoder = false;
 		int renderedFrameNumber = -1;
 		int decodedFrameNumber = -1;
 	private:

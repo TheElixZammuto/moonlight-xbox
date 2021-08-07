@@ -51,9 +51,6 @@ namespace moonlight_xbox_dx {
         }
 
 		//DirectX Initializazion
-		static AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
-		AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
-		AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
 		D3D_FEATURE_LEVEL featureLevels[] = {
 			D3D_FEATURE_LEVEL_11_0,
 			D3D_FEATURE_LEVEL_10_1,
@@ -62,18 +59,24 @@ namespace moonlight_xbox_dx {
 			D3D_FEATURE_LEVEL_9_2,
 			D3D_FEATURE_LEVEL_9_1
 		};
-		D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG, featureLevels, 6, D3D11_SDK_VERSION, &(d3d11va_device_ctx->device), NULL, &(d3d11va_device_ctx->device_context));
+		ID3D11Device *dev;
+		D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG, featureLevels, 6, D3D11_SDK_VERSION, &dev, NULL, ffmpegDeviceContext.GetAddressOf());
 		//DX11-FFMpeg association
-		int err2;
-		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
-			fprintf(stderr, "Failed to create specified HW device.\n");
-			return err2;
+		ffmpegDevice = (ID3D11Device1*)dev;
+		if (!useSoftwareEncoder) {
+			static AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
+			AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
+			AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
+			d3d11va_device_ctx->device = dev;
+			d3d11va_device_ctx->device_context = ffmpegDeviceContext.Get();
+			int err2;
+			if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
+				fprintf(stderr, "Failed to create specified HW device.\n");
+				return err2;
 
+			}
+			decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 		}
-
-		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-		ffmpegDevice = (ID3D11Device1*)d3d11va_device_ctx->device;
-		ffmpegDeviceContext = d3d11va_device_ctx->device_context;
 		decoder_ctx->width = width;
         decoder_ctx->height = height;
 
@@ -150,17 +153,9 @@ namespace moonlight_xbox_dx {
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
 		while (entry != NULL) {
-			/*if (entry->bufferType == BUFFER_TYPE_SPS)
-				gs_sps_fix(entry, GS_SPS_BITSTREAM_FIXUP, ffmpeg_buffer, &length);
-			else {*/
-			/*if (entry->bufferType == BUFFER_TYPE_PICDATA)OutputDebugStringA("Got PICDATA\n");
-			if (entry->bufferType == BUFFER_TYPE_PPS)OutputDebugStringA("Got PPS\n");
-			if (entry->bufferType == BUFFER_TYPE_SPS)OutputDebugStringA("Got SPS\n");
-			if (entry->bufferType == BUFFER_TYPE_VPS)OutputDebugStringA("Got VPS\n");*/
 			memcpy(ffmpeg_buffer + length, entry->data, entry->length);
 			length += entry->length;
 			entry = entry->next;
-			/*}*/
 		}
 		int err;
 		err = Decode(ffmpeg_buffer, length);
@@ -202,8 +197,11 @@ namespace moonlight_xbox_dx {
 		}
 		decodedFrameNumber++;
 		if (err == 0 && sharedTexture != NULL && (decodedFrameNumber - renderedFrameNumber) <= 1) {
-			av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
-			AVFrame *frame = ready_frames[next_frame];
+			AVFrame* frame = dec_frames[next_frame];
+			if (!useSoftwareEncoder) {
+				av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
+				frame = ready_frames[next_frame];
+			}
 			D3D11_MAPPED_SUBRESOURCE ms;
 			DX::ThrowIfFailed(ffmpegDeviceContext->Map(stagingTexture, 0, D3D11_MAP_WRITE, 0, &ms));
 			int luminanceLength = frame->height * frame->linesize[0];
@@ -230,8 +228,8 @@ namespace moonlight_xbox_dx {
 	//Helpers
 	FFMpegDecoder *instance;
 
-	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources) {
-		if (instance == NULL)instance = new FFMpegDecoder(resources);
+	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, bool useSoftwareEncoder) {
+		if (instance == NULL)instance = new FFMpegDecoder(resources,useSoftwareEncoder);
 		return instance;
 	}
 	

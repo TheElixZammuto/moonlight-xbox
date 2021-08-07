@@ -31,11 +31,13 @@ namespace moonlight_xbox_dx {
 		void SendMousePressed(int button);
 		void SendMouseReleased(int button);
 		void SendScroll(float value);
+		void SetSoftwareEncoder(bool value);
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;
 		char* hostname = NULL;
 		int appID = 1;
+		bool useSoftwareEncoder = false;
 		std::vector<std::wstring> logLines;
 	};
 }

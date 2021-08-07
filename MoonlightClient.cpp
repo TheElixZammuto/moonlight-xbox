@@ -61,7 +61,7 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	callbacks.stageFailed = stage_failed;
 	callbacks.stageComplete = connection_status_update;
 	callbacks.rumble = connection_rumble;
-	FFMpegDecoder::createDecoderInstance(res);
+	FFMpegDecoder::createDecoderInstance(res, useSoftwareEncoder);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
 	return LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
@@ -197,4 +197,8 @@ void MoonlightClient::SendMouseReleased(int button) {
 
 void MoonlightClient::SendScroll(float value) {
 	LiSendScrollEvent((signed char)(value * 2.0f));
+}
+
+void MoonlightClient::SetSoftwareEncoder(bool value) {
+	useSoftwareEncoder = value;
 }
