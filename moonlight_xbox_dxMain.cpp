@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "moonlight_xbox_dxMain.h"
 #include "Common\DirectXHelper.h"
+#include "Utils.hpp"
 using namespace Windows::Gaming::Input;
 
 
@@ -123,8 +124,8 @@ void moonlight_xbox_dxMain::ProcessInput()
 	if (isCurrentlyPressed) {
 		if (magicCombinationPressed)return;
 		if ((reading.Buttons & GamepadButtons::Y) == GamepadButtons::Y) {
-			client->InsertLog("Mouse mode ");
-			client->InsertLog(mouseMode ? "disabled\n" : "enabled\n");
+			Utils::Log("Mouse mode ");
+			Utils::Log(mouseMode ? "disabled\n" : "enabled\n");
 			mouseMode = !mouseMode;
 			magicCombinationPressed = true;
 		}

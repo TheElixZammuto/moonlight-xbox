@@ -3,12 +3,13 @@
 #include "MoonlightClient.h"
 #include "..\Common\DirectXHelper.h"
 #include <FFMpegDecoder.h>
+#include <Utils.hpp>
 
 extern "C" {
 #include "libgamestream/client.h"
 #include <Limelight.h>
 #include <libavcodec/avcodec.h>
-#include <Utils.h>
+
 }
 
 using namespace moonlight_xbox_dx;
@@ -47,7 +48,7 @@ void VideoRenderer::Render()
 			return;
 		}
 		if (FFMpegDecoder::getInstance()->decodedFrameNumber < 0)return;
-		m_deviceResources->keyedMutex->AcquireSync(1, 1000);
+		DX::ThrowIfFailed(m_deviceResources->keyedMutex->AcquireSync(1, INFINITE));
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
 		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
 		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
@@ -82,7 +83,7 @@ void VideoRenderer::Render()
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
 		FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
-		m_deviceResources->keyedMutex->ReleaseSync(0);
+		DX::ThrowIfFailed(m_deviceResources->keyedMutex->ReleaseSync(0));
 }
 
 void VideoRenderer::CreateDeviceDependentResources()
@@ -255,7 +256,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 		int status = client->Init(m_deviceResources, 1280,720);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			dialog->Content = StringPrintf("Got status %d from Moonlight init", status);
+			dialog->Content = Utils::StringPrintf("Got status %d from Moonlight init", status);
 			dialog->CloseButtonText = L"OK";
 			dialog->ShowAsync();
 		}

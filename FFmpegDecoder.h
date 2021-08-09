@@ -23,11 +23,9 @@ namespace moonlight_xbox_dx
 		void Cleanup();
 		int SubmitDU(PDECODE_UNIT decodeUnit);
 		int GetFrame();
-		AVFrame* GetLastFrame();
 		static FFMpegDecoder* getInstance();
 		static DECODER_RENDERER_CALLBACKS getDecoder();
 		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources,bool useSoftwareEncoder);
-		bool setup = false;
 		bool useSoftwareEncoder = false;
 		int renderedFrameNumber = -1;
 		int decodedFrameNumber = -1;

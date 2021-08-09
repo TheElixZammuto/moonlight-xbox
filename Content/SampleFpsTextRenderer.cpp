@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "SampleFpsTextRenderer.h"
+#include "Utils.hpp"
 
 #include "Common/DirectXHelper.h"
 #include <MoonlightClient.h>
@@ -48,7 +49,7 @@ SampleFpsTextRenderer::SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceRes
 void SampleFpsTextRenderer::Update(DX::StepTimer const& timer)
 {
 	m_text = L"";
-	std::vector<std::wstring> lines = MoonlightClient::GetInstance()->GetLogLines();
+	std::vector<std::wstring> lines = Utils::GetLogLines();
 	for (std::wstring line : lines) {
 		m_text += line;
 	}
@@ -59,7 +60,7 @@ void SampleFpsTextRenderer::Update(DX::StepTimer const& timer)
 			(uint32) m_text.length(),
 			m_textFormat.Get(),
 			500.0f, // Max width of the input text.
-			16.0f * 50.0f, // Max height of the input text.
+			16.0f * 64.0f, // Max height of the input text.
 			&textLayout
 			)
 		);

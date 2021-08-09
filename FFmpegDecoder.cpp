@@ -3,6 +3,7 @@
 #include "Common/DeviceResources.h"
 #include <Common\DirectXHelper.h>
 #include <d3d11_1.h>
+#include "Utils.hpp"
 
 extern "C" {
 #include "Limelight.h"
@@ -15,18 +16,18 @@ extern "C" {
 namespace moonlight_xbox_dx {
 	
 	void ffmpeg_log_callback(void* avcl,int	level,const char* fmt,va_list vl) {
-		//char message[2048];
-		//sprintf_s(message, fmt, 2048, vl);
-		//OutputDebugStringA(fmt);
+		if (level > AV_LOG_INFO)return;
+		char message[2048];
+		vsprintf_s(message, fmt, vl);
+		Utils::Log(message);
 	}
 	
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
-		av_log_set_callback(&ffmpeg_log_callback);
-		av_log_set_level(AV_LOG_INFO);
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
         avcodec_register_all();
 #endif
 
+		av_log_set_callback(&ffmpeg_log_callback);
 #pragma warning(suppress : 4996)
         av_init_packet(&pkt);
 
@@ -40,13 +41,13 @@ namespace moonlight_xbox_dx {
         }
 
         if (decoder == NULL) {
-            printf("Couldn't find decoder\n");
+            Utils::Log("Couldn't find decoder\n");
             return -1;
         }
 
 		decoder_ctx = avcodec_alloc_context3(decoder);
         if (decoder_ctx == NULL) {
-            printf("Couldn't allocate context");
+			Utils::Log("Couldn't allocate context");
             return -1;
         }
 
@@ -79,7 +80,9 @@ namespace moonlight_xbox_dx {
 			d3d11va_device_ctx->device_context = ffmpegDeviceContext.Get();
 			int err2;
 			if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
-				fprintf(stderr, "Failed to create specified HW device.\n");
+				char msg[2048];
+				sprintf(msg, "Failed to create specified DirectX Video device: %d\n", err2);
+				Utils::Log(msg);
 				return err2;
 
 			}
@@ -90,12 +93,14 @@ namespace moonlight_xbox_dx {
 
         int err = avcodec_open2(decoder_ctx, decoder, NULL);
         if (err < 0) {
-            printf("Couldn't open codec");
-            return err;
+			char msg[2048];
+			sprintf(msg, "Failed to create FFMpeg Codec: %d\n", err);
+			Utils::Log(msg);
+			return err;
         }
 		ffmpeg_buffer = (unsigned char*)malloc(DECODER_BUFFER_SIZE + AV_INPUT_BUFFER_PADDING_SIZE);
 		if (ffmpeg_buffer == NULL) {
-			fprintf(stderr, "Not enough memory\n");
+			Utils::Log("OOM\n");
 			Cleanup();
 			return -1;
 		}
@@ -104,19 +109,19 @@ namespace moonlight_xbox_dx {
 		dec_frames = (AVFrame**)malloc(buffer_count * sizeof(AVFrame*));
 		ready_frames = (AVFrame**)malloc(buffer_count * sizeof(AVFrame*));
 		if (dec_frames == NULL) {
-			fprintf(stderr, "Couldn't allocate frames");
+			Utils::Log("Cannot allocate Frames\n");
 			return -1;
 		}
 
 		for (int i = 0; i < buffer_count; i++) {
 			dec_frames[i] = av_frame_alloc();
 			if (dec_frames[i] == NULL) {
-				fprintf(stderr, "Couldn't allocate frame");
+				Utils::Log("Cannot allocate Frames\n");
 				return -1;
 			}
 			ready_frames[i] = av_frame_alloc();
 			if (ready_frames[i] == NULL) {
-				fprintf(stderr, "Couldn't allocate frame");
+				Utils::Log("Cannot allocate Frames\n");
 				return -1;
 			}
 		}
@@ -140,11 +145,11 @@ namespace moonlight_xbox_dx {
 	}
 
 	void FFMpegDecoder::Start() {
-
+		Utils::Log("Decoding Started\n");
 	}
 
 	void FFMpegDecoder::Stop() {
-
+		Utils::Log("Decoding Stopped\n");
 	}
 
 	void FFMpegDecoder::Cleanup() {
@@ -169,10 +174,10 @@ namespace moonlight_xbox_dx {
 		err = Decode(ffmpeg_buffer, length);
 		if (err < 0) {
 			char errorstringnew[1024];
-			sprintf(errorstringnew, "Error from FFMPEG: %d", AVERROR(err));
+			sprintf(errorstringnew, "Error from FFMPEG while decoding: %d\n", AVERROR(err));
+			Utils::Log(errorstringnew);
 			return DR_NEED_IDR;
 		}
-		setup = true;
 		return DR_OK;
 	}
 
@@ -186,7 +191,7 @@ namespace moonlight_xbox_dx {
 		if (err < 0) {
 			char errorstring[512];
 			av_strerror(err, errorstring, sizeof(errorstring));
-			OutputDebugStringA(errorstring);
+			Utils::Log(errorstring);
 			return -1;
 		}
 		err = GetFrame();
@@ -207,7 +212,13 @@ namespace moonlight_xbox_dx {
 		if (err == 0 && sharedTexture != NULL && (decodedFrameNumber - renderedFrameNumber) <= 1) {
 			AVFrame* frame = dec_frames[next_frame];
 			if (!useSoftwareEncoder) {
-				av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
+				int error = av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
+				if (error < 0) {
+					char errorstringnew[1024];
+					sprintf(errorstringnew, "Error from FFMPEG while transferring to HW: %d\n", AVERROR(err));
+					Utils::Log(errorstringnew);
+					return error;
+				}
 				frame = ready_frames[next_frame];
 			}
 			D3D11_MAPPED_SUBRESOURCE ms;
@@ -217,21 +228,14 @@ namespace moonlight_xbox_dx {
 			unsigned char* texturePointer = (unsigned char*)ms.pData;
 			memcpy(texturePointer, frame->data[0], luminanceLength);
 			memcpy((texturePointer + luminanceLength + 1), frame->data[1], chrominanceLength);
-			//memcpy((texturePointer + luminanceLength + chrominanceLength), frame->data[2], chrominance2Length);
 			ffmpegDeviceContext->Unmap(stagingTexture, 0);
-			dxgiMutex->AcquireSync(0, 1000);
+			DX::ThrowIfFailed(dxgiMutex->AcquireSync(0, INFINITE));
 			ffmpegDeviceContext->CopyResource(sharedTexture, stagingTexture);
-			dxgiMutex->ReleaseSync(1);
-			OutputDebugStringA("Decoded frame\n");
+			DX::ThrowIfFailed(dxgiMutex->ReleaseSync(1));
 			return 0;
 		}
 		return err;
 	}
-
-	AVFrame* FFMpegDecoder::GetLastFrame() {
-		return NULL;
-	}
-
 	
 	//Helpers
 	FFMpegDecoder *instance;

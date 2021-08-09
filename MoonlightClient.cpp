@@ -7,7 +7,7 @@ extern "C" {
 }
 #include "FFMpegDecoder.h"
 #include <AudioPlayer.h>
-#define LOG_LINES 16
+#include <Utils.hpp>
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
@@ -29,12 +29,6 @@ MoonlightClient* MoonlightClient::GetInstance() {
 	return client;
 }
 
-AVFrame* MoonlightClient::GetLastFrame() {
-	if (FFMpegDecoder::getInstance() == NULL || !FFMpegDecoder::getInstance()->setup)return NULL;
-	return FFMpegDecoder::getInstance()->GetLastFrame();
-}
-
-
 int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int height) {
 	STREAM_CONFIGURATION config;
 	config.width = 1280;
@@ -49,7 +43,7 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	config.supportsHevc = false;
 	char message[2048];
 	sprintf(message, "Inserted App ID %d\n", appID);
-	this->InsertLog(message);
+	Utils::Log(message);
 	int a = gs_start_app(&serverData, &config, appID, false, true, 0);
 	CONNECTION_LISTENER_CALLBACKS callbacks;
 	callbacks.logMessage = log_message;
@@ -71,13 +65,13 @@ void log_message(const char* fmt, ...) {
 	va_start(argp, fmt);
 	char message[2048];
 	vsprintf_s(message, fmt,argp);
-	client->InsertLog(message);
+	Utils::Log(message);
 }
 
 void connection_started() {
 	char message[2048];
 	sprintf(message, "Connection Started\n");
-	client->InsertLog(message);
+	Utils::Log(message);
 }
 
 void connection_status_update(int status) {
@@ -86,17 +80,17 @@ void connection_status_update(int status) {
 void connection_terminated(int status) {
 	char message[4096];
 	sprintf(message, "Connection terminated with status %d\n", status);
-	client->InsertLog(message);
+	Utils::Log(message);
 }
 
 void stage_failed(int stage, int err) {
 	char message[4096];
 	sprintf(message, "Stage %d failed with error %d\n", stage, err);
-	client->InsertLog(message);
+	Utils::Log(message);
 }
 
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
-	client->InsertLog("Rumble\n");
+	Utils::Log("Rumble\n");
 }
 
 int MoonlightClient::Connect(char* hostname) {
@@ -110,7 +104,7 @@ int MoonlightClient::Connect(char* hostname) {
 	status = gs_init(&serverData, this->hostname, folder, 0, 0);
 	char msg[4096];
 	sprintf(msg,"Got status %d from Moonlight\n", status);
-	this->InsertLog(msg);
+	Utils::Log(msg);
 	return status;
 }
 
@@ -169,18 +163,6 @@ void MoonlightClient::SendGamepadReading(GamepadReading reading) {
 	LiSendControllerEvent(buttonFlags, (short)(reading.LeftTrigger * 32767), (short)(reading.RightTrigger * 32767), (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
 }
 
-std::vector<std::wstring> MoonlightClient::GetLogLines() {
-	return logLines;
-}
-
-void MoonlightClient::InsertLog(const char* fmt) {
-	int len = strlen(fmt) + 1;
-	wchar_t *stringBuf = (wchar_t*) malloc(sizeof(wchar_t) * len);
-	mbstowcs(stringBuf, fmt, len);
-	std::wstring string(stringBuf);
-	if (logLines.size() == LOG_LINES)logLines.erase(logLines.begin());
-	logLines.push_back(string);
-}
 
 void MoonlightClient::SendMousePosition(float deltaX, float deltaY) {
 	LiSendMouseMoveEvent(deltaX, deltaY);

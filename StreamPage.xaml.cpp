@@ -5,7 +5,7 @@
 
 #include "pch.h"
 #include "StreamPage.xaml.h"
-#include <Utils.h>
+#include <Utils.hpp>
 
 using namespace moonlight_xbox_dx;
 
@@ -63,13 +63,13 @@ void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::Routed
 	}
 	catch (const std::exception & ex) {
 		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-		dialog->Content = StringPrintf(ex.what());
+		dialog->Content = Utils::StringPrintf(ex.what());
 		dialog->CloseButtonText = L"OK";
 		dialog->ShowAsync();
 	}
 	catch (const std::string & string) {
 		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-		dialog->Content = StringPrintf(string.c_str());
+		dialog->Content = Utils::StringPrintf(string.c_str());
 		dialog->CloseButtonText = L"OK";
 		dialog->ShowAsync();
 	}
@@ -77,7 +77,7 @@ void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::Routed
 		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 		Platform::String^ errorMsg = ref new Platform::String();
 		errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
-		errorMsg = errorMsg->Concat(errorMsg,StringPrintf("%x",e->HResult));
+		errorMsg = errorMsg->Concat(errorMsg,Utils::StringPrintf("%x",e->HResult));
 		dialog->Content = errorMsg;
 		dialog->CloseButtonText = L"OK";
 		dialog->ShowAsync();
