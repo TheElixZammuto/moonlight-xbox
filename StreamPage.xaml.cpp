@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "StreamPage.xaml.h"
+#include <Utils.h>
 
 using namespace moonlight_xbox_dx;
 
@@ -51,11 +52,42 @@ void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequ
 
 void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	// At this point we have access to the device. 
-	// We can create the device-dependent resources.
-	m_deviceResources = std::make_shared<DX::DeviceResources>();
-	m_deviceResources->SetSwapChainPanel(swapChainPanel);
-	m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources));
-	m_main->CreateWindowSizeDependentResources();
-	m_main->StartRenderLoop();
+	try {
+		// At this point we have access to the device. 
+		// We can create the device-dependent resources.
+		m_deviceResources = std::make_shared<DX::DeviceResources>();
+		m_deviceResources->SetSwapChainPanel(swapChainPanel);
+		m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources));
+		m_main->CreateWindowSizeDependentResources();
+		m_main->StartRenderLoop();
+	}
+	catch (const std::exception & ex) {
+		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+		dialog->Content = StringPrintf(ex.what());
+		dialog->CloseButtonText = L"OK";
+		dialog->ShowAsync();
+	}
+	catch (const std::string & string) {
+		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+		dialog->Content = StringPrintf(string.c_str());
+		dialog->CloseButtonText = L"OK";
+		dialog->ShowAsync();
+	}
+	catch (Platform::Exception ^ e) {
+		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+		Platform::String^ errorMsg = ref new Platform::String();
+		errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
+		errorMsg = errorMsg->Concat(errorMsg,StringPrintf("%x",e->HResult));
+		dialog->Content = errorMsg;
+		dialog->CloseButtonText = L"OK";
+		dialog->ShowAsync();
+	}
+	catch (...) {
+		std::exception_ptr eptr;
+		eptr = std::current_exception(); // capture
+		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+		dialog->Content = L"Generic Exception";
+		dialog->CloseButtonText = L"OK";
+		dialog->ShowAsync();
+	}
 }

@@ -60,7 +60,15 @@ namespace moonlight_xbox_dx {
 			D3D_FEATURE_LEVEL_9_1
 		};
 		ID3D11Device *dev;
-		D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG, featureLevels, 6, D3D11_SDK_VERSION, &dev, NULL, ffmpegDeviceContext.GetAddressOf());
+		UINT creationFlags = 0;
+		#if defined(_DEBUG)
+				if (DX::SdkLayersAvailable())
+				{
+					// If the project is in a debug build, enable debugging via SDK Layers with this flag.
+					creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+				}
+		#endif
+		D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, creationFlags, featureLevels, 6, D3D11_SDK_VERSION, &dev, NULL, ffmpegDeviceContext.GetAddressOf());
 		//DX11-FFMpeg association
 		ffmpegDevice = (ID3D11Device1*)dev;
 		if (!useSoftwareEncoder) {
