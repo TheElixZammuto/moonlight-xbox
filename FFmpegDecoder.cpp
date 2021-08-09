@@ -211,7 +211,7 @@ namespace moonlight_xbox_dx {
 		decodedFrameNumber++;
 		if (err == 0 && sharedTexture != NULL && (decodedFrameNumber - renderedFrameNumber) <= 1) {
 			AVFrame* frame = dec_frames[next_frame];
-			if (!useSoftwareEncoder) {
+			/*if (!useSoftwareEncoder) {
 				int error = av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
 				if (error < 0) {
 					char errorstringnew[1024];
@@ -228,9 +228,12 @@ namespace moonlight_xbox_dx {
 			unsigned char* texturePointer = (unsigned char*)ms.pData;
 			memcpy(texturePointer, frame->data[0], luminanceLength);
 			memcpy((texturePointer + luminanceLength + 1), frame->data[1], chrominanceLength);
-			ffmpegDeviceContext->Unmap(stagingTexture, 0);
+			ffmpegDeviceContext->Unmap(stagingTexture, 0);*/
 			DX::ThrowIfFailed(dxgiMutex->AcquireSync(0, INFINITE));
-			ffmpegDeviceContext->CopyResource(sharedTexture, stagingTexture);
+			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
+			int index = (int)(frame->data[1]);
+			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture, index, NULL);
+			//ffmpegDeviceContext->CopyResource(sharedTexture, stagingTexture);
 			DX::ThrowIfFailed(dxgiMutex->ReleaseSync(1));
 			return 0;
 		}
