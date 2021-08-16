@@ -29,10 +29,13 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Everything else not listed above
 
 ## Building
+Remember to clone with submodules enabled!
 You need [VCPKG](https://vcpkg.io/en/index.html) installed in the "vcpkg" folder inside the repository to handle the dependencies. 
 
 In particular, the FFMPEG port file (https://github.com/microsoft/vcpkg/blob/master/ports/ffmpeg/portfile.cmake) shoud be modified to include the `--enable-d3d11va` configure flag
 
 Required ports are `pthread:x64-uwp, pthreads:x64-uwp, curl:x64-uwp, openssl:x64-uwp, expat:x64-uwp, zlib:x64-uwp, ffmpeg:x64-uwp`
+
+On a native x64 Visual Studio Prompt, run the `generate-thirdparty-projects.bat` inside the source folder to generate moonlight-common-c build files
 
 After that, you can open and run the .sln fie
