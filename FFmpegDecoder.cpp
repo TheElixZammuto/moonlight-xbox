@@ -125,7 +125,7 @@ namespace moonlight_xbox_dx {
 				return -1;
 			}
 		}
-		ffmpegDevice->OpenSharedResource1(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture);
+		DX::ThrowIfFailed(ffmpegDevice->OpenSharedResource1(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture));
 		if (sharedTexture == NULL)return 1;
 		DX::ThrowIfFailed(sharedTexture->QueryInterface(dxgiMutex.GetAddressOf()));
 		//Create a Staging Texture
@@ -158,11 +158,13 @@ namespace moonlight_xbox_dx {
 
 	int FFMpegDecoder::SubmitDU(PDECODE_UNIT decodeUnit) {
 		if (decodeUnit->fullLength > DECODER_BUFFER_SIZE) {
-			printf("C");
+			Utils::Log("(0) Decoder Buffer Size reached\n");
 			return -1;
 		}
-		OutputDebugStringA("Got frame\n");
-		//frameLock.lock();
+		Utils::Log("(0) Got new Decode Unit!\n");
+		if (decodedFrameNumber == -1) {
+			Utils::Log("(1) Starting Decoding First Frame\n");
+		}
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
 		while (entry != NULL) {
@@ -189,10 +191,10 @@ namespace moonlight_xbox_dx {
 		int ts = GetTickCount64();
 		err = avcodec_send_packet(decoder_ctx, &pkt);
 		if (err < 0) {
-			char errorstring[512];
-			av_strerror(err, errorstring, sizeof(errorstring));
-			Utils::Log(errorstring);
-			return -1;
+			char errorstringnew[1024];
+			sprintf(errorstringnew, "Error avcodec_send_packet: %d\n", AVERROR(err));
+			Utils::Log(errorstringnew);
+			return err;
 		}
 		err = GetFrame();
 		if (err != 0)return err;
@@ -205,11 +207,17 @@ namespace moonlight_xbox_dx {
 
 	int FFMpegDecoder::GetFrame() {
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
-		if (dec_frames[next_frame]->key_frame) {
-			OutputDebugStringA("Got a KeyFrame\n");
+		if (err != 0) {
+			char errorstringnew[1024];
+			sprintf(errorstringnew, "Error avcodec_receive_frame: %d\n", AVERROR(err));
+			Utils::Log(errorstringnew);
 		}
 		decodedFrameNumber++;
-		if (err == 0 && sharedTexture != NULL && (decodedFrameNumber - renderedFrameNumber) <= 1) {
+		Utils::Log("(2) Decoded Frame\n");
+		if (err == 0 && sharedTexture != NULL) {
+			if ((decodedFrameNumber - renderedFrameNumber) <= 1) {
+				Utils::Log("Skipped Frame since we are behind\n");
+			}
 			AVFrame* frame = dec_frames[next_frame];
 			/*if (!useSoftwareEncoder) {
 				int error = av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
@@ -229,15 +237,16 @@ namespace moonlight_xbox_dx {
 			memcpy(texturePointer, frame->data[0], luminanceLength);
 			memcpy((texturePointer + luminanceLength + 1), frame->data[1], chrominanceLength);
 			ffmpegDeviceContext->Unmap(stagingTexture, 0);*/
+			Utils::Log("Locking 0\n");
 			DX::ThrowIfFailed(dxgiMutex->AcquireSync(0, INFINITE));
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
 			int index = (int)(frame->data[1]);
 			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture, index, NULL);
 			//ffmpegDeviceContext->CopyResource(sharedTexture, stagingTexture);
+			Utils::Log("Unlocking 1\n");
 			DX::ThrowIfFailed(dxgiMutex->ReleaseSync(1));
-			return 0;
 		}
-		return err;
+		return 0;
 	}
 	
 	//Helpers

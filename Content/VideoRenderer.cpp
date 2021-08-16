@@ -48,6 +48,10 @@ void VideoRenderer::Render()
 			return;
 		}
 		if (FFMpegDecoder::getInstance()->decodedFrameNumber < 0)return;
+		/*if (FFMpegDecoder::getInstance()->decodedFrameNumber > 0 && FFMpegDecoder::getInstance()->renderedFrameNumber <= 0) {
+		}*/
+		Utils::Log("(3) Rendering Frame\n");
+		Utils::Log("Locking 1\n");
 		DX::ThrowIfFailed(m_deviceResources->keyedMutex->AcquireSync(1, INFINITE));
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
 		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
@@ -83,6 +87,9 @@ void VideoRenderer::Render()
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
 		FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
+		char msg[2048];
+		sprintf(msg, "renderedFrameNumber: %d", FFMpegDecoder::getInstance()->renderedFrameNumber);
+		Utils::Log("Unlocking 0\n");
 		DX::ThrowIfFailed(m_deviceResources->keyedMutex->ReleaseSync(0));
 }
 

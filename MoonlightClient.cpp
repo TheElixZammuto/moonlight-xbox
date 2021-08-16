@@ -33,7 +33,7 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	STREAM_CONFIGURATION config;
 	config.width = 1280;
 	config.height = 720;
-	config.bitrate = 8000;
+	config.bitrate = 2000;
 	config.clientRefreshRateX100 = 60 * 100;
 	config.colorRange = COLOR_RANGE_LIMITED;
 	config.encryptionFlags = 0;
@@ -41,6 +41,7 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	config.packetSize = 1024;
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
 	config.supportsHevc = false;
+	config.streamingRemotely = STREAM_CFG_REMOTE;
 	char message[2048];
 	sprintf(message, "Inserted App ID %d\n", appID);
 	Utils::Log(message);
