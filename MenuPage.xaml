@@ -27,7 +27,6 @@
                 <Button Click="OnAppClicked">Open</Button>
                 <TextBlock x:Name="ConnectStatusText"></TextBlock>
             </StackPanel>
-            <CheckBox x:Name="UseSoftwareEncoder">Use Software Encoder (check this if Video does not show)</CheckBox>
         </StackPanel>
     </StackPanel>
 </Page>

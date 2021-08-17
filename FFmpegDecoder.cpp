@@ -161,10 +161,7 @@ namespace moonlight_xbox_dx {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
 			return -1;
 		}
-		Utils::Log("(0) Got new Decode Unit!\n");
-		if (decodedFrameNumber == -1) {
-			Utils::Log("(1) Starting Decoding First Frame\n");
-		}
+		Utils::Log("(1) Got new Decode Unit...");
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
 		while (entry != NULL) {
@@ -180,6 +177,7 @@ namespace moonlight_xbox_dx {
 			Utils::Log(errorstringnew);
 			return DR_NEED_IDR;
 		}
+		Utils::Log("...OK\n");
 		return DR_OK;
 	}
 
@@ -197,7 +195,12 @@ namespace moonlight_xbox_dx {
 			return err;
 		}
 		err = GetFrame();
-		if (err != 0)return err;
+		if (err != 0) {
+			char errorstringnew[1024];
+			sprintf(errorstringnew, "Error GetFrame: %d\n", AVERROR(err));
+			Utils::Log(errorstringnew);
+			return err;
+		}
 		int te = GetTickCount64();
 		/*char msg[4096];
 		sprintf(msg, "Decoding took: %d ms\n", te - ts);
@@ -213,11 +216,8 @@ namespace moonlight_xbox_dx {
 			Utils::Log(errorstringnew);
 		}
 		decodedFrameNumber++;
-		Utils::Log("(2) Decoded Frame\n");
+		Utils::Log("...(2) Decoded Frame...");
 		if (err == 0 && sharedTexture != NULL) {
-			if ((decodedFrameNumber - renderedFrameNumber) <= 1) {
-				Utils::Log("Skipped Frame since we are behind\n");
-			}
 			AVFrame* frame = dec_frames[next_frame];
 			/*if (!useSoftwareEncoder) {
 				int error = av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
@@ -237,13 +237,13 @@ namespace moonlight_xbox_dx {
 			memcpy(texturePointer, frame->data[0], luminanceLength);
 			memcpy((texturePointer + luminanceLength + 1), frame->data[1], chrominanceLength);
 			ffmpegDeviceContext->Unmap(stagingTexture, 0);*/
-			Utils::Log("Locking 0\n");
-			DX::ThrowIfFailed(dxgiMutex->AcquireSync(0, INFINITE));
+			//Utils::Log("Locking 0\n");
+			dxgiMutex->AcquireSync(0, INFINITE);
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
 			int index = (int)(frame->data[1]);
 			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture, index, NULL);
 			//ffmpegDeviceContext->CopyResource(sharedTexture, stagingTexture);
-			Utils::Log("Unlocking 1\n");
+			//Utils::Log("Unlocking 1\n");
 			DX::ThrowIfFailed(dxgiMutex->ReleaseSync(1));
 		}
 		return 0;

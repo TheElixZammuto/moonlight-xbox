@@ -41,7 +41,7 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	config.packetSize = 1024;
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
 	config.supportsHevc = false;
-	config.streamingRemotely = STREAM_CFG_REMOTE;
+	config.streamingRemotely = STREAM_CFG_AUTO;
 	char message[2048];
 	sprintf(message, "Inserted App ID %d\n", appID);
 	Utils::Log(message);
@@ -76,6 +76,9 @@ void connection_started() {
 }
 
 void connection_status_update(int status) {
+	char message[4096];
+	sprintf(message, "Connection updated with status %d\n", status);
+	Utils::Log(message);
 }
 
 void connection_terminated(int status) {

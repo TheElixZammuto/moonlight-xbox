@@ -2,6 +2,7 @@
 #include <opus/opus_multistream.h>
 #include <MoonlightClient.h>
 #include <AudioPlayer.h>
+#include <Utils.hpp>
 #define MINIAUDIO_IMPLEMENTATION
 #include "third_party/miniaudio.h"
 namespace moonlight_xbox_dx {
@@ -49,14 +50,16 @@ namespace moonlight_xbox_dx {
 		ma_uint32 len = frameCount;
 		ma_result res = ma_pcm_rb_acquire_read(&rb, &len, &buffer);
 		if (res != MA_SUCCESS) {
-			printf("OG");
+			Utils::Log("Failed to read audio data\n");
+			return;
 		}
 		if (len > 0) {
 			memcpy(pOutput, buffer, len * ma_pcm_rb_get_bpf(&rb));
-		}
-		res = ma_pcm_rb_commit_read(&rb, len, buffer);
-		if (res != MA_SUCCESS) {
-			printf("oh no");
+			res = ma_pcm_rb_commit_read(&rb, len, buffer);
+			if (res != MA_SUCCESS) {
+				Utils::Log("Failed to read audio data to shared buffer\n");
+				return;
+			}
 		}
 	}
 
@@ -77,10 +80,13 @@ namespace moonlight_xbox_dx {
 		this->channelCount = opusConfig->channelCount;
 		deviceConfig.dataCallback = requireAudioData;
 		if (ma_device_init(NULL, &deviceConfig, &device) != MA_SUCCESS) {
-			printf("Failed to open playback device.\n");
+			Utils::Log("Failed to open playback device.\n");
 			return -3;
 		}
 		ma_result r = ma_pcm_rb_init(ma_format_s16, opusConfig->channelCount, 240 * 10, NULL, NULL, &rb);
+		if (r != MA_SUCCESS) {
+			Utils::Log("Failed to create shared buffer\n");
+		}
 		return r;
 	}
 
@@ -99,12 +105,14 @@ namespace moonlight_xbox_dx {
 			ma_uint32 len = decodeLen;
 			ma_result r = ma_pcm_rb_acquire_write(&rb, &len, &buffer);
 			if (r != MA_SUCCESS) {
-				printf("OHOH");
+				Utils::Log("Failed to acquire shared buffer\n");
+				return -1;
 			}
 			memcpy(buffer, pcmBuffer, len * ma_pcm_rb_get_bpf(&rb));
 			r = ma_pcm_rb_commit_write(&rb, len, buffer);
 			if (r != MA_SUCCESS) {
-				printf("OHOH");
+				Utils::Log("Failed to write to shared buffer\n");
+				return -1;
 			}
 		}
 		else {
