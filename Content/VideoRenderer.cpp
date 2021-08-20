@@ -85,8 +85,6 @@ void VideoRenderer::Render()
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
 		FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
-		char msg[2048];
-		sprintf(msg, "renderedFrameNumber: %d", FFMpegDecoder::getInstance()->renderedFrameNumber);
 		DX::ThrowIfFailed(m_deviceResources->keyedMutex->ReleaseSync(0));
 }
 
@@ -220,8 +218,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 	m_deviceResources->GetD3DDeviceContext()->RSSetState(m_pRasterState);
 
 	D3D11_SAMPLER_DESC samplerDesc;
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -237,8 +234,10 @@ void VideoRenderer::CreateDeviceDependentResources()
 	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
 	//Create a rendering texture
 	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
-	stagingDesc.Width = 1280;
-	stagingDesc.Height = 720;
+	int width = 1920;
+	int height = 1080;
+	stagingDesc.Width = width;
+	stagingDesc.Height = height;
 	stagingDesc.ArraySize = 1;
 	stagingDesc.Format = DXGI_FORMAT_NV12;
 	stagingDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -255,9 +254,9 @@ void VideoRenderer::CreateDeviceDependentResources()
 	//DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&m_deviceResources->sharedHandle));
 	
 	// Once the cube is loaded, the object is ready to be rendered.
-	createCubeTask.then([this] () {
+	createCubeTask.then([this,width,height] () {
 		client = MoonlightClient::GetInstance();
-		int status = client->Init(m_deviceResources, 1280,720);
+		int status = client->Init(m_deviceResources, width,height);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 			dialog->Content = Utils::StringPrintf("Got status %d from Moonlight init", status);

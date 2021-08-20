@@ -129,7 +129,7 @@ namespace moonlight_xbox_dx {
 		if (sharedTexture == NULL)return 1;
 		DX::ThrowIfFailed(sharedTexture->QueryInterface(dxgiMutex.GetAddressOf()));
 		//Create a Staging Texture
-		D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
+		/*D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
 		stagingDesc.Width = 1280;
 		stagingDesc.Height = 720;
 		stagingDesc.ArraySize = 1;
@@ -140,7 +140,7 @@ namespace moonlight_xbox_dx {
 		stagingDesc.SampleDesc.Count = 1;
 		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		stagingDesc.MiscFlags = 0;
-		DX::ThrowIfFailed(ffmpegDevice->CreateTexture2D(&stagingDesc, NULL, &stagingTexture));
+		DX::ThrowIfFailed(ffmpegDevice->CreateTexture2D(&stagingDesc, NULL, &stagingTexture));*/
 		return 0;
 	}
 
@@ -214,6 +214,7 @@ namespace moonlight_xbox_dx {
 			char errorstringnew[1024];
 			sprintf(errorstringnew, "Error avcodec_receive_frame: %d\n", AVERROR(err));
 			Utils::Log(errorstringnew);
+			return err;
 		}
 		decodedFrameNumber++;
 		Utils::Log("...(2) Decoded Frame...");

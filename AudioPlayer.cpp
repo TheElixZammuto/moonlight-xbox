@@ -56,7 +56,7 @@ namespace moonlight_xbox_dx {
 		if (len > 0) {
 			memcpy(pOutput, buffer, len * ma_pcm_rb_get_bpf(&rb));
 			res = ma_pcm_rb_commit_read(&rb, len, buffer);
-			if (res != MA_SUCCESS) {
+			if (res != MA_SUCCESS && res != MA_AT_END) {
 				Utils::Log("Failed to read audio data to shared buffer\n");
 				return;
 			}
@@ -123,7 +123,7 @@ namespace moonlight_xbox_dx {
 
 	void AudioPlayer::Start() {
 		if (ma_device_start(&device) != MA_SUCCESS) {
-			printf("Failed to start playback device.\n");
+			Utils::Log("Failed to start playback device.\n");
 			ma_device_uninit(&device);
 		}
 
@@ -131,7 +131,7 @@ namespace moonlight_xbox_dx {
 
 	void AudioPlayer::Stop() {
 		if (ma_device_stop(&device) != MA_SUCCESS) {
-			printf("Failed to start playback device.\n");
+			Utils::Log("Failed to start playback device.\n");
 			ma_device_uninit(&device);
 		}
 	}

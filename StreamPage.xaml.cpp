@@ -32,6 +32,11 @@ StreamPage::StreamPage():
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &StreamPage::OnBackRequested);
 	InitializeComponent();
+
+	DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
+
+	swapChainPanel->SizeChanged +=
+		ref new SizeChangedEventHandler(this, &StreamPage::OnSwapChainPanelSizeChanged);
 }
 
 
@@ -90,4 +95,12 @@ void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::Routed
 		dialog->CloseButtonText = L"OK";
 		dialog->ShowAsync();
 	}
+}
+
+void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e)
+{
+	if (m_main == nullptr || m_deviceResources == nullptr)return;
+	critical_section::scoped_lock lock(m_main->GetCriticalSection());
+	m_deviceResources->SetLogicalSize(e->NewSize);
+	m_main->CreateWindowSizeDependentResources();
 }

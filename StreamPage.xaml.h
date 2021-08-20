@@ -32,6 +32,7 @@ namespace moonlight_xbox_dx
 		std::unique_ptr<moonlight_xbox_dxMain> m_main; 
 		bool m_windowVisible;
 		void Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
 	};
 }
 

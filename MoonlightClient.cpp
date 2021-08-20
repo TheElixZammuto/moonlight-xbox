@@ -31,9 +31,9 @@ MoonlightClient* MoonlightClient::GetInstance() {
 
 int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int height) {
 	STREAM_CONFIGURATION config;
-	config.width = 1280;
-	config.height = 720;
-	config.bitrate = 2000;
+	config.width = width;
+	config.height = height;
+	config.bitrate = 8000;
 	config.clientRefreshRateX100 = 60 * 100;
 	config.colorRange = COLOR_RANGE_LIMITED;
 	config.encryptionFlags = 0;
