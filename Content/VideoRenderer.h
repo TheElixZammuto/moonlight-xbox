@@ -17,6 +17,7 @@ namespace moonlight_xbox_dx
 		void ReleaseDeviceDependentResources();
 		void Update(DX::StepTimer const& timer);
 		void Render();
+		ID3D11Texture2D* GenerateTexture();
 
 
 	private:

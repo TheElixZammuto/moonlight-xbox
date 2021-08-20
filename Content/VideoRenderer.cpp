@@ -43,14 +43,15 @@ void VideoRenderer::Update(DX::StepTimer const& timer)
 void VideoRenderer::Render()
 {
 		// Loading is asynchronous. Only draw geometry after it's loaded.
-		if (!m_loadingComplete || renderTexture == NULL)
+		if (!m_loadingComplete)
 		{
 			return;
 		}
-		if (FFMpegDecoder::getInstance()->decodedFrameNumber < 0)return;
+		//if (FFMpegDecoder::getInstance()->decodedFrameNumber < 0)return;
 		/*if (FFMpegDecoder::getInstance()->decodedFrameNumber > 0 && FFMpegDecoder::getInstance()->renderedFrameNumber <= 0) {
 		}*/
-		m_deviceResources->keyedMutex->AcquireSync(1, INFINITE);
+		//m_deviceResources->keyedMutex->AcquireSync(1, INFINITE);
+			//Create a rendering texture
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
 		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
 		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
@@ -84,8 +85,8 @@ void VideoRenderer::Render()
 		context->DrawIndexed(m_indexCount,0,0);
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
-		FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
-		DX::ThrowIfFailed(m_deviceResources->keyedMutex->ReleaseSync(0));
+		//FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
+		//DX::ThrowIfFailed(m_deviceResources->keyedMutex->ReleaseSync(0));
 }
 
 void VideoRenderer::CreateDeviceDependentResources()
@@ -232,7 +233,12 @@ void VideoRenderer::CreateDeviceDependentResources()
 	
 
 	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
-	//Create a rendering texture
+
+	//DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
+	//DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
+	//DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
+	//DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&m_deviceResources->sharedHandle));
+	// Once the cube is loaded, the object is ready to be rendered.
 	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
 	int width = 1920;
 	int height = 1080;
@@ -246,23 +252,19 @@ void VideoRenderer::CreateDeviceDependentResources()
 	stagingDesc.SampleDesc.Quality = 0;
 	stagingDesc.SampleDesc.Count = 1;
 	stagingDesc.CPUAccessFlags = 0;
-	stagingDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
+	stagingDesc.MiscFlags = 0;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, renderTexture.GetAddressOf()));
-	DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
-	DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
-	DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
-	//DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&m_deviceResources->sharedHandle));
-	
-	// Once the cube is loaded, the object is ready to be rendered.
-	createCubeTask.then([this,width,height] () {
-		client = MoonlightClient::GetInstance();
+	ID3D11Texture2D* t = GenerateTexture();
+	m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), t);
+	createCubeTask.then([this] () {
+		/*client = MoonlightClient::GetInstance();
 		int status = client->Init(m_deviceResources, width,height);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 			dialog->Content = Utils::StringPrintf("Got status %d from Moonlight init", status);
 			dialog->CloseButtonText = L"OK";
 			dialog->ShowAsync();
-		}
+		}*/
 		m_loadingComplete = true;
 	});
 }
@@ -276,4 +278,35 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_constantBuffer.Reset();
 	m_vertexBuffer.Reset();
 	m_indexBuffer.Reset();
+}
+
+ID3D11Texture2D* VideoRenderer::GenerateTexture() {
+	ID3D11Texture2D *stagingTexture;
+	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
+	stagingDesc.Width = 1920;
+	stagingDesc.Height = 1080;
+	stagingDesc.ArraySize = 1;
+	stagingDesc.Format = DXGI_FORMAT_NV12;
+	stagingDesc.Usage = D3D11_USAGE_STAGING;
+	stagingDesc.MipLevels = 1;
+	stagingDesc.SampleDesc.Quality = 0;
+	stagingDesc.SampleDesc.Count = 1;
+	stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	stagingDesc.MiscFlags = 0;
+	DX::ThrowIfFailed(this->m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, &stagingTexture));
+	D3D11_MAPPED_SUBRESOURCE ms;
+	DX::ThrowIfFailed(this->m_deviceResources->GetD3DDeviceContext()->Map(stagingTexture, 0, D3D11_MAP_WRITE, 0, &ms));
+	int size = 1920 * 1080 * 1.5;
+	unsigned char* textureData = (unsigned char*) malloc(sizeof(unsigned char) * size);
+	for (int y = 0; y < 1080; y++) {
+		for (int x = 0; x < 1920; x++) {
+			float coord = ((float)x / 1920.0f * (float)(235 - 16)) + 16;
+			textureData[(y * 1920) + x] = coord;
+		}
+	}
+	//ZeroMemory(textureData, sizeof(unsigned char*) * size);
+	unsigned char* texturePointer = (unsigned char*)ms.pData;
+	memcpy(texturePointer, textureData, 1920 * 1080 * 1.5);
+	this->m_deviceResources->GetD3DDeviceContext()->Unmap(stagingTexture, 0);
+	return stagingTexture;
 }

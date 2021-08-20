@@ -81,9 +81,8 @@ void moonlight_xbox_dx::MenuPage::UpdateApps() {
 }
 
 void moonlight_xbox_dx::MenuPage::OnAppClicked(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
-	ComboBoxItem^ item = (ComboBoxItem^) this->appsComboBox->SelectedItem;
-	MoonlightClient::GetInstance()->SetAppID((int) item->DataContext);
-	MoonlightClient::GetInstance()->SetSoftwareEncoder(/*this->UseSoftwareEncoder->IsChecked->Value*/false);
+	/*ComboBoxItem^ item = (ComboBoxItem^) this->appsComboBox->SelectedItem;
+	MoonlightClient::GetInstance()->SetAppID((int) item->DataContext);*/
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid));
 	if (result) {
 		this->ConnectStatusText->Text = L"OK";
