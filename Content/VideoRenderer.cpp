@@ -133,15 +133,6 @@ void VideoRenderer::CreateDeviceDependentResources()
 				&m_pixelShader
 				)
 			);
-
-		CD3D11_BUFFER_DESC constantBufferDesc(sizeof(ModelViewProjectionConstantBuffer) , D3D11_BIND_CONSTANT_BUFFER);
-		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreateBuffer(
-				&constantBufferDesc,
-				nullptr,
-				&m_constantBuffer
-				)
-			);
 	});
 
 	// Once both shaders are loaded, create the mesh.
@@ -154,10 +145,10 @@ void VideoRenderer::CreateDeviceDependentResources()
 		// Load mesh vertices. Each vertex has a position and a color.
 		static const VertexPositionColor cubeVertices[] = 
 		{
-			{XMFLOAT3(-1.0f,-1.0f,0.5f), XMFLOAT2(0.0f, 1.0f)},
-			{XMFLOAT3(-1.0f,1.0f, 0.5f), XMFLOAT2(0.0f, 0.0f)},
-			{XMFLOAT3(1.0f,1.0f, 0.5f), XMFLOAT2(1.0f, 0.0f)},
-			{XMFLOAT3(1.0f,-1.0f,0.5f), XMFLOAT2(1.0f, 1.0f)},
+			{XMFLOAT3(-1.0f,-1.0f,0.0f), XMFLOAT2(0.0f, 1.0f)},
+			{XMFLOAT3(-1.0f,1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)},
+			{XMFLOAT3(1.0f,1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f)},
+			{XMFLOAT3(1.0f,-1.0f,0.0f), XMFLOAT2(1.0f, 1.0f)},
 			
 		};
 
@@ -232,8 +223,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 
 	
 
-	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
-
+	//	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
 	//DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
 	//DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
 	//DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
