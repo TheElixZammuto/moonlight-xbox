@@ -34,10 +34,11 @@ float3 ConvertYUVtoRGB(float3 yuv)
 // A pass-through function for the (interpolated) color data.
 min16float4 main(PixelShaderInput input) : SV_TARGET
 {
-	float y = luminanceChannel.Sample(defaultSampler, input.texCoord);
+	/*float y = luminanceChannel.Sample(defaultSampler, input.texCoord);
 	float2 uv = chrominanceChannel.Sample(defaultSampler, input.texCoord);
 	/*float r = uv.r;
 	uv.r = uv.g;
-	uv.g = r;*/
-	return min16float4(ConvertYUVtoRGB(float3(y, uv)), 1.f);
+	uv.g = r;
+	return min16float4(ConvertYUVtoRGB(float3(y, uv)), 1.f);*/
+	return min16float4(1.f,0.f,0.f,1.f);
 }
