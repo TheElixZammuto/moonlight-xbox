@@ -38,7 +38,7 @@ void VideoRenderer::Update(DX::StepTimer const& timer)
 {
 
 }
-
+bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
 void VideoRenderer::Render()
 {
@@ -55,9 +55,9 @@ void VideoRenderer::Render()
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
 		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
 		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, &m_luminance_shader_resource_view));
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, &m_luminance_shader_resource_view),"Luminance SRV Creation");
 		D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, &m_chrominance_shader_resource_view));
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, &m_chrominance_shader_resource_view),"Chrominance SRV Creation");
 		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, &m_luminance_shader_resource_view);
 		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, &m_chrominance_shader_resource_view);
 
@@ -87,10 +87,15 @@ void VideoRenderer::Render()
 		//m_chrominance_shader_resource_view->Release();
 		//FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
 		//DX::ThrowIfFailed(m_deviceResources->keyedMutex->ReleaseSync(0));
+		if (!renderedOneFrame) {
+			Utils::Log("Rendered First Frame!\n");
+			renderedOneFrame = true;
+		}
 }
 
 void VideoRenderer::CreateDeviceDependentResources()
 {
+	Utils::Log("Started with creation of DXView\n");
 	// Load shaders asynchronously.
 	auto loadVSTask = DX::ReadDataAsync(L"SampleVertexShader.cso");
 	auto loadPSTask = DX::ReadDataAsync(L"SamplePixelShader.cso");
@@ -104,7 +109,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 				nullptr,
 				&m_vertexShader
 				)
-			);
+			,"Vertex Shader Creation");
 
 		static const D3D11_INPUT_ELEMENT_DESC vertexDesc [] =
 		{
@@ -120,7 +125,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 				fileData.size(),
 				&m_inputLayout
 				)
-			);
+			,"Input Layout Creation");
 	});
 
 	// After the pixel shader file is loaded, create the shader and constant buffer.
@@ -132,7 +137,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 				nullptr,
 				&m_pixelShader
 				)
-			);
+			, "Pixel Shader Creation");
 	});
 
 	// Once both shaders are loaded, create the mesh.
@@ -163,7 +168,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 				&vertexBufferData,
 				&m_vertexBuffer
 				)
-			);
+			,"Vertex Buffer Creation");
 
 		// Load mesh indices. Each trio of indices represents
 		// a triangle to be rendered on the screen.
@@ -189,7 +194,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 				&indexBufferData,
 				&m_indexBuffer
 				)
-			);
+			,"Index Buffer Creation");
 	});
 
 	D3D11_RASTERIZER_DESC rasterizerState;
@@ -206,7 +211,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 	rasterizerState.ScissorEnable = false;
 	rasterizerState.SlopeScaledDepthBias = 0.0f;
 	ID3D11RasterizerState* m_pRasterState;
-	m_deviceResources->GetD3DDevice()->CreateRasterizerState(&rasterizerState, &m_pRasterState);
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateRasterizerState(&rasterizerState, &m_pRasterState),"Rasterizer Creation");
 	m_deviceResources->GetD3DDeviceContext()->RSSetState(m_pRasterState);
 
 	D3D11_SAMPLER_DESC samplerDesc;
@@ -219,7 +224,8 @@ void VideoRenderer::CreateDeviceDependentResources()
 	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	samplerDesc.MinLOD = -FLT_MAX;
 	samplerDesc.MaxLOD = FLT_MAX;
-	m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf());
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf()),"Sampler Creation");
+	DX::ThrowIfFailed(E_ACCESSDENIED,"Test Logging");
 
 	
 
@@ -230,8 +236,8 @@ void VideoRenderer::CreateDeviceDependentResources()
 	//DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&m_deviceResources->sharedHandle));
 	// Once the cube is loaded, the object is ready to be rendered.
 	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
-	int width = 1920;
-	int height = 1080;
+	int width = 1280;
+	int height = 720;
 	stagingDesc.Width = width;
 	stagingDesc.Height = height;
 	stagingDesc.ArraySize = 1;
@@ -243,7 +249,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 	stagingDesc.SampleDesc.Count = 1;
 	stagingDesc.CPUAccessFlags = 0;
 	stagingDesc.MiscFlags = 0;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, renderTexture.GetAddressOf()));
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, renderTexture.GetAddressOf()),"Render Texture Creation");
 	ID3D11Texture2D* t = GenerateTexture();
 	m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), t);
 	createCubeTask.then([this] () {
@@ -256,6 +262,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 			dialog->ShowAsync();
 		}*/
 		m_loadingComplete = true;
+		Utils::Log("Loading Complete!\n");
 	});
 }
 
@@ -273,8 +280,8 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 ID3D11Texture2D* VideoRenderer::GenerateTexture() {
 	ID3D11Texture2D *stagingTexture;
 	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
-	stagingDesc.Width = 1920;
-	stagingDesc.Height = 1080;
+	stagingDesc.Width = 1280;
+	stagingDesc.Height = 720;
 	stagingDesc.ArraySize = 1;
 	stagingDesc.Format = DXGI_FORMAT_NV12;
 	stagingDesc.Usage = D3D11_USAGE_STAGING;
@@ -283,20 +290,20 @@ ID3D11Texture2D* VideoRenderer::GenerateTexture() {
 	stagingDesc.SampleDesc.Count = 1;
 	stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	stagingDesc.MiscFlags = 0;
-	DX::ThrowIfFailed(this->m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, &stagingTexture));
+	DX::ThrowIfFailed(this->m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, &stagingTexture),"Demo Texture Creation");
 	D3D11_MAPPED_SUBRESOURCE ms;
-	DX::ThrowIfFailed(this->m_deviceResources->GetD3DDeviceContext()->Map(stagingTexture, 0, D3D11_MAP_WRITE, 0, &ms));
-	int size = 1920 * 1080 * 1.5;
+	DX::ThrowIfFailed(this->m_deviceResources->GetD3DDeviceContext()->Map(stagingTexture, 0, D3D11_MAP_WRITE, 0, &ms),"Texture Mapping");
+	int size = 1280 * 720 * 1.5;
 	unsigned char* textureData = (unsigned char*) malloc(sizeof(unsigned char) * size);
-	for (int y = 0; y < 1080; y++) {
-		for (int x = 0; x < 1920; x++) {
-			float coord = ((float)x / 1920.0f * (float)(235 - 16)) + 16;
-			textureData[(y * 1920) + x] = coord;
+	for (int y = 0; y < 720; y++) {
+		for (int x = 0; x < 1280; x++) {
+			float coord = ((float)x / 1280.0f * (float)(235 - 16)) + 16;
+			textureData[(y * 1280) + x] = coord;
 		}
 	}
 	//ZeroMemory(textureData, sizeof(unsigned char*) * size);
 	unsigned char* texturePointer = (unsigned char*)ms.pData;
-	memcpy(texturePointer, textureData, 1920 * 1080 * 1.5);
+	memcpy(texturePointer, textureData, 1280 * 720 * 1.5);
 	this->m_deviceResources->GetD3DDeviceContext()->Unmap(stagingTexture, 0);
 	return stagingTexture;
 }

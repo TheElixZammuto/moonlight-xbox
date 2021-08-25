@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <ppltasks.h>	// For create_task
+#include <Utils.hpp>
 
 namespace DX
 {
@@ -9,7 +10,22 @@ namespace DX
 		if (FAILED(hr))
 		{
 			// Set a breakpoint on this line to catch Win32 API errors.
-			throw Platform::Exception::CreateException(hr);
+			//throw Platform::Exception::CreateException(hr);
+			char msg[4096];
+			sprintf(msg, "Got generic error from HRESULT: %x\n", hr);
+			moonlight_xbox_dx::Utils::Log(msg);
+		}
+	}
+
+	inline void ThrowIfFailed(HRESULT hr,const char *reason)
+	{
+		if (FAILED(hr))
+		{
+			// Set a breakpoint on this line to catch Win32 API errors.
+			//throw Platform::Exception::CreateException(hr);
+			char msg[4096];
+			sprintf(msg, "Got generic error from %s: %x\n", reason, hr);
+			moonlight_xbox_dx::Utils::Log(msg);
 		}
 	}
 
