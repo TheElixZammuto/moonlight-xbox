@@ -204,11 +204,11 @@ namespace moonlight_xbox_dx {
 		//Utils::Log("...(2) Decoded Frame...");
 		if (err == 0 && sharedTexture != NULL) {
 			AVFrame* frame = dec_frames[next_frame];
-			dxgiMutex->AcquireSync(0, INFINITE);
+			DX::ThrowIfFailed(dxgiMutex->AcquireSync(0, INFINITE),"Mutex Locking");
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
 			int index = (int)(frame->data[1]);
 			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture, index, NULL);
-			DX::ThrowIfFailed(dxgiMutex->ReleaseSync(1));
+			DX::ThrowIfFailed(dxgiMutex->ReleaseSync(1),"Mutex Unlocking");
 		}
 		return 0;
 	}

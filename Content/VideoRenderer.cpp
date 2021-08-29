@@ -48,8 +48,6 @@ void VideoRenderer::Render()
 			return;
 		}
 		if (FFMpegDecoder::getInstance()->decodedFrameNumber < 0)return;
-		/*if (FFMpegDecoder::getInstance()->decodedFrameNumber > 0 && FFMpegDecoder::getInstance()->renderedFrameNumber <= 0) {
-		}*/
 		m_deviceResources->keyedMutex->AcquireSync(1, INFINITE);
 			//Create a rendering texture
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
@@ -226,37 +224,25 @@ void VideoRenderer::CreateDeviceDependentResources()
 	samplerDesc.MaxLOD = FLT_MAX;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf()),"Sampler Creation");
 	DX::ThrowIfFailed(E_ACCESSDENIED,"Test Logging");
-
-	
-
-	//	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
-	//DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
-	//DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
-	//DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
-	//DX::ThrowIfFailed(dxgiResource->GetSharedHandle(&m_deviceResources->sharedHandle));
-	// Once the cube is loaded, the object is ready to be rendered.
-	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
-	int width = 1920;
-	int height = 1080;
-	stagingDesc.Width = width;
-	stagingDesc.Height = height;
-	stagingDesc.ArraySize = 1;
-	stagingDesc.Format = DXGI_FORMAT_NV12;
-	stagingDesc.Usage = D3D11_USAGE_DEFAULT;
-	stagingDesc.MipLevels = 1;
-	stagingDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	stagingDesc.SampleDesc.Quality = 0;
-	stagingDesc.SampleDesc.Count = 1;
-	stagingDesc.CPUAccessFlags = 0;
-	stagingDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, renderTexture.GetAddressOf()),"Render Texture Creation");
+	D3D11_TEXTURE2D_DESC renderTextureDesc = { 0 };
+	int width = 1280;
+	int height = 720;
+	renderTextureDesc.Width = width;
+	renderTextureDesc.Height = height;
+	renderTextureDesc.ArraySize = 1;
+	renderTextureDesc.Format = DXGI_FORMAT_NV12;
+	renderTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+	renderTextureDesc.MipLevels = 1;
+	renderTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	renderTextureDesc.SampleDesc.Quality = 0;
+	renderTextureDesc.SampleDesc.Count = 1;
+	renderTextureDesc.CPUAccessFlags = 0;
+	renderTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()),"Render Texture Creation");
 	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
 	DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
 	DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
 	DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
-	//ID3D11Texture2D* t = GenerateTexture();
-	//m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), t);
-	//m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, t, 0, NULL);
 	createCubeTask.then([this,width,height] () {
 		client = MoonlightClient::GetInstance();
 		int status = client->Init(m_deviceResources, width,height);
@@ -281,34 +267,3 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_vertexBuffer.Reset();
 	m_indexBuffer.Reset();
 }
-
-/*ID3D11Texture2D* VideoRenderer::GenerateTexture() {
-	ID3D11Texture2D *stagingTexture;
-	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
-	int width = 1920;
-	int height = 1080;
-	stagingDesc.Width = width;
-	stagingDesc.Height = height;
-	stagingDesc.ArraySize = 1;
-	stagingDesc.Format = DXGI_FORMAT_NV12;
-	stagingDesc.Usage = D3D11_USAGE_STAGING;
-	stagingDesc.MipLevels = 1;
-	stagingDesc.SampleDesc.Quality = 0;
-	stagingDesc.SampleDesc.Count = 1;
-	stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	stagingDesc.MiscFlags = 0;
-	int size = width * height * 1.5;
-	unsigned char* textureData = (unsigned char*) malloc(sizeof(unsigned char) * size);
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			float coord = ((float)x / (float)width * (float)(235 - 16)) + 16;
-			textureData[(y * width) + x] = coord;
-		}
-	}
-	//ZeroMemory(textureData, sizeof(unsigned char*) * size);
-	D3D11_SUBRESOURCE_DATA sData;
-	sData.pSysMem = textureData;
-	sData.SysMemPitch = width;
-	DX::ThrowIfFailed(this->m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, &sData, &stagingTexture), "Demo Texture Creation");
-	return stagingTexture;
-}*/
