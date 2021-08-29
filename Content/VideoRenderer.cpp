@@ -43,14 +43,14 @@ bool renderedOneFrame = false;
 void VideoRenderer::Render()
 {
 		// Loading is asynchronous. Only draw geometry after it's loaded.
-		if (!m_loadingComplete)
+		if (!m_loadingComplete || renderTexture == NULL)
 		{
 			return;
 		}
-		//if (FFMpegDecoder::getInstance()->decodedFrameNumber < 0)return;
+		if (FFMpegDecoder::getInstance()->decodedFrameNumber < 0)return;
 		/*if (FFMpegDecoder::getInstance()->decodedFrameNumber > 0 && FFMpegDecoder::getInstance()->renderedFrameNumber <= 0) {
 		}*/
-		//m_deviceResources->keyedMutex->AcquireSync(1, INFINITE);
+		m_deviceResources->keyedMutex->AcquireSync(1, INFINITE);
 			//Create a rendering texture
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
 		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
@@ -85,8 +85,8 @@ void VideoRenderer::Render()
 		context->DrawIndexed(m_indexCount,0,0);
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
-		//FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
-		//DX::ThrowIfFailed(m_deviceResources->keyedMutex->ReleaseSync(0));
+		FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
+		DX::ThrowIfFailed(m_deviceResources->keyedMutex->ReleaseSync(0));
 		if (!renderedOneFrame) {
 			Utils::Log("Rendered First Frame!\n");
 			renderedOneFrame = true;
@@ -248,20 +248,24 @@ void VideoRenderer::CreateDeviceDependentResources()
 	stagingDesc.SampleDesc.Quality = 0;
 	stagingDesc.SampleDesc.Count = 1;
 	stagingDesc.CPUAccessFlags = 0;
-	stagingDesc.MiscFlags = 0;
+	stagingDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, NULL, renderTexture.GetAddressOf()),"Render Texture Creation");
-	ID3D11Texture2D* t = GenerateTexture();
+	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
+	DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
+	DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
+	DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
+	//ID3D11Texture2D* t = GenerateTexture();
 	//m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), t);
-	m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, t, 0, NULL);
-	createCubeTask.then([this] () {
-		/*client = MoonlightClient::GetInstance();
+	//m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, t, 0, NULL);
+	createCubeTask.then([this,width,height] () {
+		client = MoonlightClient::GetInstance();
 		int status = client->Init(m_deviceResources, width,height);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 			dialog->Content = Utils::StringPrintf("Got status %d from Moonlight init", status);
 			dialog->CloseButtonText = L"OK";
 			dialog->ShowAsync();
-		}*/
+		}
 		m_loadingComplete = true;
 		Utils::Log("Loading Complete!\n");
 	});
@@ -278,7 +282,7 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_indexBuffer.Reset();
 }
 
-ID3D11Texture2D* VideoRenderer::GenerateTexture() {
+/*ID3D11Texture2D* VideoRenderer::GenerateTexture() {
 	ID3D11Texture2D *stagingTexture;
 	D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
 	int width = 1920;
@@ -307,4 +311,4 @@ ID3D11Texture2D* VideoRenderer::GenerateTexture() {
 	sData.SysMemPitch = width;
 	DX::ThrowIfFailed(this->m_deviceResources->GetD3DDevice()->CreateTexture2D(&stagingDesc, &sData, &stagingTexture), "Demo Texture Creation");
 	return stagingTexture;
-}
+}*/

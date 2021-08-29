@@ -128,19 +128,6 @@ namespace moonlight_xbox_dx {
 		DX::ThrowIfFailed(ffmpegDevice->OpenSharedResource1(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture));
 		if (sharedTexture == NULL)return 1;
 		DX::ThrowIfFailed(sharedTexture->QueryInterface(dxgiMutex.GetAddressOf()));
-		//Create a Staging Texture
-		/*D3D11_TEXTURE2D_DESC stagingDesc = { 0 };
-		stagingDesc.Width = 1280;
-		stagingDesc.Height = 720;
-		stagingDesc.ArraySize = 1;
-		stagingDesc.Format = DXGI_FORMAT_NV12;
-		stagingDesc.Usage = D3D11_USAGE_STAGING;
-		stagingDesc.MipLevels = 1;
-		stagingDesc.SampleDesc.Quality = 0;
-		stagingDesc.SampleDesc.Count = 1;
-		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		stagingDesc.MiscFlags = 0;
-		DX::ThrowIfFailed(ffmpegDevice->CreateTexture2D(&stagingDesc, NULL, &stagingTexture));*/
 		return 0;
 	}
 
@@ -161,7 +148,7 @@ namespace moonlight_xbox_dx {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
 			return -1;
 		}
-		Utils::Log("(1) Got new Decode Unit...");
+		//Utils::Log("(1) Got new Decode Unit...");
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
 		while (entry != NULL) {
@@ -177,7 +164,7 @@ namespace moonlight_xbox_dx {
 			Utils::Log(errorstringnew);
 			return DR_NEED_IDR;
 		}
-		Utils::Log("...OK\n");
+		//Utils::Log("...OK\n");
 		return DR_OK;
 	}
 
@@ -202,9 +189,6 @@ namespace moonlight_xbox_dx {
 			return err;
 		}
 		int te = GetTickCount64();
-		/*char msg[4096];
-		sprintf(msg, "Decoding took: %d ms\n", te - ts);
-		OutputDebugStringA(msg);*/
 		return err < 0 ? err : 0;
 	}
 
@@ -217,34 +201,13 @@ namespace moonlight_xbox_dx {
 			return err;
 		}
 		decodedFrameNumber++;
-		Utils::Log("...(2) Decoded Frame...");
+		//Utils::Log("...(2) Decoded Frame...");
 		if (err == 0 && sharedTexture != NULL) {
 			AVFrame* frame = dec_frames[next_frame];
-			/*if (!useSoftwareEncoder) {
-				int error = av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
-				if (error < 0) {
-					char errorstringnew[1024];
-					sprintf(errorstringnew, "Error from FFMPEG while transferring to HW: %d\n", AVERROR(err));
-					Utils::Log(errorstringnew);
-					return error;
-				}
-				frame = ready_frames[next_frame];
-			}
-			D3D11_MAPPED_SUBRESOURCE ms;
-			DX::ThrowIfFailed(ffmpegDeviceContext->Map(stagingTexture, 0, D3D11_MAP_WRITE, 0, &ms));
-			int luminanceLength = frame->height * frame->linesize[0];
-			int chrominanceLength = frame->height * (frame->linesize[1] / 2);
-			unsigned char* texturePointer = (unsigned char*)ms.pData;
-			memcpy(texturePointer, frame->data[0], luminanceLength);
-			memcpy((texturePointer + luminanceLength + 1), frame->data[1], chrominanceLength);
-			ffmpegDeviceContext->Unmap(stagingTexture, 0);*/
-			//Utils::Log("Locking 0\n");
 			dxgiMutex->AcquireSync(0, INFINITE);
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
 			int index = (int)(frame->data[1]);
 			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture, index, NULL);
-			//ffmpegDeviceContext->CopyResource(sharedTexture, stagingTexture);
-			//Utils::Log("Unlocking 1\n");
 			DX::ThrowIfFailed(dxgiMutex->ReleaseSync(1));
 		}
 		return 0;
