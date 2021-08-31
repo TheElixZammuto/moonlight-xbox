@@ -2,6 +2,8 @@
 
 #include "Common/DeviceResources.h"
 #include<queue>
+#include <FramePacer.h>
+
 
 extern "C" {
 #include <Limelight.h>
@@ -13,9 +15,9 @@ namespace moonlight_xbox_dx
 	
 	class FFMpegDecoder {
 	public: 
-		FFMpegDecoder(std::shared_ptr<DX::DeviceResources> r, bool use) {
+		FFMpegDecoder(std::shared_ptr<DX::DeviceResources> r, FramePacer *pacer) {
 			resources = r;
-			useSoftwareEncoder = use;
+			this->pacer = pacer;
 		};
 		int Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags);
 		void Start();
@@ -25,10 +27,8 @@ namespace moonlight_xbox_dx
 		int GetFrame();
 		static FFMpegDecoder* getInstance();
 		static DECODER_RENDERER_CALLBACKS getDecoder();
-		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources,bool useSoftwareEncoder);
-		bool useSoftwareEncoder = false;
-		int renderedFrameNumber = -1;
-		int decodedFrameNumber = -1;
+		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, FramePacer *pacer);
+		FramePacer *pacer;
 	private:
 		int Decode(unsigned char* indata, int inlen);
 		AVPacket pkt;
@@ -42,9 +42,6 @@ namespace moonlight_xbox_dx
 		std::shared_ptr<DX::DeviceResources> resources;
 		Microsoft::WRL::ComPtr<ID3D11Device1> ffmpegDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> ffmpegDeviceContext;
-		Microsoft::WRL::ComPtr<IDXGIKeyedMutex> dxgiMutex;
-		ID3D11Texture2D* sharedTexture;
 		ID3D11Texture2D* ffmpegTexture;
-		ID3D11Texture2D* stagingTexture;
 	};
 }

@@ -25,7 +25,9 @@ MoonlightClient* client;
 
 MoonlightClient* MoonlightClient::GetInstance() {
 	if (client != NULL)return client;
+	FramePacer* p = new FramePacer();
 	client = new MoonlightClient();
+	client->pacer = p;
 	return client;
 }
 
@@ -55,7 +57,7 @@ int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int
 	callbacks.stageFailed = stage_failed;
 	callbacks.stageComplete = connection_status_update;
 	callbacks.rumble = connection_rumble;
-	FFMpegDecoder::createDecoderInstance(res, useSoftwareEncoder);
+	FFMpegDecoder::createDecoderInstance(res, this->pacer);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
 	return LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
@@ -161,9 +163,6 @@ void MoonlightClient::SendGamepadReading(GamepadReading reading) {
 			buttonFlags |= LiButtonFlags[i];
 		}
 	}
-	char output[1024];
-	//sprintf(output,"Got from gamepad: %d\n", buttonFlags);
-	OutputDebugStringA(output);
 	LiSendControllerEvent(buttonFlags, (short)(reading.LeftTrigger * 32767), (short)(reading.RightTrigger * 32767), (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
 }
 

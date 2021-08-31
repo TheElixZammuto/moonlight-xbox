@@ -72,22 +72,21 @@ namespace moonlight_xbox_dx {
 		D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, creationFlags, featureLevels, 6, D3D11_SDK_VERSION, &dev, NULL, ffmpegDeviceContext.GetAddressOf());
 		//DX11-FFMpeg association
 		ffmpegDevice = (ID3D11Device1*)dev;
-		if (!useSoftwareEncoder) {
-			static AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
-			AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
-			AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
-			d3d11va_device_ctx->device = dev;
-			d3d11va_device_ctx->device_context = ffmpegDeviceContext.Get();
-			int err2;
-			if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
-				char msg[2048];
-				sprintf(msg, "Failed to create specified DirectX Video device: %d\n", err2);
-				Utils::Log(msg);
-				return err2;
+		static AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
+		AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
+		AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
+		d3d11va_device_ctx->device = dev;
+		d3d11va_device_ctx->device_context = ffmpegDeviceContext.Get();
+		int err2;
+		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
+			char msg[2048];
+			sprintf(msg, "Failed to create specified DirectX Video device: %d\n", err2);
+			Utils::Log(msg);
+			return err2;
 
-			}
-			decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 		}
+		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+		
 		decoder_ctx->width = width;
         decoder_ctx->height = height;
 
@@ -125,9 +124,7 @@ namespace moonlight_xbox_dx {
 				return -1;
 			}
 		}
-		DX::ThrowIfFailed(ffmpegDevice->OpenSharedResource1(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture));
-		if (sharedTexture == NULL)return 1;
-		DX::ThrowIfFailed(sharedTexture->QueryInterface(dxgiMutex.GetAddressOf()));
+		pacer->decodingDevice = ffmpegDevice.Get();
 		return 0;
 	}
 
@@ -200,15 +197,22 @@ namespace moonlight_xbox_dx {
 			Utils::Log(errorstringnew);
 			return err;
 		}
-		decodedFrameNumber++;
 		//Utils::Log("...(2) Decoded Frame...");
-		if (err == 0 && sharedTexture != NULL) {
+		if (err == 0) {
 			AVFrame* frame = dec_frames[next_frame];
-			DX::ThrowIfFailed(dxgiMutex->AcquireSync(0, INFINITE),"Mutex Locking");
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
+			Microsoft::WRL::ComPtr<ID3D11Texture2D> queueTexture;
+			D3D11_TEXTURE2D_DESC desc;
+			ffmpegTexture->GetDesc(&desc);
+			desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+			desc.ArraySize = 1;
+			ffmpegDevice->CreateTexture2D(&desc, NULL, queueTexture.GetAddressOf());
 			int index = (int)(frame->data[1]);
-			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture, index, NULL);
-			DX::ThrowIfFailed(dxgiMutex->ReleaseSync(1),"Mutex Unlocking");
+			ffmpegDeviceContext->CopySubresourceRegion(queueTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, NULL);
+			Frame f = {
+				queueTexture
+			};
+			pacer->SubmitFrame(f);
 		}
 		return 0;
 	}
@@ -216,8 +220,8 @@ namespace moonlight_xbox_dx {
 	//Helpers
 	FFMpegDecoder *instance;
 
-	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, bool useSoftwareEncoder) {
-		if (instance == NULL)instance = new FFMpegDecoder(resources,useSoftwareEncoder);
+	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, FramePacer *pacer) {
+		if (instance == NULL)instance = new FFMpegDecoder(resources, pacer);
 		return instance;
 	}
 	
