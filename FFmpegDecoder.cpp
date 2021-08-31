@@ -202,7 +202,7 @@ namespace moonlight_xbox_dx {
 		}
 		decodedFrameNumber++;
 		//Utils::Log("...(2) Decoded Frame...");
-		if (err == 0 && sharedTexture != NULL) {
+		if (err == 0 && sharedTexture != NULL && (decodedFrameNumber - renderedFrameNumber) <= 2) {
 			AVFrame* frame = dec_frames[next_frame];
 			DX::ThrowIfFailed(dxgiMutex->AcquireSync(0, INFINITE),"Mutex Locking");
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);

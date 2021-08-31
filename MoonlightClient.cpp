@@ -161,9 +161,6 @@ void MoonlightClient::SendGamepadReading(GamepadReading reading) {
 			buttonFlags |= LiButtonFlags[i];
 		}
 	}
-	char output[1024];
-	//sprintf(output,"Got from gamepad: %d\n", buttonFlags);
-	OutputDebugStringA(output);
 	LiSendControllerEvent(buttonFlags, (short)(reading.LeftTrigger * 32767), (short)(reading.RightTrigger * 32767), (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
 }
 
