@@ -1,13 +1,9 @@
 #pragma once
 #include "pch.h"
 #include <queue>
-extern "C" {
-#include <libavcodec/avcodec.h>
-}
 struct Frame
 {
-	//Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
-	AVFrame *frame;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
 };
 
 class FramePacer
@@ -22,6 +18,9 @@ public:
 private:
 	std::queue<Frame> textures;
 	Frame preparedFrame;
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> stagingTexture;
+	HANDLE sharedHandle;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> currentFrameTexture;
+	//Microsoft::WRL::ComPtr<IDXGIKeyedMutex> mutex;
+	bool textureLock = false;
 };
 
