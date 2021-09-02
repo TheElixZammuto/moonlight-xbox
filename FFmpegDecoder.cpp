@@ -199,18 +199,9 @@ namespace moonlight_xbox_dx {
 		}
 		//Utils::Log("...(2) Decoded Frame...");
 		if (err == 0) {
-			AVFrame* frame = dec_frames[next_frame];
-			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
-			Microsoft::WRL::ComPtr<ID3D11Texture2D> queueTexture;
-			D3D11_TEXTURE2D_DESC desc;
-			ffmpegTexture->GetDesc(&desc);
-			desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-			desc.ArraySize = 1;
-			ffmpegDevice->CreateTexture2D(&desc, NULL, queueTexture.GetAddressOf());
-			int index = (int)(frame->data[1]);
-			ffmpegDeviceContext->CopySubresourceRegion(queueTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, NULL);
+			av_hwframe_transfer_data(ready_frames[next_frame], dec_frames[next_frame], 0);
 			Frame f = {
-				queueTexture
+				ready_frames[next_frame]
 			};
 			pacer->SubmitFrame(f);
 		}
