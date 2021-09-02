@@ -20,7 +20,7 @@ private:
 	Frame preparedFrame;
 	HANDLE sharedHandle;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> currentFrameTexture;
-	//Microsoft::WRL::ComPtr<IDXGIKeyedMutex> mutex;
+	Microsoft::WRL::ComPtr<IDXGIKeyedMutex> mutex;
 	bool textureLock = false;
 };
 

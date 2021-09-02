@@ -50,7 +50,9 @@ void VideoRenderer::Render()
 		//Create a rendering texture
 		client->pacer->PrepareFrameForRendering();
 		auto texture = client->pacer->GetCurrentRenderingFrame();
-		if (texture == NULL || texture == nullptr)return;
+		if (texture == NULL || texture == nullptr) {
+			return;
+		}
 		m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), texture.Get());
 		client->pacer->ReleaseFrame();
 		ID3D11ShaderResourceView* m_luminance_shader_resource_view;

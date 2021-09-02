@@ -145,7 +145,6 @@ namespace moonlight_xbox_dx {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
 			return -1;
 		}
-		//Utils::Log("(1) Got new Decode Unit...");
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
 		while (entry != NULL) {
@@ -161,7 +160,6 @@ namespace moonlight_xbox_dx {
 			Utils::Log(errorstringnew);
 			return DR_NEED_IDR;
 		}
-		//Utils::Log("...OK\n");
 		return DR_OK;
 	}
 
@@ -197,18 +195,21 @@ namespace moonlight_xbox_dx {
 			Utils::Log(errorstringnew);
 			return err;
 		}
-		//Utils::Log("...(2) Decoded Frame...");
 		if (err == 0) {
 			AVFrame* frame = dec_frames[next_frame];
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
 			Microsoft::WRL::ComPtr<ID3D11Texture2D> queueTexture;
 			D3D11_TEXTURE2D_DESC desc;
 			ffmpegTexture->GetDesc(&desc);
-			desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
+			desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 			desc.ArraySize = 1;
 			ffmpegDevice->CreateTexture2D(&desc, NULL, queueTexture.GetAddressOf());
+			IDXGIKeyedMutex* mutex;
+			queueTexture->QueryInterface(&mutex);
 			int index = (int)(frame->data[1]);
+			mutex->AcquireSync(0, INFINITE);
 			ffmpegDeviceContext->CopySubresourceRegion(queueTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, NULL);
+			mutex->ReleaseSync(1);
 			Frame f = {
 				queueTexture
 			};
