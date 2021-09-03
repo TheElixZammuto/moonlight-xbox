@@ -189,7 +189,7 @@ namespace moonlight_xbox_dx {
 
 	int FFMpegDecoder::GetFrame() {
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
-		if (err != 0) {
+		if (err != 0 && err != AVERROR(EAGAIN)) {
 			char errorstringnew[1024];
 			sprintf(errorstringnew, "Error avcodec_receive_frame: %d\n", AVERROR(err));
 			Utils::Log(errorstringnew);
@@ -203,7 +203,8 @@ namespace moonlight_xbox_dx {
 			ffmpegTexture->GetDesc(&desc);
 			desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 			desc.ArraySize = 1;
-			ffmpegDevice->CreateTexture2D(&desc, NULL, queueTexture.GetAddressOf());
+			DX::ThrowIfFailed(ffmpegDevice->CreateTexture2D(&desc, NULL, queueTexture.GetAddressOf()),"Queue Texture Creation");
+			if (queueTexture == NULL)return 1;
 			IDXGIKeyedMutex* mutex;
 			queueTexture->QueryInterface(&mutex);
 			int index = (int)(frame->data[1]);
