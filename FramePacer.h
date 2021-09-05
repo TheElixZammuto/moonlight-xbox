@@ -4,6 +4,7 @@
 struct Frame
 {
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+	Microsoft::WRL::ComPtr <IDXGIKeyedMutex> mutex;
 };
 
 class FramePacer
@@ -14,13 +15,13 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11Device1> renderingDevice, decodingDevice;
 	void PrepareFrameForRendering();
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> GetCurrentRenderingFrame();
-	void ReleaseFrame();
 private:
 	std::queue<Frame> textures;
 	Frame preparedFrame;
 	HANDLE sharedHandle;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> currentFrameTexture;
 	Microsoft::WRL::ComPtr<IDXGIKeyedMutex> mutex;
+	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
 	bool textureLock = false;
 };
 

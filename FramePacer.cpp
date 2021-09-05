@@ -5,6 +5,7 @@
 void FramePacer::SubmitFrame(Frame frame) {
 	if (textures.size() >= queueSize) {
 		Frame frame = textures.front();
+		frame.mutex->Release();
 		frame.texture->Release();
 		textures.pop();
 	}
@@ -13,15 +14,25 @@ void FramePacer::SubmitFrame(Frame frame) {
 
 void FramePacer::PrepareFrameForRendering() {
 	if (textures.size() > 0) {
-		if (preparedFrame.texture != nullptr)preparedFrame.texture->Release();
+		if (preparedFrame.texture != nullptr) {
+			if (mutex != NULL) {
+				mutex->ReleaseSync(0);
+				mutex->Release();
+			}
+			dxgiResource->Release();
+			preparedFrame.mutex->Release();
+			preparedFrame.texture->Release();
+		}
 		preparedFrame = textures.front();
 		textures.pop();
-		Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
+		if (preparedFrame.texture == nullptr)return;
 		DX::ThrowIfFailed(preparedFrame.texture->QueryInterface(dxgiResource.GetAddressOf()));
 		DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ,NULL,&sharedHandle));
 		if (sharedHandle == NULL)return;
-		if(currentFrameTexture != nullptr)currentFrameTexture->Release();
-		DX::ThrowIfFailed(renderingDevice->OpenSharedResource1(sharedHandle, __uuidof(ID3D11Texture2D), (void**)(currentFrameTexture.ReleaseAndGetAddressOf())));
+		if (currentFrameTexture != nullptr) {
+			currentFrameTexture->Release();
+		}
+		DX::ThrowIfFailed(renderingDevice->OpenSharedResource1(sharedHandle, __uuidof(ID3D11Texture2D), (void**)(currentFrameTexture.GetAddressOf())));
 		DX::ThrowIfFailed(currentFrameTexture->QueryInterface(mutex.GetAddressOf()));
 		if (mutex != NULL) mutex->AcquireSync(1, INFINITE);
 	}
@@ -32,8 +43,4 @@ void FramePacer::PrepareFrameForRendering() {
 
 Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {
 	return currentFrameTexture;
-}
-
-void FramePacer::ReleaseFrame() {
-	if (mutex != NULL) mutex->ReleaseSync(0);
 }

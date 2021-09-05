@@ -21,9 +21,11 @@ namespace moonlight_xbox_dx {
 
 		void Log(const char* fmt) {
 			int len = strlen(fmt) + 1;
+			if (len > 2048 || len < 1)return;
 			wchar_t* stringBuf = (wchar_t*)malloc(sizeof(wchar_t) * len);
 			mbstowcs(stringBuf, fmt, len);
 			std::wstring string(stringBuf);
+			OutputDebugStringW(stringBuf);
 			if (logLines.size() == LOG_LINES)logLines.erase(logLines.begin());
 			logLines.push_back(string);
 		}
