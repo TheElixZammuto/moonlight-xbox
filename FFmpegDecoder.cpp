@@ -127,6 +127,7 @@ namespace moonlight_xbox_dx {
 			}
 		}
 		pacer->decodingDevice = ffmpegDevice.Get();
+		pacer->Setup(width, height);
 		return 0;
 	}
 
@@ -200,25 +201,8 @@ namespace moonlight_xbox_dx {
 		if (err == 0) {
 			AVFrame* frame = dec_frames[next_frame];
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
-			Microsoft::WRL::ComPtr<ID3D11Texture2D> queueTexture;
-			Microsoft::WRL::ComPtr <IDXGIKeyedMutex> mutex;
-			D3D11_TEXTURE2D_DESC desc;
-			ffmpegTexture->GetDesc(&desc);
-			desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
-			desc.ArraySize = 1;
-			DX::ThrowIfFailed(ffmpegDevice->CreateTexture2D(&desc, NULL, queueTexture.GetAddressOf()),"Queue Texture Creation");
-			if (queueTexture == NULL)return 1;
-			queueTexture->QueryInterface(mutex.GetAddressOf());
 			int index = (int)(frame->data[1]);
-			mutex->AcquireSync(0, INFINITE);
-			ffmpegDeviceContext->CopySubresourceRegion(queueTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, NULL);
-			mutex->ReleaseSync(1);
-			Frame f = {
-				queueTexture,
-				mutex
-			};
-			ffmpegTexture->Release();
-			pacer->SubmitFrame(f);
+			pacer->SubmitFrame(ffmpegTexture, index, ffmpegDeviceContext);
 		}
 		return 0;
 	}

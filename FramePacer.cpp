@@ -2,45 +2,53 @@
 #include "FramePacer.h"
 #include <Common\DirectXHelper.h>
 #include <Utils.hpp>
-void FramePacer::SubmitFrame(Frame frame) {
-	if (textures.size() >= queueSize) {
-		Frame frame = textures.front();
-		frame.mutex->Release();
-		frame.texture->Release();
-		textures.pop();
+
+void FramePacer::Setup(int width, int height) {
+	D3D11_TEXTURE2D_DESC desc;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_NV12;
+	desc.Width = width;
+	desc.Height = height;
+	desc.MipLevels = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.SampleDesc.Count = 1;
+	desc.CPUAccessFlags = 0;
+	desc.BindFlags = 0;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED;
+	for (int i = 0; i < queueSize; i++) {
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> decodingTexture,renderingTexture;
+		Microsoft::WRL::ComPtr<IDXGIKeyedMutex> decodingMutex,renderingMutex;
+		Microsoft::WRL::ComPtr<IDXGIResource1> resource;
+		decodingDevice->CreateTexture2D(&desc, NULL, decodingTexture.GetAddressOf());
+		//decodingTexture.As(&decodingMutex);
+		decodingTexture.As(&resource);
+		HANDLE handle;
+		resource->CreateSharedHandle(NULL,DXGI_SHARED_RESOURCE_READ, NULL, &handle);
+		renderingDevice->OpenSharedResource1(handle, __uuidof(ID3D11Texture2D), (void**)(renderingTexture.GetAddressOf()));
+		//renderingTexture.As(&renderingMutex);
+		frames.push_back({
+			decodingTexture,
+			decodingMutex,
+			handle,
+			renderingTexture,
+			renderingMutex
+		});
 	}
-	textures.push(frame);
+}
+void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext) {
+	Frame currentFrame = frames[decodeIndex];
+	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, NULL);
+	decodeIndex = (decodeIndex + 1) % queueSize;
 }
 
 void FramePacer::PrepareFrameForRendering() {
-	if (textures.size() > 0) {
-		if (preparedFrame.texture != nullptr) {
-			if (mutex != NULL) {
-				mutex->ReleaseSync(0);
-				mutex->Release();
-			}
-			dxgiResource->Release();
-			preparedFrame.mutex->Release();
-			preparedFrame.texture->Release();
-		}
-		preparedFrame = textures.front();
-		textures.pop();
-		if (preparedFrame.texture == nullptr)return;
-		DX::ThrowIfFailed(preparedFrame.texture->QueryInterface(dxgiResource.GetAddressOf()));
-		DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ,NULL,&sharedHandle));
-		if (sharedHandle == NULL)return;
-		if (currentFrameTexture != nullptr) {
-			currentFrameTexture->Release();
-		}
-		DX::ThrowIfFailed(renderingDevice->OpenSharedResource1(sharedHandle, __uuidof(ID3D11Texture2D), (void**)(currentFrameTexture.GetAddressOf())));
-		DX::ThrowIfFailed(currentFrameTexture->QueryInterface(mutex.GetAddressOf()));
-		if (mutex != NULL) mutex->AcquireSync(1, INFINITE);
-	}
-	else {
-		//moonlight_xbox_dx::Utils::Log("Frame underrun - using previous frame\n");
-	}
+	Frame currentFrame = frames[renderIndex];
+	//currentFrame.renderMutex->AcquireSync(1, INFINITY);
+	//currentFrame.renderMutex->ReleaseSync(0);
+	renderIndex = (renderIndex + 1) % queueSize;
 }
 
 Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {
-	return currentFrameTexture;
+	return frames[renderIndex].renderTexure;
 }
