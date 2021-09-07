@@ -19,6 +19,7 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11Device1> renderingDevice, decodingDevice;
 	void PrepareFrameForRendering();
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> GetCurrentRenderingFrame();
+	void FramePacer::ReleaseTexture();
 private:
 	int decodeIndex = 0;
 	int renderIndex = 0;

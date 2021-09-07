@@ -15,18 +15,18 @@ void FramePacer::Setup(int width, int height) {
 	desc.CPUAccessFlags = 0;
 	desc.BindFlags = 0;
 	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 	for (int i = 0; i < queueSize; i++) {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> decodingTexture,renderingTexture;
 		Microsoft::WRL::ComPtr<IDXGIKeyedMutex> decodingMutex,renderingMutex;
 		Microsoft::WRL::ComPtr<IDXGIResource1> resource;
 		decodingDevice->CreateTexture2D(&desc, NULL, decodingTexture.GetAddressOf());
-		//decodingTexture.As(&decodingMutex);
+		decodingTexture.As(&decodingMutex);
 		decodingTexture.As(&resource);
 		HANDLE handle;
 		resource->CreateSharedHandle(NULL,DXGI_SHARED_RESOURCE_READ, NULL, &handle);
 		renderingDevice->OpenSharedResource1(handle, __uuidof(ID3D11Texture2D), (void**)(renderingTexture.GetAddressOf()));
-		//renderingTexture.As(&renderingMutex);
+		renderingTexture.As(&renderingMutex);
 		frames.push_back({
 			decodingTexture,
 			decodingMutex,
@@ -37,18 +37,24 @@ void FramePacer::Setup(int width, int height) {
 	}
 }
 void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext) {
-	Frame currentFrame = frames[decodeIndex];
+	Frame currentFrame = frames[decodeIndex % queueSize];
+	currentFrame.decodeMutex->AcquireSync(0, 16);
 	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, NULL);
-	decodeIndex = (decodeIndex + 1) % queueSize;
+	currentFrame.decodeMutex->ReleaseSync(1);
+	decodeIndex++;
 }
 
 void FramePacer::PrepareFrameForRendering() {
-	Frame currentFrame = frames[renderIndex];
-	//currentFrame.renderMutex->AcquireSync(1, INFINITY);
-	//currentFrame.renderMutex->ReleaseSync(0);
-	renderIndex = (renderIndex + 1) % queueSize;
+	if(decodeIndex >= renderIndex)renderIndex++;
 }
 
 Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {
-	return frames[renderIndex].renderTexure;
+	Frame currentFrame = frames[renderIndex % queueSize];
+	currentFrame.renderMutex->AcquireSync(1, 16);
+	return frames[renderIndex % queueSize].renderTexure;
+}
+
+void FramePacer::ReleaseTexture() {
+	Frame currentFrame = frames[renderIndex % queueSize];
+	currentFrame.renderMutex->ReleaseSync(0);
 }
