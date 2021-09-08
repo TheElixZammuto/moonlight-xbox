@@ -49,12 +49,15 @@ void FramePacer::PrepareFrameForRendering() {
 }
 
 Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {
+	if (frames.size() < queueSize)return NULL;
 	Frame currentFrame = frames[renderIndex % queueSize];
 	currentFrame.renderMutex->AcquireSync(1, 16);
 	return frames[renderIndex % queueSize].renderTexure;
 }
 
 void FramePacer::ReleaseTexture() {
+	if (frames.size() < queueSize)return;
 	Frame currentFrame = frames[renderIndex % queueSize];
 	currentFrame.renderMutex->ReleaseSync(0);
+	renderIndex++;
 }
