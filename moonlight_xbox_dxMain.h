@@ -11,12 +11,13 @@ namespace moonlight_xbox_dx
 	class moonlight_xbox_dxMain : public DX::IDeviceNotify
 	{
 	public:
-		moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources);
+		moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::Controls::Button^ flyoutButton, Windows::UI::Core::CoreDispatcher ^dispatcher);
 		~moonlight_xbox_dxMain();
 		void CreateWindowSizeDependentResources();
 		void TrackingUpdate(float positionX) { m_pointerLocationX = positionX; }
 		void StartRenderLoop();
 		void StopRenderLoop();
+		void SetFlyoutOpened(bool value);
 		Concurrency::critical_section& GetCriticalSection() { return m_criticalSection; }
 
 		// IDeviceNotify
@@ -44,9 +45,11 @@ namespace moonlight_xbox_dx
 
 		// Track current input pointer position.
 		float m_pointerLocationX;
-		bool magicCombinationPressed = false;
+		bool insideFlyout = false;
 		bool mouseMode = false;
 		bool leftMouseButtonPressed = false;
 		bool rightMouseButtonPressed = false;
+		Windows::UI::Xaml::Controls::Button ^m_flyoutButton;
+		Windows::UI::Core::CoreDispatcher ^m_dispatcher;
 	};
 }

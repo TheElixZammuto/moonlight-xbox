@@ -33,6 +33,8 @@ namespace moonlight_xbox_dx
 		bool m_windowVisible;
 		void Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
+		void flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e);
 	};
 }
 

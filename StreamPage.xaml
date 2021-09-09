@@ -8,5 +8,33 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     Loaded="Page_Loaded">
-    <SwapChainPanel x:Name="swapChainPanel"></SwapChainPanel>
+    
+    <SwapChainPanel x:Name="swapChainPanel">
+        <Button HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" Click="flyoutButton_Click" AllowFocusOnInteraction="false">
+            <FontIcon Glyph="&#xE170;"></FontIcon>
+            <FlyoutBase.AttachedFlyout>
+                <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed">
+                    <MenuFlyoutItem Text="Toggle Mouse">
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xE72D;" />
+                        </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
+                    <MenuFlyoutItem>
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xE144;" />
+                        </MenuFlyoutItem.Icon>
+                        Toggle Keyboard
+                    </MenuFlyoutItem>
+                    <MenuFlyoutSeparator />
+                    <MenuFlyoutItem>
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xE72D;" />
+                        </MenuFlyoutItem.Icon>
+                        Disconnect
+                    </MenuFlyoutItem>
+                </MenuFlyout>
+            </FlyoutBase.AttachedFlyout>
+        </Button>
+    </SwapChainPanel>
+    
 </Page>
