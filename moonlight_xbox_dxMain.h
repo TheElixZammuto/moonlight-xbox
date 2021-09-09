@@ -3,7 +3,7 @@
 #include "Common\StepTimer.h"
 #include "Common\DeviceResources.h"
 #include "Content\VideoRenderer.h"
-#include "Content\SampleFpsTextRenderer.h"
+#include "Content\LogRenderer.h"
 
 // Renders Direct2D and 3D content on the screen.
 namespace moonlight_xbox_dx
@@ -19,7 +19,7 @@ namespace moonlight_xbox_dx
 		void StopRenderLoop();
 		void SetFlyoutOpened(bool value);
 		Concurrency::critical_section& GetCriticalSection() { return m_criticalSection; }
-
+		bool mouseMode = false;
 		// IDeviceNotify
 		virtual void OnDeviceLost();
 		virtual void OnDeviceRestored();
@@ -34,7 +34,7 @@ namespace moonlight_xbox_dx
 
 		// TODO: Replace with your own content renderers.
 		std::unique_ptr<VideoRenderer> m_sceneRenderer;
-		std::unique_ptr<SampleFpsTextRenderer> m_fpsTextRenderer;
+		std::unique_ptr<LogRenderer> m_fpsTextRenderer;
 
 		Windows::Foundation::IAsyncAction^ m_renderLoopWorker;
 		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;
@@ -46,7 +46,6 @@ namespace moonlight_xbox_dx
 		// Track current input pointer position.
 		float m_pointerLocationX;
 		bool insideFlyout = false;
-		bool mouseMode = false;
 		bool leftMouseButtonPressed = false;
 		bool rightMouseButtonPressed = false;
 		Windows::UI::Xaml::Controls::Button ^m_flyoutButton;

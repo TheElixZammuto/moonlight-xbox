@@ -117,3 +117,17 @@ void moonlight_xbox_dx::StreamPage::ActionsFlyout_Closed(Platform::Object^ sende
 {
 	m_main->SetFlyoutOpened(false);
 }
+
+
+void moonlight_xbox_dx::StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	m_main->mouseMode = !m_main->mouseMode;
+	this->toggleMouseButton->Text = m_main->mouseMode ? "Exit Mouse Mode" : "Toggle Mouse Mode";
+}
+
+
+void moonlight_xbox_dx::StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	Utils::showLogs = !Utils::showLogs;
+	this->toggleLogsButton->Text = Utils::showLogs ? "Hide Logs" : "Show Logs";
+}

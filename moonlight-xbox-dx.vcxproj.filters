@@ -23,15 +23,9 @@
     <ClCompile Include="Common\DeviceResources.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClInclude Include="Content\SampleFpsTextRenderer.h">
-      <Filter>Content</Filter>
-    </ClInclude>
     <ClInclude Include="Content\ShaderStructures.h">
       <Filter>Content</Filter>
     </ClInclude>
-    <ClCompile Include="Content\SampleFpsTextRenderer.cpp">
-      <Filter>Content</Filter>
-    </ClCompile>
     <FxCompile Include="Content\SamplePixelShader.hlsl">
       <Filter>Content</Filter>
     </FxCompile>
@@ -73,6 +67,9 @@
     </ClCompile>
     <ClCompile Include="AudioPlayer.cpp" />
     <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="Content\LogRenderer.cpp">
+      <Filter>Content</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="moonlight_xbox_dxMain.h" />
@@ -85,6 +82,9 @@
     <ClInclude Include="AudioPlayer.h" />
     <ClInclude Include="third_party\miniaudio.h" />
     <ClInclude Include="Utils.hpp" />
+    <ClInclude Include="Content\LogRenderer.h">
+      <Filter>Content</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -170,6 +170,7 @@
   <ItemGroup>
     <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />
     <None Include="Package.StoreAssociation.xml" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\SmallTile.scale-100.png">

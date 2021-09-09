@@ -10,27 +10,19 @@
     Loaded="Page_Loaded">
     
     <SwapChainPanel x:Name="swapChainPanel">
-        <Button HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" Click="flyoutButton_Click" AllowFocusOnInteraction="false">
+        <Button HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" Opacity="0" x:Name="flyoutButton" Click="flyoutButton_Click" AllowFocusOnInteraction="false">
             <FontIcon Glyph="&#xE170;"></FontIcon>
             <FlyoutBase.AttachedFlyout>
-                <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed">
-                    <MenuFlyoutItem Text="Toggle Mouse">
+                <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
+                    <MenuFlyoutItem x:Name="toggleMouseButton" Text="Enable Mouse Mode" Click="toggleMouseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                         <MenuFlyoutItem.Icon>
                             <FontIcon Glyph="&#xE72D;" />
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
-                    <MenuFlyoutItem>
+                    <MenuFlyoutItem x:Name="toggleLogsButton" Text="Show Logs" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >
                         <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE144;" />
+                            <FontIcon Glyph="&#xE81C;" />
                         </MenuFlyoutItem.Icon>
-                        Toggle Keyboard
-                    </MenuFlyoutItem>
-                    <MenuFlyoutSeparator />
-                    <MenuFlyoutItem>
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE72D;" />
-                        </MenuFlyoutItem.Icon>
-                        Disconnect
                     </MenuFlyoutItem>
                 </MenuFlyout>
             </FlyoutBase.AttachedFlyout>

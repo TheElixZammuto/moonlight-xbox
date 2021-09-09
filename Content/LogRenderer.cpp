@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "SampleFpsTextRenderer.h"
+#include "LogRenderer.h"
 #include "Utils.hpp"
 
 #include "Common/DirectXHelper.h"
@@ -9,7 +9,7 @@ using namespace moonlight_xbox_dx;
 using namespace Microsoft::WRL;
 
 // Initializes D2D resources used for text rendering.
-SampleFpsTextRenderer::SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) : 
+LogRenderer::LogRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) : 
 	m_text(L""),
 	m_deviceResources(deviceResources)
 {
@@ -24,7 +24,7 @@ SampleFpsTextRenderer::SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceRes
 			DWRITE_FONT_WEIGHT_LIGHT,
 			DWRITE_FONT_STYLE_NORMAL,
 			DWRITE_FONT_STRETCH_NORMAL,
-			16.0f,
+			14.0f,
 			L"en-US",
 			&textFormat
 			)
@@ -46,12 +46,14 @@ SampleFpsTextRenderer::SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceRes
 }
 
 // Updates the text to be displayed.
-void SampleFpsTextRenderer::Update(DX::StepTimer const& timer)
+void LogRenderer::Update(DX::StepTimer const& timer)
 {
 	m_text = L"";
-	std::vector<std::wstring> lines = Utils::GetLogLines();
-	for (std::wstring line : lines) {
-		m_text += line;
+	if (Utils::showLogs) {
+		std::vector<std::wstring> lines = Utils::GetLogLines();
+		for (std::wstring line : lines) {
+			m_text += line;
+		}
 	}
 	ComPtr<IDWriteTextLayout> textLayout;
 	DX::ThrowIfFailed(
@@ -75,7 +77,7 @@ void SampleFpsTextRenderer::Update(DX::StepTimer const& timer)
 }
 
 // Renders a frame to the screen.
-void SampleFpsTextRenderer::Render()
+void LogRenderer::Render()
 {
 	ID2D1DeviceContext* context = m_deviceResources->GetD2DDeviceContext();
 	Windows::Foundation::Size logicalSize = m_deviceResources->GetLogicalSize();
@@ -86,7 +88,7 @@ void SampleFpsTextRenderer::Render()
 	// Position on the bottom right corner
 	D2D1::Matrix3x2F screenTranslation = D2D1::Matrix3x2F::Translation(
 		logicalSize.Width - m_textMetrics.layoutWidth,
-		logicalSize.Height - m_textMetrics.height
+		0
 		);
 
 	context->SetTransform(screenTranslation * m_deviceResources->GetOrientationTransform2D());
@@ -112,13 +114,13 @@ void SampleFpsTextRenderer::Render()
 	context->RestoreDrawingState(m_stateBlock.Get());
 }
 
-void SampleFpsTextRenderer::CreateDeviceDependentResources()
+void LogRenderer::CreateDeviceDependentResources()
 {
 	DX::ThrowIfFailed(
 		m_deviceResources->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Yellow), &m_whiteBrush)
 		);
 }
-void SampleFpsTextRenderer::ReleaseDeviceDependentResources()
+void LogRenderer::ReleaseDeviceDependentResources()
 {
 	m_whiteBrush.Reset();
 }
