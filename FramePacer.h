@@ -23,6 +23,7 @@ public:
 private:
 	int decodeIndex = 0;
 	int renderIndex = 0;
+	int droppedFrames = 0;
 	std::vector<Frame> frames;
 };
 
