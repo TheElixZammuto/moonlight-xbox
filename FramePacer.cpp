@@ -46,7 +46,17 @@ void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int
 
 void FramePacer::PrepareFrameForRendering() {
 	//Extra catch-up
-	if (decodeIndex - renderIndex > 2)renderIndex++;
+	if (decodeIndex - renderIndex > catchUpThreshold) {
+		moonlight_xbox_dx::Utils::Log("Catching up\n");
+		catchingUp = true;
+	}
+	if (catchingUp) {
+		renderIndex++;
+		if (decodeIndex - renderIndex <= 1) {
+			catchingUp = false;
+			moonlight_xbox_dx::Utils::Log("Stopping\n");
+		}
+	}
 	if (decodeIndex - renderIndex > 0) {
 		renderIndex++;
 	}
