@@ -1,6 +1,7 @@
 #pragma once
 #include "pch.h"
 #include <queue>
+#include <mutex>
 struct Frame
 {
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> decodeTexture;
@@ -8,6 +9,8 @@ struct Frame
 	HANDLE handle;
 	Microsoft::WRL::ComPtr <ID3D11Texture2D> renderTexure;
 	Microsoft::WRL::ComPtr <IDXGIKeyedMutex> renderMutex;
+	std::mutex *mutex;
+	int frameNumber;
 };
 
 class FramePacer
@@ -23,8 +26,8 @@ public:
 	void FramePacer::ReleaseTexture();
 private:
 	bool catchingUp = false;
-	int decodeIndex = 0;
-	int renderIndex = 0;
+	int decodeIndex = -1;
+	int renderIndex = -1;
 	int droppedFrames = 0;
 	std::vector<Frame> frames;
 };
