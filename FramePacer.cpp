@@ -66,9 +66,9 @@ void FramePacer::PrepareFrameForRendering() {
 		renderIndex = nextIndex;
 	}
 	else {
-		char msg[4096];
+		/*char msg[4096];
 		sprintf(msg, "Locked: %d - %d\n", decodeIndex, nextIndex);
-		moonlight_xbox_dx::Utils::Log(msg);
+		moonlight_xbox_dx::Utils::Log(msg);*/
 	}
 }
 
