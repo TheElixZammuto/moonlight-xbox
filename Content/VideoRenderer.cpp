@@ -47,17 +47,22 @@ void VideoRenderer::Render()
 		{
 			return;
 		}
-		if (FFMpegDecoder::getInstance()->decodedFrameNumber < 0)return;
-		m_deviceResources->keyedMutex->AcquireSync(1, INFINITE);
-			//Create a rendering texture
-		ID3D11ShaderResourceView* m_luminance_shader_resource_view;
-		ID3D11ShaderResourceView* m_chrominance_shader_resource_view;
+		//Create a rendering texture
+		client->pacer->PrepareFrameForRendering();
+		auto texture = client->pacer->GetCurrentRenderingFrame();
+		if (texture == NULL || texture == nullptr) {
+			return;
+		}
+		m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), texture.Get());
+		client->pacer->ReleaseTexture();
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
 		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, &m_luminance_shader_resource_view),"Luminance SRV Creation");
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()),"Luminance SRV Creation");
 		D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, &m_chrominance_shader_resource_view),"Chrominance SRV Creation");
-		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, &m_luminance_shader_resource_view);
-		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, &m_chrominance_shader_resource_view);
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()),"Chrominance SRV Creation");
+		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
+		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
 
 		auto context = m_deviceResources->GetD3DDeviceContext();
 		UINT stride = sizeof(VertexPositionColor);
@@ -83,8 +88,6 @@ void VideoRenderer::Render()
 		context->DrawIndexed(m_indexCount,0,0);
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
-		FFMpegDecoder::getInstance()->renderedFrameNumber = FFMpegDecoder::getInstance()->decodedFrameNumber;
-		DX::ThrowIfFailed(m_deviceResources->keyedMutex->ReleaseSync(0));
 		if (!renderedOneFrame) {
 			Utils::Log("Rendered First Frame!\n");
 			renderedOneFrame = true;
@@ -237,14 +240,12 @@ void VideoRenderer::CreateDeviceDependentResources()
 	renderTextureDesc.SampleDesc.Quality = 0;
 	renderTextureDesc.SampleDesc.Count = 1;
 	renderTextureDesc.CPUAccessFlags = 0;
-	renderTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX | D3D11_RESOURCE_MISC_SHARED_NTHANDLE;
+	renderTextureDesc.MiscFlags = 0;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()),"Render Texture Creation");
 	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
-	DX::ThrowIfFailed(renderTexture->QueryInterface(dxgiResource.GetAddressOf()));
-	DX::ThrowIfFailed(renderTexture->QueryInterface(m_deviceResources->keyedMutex.GetAddressOf()));
-	DX::ThrowIfFailed(dxgiResource->CreateSharedHandle(NULL, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_deviceResources->sharedHandle));
 	createCubeTask.then([this,width,height] () {
 		client = MoonlightClient::GetInstance();
+		client->pacer->renderingDevice = m_deviceResources->GetD3DDevice();
 		int status = client->Init(m_deviceResources, width,height);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
