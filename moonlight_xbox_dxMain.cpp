@@ -11,8 +11,9 @@ using namespace Windows::System::Threading;
 using namespace Concurrency;
 
 // Loads and initializes application assets when the application is loaded.
-moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::Controls::Button^ flyoutButton, Windows::UI::Core::CoreDispatcher^ dispatcher) :
-	m_deviceResources(deviceResources), m_pointerLocationX(0.0f),m_flyoutButton(flyoutButton),m_dispatcher(dispatcher)
+moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::FrameworkElement^ flyoutButton, Windows::UI::Xaml::Controls::MenuFlyout^ flyout, Windows::UI::Core::CoreDispatcher^ dispatcher):
+
+	m_deviceResources(deviceResources), m_pointerLocationX(0.0f),m_flyoutButton(flyoutButton),m_dispatcher(dispatcher),m_flyout(flyout)
 {
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
