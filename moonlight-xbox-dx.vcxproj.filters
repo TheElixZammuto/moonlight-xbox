@@ -70,6 +70,7 @@
     <ClCompile Include="Content\LogRenderer.cpp">
       <Filter>Content</Filter>
     </ClCompile>
+    <ClCompile Include="FramePacer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="moonlight_xbox_dxMain.h" />
@@ -82,6 +83,7 @@
     <ClInclude Include="AudioPlayer.h" />
     <ClInclude Include="third_party\miniaudio.h" />
     <ClInclude Include="Utils.hpp" />
+    <ClInclude Include="FramePacer.h" />
     <ClInclude Include="Content\LogRenderer.h">
       <Filter>Content</Filter>
     </ClInclude>

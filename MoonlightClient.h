@@ -1,5 +1,6 @@
 #pragma once
 #include "Common/DeviceResources.h"
+#include <FramePacer.h>
 extern "C" {
 	#include <libavcodec/avcodec.h>
 	#include <Limelight.h>
@@ -29,6 +30,7 @@ namespace moonlight_xbox_dx {
 		void SendMouseReleased(int button);
 		void SendScroll(float value);
 		void SetSoftwareEncoder(bool value);
+		FramePacer *pacer;
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;

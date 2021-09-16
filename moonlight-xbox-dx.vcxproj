@@ -309,6 +309,7 @@
     </ClInclude>
     <ClInclude Include="AudioPlayer.h" />
     <ClInclude Include="Common\DeviceResources.h" />
+    <ClInclude Include="FramePacer.h" />
     <ClInclude Include="StreamPage.xaml.h">
       <DependentUpon>StreamPage.xaml</DependentUpon>
     </ClInclude>
@@ -335,6 +336,7 @@
     </ClCompile>
     <ClCompile Include="AudioPlayer.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />
+    <ClCompile Include="FramePacer.cpp" />
     <ClCompile Include="StreamPage.xaml.cpp">
       <DependentUpon>StreamPage.xaml</DependentUpon>
     </ClCompile>

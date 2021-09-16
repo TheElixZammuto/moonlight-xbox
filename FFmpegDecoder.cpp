@@ -34,9 +34,11 @@ namespace moonlight_xbox_dx {
         switch (videoFormat) {
         case VIDEO_FORMAT_H264:
             decoder = avcodec_find_decoder_by_name("h264");
+			Utils::Log("Using H264\n");
             break;
         case VIDEO_FORMAT_H265:
             decoder = avcodec_find_decoder_by_name("hevc");
+			Utils::Log("Using HEVC\n");
             break;
         }
 
@@ -72,22 +74,21 @@ namespace moonlight_xbox_dx {
 		D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, creationFlags, featureLevels, 6, D3D11_SDK_VERSION, &dev, NULL, ffmpegDeviceContext.GetAddressOf());
 		//DX11-FFMpeg association
 		ffmpegDevice = (ID3D11Device1*)dev;
-		if (!useSoftwareEncoder) {
-			static AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
-			AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
-			AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
-			d3d11va_device_ctx->device = dev;
-			d3d11va_device_ctx->device_context = ffmpegDeviceContext.Get();
-			int err2;
-			if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
-				char msg[2048];
-				sprintf(msg, "Failed to create specified DirectX Video device: %d\n", err2);
-				Utils::Log(msg);
-				return err2;
+		static AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
+		AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
+		AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
+		d3d11va_device_ctx->device = dev;
+		d3d11va_device_ctx->device_context = ffmpegDeviceContext.Get();
+		int err2;
+		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
+			char msg[2048];
+			sprintf(msg, "Failed to create specified DirectX Video device: %d\n", err2);
+			Utils::Log(msg);
+			return err2;
 
-			}
-			decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 		}
+		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+		
 		decoder_ctx->width = width;
         decoder_ctx->height = height;
 
@@ -125,9 +126,8 @@ namespace moonlight_xbox_dx {
 				return -1;
 			}
 		}
-		DX::ThrowIfFailed(ffmpegDevice->OpenSharedResource1(resources->sharedHandle, __uuidof(ID3D11Texture2D), (void**)&sharedTexture));
-		if (sharedTexture == NULL)return 1;
-		DX::ThrowIfFailed(sharedTexture->QueryInterface(dxgiMutex.GetAddressOf()));
+		pacer->decodingDevice = ffmpegDevice.Get();
+		pacer->Setup(width, height);
 		return 0;
 	}
 
@@ -148,7 +148,6 @@ namespace moonlight_xbox_dx {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
 			return -1;
 		}
-		//Utils::Log("(1) Got new Decode Unit...");
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
 		while (entry != NULL) {
@@ -164,7 +163,6 @@ namespace moonlight_xbox_dx {
 			Utils::Log(errorstringnew);
 			return DR_NEED_IDR;
 		}
-		//Utils::Log("...OK\n");
 		return DR_OK;
 	}
 
@@ -194,21 +192,17 @@ namespace moonlight_xbox_dx {
 
 	int FFMpegDecoder::GetFrame() {
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
-		if (err != 0) {
+		if (err != 0 && err != AVERROR(EAGAIN)) {
 			char errorstringnew[1024];
 			sprintf(errorstringnew, "Error avcodec_receive_frame: %d\n", AVERROR(err));
 			Utils::Log(errorstringnew);
 			return err;
 		}
-		decodedFrameNumber++;
-		//Utils::Log("...(2) Decoded Frame...");
-		if (err == 0 && sharedTexture != NULL && (decodedFrameNumber - renderedFrameNumber) <= 2) {
+		if (err == 0) {
 			AVFrame* frame = dec_frames[next_frame];
-			DX::ThrowIfFailed(dxgiMutex->AcquireSync(0, INFINITE),"Mutex Locking");
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
 			int index = (int)(frame->data[1]);
-			ffmpegDeviceContext->CopySubresourceRegion(sharedTexture, 0, 0, 0, 0, ffmpegTexture, index, NULL);
-			DX::ThrowIfFailed(dxgiMutex->ReleaseSync(1),"Mutex Unlocking");
+			pacer->SubmitFrame(ffmpegTexture, index, ffmpegDeviceContext);
 		}
 		return 0;
 	}
@@ -216,8 +210,8 @@ namespace moonlight_xbox_dx {
 	//Helpers
 	FFMpegDecoder *instance;
 
-	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, bool useSoftwareEncoder) {
-		if (instance == NULL)instance = new FFMpegDecoder(resources,useSoftwareEncoder);
+	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, FramePacer *pacer) {
+		if (instance == NULL)instance = new FFMpegDecoder(resources, pacer);
 		return instance;
 	}
 	
