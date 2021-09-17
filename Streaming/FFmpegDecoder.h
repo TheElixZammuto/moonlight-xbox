@@ -2,7 +2,7 @@
 
 #include "Common/DeviceResources.h"
 #include<queue>
-#include <FramePacer.h>
+#include <Streaming\FramePacer.h>
 
 
 extern "C" {

@@ -8,7 +8,7 @@
 #include "StreamPage.g.h"
 
 #include "Common\DeviceResources.h"
-#include "moonlight_xbox_dxMain.h"
+#include "Streaming\moonlight_xbox_dxMain.h"
 
 namespace moonlight_xbox_dx
 {

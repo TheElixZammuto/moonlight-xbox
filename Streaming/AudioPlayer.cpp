@@ -1,7 +1,7 @@
 #include "pch.h"
 #include <opus/opus_multistream.h>
-#include <MoonlightClient.h>
-#include <AudioPlayer.h>
+#include <Client\MoonlightClient.h>
+#include <Streaming\AudioPlayer.h>
 #include <Utils.hpp>
 #define MINIAUDIO_IMPLEMENTATION
 #include "third_party/miniaudio.h"

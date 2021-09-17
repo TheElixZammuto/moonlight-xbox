@@ -53,47 +53,71 @@
     <Filter Include="DLLs">
       <UniqueIdentifier>{a996f14a-acee-484c-9d56-902e7ea24ef4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Streaming">
+      <UniqueIdentifier>{d2200898-ec6b-4066-9275-cc4272f8ceb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pages">
+      <UniqueIdentifier>{b5851d1d-2e90-41ca-b2b8-444c0994647b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Client">
+      <UniqueIdentifier>{8504f692-b80e-4b9c-82a1-3f9f9d18a9e5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="moonlight_xbox_dxMain.cpp" />
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="FFMpegDecoder.cpp" />
-    <ClCompile Include="MoonlightClient.cpp" />
     <ClCompile Include="Content\VideoRenderer.cpp">
       <Filter>Content</Filter>
     </ClCompile>
-    <ClCompile Include="AudioPlayer.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Content\LogRenderer.cpp">
       <Filter>Content</Filter>
     </ClCompile>
-    <ClCompile Include="FramePacer.cpp" />
+    <ClCompile Include="Streaming\FFmpegDecoder.cpp">
+      <Filter>Streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\FramePacer.cpp">
+      <Filter>Streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\AudioPlayer.cpp">
+      <Filter>Streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\moonlight_xbox_dxMain.cpp">
+      <Filter>Streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="Client\MoonlightClient.cpp">
+      <Filter>Client</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="moonlight_xbox_dxMain.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="FFMpegDecoder.h" />
-    <ClInclude Include="MoonlightClient.h" />
     <ClInclude Include="Content\VideoRenderer.h">
       <Filter>Content</Filter>
     </ClInclude>
-    <ClInclude Include="AudioPlayer.h" />
-    <ClInclude Include="third_party\miniaudio.h" />
     <ClInclude Include="Utils.hpp" />
-    <ClInclude Include="FramePacer.h" />
     <ClInclude Include="Content\LogRenderer.h">
       <Filter>Content</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\FFmpegDecoder.h">
+      <Filter>Streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\FramePacer.h">
+      <Filter>Streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\AudioPlayer.h">
+      <Filter>Streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\moonlight_xbox_dxMain.h">
+      <Filter>Streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="Client\MoonlightClient.h">
+      <Filter>Client</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="MenuPage.xaml" />
-    <Page Include="StreamPage.xaml" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\avcodec-58.dll">
@@ -310,5 +334,13 @@
     <Image Include="Assets\StoreLogo.scale-400.png">
       <Filter>Assets</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Pages\MenuPage.xaml">
+      <Filter>Pages</Filter>
+    </Page>
+    <Page Include="Pages\StreamPage.xaml">
+      <Filter>Pages</Filter>
+    </Page>
   </ItemGroup>
 </Project>

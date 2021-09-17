@@ -1,8 +1,8 @@
 ﻿#include "pch.h"
 #include "VideoRenderer.h"
-#include "MoonlightClient.h"
+#include "Client\MoonlightClient.h"
 #include "..\Common\DirectXHelper.h"
-#include <FFMpegDecoder.h>
+#include <Streaming\FFMpegDecoder.h>
 #include <Utils.hpp>
 
 extern "C" {

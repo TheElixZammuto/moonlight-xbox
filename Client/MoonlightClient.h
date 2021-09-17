@@ -1,6 +1,6 @@
 #pragma once
 #include "Common/DeviceResources.h"
-#include <FramePacer.h>
+#include <Streaming\FramePacer.h>
 extern "C" {
 	#include <libavcodec/avcodec.h>
 	#include <Limelight.h>

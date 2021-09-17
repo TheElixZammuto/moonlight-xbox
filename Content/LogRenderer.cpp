@@ -3,7 +3,7 @@
 #include "Utils.hpp"
 
 #include "Common/DirectXHelper.h"
-#include <MoonlightClient.h>
+#include <Client\MoonlightClient.h>
 
 using namespace moonlight_xbox_dx;
 using namespace Microsoft::WRL;

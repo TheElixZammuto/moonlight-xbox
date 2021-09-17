@@ -5,8 +5,8 @@ extern "C" {
 #include<Limelight.h>
 #include<libgamestream/client.h>
 }
-#include "FFMpegDecoder.h"
-#include <AudioPlayer.h>
+#include "Streaming\FFMpegDecoder.h"
+#include <Streaming\AudioPlayer.h>
 #include <Utils.hpp>
 
 using namespace moonlight_xbox_dx;

@@ -3,7 +3,7 @@
 #include "..\Common\DeviceResources.h"
 #include "ShaderStructures.h"
 #include "..\Common\StepTimer.h"
-#include "MoonlightClient.h"
+#include "Client\MoonlightClient.h"
 
 namespace moonlight_xbox_dx
 {

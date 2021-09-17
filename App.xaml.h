@@ -6,7 +6,7 @@
 #pragma once
 
 #include "App.g.h"
-#include "MenuPage.xaml.h"
+#include "Pages/MenuPage.xaml.h"
 
 namespace moonlight_xbox_dx
 {

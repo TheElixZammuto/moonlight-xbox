@@ -307,47 +307,40 @@
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="AudioPlayer.h" />
+    <ClInclude Include="Client\MoonlightClient.h" />
     <ClInclude Include="Common\DeviceResources.h" />
-    <ClInclude Include="FramePacer.h" />
-    <ClInclude Include="StreamPage.xaml.h">
-      <DependentUpon>StreamPage.xaml</DependentUpon>
-    </ClInclude>
-    <ClInclude Include="FFMpegDecoder.h" />
-    <ClInclude Include="MenuPage.xaml.h">
-      <DependentUpon>MenuPage.xaml</DependentUpon>
-    </ClInclude>
-    <ClInclude Include="MoonlightClient.h" />
-    <ClInclude Include="moonlight_xbox_dxMain.h" />
     <ClInclude Include="Common\DirectXHelper.h" />
     <ClInclude Include="Common\StepTimer.h" />
     <ClInclude Include="Content\VideoRenderer.h" />
     <ClInclude Include="Content\LogRenderer.h" />
     <ClInclude Include="Content\ShaderStructures.h" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="third_party\miniaudio.h">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    <ClInclude Include="Pages\MenuPage.xaml.h">
+      <DependentUpon>Pages\MenuPage.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Pages\StreamPage.xaml.h">
+      <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Streaming\AudioPlayer.h" />
+    <ClInclude Include="Streaming\FFmpegDecoder.h" />
+    <ClInclude Include="Streaming\FramePacer.h" />
+    <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
     <ClInclude Include="Utils.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="AudioPlayer.cpp" />
+    <ClCompile Include="Client\MoonlightClient.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />
-    <ClCompile Include="FramePacer.cpp" />
-    <ClCompile Include="StreamPage.xaml.cpp">
-      <DependentUpon>StreamPage.xaml</DependentUpon>
-    </ClCompile>
-    <ClCompile Include="FFMpegDecoder.cpp" />
-    <ClCompile Include="MenuPage.xaml.cpp">
-      <DependentUpon>MenuPage.xaml</DependentUpon>
-    </ClCompile>
-    <ClCompile Include="MoonlightClient.cpp" />
-    <ClCompile Include="moonlight_xbox_dxMain.cpp" />
     <ClCompile Include="Content\LogRenderer.cpp" />
     <ClCompile Include="Content\VideoRenderer.cpp" />
+    <ClCompile Include="Pages\MenuPage.xaml.cpp">
+      <DependentUpon>Pages\MenuPage.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Pages\StreamPage.xaml.cpp">
+      <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -358,6 +351,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Streaming\AudioPlayer.cpp" />
+    <ClCompile Include="Streaming\FFmpegDecoder.cpp" />
+    <ClCompile Include="Streaming\FramePacer.cpp" />
+    <ClCompile Include="Streaming\moonlight_xbox_dxMain.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -377,12 +374,6 @@
     <ApplicationDefinition Include="App.xaml">
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Page Include="StreamPage.xaml">
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="MenuPage.xaml">
-      <SubType>Designer</SubType>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libgamestream\gamestream.vcxproj">
@@ -472,6 +463,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Package.StoreAssociation.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Pages\MenuPage.xaml" />
+    <Page Include="Pages\StreamPage.xaml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
