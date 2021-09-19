@@ -11,7 +11,7 @@ namespace moonlight_xbox_dx
 	class moonlight_xbox_dxMain : public DX::IDeviceNotify
 	{
 	public:
-		moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::FrameworkElement^ flyoutButton, Windows::UI::Xaml::Controls::MenuFlyout^ flyout, Windows::UI::Core::CoreDispatcher^ dispatcher);
+		moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::FrameworkElement^ flyoutButton, Windows::UI::Xaml::Controls::MenuFlyout^ flyout, Windows::UI::Core::CoreDispatcher^ dispatcher, MoonlightClient* client,StreamConfiguration ^config);
 		~moonlight_xbox_dxMain();
 		void CreateWindowSizeDependentResources();
 		void TrackingUpdate(float positionX) { m_pointerLocationX = positionX; }
@@ -51,5 +51,6 @@ namespace moonlight_xbox_dx
 		Windows::UI::Xaml::FrameworkElement ^m_flyoutButton;
 		Windows::UI::Core::CoreDispatcher ^m_dispatcher;
 		Windows::UI::Xaml::Controls::MenuFlyout^ m_flyout;
+		MoonlightClient* moonlightClient;
 	};
 }

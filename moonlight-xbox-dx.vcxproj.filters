@@ -115,6 +115,9 @@
     <ClInclude Include="Client\MoonlightClient.h">
       <Filter>Client</Filter>
     </ClInclude>
+    <ClInclude Include="Client\StreamConfiguration.h">
+      <Filter>Client</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />

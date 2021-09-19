@@ -4,6 +4,7 @@
 #include "ShaderStructures.h"
 #include "..\Common\StepTimer.h"
 #include "Client\MoonlightClient.h"
+#include "Client\StreamConfiguration.h"
 
 namespace moonlight_xbox_dx
 {
@@ -11,7 +12,7 @@ namespace moonlight_xbox_dx
 	class VideoRenderer
 	{
 	public:
-		VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources);
+		VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources,MoonlightClient *client,StreamConfiguration ^sConfig);
 		void CreateDeviceDependentResources();
 		void CreateWindowSizeDependentResources();
 		void ReleaseDeviceDependentResources();
@@ -43,6 +44,7 @@ namespace moonlight_xbox_dx
 		float	m_degreesPerSecond;
 		bool	m_tracking;
 		MoonlightClient *client;
+		StreamConfiguration^ configuration;
 	};
 }
 

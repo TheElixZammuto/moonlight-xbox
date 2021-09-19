@@ -1,6 +1,7 @@
 #pragma once
 #include "Common/DeviceResources.h"
 #include <Streaming\FramePacer.h>
+#include <Client\StreamConfiguration.h>
 extern "C" {
 	#include <libavcodec/avcodec.h>
 	#include <Limelight.h>
@@ -16,14 +17,14 @@ namespace moonlight_xbox_dx {
 	class MoonlightClient
 	{
 	public:
-		int Init(std::shared_ptr<DX::DeviceResources> res, int width, int height);
-		int Connect(char* hostname);
+		MoonlightClient();
+		int StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration ^config);
+		int Connect(const char* hostname);
 		bool IsPaired();
 		int Pair();
 		char *GeneratePIN();
 		std::vector<MoonlightApplication> GetApplications();
 		void SetAppID(int appID);
-		static MoonlightClient* GetInstance();
 		void SendGamepadReading(Windows::Gaming::Input::GamepadReading reading);
 		void SendMousePosition(float x, float y);
 		void SendMousePressed(int button);

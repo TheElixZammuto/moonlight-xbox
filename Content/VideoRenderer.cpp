@@ -17,12 +17,14 @@ using namespace DirectX;
 using namespace Windows::Foundation;
 
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
-VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
+VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, MoonlightClient* mclient, StreamConfiguration^ sConfig) :
 	m_loadingComplete(false),
 	m_degreesPerSecond(45),
 	m_indexCount(0),
 	m_tracking(false),
-	m_deviceResources(deviceResources)
+	m_deviceResources(deviceResources),
+	client(mclient),
+	configuration(sConfig)
 {
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
@@ -244,9 +246,8 @@ void VideoRenderer::CreateDeviceDependentResources()
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()),"Render Texture Creation");
 	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
 	createCubeTask.then([this,width,height] () {
-		client = MoonlightClient::GetInstance();
 		client->pacer->renderingDevice = m_deviceResources->GetD3DDevice();
-		int status = client->Init(m_deviceResources, width,height);
+		int status = client->StartStreaming(m_deviceResources, configuration);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 			dialog->Content = Utils::StringPrintf("Got status %d from Moonlight init", status);

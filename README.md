@@ -34,7 +34,8 @@ You need [VCPKG](https://vcpkg.io/en/index.html) installed in the "vcpkg" folder
 
 In particular, the FFMPEG port file (https://github.com/microsoft/vcpkg/blob/master/ports/ffmpeg/portfile.cmake) shoud be modified to include the `--enable-d3d11va` configure flag
 
-Required ports are `pthread:x64-uwp, pthreads:x64-uwp, curl:x64-uwp, openssl:x64-uwp, expat:x64-uwp, zlib:x64-uwp, ffmpeg:x64-uwp`
+Required ports are `pthread:x64-uwp, pthreads:x64-uwp, curl:x64-uwp, openssl:x64-uwp, expat:x64-uwp, zlib:x64-uwp, ffmpeg:x64-uwp, nlohmann-json:x64-uwp`
+**NEW:** nlohmann-json:x64-uwp is also needed as of builds > 1.6.0
 
 On a native x64 Visual Studio Prompt, run the `generate-thirdparty-projects.bat` inside the source folder to generate moonlight-common-c build files
 

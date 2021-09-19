@@ -62,7 +62,7 @@ void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::Routed
 		// We can create the device-dependent resources.
 		m_deviceResources = std::make_shared<DX::DeviceResources>();
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
-		m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources,this->flyoutButton,this->ActionsFlyout,Dispatcher));
+		m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources,this->flyoutButton,this->ActionsFlyout,Dispatcher,new MoonlightClient(),configuration));
 		m_main->CreateWindowSizeDependentResources();
 		m_main->StartRenderLoop();
 	}
@@ -130,4 +130,9 @@ void moonlight_xbox_dx::StreamPage::toggleLogsButton_Click(Platform::Object^ sen
 {
 	Utils::showLogs = !Utils::showLogs;
 	this->toggleLogsButton->Text = Utils::showLogs ? "Hide Logs" : "Show Logs";
+}
+
+void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
+	if (configuration == nullptr)return;
 }
