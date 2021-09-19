@@ -42,7 +42,7 @@ void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int
 	int i = 1;
 	Frame currentFrame = frames[(decodeIndex + i) % queueSize];
 	currentFrame.frameNumber = (decodeIndex+i);
-	currentFrame.decodeMutex->AcquireSync(0, 16);
+	currentFrame.decodeMutex->AcquireSync(0, 4);
 	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, NULL);
 	currentFrame.decodeMutex->ReleaseSync(1);
 	//currentFrame.mutex->unlock();
@@ -57,12 +57,12 @@ void FramePacer::PrepareFrameForRendering() {
 		moonlight_xbox_dx::Utils::Log("Catch up\n");
 	}
 	if (decodeIndex - nextIndex >= 0) {
-		char msg[2048];
-		//sprintf(msg, "Next (%d) \n", decodeIndex - nextIndex);
-		moonlight_xbox_dx::Utils::Log(msg);
-		Frame currentFrame = frames[nextIndex % queueSize];
-		/*bool locked = currentFrame.mutex->try_lock();
-		if (!locked)return;*/
+		if (renderIndex > 0) {
+			Frame currentFrame = frames[renderIndex % queueSize];
+			currentFrame.renderMutex->ReleaseSync(0);
+		}
+		Frame nextFrame = frames[nextIndex % queueSize];
+		nextFrame.renderMutex->AcquireSync(1, 4);
 		renderIndex = nextIndex;
 	}
 	else {
@@ -75,13 +75,9 @@ void FramePacer::PrepareFrameForRendering() {
 Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {
 	if (frames.size() < queueSize || renderIndex < 0)return NULL;
 	Frame currentFrame = frames[renderIndex % queueSize];
-	currentFrame.renderMutex->AcquireSync(1, 16);
 	return frames[renderIndex % queueSize].renderTexure;
 }
 
 void FramePacer::ReleaseTexture() {
-	if (frames.size() < queueSize)return;
-	Frame currentFrame = frames[renderIndex % queueSize];
-	currentFrame.renderMutex->ReleaseSync(0);
-	//currentFrame.mutex->unlock();
+	
 }
