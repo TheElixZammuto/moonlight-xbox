@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "StreamPage.g.h"
+#include "Pages\StreamPage.g.h"
 
 #include "Common\DeviceResources.h"
 #include "Streaming\moonlight_xbox_dxMain.h"
@@ -21,7 +21,8 @@ namespace moonlight_xbox_dx
 		StreamPage();
 		virtual ~StreamPage();
 		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
-
+	protected:
+		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	private:
 		// Track our independent input on a background worker thread.
 		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;
@@ -37,6 +38,7 @@ namespace moonlight_xbox_dx
 		void ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e);
 		void toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		StreamConfiguration^ configuration;
 	};
 }
 

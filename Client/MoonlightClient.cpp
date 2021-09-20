@@ -8,6 +8,7 @@ extern "C" {
 #include "Streaming\FFMpegDecoder.h"
 #include <Streaming\AudioPlayer.h>
 #include <Utils.hpp>
+#include <Client\StreamConfiguration.h>
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
@@ -20,21 +21,20 @@ void connection_terminated(int status);
 void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
-//Singleton Helpers
-MoonlightClient* client;
-
-MoonlightClient* MoonlightClient::GetInstance() {
-	if (client != NULL)return client;
+MoonlightClient::MoonlightClient() {
 	FramePacer* p = new FramePacer();
-	client = new MoonlightClient();
-	client->pacer = p;
-	return client;
+	this->pacer = p;
 }
 
-int MoonlightClient::Init(std::shared_ptr<DX::DeviceResources> res,int width,int height) {
+int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,StreamConfiguration ^sConfig) {
+	//Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
+	std::wstring fooW(sConfig->hostname->Begin());
+	std::string fooA(fooW.begin(), fooW.end());
+	const char* charStr = fooA.c_str();
+	this->Connect(charStr);
 	STREAM_CONFIGURATION config;
-	config.width = width;
-	config.height = height;
+	config.width = sConfig->width;
+	config.height = sConfig->height;
 	config.bitrate = 8000;
 	config.clientRefreshRateX100 = 60 * 100;
 	config.colorRange = COLOR_RANGE_LIMITED;
@@ -99,7 +99,7 @@ void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMo
 	Utils::Log("Rumble\n");
 }
 
-int MoonlightClient::Connect(char* hostname) {
+int MoonlightClient::Connect(const char* hostname) {
 	this->hostname = (char*)malloc(2048 * sizeof(char));
 	strcpy_s(this->hostname, 2048,hostname);
 	Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;

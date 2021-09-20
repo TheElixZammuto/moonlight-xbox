@@ -11,14 +11,14 @@ using namespace Windows::System::Threading;
 using namespace Concurrency;
 
 // Loads and initializes application assets when the application is loaded.
-moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::FrameworkElement^ flyoutButton, Windows::UI::Xaml::Controls::MenuFlyout^ flyout, Windows::UI::Core::CoreDispatcher^ dispatcher):
+moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::FrameworkElement^ flyoutButton, Windows::UI::Xaml::Controls::MenuFlyout^ flyout, Windows::UI::Core::CoreDispatcher^ dispatcher, MoonlightClient* client,StreamConfiguration ^configuration):
 
-	m_deviceResources(deviceResources), m_pointerLocationX(0.0f),m_flyoutButton(flyoutButton),m_dispatcher(dispatcher),m_flyout(flyout)
+	m_deviceResources(deviceResources), m_pointerLocationX(0.0f),m_flyoutButton(flyoutButton),m_dispatcher(dispatcher),m_flyout(flyout),moonlightClient(client)
 {
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
-	m_sceneRenderer = std::unique_ptr<VideoRenderer>(new VideoRenderer(m_deviceResources));
+	m_sceneRenderer = std::unique_ptr<VideoRenderer>(new VideoRenderer(m_deviceResources,moonlightClient,configuration));
 
 	m_fpsTextRenderer = std::unique_ptr<LogRenderer>(new LogRenderer(m_deviceResources));
 
@@ -107,7 +107,6 @@ void moonlight_xbox_dxMain::Update()
 void moonlight_xbox_dxMain::ProcessInput()
 {
 	
-	MoonlightClient *client = MoonlightClient::GetInstance();
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	if (gamepads->Size == 0)return;
 	Windows::Gaming::Input::Gamepad^ gamepad = gamepads->GetAt(0);
@@ -131,34 +130,34 @@ void moonlight_xbox_dxMain::ProcessInput()
 	//If mouse mode is enabled the gamepad acts as a mouse, instead we pass the raw events to the host
 	if (mouseMode) {
 		//Position
-		client->SendMousePosition(reading.LeftThumbstickX * 5, reading.LeftThumbstickY * -5);
+		moonlightClient->SendMousePosition(reading.LeftThumbstickX * 5, reading.LeftThumbstickY * -5);
 		//Left Click
 		if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {
 			if (!leftMouseButtonPressed) {
 				leftMouseButtonPressed = true;
-				client->SendMousePressed(BUTTON_LEFT);
+				moonlightClient->SendMousePressed(BUTTON_LEFT);
 			}
 		}
 		else if (leftMouseButtonPressed) {
 			leftMouseButtonPressed = false;
-			client->SendMouseReleased(BUTTON_LEFT);
+			moonlightClient->SendMouseReleased(BUTTON_LEFT);
 		}
 		//Right Click
 		if ((reading.Buttons & GamepadButtons::X) == GamepadButtons::X) {
 			if (!rightMouseButtonPressed) {
 				rightMouseButtonPressed = true;
-				client->SendMousePressed(BUTTON_RIGHT);
+				moonlightClient->SendMousePressed(BUTTON_RIGHT);
 			}
 		}
 		else if (rightMouseButtonPressed) {
 			rightMouseButtonPressed = false;
-			client->SendMouseReleased(BUTTON_RIGHT);
+			moonlightClient->SendMouseReleased(BUTTON_RIGHT);
 		}
 		//Scroll
-		client->SendScroll(reading.RightThumbstickY);
+		moonlightClient->SendScroll(reading.RightThumbstickY);
 	}
 	else {
-		client->SendGamepadReading(reading);
+		moonlightClient->SendGamepadReading(reading);
 	}
 	
 }

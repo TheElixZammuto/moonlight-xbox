@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "MenuPage.g.h"
+#include "Pages\MenuPage.g.h"
 
 namespace moonlight_xbox_dx
 {
