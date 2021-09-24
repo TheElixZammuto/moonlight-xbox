@@ -21,6 +21,7 @@ namespace moonlight_xbox_dx {
 		}
 
 		void Log(const char* fmt) {
+			return;
 			try {
 				int len = strlen(fmt) + 1;
 				wchar_t* stringBuf = (wchar_t*)malloc(sizeof(wchar_t) * len);
