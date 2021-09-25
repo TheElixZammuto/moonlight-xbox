@@ -2,6 +2,7 @@
 #include "FramePacer.h"
 #include <Common\DirectXHelper.h>
 #include <Utils.hpp>
+#include <synchapi.h>
 
 void FramePacer::Setup(int width, int height) {
 	D3D11_TEXTURE2D_DESC desc;
@@ -55,14 +56,14 @@ void FramePacer::PrepareFrameForRendering() {
 	int nextIndex = renderIndex + 1;
 	int di = decodeIndex;
 	//Try a couple times before going to next frame
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < 16; i++) {
 		nextIndex = renderIndex + 1;
 		di = decodeIndex;
-		if (di - nextIndex > 4 || droppedFrames > 60) {
+		/*if (di - nextIndex > 4 || droppedFrames > 60) {
 			nextIndex = di - 2;
 			moonlight_xbox_dx::Utils::Log("Catch up\n");
 			droppedFrames = 0;
-		}
+		}*/
 		if (di - nextIndex >= 0) {
 			droppedFrames = 0;
 			if (renderIndex >= 0 && decodeIndex > 0) {
@@ -75,11 +76,12 @@ void FramePacer::PrepareFrameForRendering() {
 			advanced = true;
 			break;
 		}
+		Sleep(1);
 	}
 	if (!advanced) {
-		char msg[4096];
-		std::snprintf(msg, sizeof(msg), "Locked: %d - %d (%d)\n", nextIndex, di,droppedFrames);
-		moonlight_xbox_dx::Utils::Log(msg);
+		//char msg[4096];
+		//std::snprintf(msg, sizeof(msg), "Locked: %d - %d (%d)\n", nextIndex, di,droppedFrames);
+		//moonlight_xbox_dx::Utils::Log(msg);
 		droppedFrames++;
 	}
 }

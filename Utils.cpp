@@ -6,7 +6,7 @@
 namespace moonlight_xbox_dx {
 	namespace Utils {
 		std::vector<std::wstring> logLines;
-		bool showLogs;
+		bool showLogs = true;
 
 		Platform::String^ StringPrintf(const char* fmt, ...) {
 			va_list list;
@@ -21,7 +21,6 @@ namespace moonlight_xbox_dx {
 		}
 
 		void Log(const char* fmt) {
-			return;
 			try {
 				int len = strlen(fmt) + 1;
 				wchar_t* stringBuf = (wchar_t*)malloc(sizeof(wchar_t) * len);
