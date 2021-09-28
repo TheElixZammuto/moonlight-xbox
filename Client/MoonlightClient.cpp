@@ -96,7 +96,15 @@ void stage_failed(int stage, int err) {
 }
 
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
-	Utils::Log("Rumble\n");
+	auto gp = Windows::Gaming::Input::Gamepad::Gamepads->GetAt(0);
+	float normalizedHigh = highFreqMotor / (float)(256 * 256);
+	float normalizedLow  = lowFreqMotor / (float)(256 * 256);
+	Windows::Gaming::Input::GamepadVibration v;
+	v.LeftTrigger = normalizedHigh;
+	v.RightTrigger = normalizedHigh;
+	v.LeftMotor = normalizedHigh;
+	v.RightMotor = normalizedHigh;
+	gp->Vibration = v;
 }
 
 int MoonlightClient::Connect(const char* hostname) {
