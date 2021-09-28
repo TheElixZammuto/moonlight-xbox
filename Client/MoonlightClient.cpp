@@ -96,6 +96,7 @@ void stage_failed(int stage, int err) {
 }
 
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
+	if (Windows::Gaming::Input::Gamepad::Gamepads->Size == 0)return;
 	auto gp = Windows::Gaming::Input::Gamepad::Gamepads->GetAt(0);
 	float normalizedHigh = highFreqMotor / (float)(256 * 256);
 	float normalizedLow  = lowFreqMotor / (float)(256 * 256);
