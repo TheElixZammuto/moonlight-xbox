@@ -136,3 +136,9 @@ void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArg
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
 	if (configuration == nullptr)return;
 }
+
+void moonlight_xbox_dx::StreamPage::toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	Utils::showStats = !Utils::showStats;
+	this->toggleStatsButton->Text = Utils::showStats ? "Hide Stats" : "Show Stats";
+}

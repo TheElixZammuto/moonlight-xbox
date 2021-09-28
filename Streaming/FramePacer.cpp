@@ -17,6 +17,8 @@ void FramePacer::Setup(int width, int height) {
 	desc.BindFlags = 0;
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
+	QueryPerformanceCounter(&startTimer);
+	QueryPerformanceFrequency(&frequency);
 	for (int i = 0; i < queueSize; i++) {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> decodingTexture,renderingTexture;
 		Microsoft::WRL::ComPtr<IDXGIKeyedMutex> decodingMutex,renderingMutex;
@@ -46,8 +48,26 @@ void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int
 	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, NULL);
 	currentFrame.decodeMutex->ReleaseSync(1);
 	decodeIndex = decodeIndex + 1;
+	statsMutex.lock();
+	decodedFrames++;
+	statsMutex.unlock();
+	UpdateStats();
 	//currentFrame.mutex->unlock();
 
+}
+
+void FramePacer::UpdateStats() {
+	statsMutex.lock();
+	QueryPerformanceCounter(&lastTimer);
+	if (lastTimer.QuadPart - startTimer.QuadPart > frequency.QuadPart) {
+		startTimer = lastTimer;
+		moonlight_xbox_dx::Utils::stats.decoderFPS = decodedFrames;
+		moonlight_xbox_dx::Utils::stats.rendererFPS = renderedFrames;
+		moonlight_xbox_dx::Utils::stats.drLatency = decodeIndex - renderIndex;
+		decodedFrames = 0;
+		renderedFrames = 0;
+	}
+	statsMutex.unlock();
 }
 
 void FramePacer::PrepareFrameForRendering() {
@@ -76,6 +96,7 @@ void FramePacer::PrepareFrameForRendering() {
 			advanced = true;
 			break;
 		}
+		UpdateStats();
 		Sleep(1);
 	}
 	if (!advanced) {
@@ -89,6 +110,9 @@ void FramePacer::PrepareFrameForRendering() {
 Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {
 	if (frames.size() < queueSize || renderIndex < 0)return NULL;
 	Frame currentFrame = frames[renderIndex % queueSize];
+	statsMutex.lock();
+	renderedFrames++;
+	statsMutex.unlock();
 	return frames[renderIndex % queueSize].renderTexure;
 }
 
