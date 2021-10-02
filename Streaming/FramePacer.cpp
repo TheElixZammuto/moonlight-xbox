@@ -79,8 +79,8 @@ void FramePacer::PrepareFrameForRendering() {
 	for (int i = 0; i < 16; i++) {
 		nextIndex = renderIndex + 1;
 		di = decodeIndex;
-		/*if (di - nextIndex > 4 || droppedFrames > 60) {
-			nextIndex = di - 2;
+		/*if (di - nextIndex > 4) {
+			nextIndex = di;
 			moonlight_xbox_dx::Utils::Log("Catch up\n");
 			droppedFrames = 0;
 		}*/
@@ -97,7 +97,7 @@ void FramePacer::PrepareFrameForRendering() {
 			break;
 		}
 		UpdateStats();
-		Sleep(1);
+		//Sleep(1);
 	}
 	if (!advanced) {
 		//char msg[4096];
