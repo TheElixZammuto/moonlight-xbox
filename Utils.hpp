@@ -7,6 +7,7 @@ namespace moonlight_xbox_dx {
 			int decoderFPS;
 			int rendererFPS;
 			int drLatency;
+			double averageRenderingTime = 0;
 		};
 		
 		extern std::vector<std::wstring> logLines;

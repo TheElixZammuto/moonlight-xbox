@@ -53,6 +53,7 @@ void StatsRenderer::Update(DX::StepTimer const& timer)
 		m_text += L"Decoder FPS: " + std::to_wstring(Utils::stats.decoderFPS) + L"\n";
 		m_text += L"Renderer FPS: " + std::to_wstring(Utils::stats.rendererFPS) + L"\n";
 		m_text += L"Frame Lag: " + std::to_wstring(Utils::stats.drLatency) + L"\n";
+		m_text += L"AVG Rendering time: " + std::to_wstring(Utils::stats.averageRenderingTime) + L"ms \n";
 	}
 	ComPtr<IDWriteTextLayout> textLayout;
 	DX::ThrowIfFailed(

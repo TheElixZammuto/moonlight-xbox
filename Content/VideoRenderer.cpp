@@ -50,6 +50,8 @@ void VideoRenderer::Render()
 			return;
 		}
 		//Create a rendering texture
+		LARGE_INTEGER start, end,frequency;
+		QueryPerformanceCounter(&start);
 		client->pacer->PrepareFrameForRendering();
 		auto texture = client->pacer->GetCurrentRenderingFrame();
 		if (texture == NULL || texture == nullptr) {
@@ -88,12 +90,15 @@ void VideoRenderer::Render()
 		context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
 		context->PSSetShader(m_pixelShader.Get(),nullptr,0);
 		context->DrawIndexed(m_indexCount,0,0);
+		QueryPerformanceCounter(&end);
+		QueryPerformanceFrequency(&frequency);
+		double ms = (end.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
+		/*char msg[4096];
+		sprintf(msg, "Rendering took %f ms\n", ms);
+		Utils::Log(msg);*/
+		client->pacer->totalRenderingTime += ms;
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
-		if (!renderedOneFrame) {
-			Utils::Log("Rendered First Frame!\n");
-			renderedOneFrame = true;
-		}
 }
 
 void VideoRenderer::CreateDeviceDependentResources()

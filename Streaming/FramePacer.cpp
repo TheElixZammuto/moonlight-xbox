@@ -64,6 +64,7 @@ void FramePacer::UpdateStats() {
 		moonlight_xbox_dx::Utils::stats.decoderFPS = decodedFrames;
 		moonlight_xbox_dx::Utils::stats.rendererFPS = renderedFrames;
 		moonlight_xbox_dx::Utils::stats.drLatency = decodeIndex - renderIndex;
+		moonlight_xbox_dx::Utils::stats.averageRenderingTime = totalRenderingTime / (double) renderedFrames;
 		decodedFrames = 0;
 		renderedFrames = 0;
 	}
@@ -79,11 +80,11 @@ void FramePacer::PrepareFrameForRendering() {
 	for (int i = 0; i < 16; i++) {
 		nextIndex = renderIndex + 1;
 		di = decodeIndex;
-		/*if (di - nextIndex > 4) {
+		if (di - nextIndex > 4) {
 			nextIndex = di;
 			moonlight_xbox_dx::Utils::Log("Catch up\n");
 			droppedFrames = 0;
-		}*/
+		}
 		if (di - nextIndex >= 0) {
 			droppedFrames = 0;
 			if (renderIndex >= 0 && decodeIndex > 0) {

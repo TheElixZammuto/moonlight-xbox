@@ -28,8 +28,8 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// e.g. for 60 FPS fixed timestep update logic, call:
 	/*
 	*/
-	m_timer.SetFixedTimeStep(true);
-	m_timer.SetTargetElapsedSeconds(1.0 / 60);
+	m_timer.SetFixedTimeStep(false);
+	//m_timer.SetTargetElapsedSeconds(1.0 / 60);
 }
 
 moonlight_xbox_dxMain::~moonlight_xbox_dxMain()
@@ -190,7 +190,6 @@ bool moonlight_xbox_dxMain::Render()
 	context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	// Render the scene objects.
-	// TODO: Replace this with your app's content rendering functions.
 	m_sceneRenderer->Render();
 	m_fpsTextRenderer->Render();
 	m_statsTextRenderer->Render();

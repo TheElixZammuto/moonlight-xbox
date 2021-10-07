@@ -26,6 +26,7 @@ public:
 	void FramePacer::ReleaseTexture();
 	void UpdateStats();
 	std::mutex statsMutex;
+	double totalRenderingTime = 0;
 private:
 	bool catchingUp = false;
 	int decodeIndex = -1;
