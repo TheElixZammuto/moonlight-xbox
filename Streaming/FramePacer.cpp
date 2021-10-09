@@ -67,6 +67,7 @@ void FramePacer::UpdateStats() {
 		moonlight_xbox_dx::Utils::stats.averageRenderingTime = totalRenderingTime / (double) renderedFrames;
 		decodedFrames = 0;
 		renderedFrames = 0;
+		totalRenderingTime = 0;
 	}
 	statsMutex.unlock();
 }
