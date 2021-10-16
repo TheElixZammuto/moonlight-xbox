@@ -322,6 +322,7 @@
       <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Content\StatsRenderer.h" />
     <ClInclude Include="Streaming\AudioPlayer.h" />
     <ClInclude Include="Streaming\FFmpegDecoder.h" />
     <ClInclude Include="Streaming\FramePacer.h" />
@@ -352,6 +353,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Content\StatsRenderer.cpp" />
     <ClCompile Include="Streaming\AudioPlayer.cpp" />
     <ClCompile Include="Streaming\FFmpegDecoder.cpp" />
     <ClCompile Include="Streaming\FramePacer.cpp" />

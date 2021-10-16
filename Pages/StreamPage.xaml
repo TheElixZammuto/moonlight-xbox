@@ -8,7 +8,7 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     Loaded="Page_Loaded">
-    
+
     <SwapChainPanel x:Name="swapChainPanel">
         <Rectangle HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" Opacity="0" x:Name="flyoutButton" AllowFocusOnInteraction="false">
             <FlyoutBase.AttachedFlyout>
@@ -19,6 +19,11 @@
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
                     <MenuFlyoutItem x:Name="toggleLogsButton" Text="Show Logs" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xE81C;" />
+                        </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
+                    <MenuFlyoutItem x:Name="toggleStatsButton" Text="Show Stats" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">
                         <MenuFlyoutItem.Icon>
                             <FontIcon Glyph="&#xE81C;" />
                         </MenuFlyoutItem.Icon>

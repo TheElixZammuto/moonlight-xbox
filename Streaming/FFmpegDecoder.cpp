@@ -16,10 +16,10 @@ extern "C" {
 namespace moonlight_xbox_dx {
 	
 	void ffmpeg_log_callback(void* avcl,int	level,const char* fmt,va_list vl) {
-		if (level > AV_LOG_INFO)return;
+		/*if (level > AV_LOG_INFO)return;
 		char message[2048];
 		vsprintf_s(message, fmt, vl);
-		Utils::Log(message);
+		Utils::Log(message);*/
 	}
 	
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
