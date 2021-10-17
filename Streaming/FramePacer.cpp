@@ -44,7 +44,7 @@ void FramePacer::Setup(int width, int height) {
 void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext) {
 	Frame currentFrame = frames[(decodeIndex+1) % queueSize];
 	currentFrame.frameNumber = decodeIndex +1;
-	currentFrame.decodeMutex->AcquireSync(0, 0);
+	currentFrame.decodeMutex->AcquireSync(0, 2);
 	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, NULL);
 	currentFrame.decodeMutex->ReleaseSync(1);
 	decodeIndex = decodeIndex + 1;
@@ -91,7 +91,7 @@ void FramePacer::PrepareFrameForRendering() {
 				currentFrame.renderMutex->ReleaseSync(0);
 			}
 			Frame nextFrame = frames[nextIndex % queueSize];
-			nextFrame.renderMutex->AcquireSync(1, 0);
+			nextFrame.renderMutex->AcquireSync(1, 2);
 			renderIndex = nextIndex;
 			advanced = true;
 			break;

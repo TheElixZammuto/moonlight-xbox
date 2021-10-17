@@ -88,7 +88,7 @@ void LogRenderer::Render()
 	// Position on the bottom right corner
 	D2D1::Matrix3x2F screenTranslation = D2D1::Matrix3x2F::Translation(
 		logicalSize.Width - m_textMetrics.layoutWidth,
-		0
+		logicalSize.Height - m_textMetrics.layoutHeight
 		);
 
 	context->SetTransform(screenTranslation * m_deviceResources->GetOrientationTransform2D());
