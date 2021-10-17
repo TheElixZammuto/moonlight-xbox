@@ -4,6 +4,7 @@
 #include "Common\DeviceResources.h"
 #include "Content\VideoRenderer.h"
 #include "Content\LogRenderer.h"
+#include "Content\StatsRenderer.h"
 
 // Renders Direct2D and 3D content on the screen.
 namespace moonlight_xbox_dx
@@ -35,6 +36,7 @@ namespace moonlight_xbox_dx
 		// TODO: Replace with your own content renderers.
 		std::unique_ptr<VideoRenderer> m_sceneRenderer;
 		std::unique_ptr<LogRenderer> m_fpsTextRenderer;
+		std::unique_ptr<StatsRenderer> m_statsTextRenderer;
 
 		Windows::Foundation::IAsyncAction^ m_renderLoopWorker;
 		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;

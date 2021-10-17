@@ -45,9 +45,9 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	config.supportsHevc = false;
 	config.streamingRemotely = STREAM_CFG_AUTO;
 	char message[2048];
-	sprintf(message, "Inserted App ID %d\n", appID);
+	sprintf(message, "Inserted App ID %d\n", sConfig->appID);
 	Utils::Log(message);
-	int a = gs_start_app(&serverData, &config, appID, false, true, 0);
+	int a = gs_start_app(&serverData, &config, sConfig->appID, false, true, 0);
 	CONNECTION_LISTENER_CALLBACKS callbacks;
 	callbacks.logMessage = log_message;
 	callbacks.connectionStarted = connection_started;
@@ -96,7 +96,16 @@ void stage_failed(int stage, int err) {
 }
 
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
-	Utils::Log("Rumble\n");
+	if (Windows::Gaming::Input::Gamepad::Gamepads->Size == 0)return;
+	auto gp = Windows::Gaming::Input::Gamepad::Gamepads->GetAt(0);
+	float normalizedHigh = highFreqMotor / (float)(256 * 256);
+	float normalizedLow  = lowFreqMotor / (float)(256 * 256);
+	Windows::Gaming::Input::GamepadVibration v;
+	v.LeftTrigger = normalizedHigh;
+	v.RightTrigger = normalizedHigh;
+	v.LeftMotor = normalizedHigh;
+	v.RightMotor = normalizedHigh;
+	gp->Vibration = v;
 }
 
 int MoonlightClient::Connect(const char* hostname) {
@@ -148,10 +157,6 @@ std::vector<MoonlightApplication> MoonlightClient::GetApplications() {
 		list = list->next;
 	}
 	return values;
-}
-
-void MoonlightClient::SetAppID(int id) {
-	appID = id;
 }
 
 void MoonlightClient::SendGamepadReading(GamepadReading reading) {

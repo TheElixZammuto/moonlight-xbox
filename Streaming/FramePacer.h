@@ -24,11 +24,19 @@ public:
 	void PrepareFrameForRendering();
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> GetCurrentRenderingFrame();
 	void FramePacer::ReleaseTexture();
+	void UpdateStats();
+	std::mutex statsMutex;
+	double totalRenderingTime = 0;
 private:
 	bool catchingUp = false;
 	int decodeIndex = -1;
 	int renderIndex = -1;
 	int droppedFrames = 0;
+	int decodedFrames = 0;
+	int renderedFrames = 0;
+	LARGE_INTEGER startTimer;
+	LARGE_INTEGER lastTimer;
+	LARGE_INTEGER frequency;
 	std::vector<Frame> frames;
 };
 
