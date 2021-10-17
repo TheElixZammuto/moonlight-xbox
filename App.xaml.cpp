@@ -69,12 +69,12 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 		// When the navigation stack isn't restored navigate to the first page,
 		// configuring the new page by passing required information as a navigation
 		// parameter
-		rootFrame->Navigate(TypeName(MenuPage::typeid), e->Arguments);
+		rootFrame->Navigate(TypeName(HostSelectorPage::typeid), e->Arguments);
 	}
 
 	if (m_menuPage == nullptr)
 	{
-		m_menuPage = dynamic_cast<MenuPage^>(rootFrame->Content);
+		m_menuPage = dynamic_cast<HostSelectorPage^>(rootFrame->Content);
 	}
 	//Resize to make fullscreen on Xbox
 	//Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);

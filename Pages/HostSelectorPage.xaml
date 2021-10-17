@@ -1,0 +1,33 @@
+﻿<Page
+    x:Class="moonlight_xbox_dx.HostSelectorPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <StackPanel>
+        <CommandBar OverflowButtonVisibility="Collapsed">
+            <AppBarButton Icon="Add" Click="NewHostButton_Click"></AppBarButton>
+        </CommandBar>
+        <GridView ItemsSource="{x:Bind State.SavedHosts}">
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="local:MoonlightHost" x:DefaultBindMode="OneWay">
+                    <StackPanel>
+                        <StackPanel Padding="16" VerticalAlignment="Center">
+                            <Canvas Width="256" Height="256">
+                                <Image Source="ms-appx:///Assets/desktop.svg" Width="232" Height="232" Canvas.Left="16" Canvas.Top="16" />
+                                <Image Source="ms-appx:///Assets/lock.svg" Visibility="{x:Bind NotPaired}" Width="96" Height="96" Canvas.Left="85" Canvas.Top="65" />
+                                <Image Source="ms-appx:///Assets/disconnected.svg" Visibility="{x:Bind NotConnected}" Width="96" Height="96" Canvas.Left="85" Canvas.Top="65" />
+                            </Canvas>
+                            <TextBlock Text="{x:Bind LastHostname}"></TextBlock>
+                        </StackPanel>
+                        <ProgressBar IsIndeterminate="True" Visibility="{x:Bind Loading}"></ProgressBar>
+                    </StackPanel>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+    </StackPanel>
+</Page>

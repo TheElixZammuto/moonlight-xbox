@@ -11,7 +11,9 @@ namespace moonlight_xbox_dx {
 		char ipAddressStr[2048];
 		wcstombs_s(NULL, ipAddressStr, ipAddress->Data(), 2047);
 		int status = client->Connect(ipAddressStr);
+		this->Connected = status == 0;
 		this->Paired = client->IsPaired();
+		this->CurrentlyRunningAppId = client->GetRunningAppID();
 		this->Loading = false;
 	}
 	void MoonlightHost::OnPropertyChanged(Platform::String^ propertyName)

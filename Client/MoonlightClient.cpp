@@ -191,3 +191,7 @@ void MoonlightClient::SendScroll(float value) {
 void MoonlightClient::SetSoftwareEncoder(bool value) {
 	useSoftwareEncoder = value;
 }
+
+int MoonlightClient::GetRunningAppID() {
+	return serverData.currentGame;
+}

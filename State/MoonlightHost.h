@@ -8,7 +8,8 @@ namespace moonlight_xbox_dx {
         Platform::String^ instanceId;
         Platform::String^ lastHostname;
         bool paired;
-        bool loading = false;
+        bool connected;
+        bool loading = true;
         int currentlyRunningAppId;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
@@ -39,7 +40,31 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->paired = value;
                 OnPropertyChanged("Paired");
+                OnPropertyChanged("NotPaired");
+                OnPropertyChanged("Connected");
+                OnPropertyChanged("NotConnected");
             }
+        }
+
+        property bool Connected
+        {
+            bool get() { return this->connected; }
+            void set(bool value) {
+                this->connected = value;
+                OnPropertyChanged("Connected");
+                OnPropertyChanged("NotConnected");
+                OnPropertyChanged("NotPaired");
+            }
+        }
+
+        property bool NotConnected
+        {
+            bool get() { return !this->loading && !this->connected; }
+        }
+
+        property bool NotPaired
+        {
+            bool get() { return !this->loading && this->connected && !this->paired; }
         }
 
         property bool Loading
@@ -48,6 +73,9 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->loading = value;
                 OnPropertyChanged("Loading");
+                OnPropertyChanged("Connected");
+                OnPropertyChanged("NotConnected");
+                OnPropertyChanged("NotPaired");
             }
         }
 

@@ -30,6 +30,7 @@ namespace moonlight_xbox_dx {
 		void SendMouseReleased(int button);
 		void SendScroll(float value);
 		void SetSoftwareEncoder(bool value);
+		int GetRunningAppID();
 		FramePacer *pacer;
 	private:
 		SERVER_DATA serverData;
