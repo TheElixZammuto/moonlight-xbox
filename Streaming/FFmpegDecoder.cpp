@@ -159,7 +159,7 @@ namespace moonlight_xbox_dx {
 		err = Decode(ffmpeg_buffer, length);
 		if (err < 0) {
 			char errorstringnew[1024];
-			sprintf(errorstringnew, "Error from FFMPEG while decoding: %d\n", AVERROR(err));
+			sprintf(errorstringnew, "!!!!!!!Error from FFMPEG while decoding: %s\n", errorstringnew);
 			Utils::Log(errorstringnew);
 			return DR_NEED_IDR;
 		}
@@ -174,10 +174,12 @@ namespace moonlight_xbox_dx {
 		int ts = GetTickCount64();
 		err = avcodec_send_packet(decoder_ctx, &pkt);
 		if (err < 0) {
-			char errorstringnew[1024];
-			sprintf(errorstringnew, "Error avcodec_send_packet: %d\n", AVERROR(err));
+
+			char errorstringnew[2048],ffmpegError[1024];
+			av_strerror(err, ffmpegError, 1024);
+			sprintf(errorstringnew, "Error avcodec_send_packet: %s\n", ffmpegError);
 			Utils::Log(errorstringnew);
-			return err;
+			return err == 1 ? 0 : err;
 		}
 		err = GetFrame();
 		if (err != 0) {

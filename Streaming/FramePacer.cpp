@@ -44,7 +44,7 @@ void FramePacer::Setup(int width, int height) {
 void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext) {
 	Frame currentFrame = frames[(decodeIndex+1) % queueSize];
 	currentFrame.frameNumber = decodeIndex +1;
-	currentFrame.decodeMutex->AcquireSync(0, 100);
+	currentFrame.decodeMutex->AcquireSync(0, 2);
 	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, NULL);
 	currentFrame.decodeMutex->ReleaseSync(1);
 	decodeIndex = decodeIndex + 1;
@@ -76,36 +76,28 @@ void FramePacer::PrepareFrameForRendering() {
 	if (decodeIndex < 0)return;
 	bool advanced = false;
 	int nextIndex = renderIndex + 1;
-	int di = decodeIndex;
+	if (decodeIndex - nextIndex >= 2) {
+		char msg[4096];
+		sprintf(msg,"Cathcing up: decode as %d and rendering as %d\n",decodeIndex,nextIndex);
+		moonlight_xbox_dx::Utils::Log(msg);
+		nextIndex = decodeIndex;
+	}
 	//Try a couple times before going to next frame
-	for (int i = 0; i < 16; i++) {
-		nextIndex = renderIndex + 1;
-		di = decodeIndex;
-		if (di - nextIndex > 4) {
-			nextIndex = di;
-			moonlight_xbox_dx::Utils::Log("Catch up\n");
-			droppedFrames = 0;
-		}
-		if (di - nextIndex >= 0) {
+	for(int i = 0; i < 16;i++){
+		if (decodeIndex - nextIndex >= 0) {
 			droppedFrames = 0;
 			if (renderIndex >= 0 && decodeIndex > 0) {
 				Frame currentFrame = frames[renderIndex % queueSize];
 				currentFrame.renderMutex->ReleaseSync(0);
 			}
 			Frame nextFrame = frames[nextIndex % queueSize];
-			nextFrame.renderMutex->AcquireSync(1, 100);
+			nextFrame.renderMutex->AcquireSync(1, 2);
 			renderIndex = nextIndex;
 			advanced = true;
 			break;
 		}
 		UpdateStats();
 		//Sleep(1);
-	}
-	if (!advanced) {
-		//char msg[4096];
-		//std::snprintf(msg, sizeof(msg), "Locked: %d - %d (%d)\n", nextIndex, di,droppedFrames);
-		//moonlight_xbox_dx::Utils::Log(msg);
-		droppedFrames++;
 	}
 }
 
