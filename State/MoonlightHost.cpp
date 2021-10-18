@@ -16,6 +16,8 @@ namespace moonlight_xbox_dx {
 		this->CurrentlyRunningAppId = client->GetRunningAppID();
 		this->Loading = false;
 	}
+
+	
 	void MoonlightHost::OnPropertyChanged(Platform::String^ propertyName)
 	{
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(

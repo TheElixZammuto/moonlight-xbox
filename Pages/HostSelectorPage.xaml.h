@@ -28,5 +28,7 @@ namespace moonlight_xbox_dx
 		void NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::ContentDialog^ sender, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^ args);
 		Windows::UI::Xaml::Controls::TextBox ^dialogHostnameTextBox;
+		void GridView_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
+		void StartPairing(MoonlightHost^ host);
 	};
 }

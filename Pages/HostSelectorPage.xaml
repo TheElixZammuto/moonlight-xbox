@@ -12,7 +12,7 @@
         <CommandBar OverflowButtonVisibility="Collapsed">
             <AppBarButton Icon="Add" Click="NewHostButton_Click"></AppBarButton>
         </CommandBar>
-        <GridView ItemsSource="{x:Bind State.SavedHosts}">
+        <GridView ItemsSource="{x:Bind State.SavedHosts}" IsItemClickEnabled="True" ItemClick="GridView_ItemClick">
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="local:MoonlightHost" x:DefaultBindMode="OneWay">
                     <StackPanel>
