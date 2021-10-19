@@ -144,15 +144,15 @@ int MoonlightClient::Pair() {
 	return 0;
 }
 
-std::vector<MoonlightApplication> MoonlightClient::GetApplications() {
+std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 	PAPP_LIST list;
 	gs_applist(&serverData, &list);
-	std::vector<MoonlightApplication> values;
+	std::vector<MoonlightApp^> values;
 	if (list == NULL)return values;
 	while (list != NULL) {
-		MoonlightApplication a;
-		a.id = list->id;
-		a.name = list->name;
+		MoonlightApp^a = ref new MoonlightApp();
+		a->Id = list->id;
+		a->Name = Utils::StringFromChars(list->name);
 		values.push_back(a);
 		list = list->next;
 	}

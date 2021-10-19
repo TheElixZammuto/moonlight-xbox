@@ -40,6 +40,18 @@ namespace moonlight_xbox_dx {
 		std::vector<std::wstring> GetLogLines() {
 			return logLines;
 		}
+
+		//https://stackoverflow.com/a/20707518
+		Platform::String^ StringFromChars(char* chars)
+		{
+			size_t newsize = strlen(chars) + 1;
+			wchar_t* wcstring = new wchar_t[newsize];
+			size_t convertedChars = 0;
+			mbstowcs_s(&convertedChars, wcstring, newsize, chars, _TRUNCATE);
+			Platform::String^ str = ref new Platform::String(wcstring);
+			delete[] wcstring;
+			return str;
+		}
 	}
 
 }

@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "HostSelectorPage.xaml.h"
+#include "AppPage.xaml.h"
 #include <Client\MoonlightClient.h>
 
 using namespace moonlight_xbox_dx;
@@ -63,6 +64,7 @@ void moonlight_xbox_dx::HostSelectorPage::GridView_ItemClick(Platform::Object^ s
 		StartPairing(host);
 		return;
 	}
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
 }
 
 void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {

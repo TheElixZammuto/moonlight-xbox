@@ -315,11 +315,12 @@
     <ClInclude Include="Content\VideoRenderer.h" />
     <ClInclude Include="Content\LogRenderer.h" />
     <ClInclude Include="Content\ShaderStructures.h" />
+    <ClInclude Include="State\MoonlightApp.h" />
+    <ClInclude Include="Pages\AppPage.xaml.h">
+      <DependentUpon>Pages\AppPage.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Pages\HostSelectorPage.xaml.h">
       <DependentUpon>Pages\HostSelectorPage.xaml</DependentUpon>
-    </ClInclude>
-    <ClInclude Include="Pages\MenuPage.xaml.h">
-      <DependentUpon>Pages\MenuPage.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Pages\StreamPage.xaml.h">
       <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
@@ -342,11 +343,12 @@
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="Content\LogRenderer.cpp" />
     <ClCompile Include="Content\VideoRenderer.cpp" />
+    <ClCompile Include="State\MoonlightApp.cpp" />
+    <ClCompile Include="Pages\AppPage.xaml.cpp">
+      <DependentUpon>Pages\AppPage.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="Pages\HostSelectorPage.xaml.cpp">
       <DependentUpon>Pages\HostSelectorPage.xaml</DependentUpon>
-    </ClCompile>
-    <ClCompile Include="Pages\MenuPage.xaml.cpp">
-      <DependentUpon>Pages\MenuPage.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Pages\StreamPage.xaml.cpp">
       <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
@@ -487,10 +489,12 @@
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Pages\AppPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Pages\HostSelectorPage.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Pages\MenuPage.xaml" />
     <Page Include="Pages\StreamPage.xaml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

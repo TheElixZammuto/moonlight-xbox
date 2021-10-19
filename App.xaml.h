@@ -6,7 +6,6 @@
 #pragma once
 
 #include "App.g.h"
-#include "Pages/MenuPage.xaml.h"
 #include <Pages\HostSelectorPage.xaml.h>
 
 namespace moonlight_xbox_dx

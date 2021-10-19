@@ -93,6 +93,7 @@
     <ClCompile Include="Content\StatsRenderer.cpp" />
     <ClCompile Include="State\ApplicationState.cpp" />
     <ClCompile Include="State\MoonlightHost.cpp" />
+    <ClCompile Include="State\MoonlightApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -124,6 +125,7 @@
     <ClInclude Include="Content\StatsRenderer.h" />
     <ClInclude Include="State\ApplicationState.h" />
     <ClInclude Include="State\MoonlightHost.h" />
+    <ClInclude Include="State\MoonlightApp.h" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -348,12 +350,10 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Pages\MenuPage.xaml">
-      <Filter>Pages</Filter>
-    </Page>
     <Page Include="Pages\StreamPage.xaml">
       <Filter>Pages</Filter>
     </Page>
     <Page Include="Pages\HostSelectorPage.xaml" />
+    <Page Include="Pages\AppPage.xaml" />
   </ItemGroup>
 </Project>
