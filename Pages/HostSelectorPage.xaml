@@ -6,21 +6,53 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    XYFocusKeyboardNavigation="Disabled"
+    >
 
-    <StackPanel>
-        <CommandBar OverflowButtonVisibility="Collapsed">
-            <AppBarButton Icon="Add" Click="NewHostButton_Click"></AppBarButton>
-        </CommandBar>
-        <GridView ItemsSource="{x:Bind State.SavedHosts}" IsItemClickEnabled="True" ItemClick="GridView_ItemClick">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" VerticalAlignment="Center" Padding="0,0,0,8" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Padding="8">
+                <Image Source="ms-appx:///Assets/StoreLogo.scale-200.png" Width="48" Height="48"></Image>
+                <TextBlock VerticalAlignment="Center" Padding="8" FontSize="20">Moonlight</TextBlock>
+            </StackPanel>
+            <StackPanel  Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="8" Orientation="Horizontal" Spacing="16">
+                <Button Click="NewHostButton_Click" TabIndex="2">
+                    <Button.Content>
+                        <SymbolIcon Symbol="Add" />
+                    </Button.Content>
+                </Button>
+                <Button Click="NewHostButton_Click" TabIndex="2">
+                    <Button.Content>
+                        <SymbolIcon Symbol="Setting" />
+                    </Button.Content>
+                </Button>
+            </StackPanel>
+        </Grid>
+        <GridView  Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind State.SavedHosts}" IsItemClickEnabled="True" ItemClick="GridView_ItemClick" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <GridView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsWrapGrid Orientation="Horizontal"
+                            ScrollViewer.VerticalScrollBarVisibility="Visible"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                </ItemsPanelTemplate>
+            </GridView.ItemsPanel>
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="local:MoonlightHost" x:DefaultBindMode="OneWay">
                     <StackPanel>
                         <StackPanel Padding="16" VerticalAlignment="Center">
-                            <Canvas Width="256" Height="256">
-                                <Image Source="ms-appx:///Assets/desktop.svg" Width="232" Height="232" Canvas.Left="16" Canvas.Top="16" />
+                            <Canvas Width="216" Height="216">
+                                <Image Source="ms-appx:///Assets/desktop.svg" Width="200" Height="200" Canvas.Left="16" Canvas.Top="16" />
                                 <Image Source="ms-appx:///Assets/lock.svg" Visibility="{x:Bind NotPaired}" Width="96" Height="96" Canvas.Left="85" Canvas.Top="65" />
-                                <Image Source="ms-appx:///Assets/disconnected.svg" Visibility="{x:Bind NotConnected}" Width="96" Height="96" Canvas.Left="85" Canvas.Top="65" />
+                                <Image Source="ms-appx:///Assets/disconnected.svg" Visibility="{x:Bind NotConnected}" Width="96" Height="96" Canvas.Left="70" Canvas.Top="50" />
                             </Canvas>
                             <TextBlock Text="{x:Bind LastHostname}"></TextBlock>
                         </StackPanel>
@@ -29,5 +61,5 @@
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
-    </StackPanel>
+    </Grid>
 </Page>

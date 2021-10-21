@@ -27,6 +27,8 @@ HostSelectorPage::HostSelectorPage()
 {
 	InitializeComponent();
 	state = ref new ApplicationState();
+	auto that = this;
+	state->Init();
 }
 
 
