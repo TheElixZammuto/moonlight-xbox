@@ -215,3 +215,7 @@ void moonlight_xbox_dxMain::OnDeviceRestored()
 void moonlight_xbox_dxMain::SetFlyoutOpened(bool value) {
 	insideFlyout = value;
 }
+
+void moonlight_xbox_dxMain::Disconnect() {
+	moonlightClient->StopStreaming();
+}

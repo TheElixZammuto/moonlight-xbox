@@ -29,6 +29,7 @@ namespace moonlight_xbox_dx {
 		void SendScroll(float value);
 		void SetSoftwareEncoder(bool value);
 		int GetRunningAppID();
+		void StopStreaming();
 		FramePacer *pacer;
 	private:
 		SERVER_DATA serverData;

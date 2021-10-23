@@ -24,6 +24,7 @@ namespace moonlight_xbox_dx
 		// IDeviceNotify
 		virtual void OnDeviceLost();
 		virtual void OnDeviceRestored();
+		void Disconnect();
 
 	private:
 		void ProcessInput();

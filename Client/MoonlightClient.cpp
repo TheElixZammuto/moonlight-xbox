@@ -63,6 +63,10 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	return LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
 }
 
+void MoonlightClient::StopStreaming() {
+	LiStopConnection();
+}
+
 void log_message(const char* fmt, ...) {
 	va_list argp;
 	va_start(argp, fmt);

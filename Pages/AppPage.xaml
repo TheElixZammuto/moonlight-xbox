@@ -6,21 +6,46 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    XYFocusKeyboardNavigation="Disabled"
+    >
 
     <Grid>
-        <CommandBar OverflowButtonVisibility="Collapsed">
-            <CommandBar.Content>
-                <TextBlock Text="{x:Bind Host.LastHostname}" VerticalAlignment="Center"></TextBlock>
-            </CommandBar.Content>
-            <AppBarButton Icon="Setting"></AppBarButton>
-        </CommandBar>
-        <GridView Padding="16" ItemsSource="{x:Bind Apps}"  IsItemClickEnabled="True" Name="AppsGrid" ItemClick="AppsGrid_ItemClick">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" VerticalAlignment="Center" Padding="0,0,0,8" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Padding="8">
+                <Image Source="ms-appx:///Assets/StoreLogo.scale-200.png" Width="48" Height="48"></Image>
+                <TextBlock VerticalAlignment="Center" Padding="8" FontSize="20">Moonlight</TextBlock>
+            </StackPanel>
+            <StackPanel  Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="8" Orientation="Horizontal" Spacing="16">
+                <Button TabIndex="2">
+                    <Button.Content>
+                        <SymbolIcon Symbol="Setting" />
+                    </Button.Content>
+                </Button>
+            </StackPanel>
+        </Grid>
+        <GridView  Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind Apps}" IsItemClickEnabled="True" ItemClick="AppsGrid_ItemClick" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <GridView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsWrapGrid Orientation="Horizontal"
+                            ScrollViewer.VerticalScrollBarVisibility="Visible"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                </ItemsPanelTemplate>
+            </GridView.ItemsPanel>
             <GridView.ItemTemplate>
-                <DataTemplate x:DataType="local:MoonlightApp">
+                <DataTemplate x:DataType="local:MoonlightApp" x:DefaultBindMode="OneWay">
                     <StackPanel>
-                        <Canvas Width="256" Height="256"/> 
-                        <TextBlock Text="{x:Bind Name}"></TextBlock>
+                        <StackPanel Padding="16" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind Name}"></TextBlock>
+                        </StackPanel>
                     </StackPanel>
                 </DataTemplate>
             </GridView.ItemTemplate>

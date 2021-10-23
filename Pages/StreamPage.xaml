@@ -28,6 +28,11 @@
                             <FontIcon Glyph="&#xE81C;" />
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
+                    <MenuFlyoutItem x:Name="disonnectButton" Text="Disconnect" Click="disonnectButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xE72D;" />
+                        </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
                 </MenuFlyout>
             </FlyoutBase.AttachedFlyout>
         </Rectangle>

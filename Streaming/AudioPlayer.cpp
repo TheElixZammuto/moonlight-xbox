@@ -92,6 +92,8 @@ namespace moonlight_xbox_dx {
 
 	void AudioPlayer::Cleanup() {
 		if (decoder != NULL) opus_multistream_decoder_destroy(decoder);
+		ma_device_uninit(&device);
+		ma_pcm_rb_uninit(&rb);
 	}
 
 	

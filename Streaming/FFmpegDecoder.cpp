@@ -140,7 +140,12 @@ namespace moonlight_xbox_dx {
 	}
 
 	void FFMpegDecoder::Cleanup() {
-
+		avcodec_free_context(&decoder_ctx);
+		free(ready_frames);
+		free(dec_frames);
+		free(ffmpeg_buffer);
+		pacer = NULL;
+		Utils::Log("Decoding Clean\n");
 	}
 
 	int FFMpegDecoder::SubmitDU(PDECODE_UNIT decodeUnit) {
@@ -232,6 +237,8 @@ namespace moonlight_xbox_dx {
 	}
 	void cleanupCallback() {
 		instance->Cleanup();
+		delete instance;
+		instance = NULL;
 	}
 	int submitCallback(PDECODE_UNIT decodeUnit) {
 		return instance->SubmitDU(decodeUnit);
