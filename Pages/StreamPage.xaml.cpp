@@ -145,6 +145,7 @@ void moonlight_xbox_dx::StreamPage::toggleStatsButton_Click(Platform::Object^ se
 
 void moonlight_xbox_dx::StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
+	this->m_main->StopRenderLoop();
 	this->m_main->Disconnect();
 	this->Frame->GoBack();
 }

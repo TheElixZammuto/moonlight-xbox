@@ -10,6 +10,8 @@ namespace moonlight_xbox_dx {
 	AudioPlayer* instance;
 	ma_pcm_rb rb;
 	ma_device device;
+	ma_context context;
+	bool contexted = false;
 
 	int audioInitCallback(int audioConfiguration, const POPUS_MULTISTREAM_CONFIGURATION opusConfig, void* context, int arFlags) {
 		return instance->Init(audioConfiguration,opusConfig, context, arFlags);
@@ -22,6 +24,7 @@ namespace moonlight_xbox_dx {
 	}
 	void audioCleanupCallback() {
 		instance->Cleanup();
+		instance = NULL;
 	}
 	void audioSubmitCallback(char* sampleData, int sampleLength) {
 		instance->SubmitDU(sampleData,sampleLength);
@@ -63,7 +66,7 @@ namespace moonlight_xbox_dx {
 		}
 	}
 
-	int AudioPlayer::Init(int audioConfiguration, const POPUS_MULTISTREAM_CONFIGURATION opusConfig, void* context, int arFlags) {
+	int AudioPlayer::Init(int audioConfiguration, const POPUS_MULTISTREAM_CONFIGURATION opusConfig, void* mnlContext, int arFlags) {
 		HRESULT hr;
 		int rc;
 		decoder = opus_multistream_decoder_create(opusConfig->sampleRate, opusConfig->channelCount, opusConfig->streams, opusConfig->coupledStreams, opusConfig->mapping, &rc);
@@ -79,7 +82,11 @@ namespace moonlight_xbox_dx {
 		this->samplePerFrame = opusConfig->samplesPerFrame;
 		this->channelCount = opusConfig->channelCount;
 		deviceConfig.dataCallback = requireAudioData;
-		if (ma_device_init(NULL, &deviceConfig, &device) != MA_SUCCESS) {
+		if (!contexted) { 
+			contexted = true;
+			ma_context_init(NULL, 1, NULL, &context); 
+		}
+		if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
 			Utils::Log("Failed to open playback device.\n");
 			return -3;
 		}
@@ -91,9 +98,11 @@ namespace moonlight_xbox_dx {
 	}
 
 	void AudioPlayer::Cleanup() {
+		Utils::Log("Audio Cleanup\n");
 		if (decoder != NULL) opus_multistream_decoder_destroy(decoder);
-		ma_device_uninit(&device);
-		ma_pcm_rb_uninit(&rb);
+		ma_context_uninit(&context);
+		/*ma_device_uninit(&device);
+		ma_pcm_rb_uninit(&rb);*/
 	}
 
 	

@@ -55,30 +55,31 @@ void LogRenderer::Update(DX::StepTimer const& timer)
 			m_text += line;
 		}
 	}
-	ComPtr<IDWriteTextLayout> textLayout;
-	DX::ThrowIfFailed(
-		m_deviceResources->GetDWriteFactory()->CreateTextLayout(
-			m_text.c_str(),
-			(uint32) m_text.length(),
-			m_textFormat.Get(),
-			500.0f, // Max width of the input text.
-			16.0f * 64.0f, // Max height of the input text.
-			&textLayout
-			)
-		);
-
-	DX::ThrowIfFailed(
-		textLayout.As(&m_textLayout)
-		);
-
-	DX::ThrowIfFailed(
-		m_textLayout->GetMetrics(&m_textMetrics)
-		);
+	
 }
 
 // Renders a frame to the screen.
 void LogRenderer::Render()
 {
+	ComPtr<IDWriteTextLayout> textLayout;
+	DX::ThrowIfFailed(
+		m_deviceResources->GetDWriteFactory()->CreateTextLayout(
+			m_text.c_str(),
+			(uint32)m_text.length(),
+			m_textFormat.Get(),
+			500.0f, // Max width of the input text.
+			16.0f * 64.0f, // Max height of the input text.
+			&textLayout
+		)
+	);
+
+	DX::ThrowIfFailed(
+		textLayout.As(&m_textLayout)
+	);
+
+	DX::ThrowIfFailed(
+		m_textLayout->GetMetrics(&m_textMetrics)
+	);
 	ID2D1DeviceContext* context = m_deviceResources->GetD2DDeviceContext();
 	Windows::Foundation::Size logicalSize = m_deviceResources->GetLogicalSize();
 
