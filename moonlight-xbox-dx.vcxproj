@@ -476,7 +476,13 @@
     <None Include="Assets\disconnected.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="Assets\gamepad.svg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="Assets\lock.svg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Assets\Play.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />

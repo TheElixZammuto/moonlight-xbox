@@ -30,6 +30,7 @@ namespace moonlight_xbox_dx {
 		void SetSoftwareEncoder(bool value);
 		int GetRunningAppID();
 		void StopStreaming();
+		void StopApp();
 		FramePacer *pacer;
 	private:
 		SERVER_DATA serverData;

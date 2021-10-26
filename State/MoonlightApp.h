@@ -7,6 +7,7 @@ namespace moonlight_xbox_dx {
     private:
         Platform::String^ name;
         int id;
+        bool currentlyRunning;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -27,6 +28,15 @@ namespace moonlight_xbox_dx {
             void set(int value) {
                 this->id = value;
                 OnPropertyChanged("Id");
+            }
+        }
+
+        property bool CurrentlyRunning
+        {
+            bool get() { return this->currentlyRunning; }
+            void set(bool value) {
+                this->currentlyRunning = value;
+                OnPropertyChanged("CurrentlyRunning");
             }
         }
     };

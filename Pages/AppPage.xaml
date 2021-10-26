@@ -9,7 +9,20 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     XYFocusKeyboardNavigation="Disabled"
     >
-
+    <FlyoutBase.AttachedFlyout>
+        <MenuFlyout x:Name="ActionsFlyout" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
+            <MenuFlyoutItem x:Name="resumeAppButton" Click="resumeAppButton_Click" Text="Resume App" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Play" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem x:Name="closeAppButton"  Click="closeAppButton_Click"  Text="Close App" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Stop" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+        </MenuFlyout>
+    </FlyoutBase.AttachedFlyout>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -32,7 +45,7 @@
                 </Button>
             </StackPanel>
         </Grid>
-        <GridView  Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind Apps}" IsItemClickEnabled="True" ItemClick="AppsGrid_ItemClick" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <GridView Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind Apps}" IsRightTapEnabled="True" IsItemClickEnabled="True" ItemClick="AppsGrid_ItemClick" RightTapped="HostsGrid_RightTapped" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal"
@@ -44,6 +57,10 @@
                 <DataTemplate x:DataType="local:MoonlightApp" x:DefaultBindMode="OneWay">
                     <StackPanel>
                         <StackPanel Padding="16" VerticalAlignment="Center">
+                            <Canvas Width="216" Height="216">
+                                <Image Source="ms-appx:///Assets/gamepad.svg" Width="200" Height="200" Canvas.Left="16" Canvas.Top="16" />
+                                <Image Source="ms-appx:///Assets/play.svg" Visibility="{x:Bind CurrentlyRunning}" Width="96" Height="96" Canvas.Left="125" Canvas.Top="125" />
+                            </Canvas>
                             <TextBlock Text="{x:Bind Name}"></TextBlock>
                         </StackPanel>
                     </StackPanel>
