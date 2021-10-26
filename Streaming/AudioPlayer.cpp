@@ -73,22 +73,22 @@ namespace moonlight_xbox_dx {
 		if (rc != 0) {
 			return rc;
 		}
-		ma_result result;
-		ma_device_config deviceConfig;
-		deviceConfig = ma_device_config_init(ma_device_type_playback);
-		deviceConfig.playback.format = ma_format_s16;
-		deviceConfig.playback.channels = opusConfig->channelCount;
-		deviceConfig.sampleRate = opusConfig->sampleRate;
-		this->samplePerFrame = opusConfig->samplesPerFrame;
-		this->channelCount = opusConfig->channelCount;
-		deviceConfig.dataCallback = requireAudioData;
-		if (!contexted) { 
+		if (!contexted) {
+			ma_result result;
+			ma_device_config deviceConfig;
+			deviceConfig = ma_device_config_init(ma_device_type_playback);
+			deviceConfig.playback.format = ma_format_s16;
+			deviceConfig.playback.channels = opusConfig->channelCount;
+			deviceConfig.sampleRate = opusConfig->sampleRate;
+			this->samplePerFrame = opusConfig->samplesPerFrame;
+			this->channelCount = opusConfig->channelCount;
+			deviceConfig.dataCallback = requireAudioData;
 			contexted = true;
-			ma_context_init(NULL, 1, NULL, &context); 
-		}
-		if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
-			Utils::Log("Failed to open playback device.\n");
-			return -3;
+			ma_context_init(NULL, 1, NULL, &context);
+			if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
+				Utils::Log("Failed to open playback device.\n");
+				return -3;
+			}
 		}
 		ma_result r = ma_pcm_rb_init(ma_format_s16, opusConfig->channelCount, 240 * 10, NULL, NULL, &rb);
 		if (r != MA_SUCCESS) {
@@ -100,8 +100,9 @@ namespace moonlight_xbox_dx {
 	void AudioPlayer::Cleanup() {
 		Utils::Log("Audio Cleanup\n");
 		if (decoder != NULL) opus_multistream_decoder_destroy(decoder);
-		ma_context_uninit(&context);
-		/*ma_device_uninit(&device);
+		/*ma_context_uninit(&context);
+		ma_device_stop(&device);
+		ma_device_uninit(&device);
 		ma_pcm_rb_uninit(&rb);*/
 	}
 

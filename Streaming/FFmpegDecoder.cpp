@@ -222,7 +222,9 @@ namespace moonlight_xbox_dx {
 	FFMpegDecoder *instance;
 
 	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, FramePacer *pacer) {
-		if (instance == NULL)instance = new FFMpegDecoder(resources, pacer);
+		if (instance == NULL) {
+			instance = new FFMpegDecoder(resources, pacer);
+		}
 		return instance;
 	}
 	

@@ -17,24 +17,6 @@ namespace moonlight_xbox_dx {
 			host->LastHostname = L"10.1.0.1";
 			host->Paired = false;
 			SavedHosts->Append(host);
-			host = ref new MoonlightHost();
-			host->CurrentlyRunningAppId = 0;
-			host->InstanceId = L"1234";
-			host->LastHostname = L"10.1.0.10";
-			host->Paired = false;
-			SavedHosts->Append(host);
-			host = ref new MoonlightHost();
-			host->CurrentlyRunningAppId = 0;
-			host->InstanceId = L"1234";
-			host->LastHostname = L"10.1.0.12";
-			host->Paired = false;
-			SavedHosts->Append(host);
-			host = ref new MoonlightHost();
-			host->CurrentlyRunningAppId = 0;
-			host->InstanceId = L"1234";
-			host->LastHostname = L"10.1.0.13";
-			host->Paired = false;
-			SavedHosts->Append(host);
 			Init();
 		}
 		property Windows::Foundation::Collections::IVector<MoonlightHost^>^ SavedHosts
