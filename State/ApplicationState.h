@@ -9,16 +9,6 @@ namespace moonlight_xbox_dx {
 	internal:
 		Concurrency::task<void> Init();
 	public:
-		ApplicationState()
-		{
-			MoonlightHost ^host = ref new MoonlightHost();
-			host->CurrentlyRunningAppId = 0;
-			host->InstanceId = L"1234";
-			host->LastHostname = L"10.1.0.1";
-			host->Paired = false;
-			SavedHosts->Append(host);
-			Init();
-		}
 		property Windows::Foundation::Collections::IVector<MoonlightHost^>^ SavedHosts
 		{
 			Windows::Foundation::Collections::IVector<MoonlightHost^>^ get()

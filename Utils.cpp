@@ -52,6 +52,13 @@ namespace moonlight_xbox_dx {
 			delete[] wcstring;
 			return str;
 		}
+
+		//https://stackoverflow.com/a/43628199
+		Platform::String^ StringFromStdString(std::string input) {
+			std::wstring w_str = std::wstring(input.begin(), input.end());
+			const wchar_t* w_chars = w_str.c_str();
+			return (ref new Platform::String(w_chars));
+		}
 	}
 
 }
