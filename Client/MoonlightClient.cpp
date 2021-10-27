@@ -50,9 +50,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	char message[2048];
 	sprintf(message, "Inserted App ID %d\n", sConfig->appID);
 	Utils::Log(message);
-	if (serverData.currentGame != 0) {
-		int a = gs_start_app(&serverData, &config, sConfig->appID, false, true, 0);
-	}
+	int a = gs_start_app(&serverData, &config, sConfig->appID, false, true, 0);
 	CONNECTION_LISTENER_CALLBACKS callbacks;
 	callbacks.logMessage = log_message;
 	callbacks.connectionStarted = connection_started;

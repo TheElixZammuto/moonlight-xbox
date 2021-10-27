@@ -43,7 +43,9 @@ void AppPage::UpdateApps() {
 		wcstombs_s(NULL, ipAddressStr, that->Host->LastHostname->Data(), 2047);
 		int status = client->Connect(ipAddressStr);
 		if (status != 0)return;
+		that->Host->UpdateStats();
 		auto apps = client->GetApplications();
+		
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
 			Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that, apps]() {
 				that->Apps->Clear();
@@ -90,7 +92,9 @@ void moonlight_xbox_dx::AppPage::closeAppButton_Click(Platform::Object^ sender, 
 	auto client = new MoonlightClient();
 	char ipAddressStr[2048];
 	wcstombs_s(NULL, ipAddressStr, Host->LastHostname->Data(), 2047);
-	int status = client->Connect(ipAddressStr);
-	if (status == 0)client->StopApp();
-	UpdateApps();
+	Concurrency::create_async([client, this, ipAddressStr]() {
+		int status = client->Connect(ipAddressStr);
+		if (status == 0)client->StopApp();
+		UpdateApps();
+	});
 }
