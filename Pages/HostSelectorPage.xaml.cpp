@@ -53,9 +53,10 @@ void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::U
 	MoonlightHost^ host = ref new MoonlightHost();
 	host->LastHostname = hostname;
 	state->SavedHosts->Append(host);
+	state->UpdateFile();
 	Concurrency::create_task([host]() {
 		host->UpdateStats();
-		});
+	});
 }
 
 
@@ -91,6 +92,20 @@ void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 				host->UpdateStats();
 			}
 		));
-		});
+	});
 }
 
+
+
+void moonlight_xbox_dx::HostSelectorPage::removeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	State->RemoveHost(currentHost);
+}
+
+
+void moonlight_xbox_dx::HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e)
+{
+	FrameworkElement^ senderElement = (FrameworkElement^)e->OriginalSource;
+	currentHost = (MoonlightHost^)senderElement->DataContext;
+	this->ActionsFlyout->ShowAt(senderElement);
+}

@@ -148,6 +148,7 @@ int MoonlightClient::Pair() {
 	if (serverData.paired)return -7;
 	int status;
 	if ((status = gs_pair(&serverData, &connectionPin[0])) != 0) {
+		//TODO: Handle gs WRONG STATE
 		gs_unpair(&serverData);
 		return status;
 	}
@@ -204,4 +205,8 @@ void MoonlightClient::SetSoftwareEncoder(bool value) {
 
 int MoonlightClient::GetRunningAppID() {
 	return serverData.currentGame;
+}
+
+void MoonlightClient::Unpair() {
+	int status = gs_unpair(&serverData);
 }

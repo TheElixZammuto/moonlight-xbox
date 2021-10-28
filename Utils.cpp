@@ -59,6 +59,13 @@ namespace moonlight_xbox_dx {
 			const wchar_t* w_chars = w_str.c_str();
 			return (ref new Platform::String(w_chars));
 		}
+
+		//https://stackoverflow.com/a/35905753
+		std::string PlatformStringToStdString(Platform::String ^input) {
+			std::wstring fooW(input->Begin());
+			std::string fooA(fooW.begin(), fooW.end());
+			return fooA;
+		}
 	}
 
 }

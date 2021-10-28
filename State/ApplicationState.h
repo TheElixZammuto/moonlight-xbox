@@ -8,6 +8,8 @@ namespace moonlight_xbox_dx {
 		Windows::Foundation::Collections::IVector<MoonlightHost^>^ hosts;
 	internal:
 		Concurrency::task<void> Init();
+		Concurrency::task<void> UpdateFile();
+		void RemoveHost(MoonlightHost^ host);
 	public:
 		property Windows::Foundation::Collections::IVector<MoonlightHost^>^ SavedHosts
 		{

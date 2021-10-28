@@ -98,3 +98,9 @@ void moonlight_xbox_dx::AppPage::closeAppButton_Click(Platform::Object^ sender, 
 		UpdateApps();
 	});
 }
+
+
+void moonlight_xbox_dx::AppPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->Frame->GoBack();
+}

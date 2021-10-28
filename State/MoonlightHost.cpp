@@ -6,15 +6,24 @@
 namespace moonlight_xbox_dx {
 	void MoonlightHost::UpdateStats() {
 		this->Loading = true;
-		auto client = new MoonlightClient();
-		Platform::String^ ipAddress = this->lastHostname;
-		char ipAddressStr[2048];
-		wcstombs_s(NULL, ipAddressStr, ipAddress->Data(), 2047);
-		int status = client->Connect(ipAddressStr);
-		this->Connected = status == 0;
+		this->Connected = this->Connect() == 0;
 		this->Paired = client->IsPaired();
 		this->CurrentlyRunningAppId = client->GetRunningAppID();
 		this->Loading = false;
+	}
+
+	int MoonlightHost::Connect()
+	{
+		client = new MoonlightClient();
+		Platform::String^ ipAddress = this->lastHostname;
+		char ipAddressStr[2048];
+		wcstombs_s(NULL, ipAddressStr, ipAddress->Data(), 2047);
+		return client->Connect(ipAddressStr);
+	}
+
+	void MoonlightHost::Unpair()
+	{
+		client->Unpair();
 	}
 
 	

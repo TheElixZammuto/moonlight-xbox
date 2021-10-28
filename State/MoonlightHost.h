@@ -1,4 +1,6 @@
 #pragma once
+#include "pch.h"
+#include "Client\MoonlightClient.h"
 namespace moonlight_xbox_dx {
     
     [Windows::UI::Xaml::Data::Bindable]
@@ -10,12 +12,15 @@ namespace moonlight_xbox_dx {
         bool paired;
         bool connected;
         bool loading = true;
+        MoonlightClient* client;
         int currentlyRunningAppId;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
         
         void UpdateStats();
+        int Connect();
+        void Unpair();
         void OnPropertyChanged(Platform::String^ propertyName);
         property Platform::String^ InstanceId
         {
@@ -76,6 +81,7 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("NotConnected");
                 OnPropertyChanged("NotPaired");
+                OnPropertyChanged("Paired");
             }
         }
 
