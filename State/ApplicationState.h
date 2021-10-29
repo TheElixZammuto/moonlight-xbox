@@ -2,6 +2,7 @@
 #include "State\MoonlightHost.h"
 #include <ppltasks.h>
 namespace moonlight_xbox_dx {
+	
 	public ref class ApplicationState sealed
 	{
 	private:
@@ -23,4 +24,7 @@ namespace moonlight_xbox_dx {
 			};
 		}
 	};
+
+	moonlight_xbox_dx::ApplicationState^ GetApplicationState();
+
 }

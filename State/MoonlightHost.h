@@ -14,6 +14,8 @@ namespace moonlight_xbox_dx {
         bool loading = true;
         MoonlightClient* client;
         int currentlyRunningAppId;
+        int width = 1280;
+        int height = 720;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -93,5 +95,23 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("CurrentlyRunningAppId");
             }
         } 
+
+        property int Width
+        {
+            int get() { return this->width; }
+            void set(int value) {
+                this->width = value;
+                OnPropertyChanged("Width");
+            }
+        }
+
+        property int Height
+        {
+            int get() { return this->height; }
+            void set(int value) {
+                this->height = value;
+                OnPropertyChanged("Height");
+            }
+        }
     };
 }

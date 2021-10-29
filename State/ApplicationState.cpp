@@ -9,7 +9,6 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 	auto that = this;	
 	StorageFolder^ storageFolder = ApplicationData::Current->LocalFolder;
 	return concurrency::create_task(storageFolder->CreateFileAsync("state.json", CreationCollisionOption::OpenIfExists)).then([](StorageFile^ file) {
-		moonlight_xbox_dx::Utils::Log("ciao");
 		return FileIO::ReadTextAsync(file);
 	}).then([this](Concurrency::task<Platform::String^> jsonTask) {
 			Platform::String ^jsonFile = jsonTask.get();
@@ -18,6 +17,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost();
 					h->LastHostname = Utils::StringFromStdString(a["hostname"].get<std::string>());
+					if (a.contains("width"))h->Width = a["width"];
+					if (a.contains("height"))h->Height = a["height"];
 					this->SavedHosts->Append(h);
 				}
 				concurrency::create_task([this]() {
@@ -39,6 +40,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
+			hostJson["width"] = host->Width;
+			hostJson["height"] = host->Height;
 			stateJson["hosts"].push_back(hostJson);
 		}
 		return FileIO::WriteTextAsync(file,Utils::StringFromStdString(stateJson.dump()));
@@ -56,4 +59,11 @@ void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
 		host->Unpair();
 	}
 	UpdateFile();
+}
+
+moonlight_xbox_dx::ApplicationState^ __stateInstance;
+
+moonlight_xbox_dx::ApplicationState^ moonlight_xbox_dx::GetApplicationState() {
+	if (__stateInstance == nullptr)__stateInstance = ref new moonlight_xbox_dx::ApplicationState();
+	return __stateInstance;
 }

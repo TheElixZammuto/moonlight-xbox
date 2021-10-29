@@ -26,7 +26,7 @@ using namespace Windows::UI::Xaml::Navigation;
 HostSelectorPage::HostSelectorPage()
 {
 	InitializeComponent();
-	state = ref new ApplicationState();
+	state = GetApplicationState();
 	auto that = this;
 	state->Init();
 }

@@ -7,6 +7,7 @@
 #include "AppPage.xaml.h"
 #include "Client\MoonlightClient.h"
 #include "StreamPage.xaml.h"
+#include "HostSettingsPage.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -67,8 +68,8 @@ void AppPage::Connect(MoonlightApp^ app) {
 	StreamConfiguration^ config = ref new StreamConfiguration();
 	config->hostname = host->LastHostname;
 	config->appID = app->Id;
-	config->width = 1280;
-	config->height = 720;
+	config->width = host->Width;
+	config->height = host->Height;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 }
 
@@ -103,4 +104,10 @@ void moonlight_xbox_dx::AppPage::closeAppButton_Click(Platform::Object^ sender, 
 void moonlight_xbox_dx::AppPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->Frame->GoBack();
+}
+
+
+void moonlight_xbox_dx::AppPage::settingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), Host);
 }

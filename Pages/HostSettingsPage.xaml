@@ -1,0 +1,35 @@
+﻿<Page
+    x:Class="moonlight_xbox_dx.HostSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <StackPanel Padding="8,16,8,8">
+        <Button Margin="0 0 0 16" Name="backButton" Click="backButton_Click">
+            <Button.Content>
+                <SymbolIcon Symbol="Back" />
+            </Button.Content>
+        </Button>
+        <StackPanel Spacing="16" x:DefaultBindMode="TwoWay">
+            <TextBlock FontSize="20">Resolution</TextBlock>
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <TextBlock VerticalAlignment="Center" Width="100">Width:</TextBlock>
+                <TextBox Width="200" Text="{x:Bind Host.Width}"></TextBox>
+                <TextBlock VerticalAlignment="Center">Height:</TextBlock>
+                <TextBox Width="200" Text="{x:Bind Host.Height}"></TextBox>
+            </StackPanel>
+            <!--<StackPanel Orientation="Horizontal" Spacing="16">
+                <TextBlock VerticalAlignment="Center" Width="100">FPS:</TextBlock>
+                <ComboBox SelectedValue="{x:Bind Host.Height}">
+                    <ComboBoxItem>
+                    </ComboBoxItem>
+                    <ComboBoxItem Content="60"></ComboBoxItem>
+                </ComboBox>
+            </StackPanel>-->
+        </StackPanel>
+    </StackPanel>
+</Page>

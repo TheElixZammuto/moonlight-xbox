@@ -315,6 +315,9 @@
     <ClInclude Include="Content\VideoRenderer.h" />
     <ClInclude Include="Content\LogRenderer.h" />
     <ClInclude Include="Content\ShaderStructures.h" />
+    <ClInclude Include="Pages\HostSettingsPage.xaml.h">
+      <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="State\MoonlightApp.h" />
     <ClInclude Include="Pages\AppPage.xaml.h">
       <DependentUpon>Pages\AppPage.xaml</DependentUpon>
@@ -343,6 +346,9 @@
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="Content\LogRenderer.cpp" />
     <ClCompile Include="Content\VideoRenderer.cpp" />
+    <ClCompile Include="Pages\HostSettingsPage.xaml.cpp">
+      <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="State\MoonlightApp.cpp" />
     <ClCompile Include="Pages\AppPage.xaml.cpp">
       <DependentUpon>Pages\AppPage.xaml</DependentUpon>
@@ -499,6 +505,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Pages\HostSelectorPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\HostSettingsPage.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Pages\StreamPage.xaml" />

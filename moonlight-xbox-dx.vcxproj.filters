@@ -357,5 +357,6 @@
     </Page>
     <Page Include="Pages\HostSelectorPage.xaml" />
     <Page Include="Pages\AppPage.xaml" />
+    <Page Include="Pages\HostSettingsPage.xaml" />
   </ItemGroup>
 </Project>

@@ -234,8 +234,8 @@ void VideoRenderer::CreateDeviceDependentResources()
 	samplerDesc.MaxLOD = FLT_MAX;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf()),"Sampler Creation");
 	D3D11_TEXTURE2D_DESC renderTextureDesc = { 0 };
-	int width = 1280;
-	int height = 720;
+	int width = configuration->width;
+	int height = configuration->height;
 	renderTextureDesc.Width = width;
 	renderTextureDesc.Height = height;
 	renderTextureDesc.ArraySize = 1;
