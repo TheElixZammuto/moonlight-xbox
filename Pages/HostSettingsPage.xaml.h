@@ -26,6 +26,7 @@ namespace moonlight_xbox_dx
 				return this->host;
 			}
 		}
+		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
 	private:
 		void backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};

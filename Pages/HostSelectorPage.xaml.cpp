@@ -35,7 +35,7 @@ HostSelectorPage::HostSelectorPage()
 void moonlight_xbox_dx::HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	dialogHostnameTextBox = ref new TextBox();
-	dialogHostnameTextBox->AcceptsReturn = false;
+	dialogHostnameTextBox->AcceptsReturn = true;
 	ContentDialog^ dialog = ref new ContentDialog();
 	dialog->Content = dialogHostnameTextBox;
 	dialog->Title = L"Add new Host";
@@ -78,7 +78,6 @@ void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 	if (status != 0)return;
 	char* pin = client->GeneratePIN();
 	ContentDialog^ dialog = ref new ContentDialog();
-	dialog->Content = "Hello";
 	wchar_t msg[4096];
 	swprintf(msg, 4096, L"We need to pair the host before continuing. Type %S on your host to continue", pin);
 	dialog->Content = ref new Platform::String(msg);

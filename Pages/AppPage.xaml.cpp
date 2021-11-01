@@ -14,6 +14,7 @@ using namespace moonlight_xbox_dx;
 using namespace Platform;
 using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
+using namespace Windows::UI::Core;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls::Primitives;
@@ -26,6 +27,8 @@ using namespace Windows::UI::Xaml::Navigation;
 
 AppPage::AppPage()
 {
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &AppPage::OnBackRequested);
 	InitializeComponent();
 }
 
@@ -110,4 +113,13 @@ void moonlight_xbox_dx::AppPage::backButton_Click(Platform::Object^ sender, Wind
 void moonlight_xbox_dx::AppPage::settingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), Host);
+}
+
+void moonlight_xbox_dx::AppPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
+{
+	// UWP on Xbox One triggers a back request whenever the B
+	// button is pressed which can result in the app being
+	// suspended if unhandled
+	this->Frame->GoBack();
+	args->Handled = true;
 }

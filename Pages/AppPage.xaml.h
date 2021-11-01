@@ -31,6 +31,7 @@ namespace moonlight_xbox_dx
 				return this->host;
 			}
 		}
+		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
 
 		property Windows::Foundation::Collections::IVector<MoonlightApp^>^ Apps {
 			Windows::Foundation::Collections::IVector<MoonlightApp^>^ get() {

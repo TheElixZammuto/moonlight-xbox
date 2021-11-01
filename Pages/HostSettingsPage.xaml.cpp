@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "HostSettingsPage.xaml.h"
+using namespace Windows::UI::Core;
 
 using namespace moonlight_xbox_dx;
 
@@ -23,6 +24,8 @@ using namespace Windows::UI::Xaml::Navigation;
 
 HostSettingsPage::HostSettingsPage()
 {
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
 	InitializeComponent();
 
 }
@@ -38,4 +41,15 @@ void moonlight_xbox_dx::HostSettingsPage::backButton_Click(Platform::Object^ sen
 {
 	GetApplicationState()->UpdateFile();
 	this->Frame->GoBack();
+}
+
+void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
+{
+	// UWP on Xbox One triggers a back request whenever the B
+	// button is pressed which can result in the app being
+	// suspended if unhandled
+	GetApplicationState()->UpdateFile();
+	this->Frame->GoBack();
+	args->Handled = true;
+
 }

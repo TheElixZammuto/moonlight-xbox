@@ -7,6 +7,7 @@ using namespace Windows::Storage;
 Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 {
 	auto that = this;	
+	this->SavedHosts->Clear();
 	StorageFolder^ storageFolder = ApplicationData::Current->LocalFolder;
 	return concurrency::create_task(storageFolder->CreateFileAsync("state.json", CreationCollisionOption::OpenIfExists)).then([](StorageFile^ file) {
 		return FileIO::ReadTextAsync(file);
