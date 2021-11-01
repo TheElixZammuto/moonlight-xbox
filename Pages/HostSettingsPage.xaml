@@ -14,22 +14,42 @@
                 <SymbolIcon Symbol="Back" />
             </Button.Content>
         </Button>
-        <StackPanel Spacing="16" x:DefaultBindMode="TwoWay">
-            <TextBlock FontSize="20">Resolution</TextBlock>
-            <StackPanel Orientation="Horizontal" Spacing="16">
-                <TextBlock VerticalAlignment="Center" Width="100">Width:</TextBlock>
-                <TextBox Width="200" Text="{x:Bind Host.Width}"></TextBox>
-                <TextBlock VerticalAlignment="Center">Height:</TextBlock>
-                <TextBox Width="200" Text="{x:Bind Host.Height}"></TextBox>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0">Resolution</TextBlock>
+            <ComboBox x:Name="ResolutionSelector" SelectionChanged="ResolutionSelector_SelectionChanged" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind AvailableResolutions}" Width="200">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="local:ScreenResolution">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{x:Bind Width}"></TextBlock>
+                            <TextBlock Text="x"></TextBlock>
+                            <TextBlock Text="{x:Bind Height}"></TextBlock>
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Grid.Row="1" Grid.Column="0">FPS</TextBlock>
+            <ComboBox  Grid.Row="1"  Grid.Column="1"></ComboBox>
+            <TextBlock Grid.Row="2" Grid.Column="0">Bitrate</TextBlock>
+            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <TextBox TextChanged="BitrateInput_TextChanged"  x:Name="BitrateInput"  Grid.Row="2" Grid.Column="1"></TextBox>
+                <TextBlock>Kbps</TextBlock>
             </StackPanel>
-            <!--<StackPanel Orientation="Horizontal" Spacing="16">
-                <TextBlock VerticalAlignment="Center" Width="100">FPS:</TextBlock>
-                <ComboBox SelectedValue="{x:Bind Host.Height}">
-                    <ComboBoxItem>
-                    </ComboBoxItem>
-                    <ComboBoxItem Content="60"></ComboBoxItem>
-                </ComboBox>
-            </StackPanel>-->
-        </StackPanel>
+            <TextBlock Grid.Row="3" Grid.Column="0">Audio Configuration</TextBlock>
+            <ComboBox  Grid.Row="3"  Grid.Column="1"></ComboBox>
+            <TextBlock Grid.Row="4" Grid.Column="0">Autostart</TextBlock>
+            <ComboBox  Grid.Row="4"  Grid.Column="1"></ComboBox>
+        </Grid>
+            
     </StackPanel>
 </Page>

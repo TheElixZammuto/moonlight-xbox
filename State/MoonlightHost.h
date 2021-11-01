@@ -1,6 +1,7 @@
 #pragma once
 #include "pch.h"
 #include "Client\MoonlightClient.h"
+#include "State\ScreenResolution.h"
 namespace moonlight_xbox_dx {
     
     [Windows::UI::Xaml::Data::Bindable]
@@ -14,12 +15,14 @@ namespace moonlight_xbox_dx {
         bool loading = true;
         MoonlightClient* client;
         int currentlyRunningAppId;
-        int width = 1280;
-        int height = 720;
+        int bitrate = 8000;
+        ScreenResolution^ resolution;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
-        
+        MoonlightHost() {
+            resolution = ref new ScreenResolution(1280, 720);
+        }
         void UpdateStats();
         int Connect();
         void Unpair();
@@ -96,21 +99,21 @@ namespace moonlight_xbox_dx {
             }
         } 
 
-        property int Width
+        property ScreenResolution^ Resolution
         {
-            int get() { return this->width; }
-            void set(int value) {
-                this->width = value;
-                OnPropertyChanged("Width");
+            ScreenResolution^ get() { return this->resolution; }
+            void set(ScreenResolution^ value) {
+                this->resolution = value;
+                OnPropertyChanged("ScreenResolution");
             }
         }
 
-        property int Height
+        property int Bitrate
         {
-            int get() { return this->height; }
+            int get() { return this->bitrate; }
             void set(int value) {
-                this->height = value;
-                OnPropertyChanged("Height");
+                this->bitrate = value;
+                OnPropertyChanged("Bitrate");
             }
         }
     };

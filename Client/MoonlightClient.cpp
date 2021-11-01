@@ -38,7 +38,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	STREAM_CONFIGURATION config;
 	config.width = sConfig->width;
 	config.height = sConfig->height;
-	config.bitrate = 8000;
+	config.bitrate = sConfig->bitrate;
 	config.clientRefreshRateX100 = 60 * 100;
 	config.colorRange = COLOR_RANGE_LIMITED;
 	config.encryptionFlags = 0;

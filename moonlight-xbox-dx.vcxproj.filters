@@ -94,6 +94,7 @@
     <ClCompile Include="State\ApplicationState.cpp" />
     <ClCompile Include="State\MoonlightHost.cpp" />
     <ClCompile Include="State\MoonlightApp.cpp" />
+    <ClCompile Include="State\ScreenResolution.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -126,6 +127,7 @@
     <ClInclude Include="State\ApplicationState.h" />
     <ClInclude Include="State\MoonlightHost.h" />
     <ClInclude Include="State\MoonlightApp.h" />
+    <ClInclude Include="State\ScreenResolution.h" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />

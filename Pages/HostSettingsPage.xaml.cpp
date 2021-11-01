@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "HostSettingsPage.xaml.h"
+#include "Utils.hpp"
 using namespace Windows::UI::Core;
 
 using namespace moonlight_xbox_dx;
@@ -35,6 +36,17 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr)return;
 	host = mhost;
+	AvailableResolutions->Append(ref new ScreenResolution(1280, 720));
+	AvailableResolutions->Append(ref new ScreenResolution(1920, 1080));
+	for (int i = 0; i < AvailableResolutions->Size; i++) {
+		if (host->Resolution->Width == AvailableResolutions->GetAt(i)->Width &&
+			host->Resolution->Height == AvailableResolutions->GetAt(i)->Height
+			) {
+			CurrentResolutionIndex = i;
+			break;
+		}
+	}
+	BitrateInput->Text = host->Bitrate.ToString();
 }
 
 void moonlight_xbox_dx::HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -52,4 +64,15 @@ void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, W
 	this->Frame->GoBack();
 	args->Handled = true;
 
+}
+
+void moonlight_xbox_dx::HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	host->Resolution = AvailableResolutions->GetAt(this->ResolutionSelector->SelectedIndex);
+}
+
+
+void moonlight_xbox_dx::HostSettingsPage::BitrateInput_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e)
+{
+	host->Bitrate = std::stoi(Utils::PlatformStringToStdString(this->BitrateInput->Text));
 }

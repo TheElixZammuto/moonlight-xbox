@@ -71,8 +71,9 @@ void AppPage::Connect(MoonlightApp^ app) {
 	StreamConfiguration^ config = ref new StreamConfiguration();
 	config->hostname = host->LastHostname;
 	config->appID = app->Id;
-	config->width = host->Width;
-	config->height = host->Height;
+	config->width = host->Resolution->Width;
+	config->height = host->Resolution->Height;
+	config->bitrate = host->Bitrate;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 }
 

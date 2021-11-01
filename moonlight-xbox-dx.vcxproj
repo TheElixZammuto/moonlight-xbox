@@ -318,6 +318,7 @@
     <ClInclude Include="Pages\HostSettingsPage.xaml.h">
       <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="State\ScreenResolution.h" />
     <ClInclude Include="State\MoonlightApp.h" />
     <ClInclude Include="Pages\AppPage.xaml.h">
       <DependentUpon>Pages\AppPage.xaml</DependentUpon>
@@ -349,6 +350,7 @@
     <ClCompile Include="Pages\HostSettingsPage.xaml.cpp">
       <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="State\ScreenResolution.cpp" />
     <ClCompile Include="State\MoonlightApp.cpp" />
     <ClCompile Include="Pages\AppPage.xaml.cpp">
       <DependentUpon>Pages\AppPage.xaml</DependentUpon>

@@ -6,4 +6,5 @@ public:
 	property int appID;
 	property int width;
 	property int height;
+	property int bitrate;
 };

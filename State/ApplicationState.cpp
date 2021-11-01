@@ -18,8 +18,10 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost();
 					h->LastHostname = Utils::StringFromStdString(a["hostname"].get<std::string>());
-					if (a.contains("width"))h->Width = a["width"];
-					if (a.contains("height"))h->Height = a["height"];
+					if (a.contains("width") && a.contains("height")) {
+						h->Resolution = ref new ScreenResolution(a["width"],a["height"]);
+					}
+					if (a.contains("bitrate"))h->Bitrate = a["bitrate"];
 					this->SavedHosts->Append(h);
 				}
 				concurrency::create_task([this]() {
@@ -41,8 +43,9 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
-			hostJson["width"] = host->Width;
-			hostJson["height"] = host->Height;
+			hostJson["width"] = host->Resolution->Width;
+			hostJson["height"] = host->Resolution->Height;
+			hostJson["bitrate"] = host->Bitrate;
 			stateJson["hosts"].push_back(hostJson);
 		}
 		return FileIO::WriteTextAsync(file,Utils::StringFromStdString(stateJson.dump()));
