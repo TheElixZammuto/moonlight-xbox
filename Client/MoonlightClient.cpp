@@ -42,9 +42,15 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	config.clientRefreshRateX100 = 60 * 100;
 	config.colorRange = COLOR_RANGE_LIMITED;
 	config.encryptionFlags = 0;
-	config.fps = 60;
+	config.fps = sConfig->FPS;
 	config.packetSize = 1024;
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
+	if (sConfig->audioConfig == "Surround 5.1") {
+		config.audioConfiguration = AUDIO_CONFIGURATION_51_SURROUND;
+	}
+	if (sConfig->audioConfig == "Surround 7.1") {
+		config.audioConfiguration = AUDIO_CONFIGURATION_71_SURROUND;
+	}
 	config.supportsHevc = false;
 	config.streamingRemotely = STREAM_CFG_AUTO;
 	char message[2048];

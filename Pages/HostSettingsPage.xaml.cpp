@@ -38,6 +38,12 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	host = mhost;
 	AvailableResolutions->Append(ref new ScreenResolution(1280, 720));
 	AvailableResolutions->Append(ref new ScreenResolution(1920, 1080));
+	AvailableFPS->Append(30);
+	AvailableFPS->Append(60);
+	AvailableFPS->Append(120);
+	AvailableAudioConfigs->Append("Stereo");
+	AvailableAudioConfigs->Append("Surround 5.1");
+	AvailableAudioConfigs->Append("Surround 7.1");
 	for (int i = 0; i < AvailableResolutions->Size; i++) {
 		if (host->Resolution->Width == AvailableResolutions->GetAt(i)->Width &&
 			host->Resolution->Height == AvailableResolutions->GetAt(i)->Height

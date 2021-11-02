@@ -22,6 +22,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 						h->Resolution = ref new ScreenResolution(a["width"],a["height"]);
 					}
 					if (a.contains("bitrate"))h->Bitrate = a["bitrate"];
+					if (a.contains("fps"))h->FPS = a["fps"];
+					if (a.contains("audioConfig"))h->AudioConfig = Utils::StringFromStdString(a["audioConfig"].get<std::string>());
 					this->SavedHosts->Append(h);
 				}
 				concurrency::create_task([this]() {
@@ -46,6 +48,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["width"] = host->Resolution->Width;
 			hostJson["height"] = host->Resolution->Height;
 			hostJson["bitrate"] = host->Bitrate;
+			hostJson["fps"] = host->FPS;
+			hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
 			stateJson["hosts"].push_back(hostJson);
 		}
 		return FileIO::WriteTextAsync(file,Utils::StringFromStdString(stateJson.dump()));

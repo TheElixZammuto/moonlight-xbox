@@ -17,6 +17,8 @@ namespace moonlight_xbox_dx {
         int currentlyRunningAppId;
         int bitrate = 8000;
         ScreenResolution^ resolution;
+        int fps = 60;
+        Platform::String^ audioConfig = "Stereo";
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -114,6 +116,26 @@ namespace moonlight_xbox_dx {
             void set(int value) {
                 this->bitrate = value;
                 OnPropertyChanged("Bitrate");
+            }
+        }
+
+        property int FPS
+        {
+            int get() { return this->fps; }
+            void set(int value) {
+                if (fps == value)return;
+                this->fps = value;
+                OnPropertyChanged("FPS");
+            }
+        }
+
+        property Platform::String^ AudioConfig
+        {
+            Platform::String^ get() { return this->audioConfig; }
+            void set(Platform::String^ value) {
+                if (audioConfig == value)return;
+                this->audioConfig = value;
+                OnPropertyChanged("AudioConfig");
             }
         }
     };

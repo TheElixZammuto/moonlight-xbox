@@ -39,14 +39,14 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
             <TextBlock Grid.Row="1" Grid.Column="0">FPS</TextBlock>
-            <ComboBox  Grid.Row="1"  Grid.Column="1"></ComboBox>
+            <ComboBox ItemsSource="{x:Bind AvailableFPS}" SelectedItem="{x:Bind Host.FPS,Mode=TwoWay}" Grid.Row="1"  Grid.Column="1"></ComboBox>
             <TextBlock Grid.Row="2" Grid.Column="0">Bitrate</TextBlock>
             <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <TextBox TextChanged="BitrateInput_TextChanged"  x:Name="BitrateInput"  Grid.Row="2" Grid.Column="1"></TextBox>
                 <TextBlock>Kbps</TextBlock>
             </StackPanel>
             <TextBlock Grid.Row="3" Grid.Column="0">Audio Configuration</TextBlock>
-            <ComboBox  Grid.Row="3"  Grid.Column="1"></ComboBox>
+            <ComboBox ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}"  Grid.Row="3"  Grid.Column="1"></ComboBox>
             <TextBlock Grid.Row="4" Grid.Column="0">Autostart</TextBlock>
             <ComboBox  Grid.Row="4"  Grid.Column="1"></ComboBox>
         </Grid>

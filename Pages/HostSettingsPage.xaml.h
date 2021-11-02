@@ -19,6 +19,8 @@ namespace moonlight_xbox_dx
 	private:
 		MoonlightHost^ host;
 		Windows::Foundation::Collections::IVector<ScreenResolution^>^ availableResolutions;
+		Windows::Foundation::Collections::IVector<int>^ availableFps;
+		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
 		int currentResolutionIndex = 0;
 		int currentFPSIndex = 0;
 		int currentAudioConfigIndex = 0;
@@ -32,6 +34,7 @@ namespace moonlight_xbox_dx
 			}
 		}
 		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
+		
 		property Windows::Foundation::Collections::IVector<ScreenResolution^>^ AvailableResolutions {
 			Windows::Foundation::Collections::IVector<ScreenResolution^>^ get() {
 				if (this->availableResolutions == nullptr)
@@ -39,6 +42,26 @@ namespace moonlight_xbox_dx
 					this->availableResolutions = ref new Platform::Collections::Vector<ScreenResolution^>();
 				}
 				return this->availableResolutions;
+			}
+		}
+
+		property Windows::Foundation::Collections::IVector<int>^ AvailableFPS {
+			Windows::Foundation::Collections::IVector<int>^ get() {
+				if (this->availableFps == nullptr)
+				{
+					this->availableFps = ref new Platform::Collections::Vector<int>();
+				}
+				return this->availableFps;
+			}
+		}
+
+		property Windows::Foundation::Collections::IVector<Platform::String^>^ AvailableAudioConfigs {
+			Windows::Foundation::Collections::IVector<Platform::String^>^ get() {
+				if (this->availableAudioConfigs == nullptr)
+				{
+					this->availableAudioConfigs = ref new Platform::Collections::Vector<Platform::String^>();
+				}
+				return this->availableAudioConfigs;
 			}
 		}
 
