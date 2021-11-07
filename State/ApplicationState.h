@@ -11,6 +11,8 @@ namespace moonlight_xbox_dx {
 		Concurrency::task<void> Init();
 		Concurrency::task<void> UpdateFile();
 		void RemoveHost(MoonlightHost^ host);
+		std::string autostartInstance = "";
+		bool shouldAutoConnect = false;
 	public:
 		property Windows::Foundation::Collections::IVector<MoonlightHost^>^ SavedHosts
 		{

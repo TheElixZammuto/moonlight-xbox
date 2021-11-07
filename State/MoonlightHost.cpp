@@ -14,6 +14,7 @@ namespace moonlight_xbox_dx {
 			this->Paired = client->IsPaired();
 			this->CurrentlyRunningAppId = client->GetRunningAppID();
 			this->Loading = false;
+			this->InstanceId = client->GetInstanceID();
 		}));
 	}
 

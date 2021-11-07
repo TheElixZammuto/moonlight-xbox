@@ -216,3 +216,7 @@ int MoonlightClient::GetRunningAppID() {
 void MoonlightClient::Unpair() {
 	int status = gs_unpair(&serverData);
 }
+
+Platform::String^ MoonlightClient::GetInstanceID() {
+	return Utils::StringFromChars(hostname); //TODO: Try to get the ACTUAL instance id
+}

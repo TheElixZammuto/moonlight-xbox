@@ -33,15 +33,12 @@ AppPage::AppPage()
 }
 
 void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
-
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr)return;
 	host = mhost;
 	host->UpdateApps();
-	auto bs = Frame->BackStack;
-	auto v = bs->GetAt(bs->Size - 1);
-	OutputDebugStringW(v->SourcePageType.Name->Data());
-	if (host->AutostartID >= 0 && v->SourcePageType.Name->Equals(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid).Name)) {
+	if (host->AutostartID >= 0 && GetApplicationState()->shouldAutoConnect) {
+		GetApplicationState()->shouldAutoConnect = false;
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
 			Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this]() {
 				this->Connect(host->AutostartID);

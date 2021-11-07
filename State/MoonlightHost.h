@@ -36,7 +36,7 @@ namespace moonlight_xbox_dx {
         {
             Platform::String^ get() { return this->instanceId; }
             void set(Platform::String^ value) {
-                this->instanceId = instanceId;
+                this->instanceId = value;
                 OnPropertyChanged("InstanceId");
             }
         }

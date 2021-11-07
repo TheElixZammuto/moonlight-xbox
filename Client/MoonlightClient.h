@@ -33,6 +33,7 @@ namespace moonlight_xbox_dx {
 		void StopApp();
 		void Unpair();
 		FramePacer *pacer;
+		Platform::String^ GetInstanceID();
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;

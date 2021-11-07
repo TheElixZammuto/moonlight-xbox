@@ -23,6 +23,8 @@ namespace moonlight_xbox_dx
 				return this->state;
 			}
 		}
+		void OnStateLoaded();
+		void Connect(MoonlightHost^ host);
 	private:
 		ApplicationState ^state;
 		void NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
@@ -34,5 +36,6 @@ namespace moonlight_xbox_dx
 		void HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
 		MoonlightHost^ currentHost;
 		void hostSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }

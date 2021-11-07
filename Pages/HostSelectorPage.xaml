@@ -43,6 +43,11 @@
                         <SymbolIcon Symbol="Add" />
                     </Button.Content>
                 </Button>
+                <Button Name="SettingsButton" TabIndex="3" Click="SettingsButton_Click">
+                    <Button.Content>
+                        <SymbolIcon Symbol="Setting" />
+                    </Button.Content>
+                </Button>
             </StackPanel>
         </Grid>
         <GridView IsRightTapEnabled="True" RightTapped="HostsGrid_RightTapped" Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind State.SavedHosts}" IsItemClickEnabled="True" ItemClick="GridView_ItemClick" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">

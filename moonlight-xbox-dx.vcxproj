@@ -318,6 +318,9 @@
     <ClInclude Include="Pages\HostSettingsPage.xaml.h">
       <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Pages\MoonlightSettings.xaml.h">
+      <DependentUpon>Pages\MoonlightSettings.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="State\ScreenResolution.h" />
     <ClInclude Include="State\MoonlightApp.h" />
     <ClInclude Include="Pages\AppPage.xaml.h">
@@ -349,6 +352,9 @@
     <ClCompile Include="Content\VideoRenderer.cpp" />
     <ClCompile Include="Pages\HostSettingsPage.xaml.cpp">
       <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Pages\MoonlightSettings.xaml.cpp">
+      <DependentUpon>Pages\MoonlightSettings.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="State\ScreenResolution.cpp" />
     <ClCompile Include="State\MoonlightApp.cpp" />
@@ -510,6 +516,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Pages\HostSettingsPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\MoonlightSettings.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Pages\StreamPage.xaml" />

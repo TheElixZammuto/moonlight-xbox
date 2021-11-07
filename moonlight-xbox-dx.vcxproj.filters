@@ -360,5 +360,6 @@
     <Page Include="Pages\HostSelectorPage.xaml" />
     <Page Include="Pages\AppPage.xaml" />
     <Page Include="Pages\HostSettingsPage.xaml" />
+    <Page Include="Pages\MoonlightSettings.xaml" />
   </ItemGroup>
 </Project>

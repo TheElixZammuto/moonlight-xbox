@@ -15,9 +15,11 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 			Platform::String ^jsonFile = jsonTask.get();
 			if (jsonFile != nullptr && jsonFile->Length() > 0) {
 				nlohmann::json stateJson = nlohmann::json::parse(jsonFile);
+				if (stateJson.contains("autostartInstance"))this->autostartInstance = stateJson["autostartInstance"];
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost();
 					h->LastHostname = Utils::StringFromStdString(a["hostname"].get<std::string>());
+					h->InstanceId = h->LastHostname;
 					if (a.contains("width") && a.contains("height")) {
 						h->Resolution = ref new ScreenResolution(a["width"],a["height"]);
 					}
@@ -27,7 +29,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
 					this->SavedHosts->Append(h);
 				}
-				concurrency::create_task([this]() {
+				return concurrency::create_task([this]() {
 					for (auto a : this->SavedHosts) {
 						a->UpdateStats();
 					}
@@ -43,6 +45,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 	return concurrency::create_task(storageFolder->CreateFileAsync("state.json", CreationCollisionOption::OpenIfExists)).then([that](StorageFile^ file) {
 		nlohmann::json stateJson;
 		stateJson["hosts"] = nlohmann::json::array();
+		stateJson["autostartInstance"] = that->autostartInstance;
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);

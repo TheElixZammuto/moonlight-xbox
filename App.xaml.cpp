@@ -82,7 +82,10 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	Window::Current->Activate();
 	//Start the state
 	auto state = GetApplicationState();
-	state->Init();
+	auto that = this;
+	state->Init().then([that](){
+		that->m_menuPage->OnStateLoaded();
+	});
 	
 }
 /// <summary>

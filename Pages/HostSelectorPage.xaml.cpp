@@ -8,6 +8,8 @@
 #include "AppPage.xaml.h"
 #include <Client\MoonlightClient.h>
 #include "HostSettingsPage.xaml.h"
+#include "Utils.hpp"
+#include "MoonlightSettings.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -34,7 +36,7 @@ HostSelectorPage::HostSelectorPage()
 void moonlight_xbox_dx::HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	dialogHostnameTextBox = ref new TextBox();
-	dialogHostnameTextBox->AcceptsReturn = true;
+	dialogHostnameTextBox->AcceptsReturn = false;
 	ContentDialog^ dialog = ref new ContentDialog();
 	dialog->Content = dialogHostnameTextBox;
 	dialog->Title = L"Add new Host";
@@ -55,18 +57,14 @@ void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::U
 	state->UpdateFile();
 	Concurrency::create_task([host]() {
 		host->UpdateStats();
-	});
+		});
 }
 
 
 void moonlight_xbox_dx::HostSelectorPage::GridView_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)
 {
 	MoonlightHost^ host = (MoonlightHost^)e->ClickedItem;
-	if (!host->Paired) {
-		StartPairing(host);
-		return;
-	}
-	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
+	this->Connect(host);
 }
 
 void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
@@ -84,13 +82,20 @@ void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 	dialog->ShowAsync();
 	Concurrency::create_task([dialog, host, client, pin]() {
 		int a = client->Pair();
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([dialog, host]()
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([a,dialog, host]()
 			{
-				dialog->Hide();
+				if (a == 0) {
+					dialog->Hide();
+				}
+				else {
+					if (a == -4 && host->CurrentlyRunningAppId >= 0) {
+						dialog->Content = L"The computer is currently in a game. You must close the game before pairing";
+					}
+				}
 				host->UpdateStats();
 			}
 		));
-	});
+		});
 }
 
 
@@ -111,4 +116,36 @@ void moonlight_xbox_dx::HostSelectorPage::HostsGrid_RightTapped(Platform::Object
 void moonlight_xbox_dx::HostSelectorPage::hostSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), currentHost);
+}
+
+
+void moonlight_xbox_dx::HostSelectorPage::SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+}
+
+void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
+	if (state->autostartInstance.size() > 0) {
+		auto pii = Utils::StringFromStdString(state->autostartInstance);
+		for (int i = 0; i < state->SavedHosts->Size; i++) {
+			auto host = state->SavedHosts->GetAt(i);
+			if (host->InstanceId->Equals(pii)) {
+				auto that = this;
+				Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that, host]() {
+						that->Connect(host);
+					}));
+				break;
+			}
+		}
+	}
+}
+
+void moonlight_xbox_dx::HostSelectorPage::Connect(MoonlightHost^ host) {
+	if (!host->Connected)return;
+	if (!host->Paired) {
+		StartPairing(host);
+		return;
+	}
+	state->shouldAutoConnect = true;
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
 }
