@@ -80,6 +80,9 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	//Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	// Ensure the current window is active
 	Window::Current->Activate();
+	//Start the state
+	auto state = GetApplicationState();
+	state->Init();
 	
 }
 /// <summary>

@@ -7,6 +7,7 @@
 #include "HostSelectorPage.xaml.h"
 #include "AppPage.xaml.h"
 #include <Client\MoonlightClient.h>
+#include "HostSettingsPage.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -25,10 +26,8 @@ using namespace Windows::UI::Xaml::Navigation;
 
 HostSelectorPage::HostSelectorPage()
 {
-	InitializeComponent();
 	state = GetApplicationState();
-	auto that = this;
-	state->Init();
+	InitializeComponent();
 }
 
 
@@ -107,4 +106,9 @@ void moonlight_xbox_dx::HostSelectorPage::HostsGrid_RightTapped(Platform::Object
 	FrameworkElement^ senderElement = (FrameworkElement^)e->OriginalSource;
 	currentHost = (MoonlightHost^)senderElement->DataContext;
 	this->ActionsFlyout->ShowAt(senderElement);
+}
+
+void moonlight_xbox_dx::HostSelectorPage::hostSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), currentHost);
 }
