@@ -36,41 +36,25 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr)return;
 	host = mhost;
-	UpdateApps();
+	if (host->AutostartID >= 0) {
+		this->Connect(host->AutostartID);
+	}
+	else {
+		host->UpdateApps();
+	}
 }
 
-void AppPage::UpdateApps() {
-	auto that = this;
-	Concurrency::create_async([that]() {
-		auto client = new MoonlightClient();
-		char ipAddressStr[2048];
-		wcstombs_s(NULL, ipAddressStr, that->Host->LastHostname->Data(), 2047);
-		int status = client->Connect(ipAddressStr);
-		if (status != 0)return;
-		that->Host->UpdateStats();
-		auto apps = client->GetApplications();
-		
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
-			Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that, apps]() {
-				that->Apps->Clear();
-				for (auto a : apps) {
-					if (a->Id == that->Host->CurrentlyRunningAppId)a->CurrentlyRunning = true;
-					that->Apps->Append(a);
-				}
-			}));
-		});
-}
 
 void moonlight_xbox_dx::AppPage::AppsGrid_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)
 {
 	MoonlightApp^ app = (MoonlightApp^)e->ClickedItem;
-	this->Connect(app);
+	this->Connect(app->Id);
 }
 
-void AppPage::Connect(MoonlightApp^ app) {
+void AppPage::Connect(int appId) {
 	StreamConfiguration^ config = ref new StreamConfiguration();
 	config->hostname = host->LastHostname;
-	config->appID = app->Id;
+	config->appID = appId;
 	config->width = host->Resolution->Width;
 	config->height = host->Resolution->Height;
 	config->bitrate = host->Bitrate;
@@ -90,7 +74,7 @@ void moonlight_xbox_dx::AppPage::HostsGrid_RightTapped(Platform::Object^ sender,
 
 void moonlight_xbox_dx::AppPage::resumeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	this->Connect(this->currentApp);
+	this->Connect(this->currentApp->Id);
 }
 
 
@@ -102,7 +86,7 @@ void moonlight_xbox_dx::AppPage::closeAppButton_Click(Platform::Object^ sender, 
 	Concurrency::create_async([client, this, ipAddressStr]() {
 		int status = client->Connect(ipAddressStr);
 		if (status == 0)client->StopApp();
-		UpdateApps();
+		host->UpdateApps();
 	});
 }
 

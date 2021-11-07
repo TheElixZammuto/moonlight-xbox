@@ -48,7 +48,8 @@
             <TextBlock Grid.Row="3" Grid.Column="0">Audio Configuration</TextBlock>
             <ComboBox ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}"  Grid.Row="3"  Grid.Column="1"></ComboBox>
             <TextBlock Grid.Row="4" Grid.Column="0">Autostart</TextBlock>
-            <ComboBox  Grid.Row="4"  Grid.Column="1"></ComboBox>
+            <ComboBox  Grid.Row="4"  Grid.Column="1" SelectedIndex="{x:Bind CurrentAppIndex,Mode=TwoWay}" Name="AutoStartSelector" SelectionChanged="AutoStartSelector_SelectionChanged">
+            </ComboBox>
         </Grid>
             
     </StackPanel>

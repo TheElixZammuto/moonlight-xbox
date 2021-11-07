@@ -52,6 +52,19 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 			break;
 		}
 	}
+	CurrentAppIndex = 0;
+	auto item = ref new ComboBoxItem();
+	item->Content = L"No App";
+	AutoStartSelector->Items->Append(item);
+	for (int i = 0; i < Host->Apps->Size; i++) {
+		auto item = ref new ComboBoxItem();
+		item->Content = Host->Apps->GetAt(i)->Name;
+		AutoStartSelector->Items->Append(item);
+		if (host->AutostartID == host->Apps->GetAt(i)->Id) {
+			CurrentAppIndex = i + 1;
+		}
+	}
+	AutoStartSelector->SelectedIndex = CurrentAppIndex;
 	BitrateInput->Text = host->Bitrate.ToString();
 }
 
@@ -81,4 +94,13 @@ void moonlight_xbox_dx::HostSettingsPage::ResolutionSelector_SelectionChanged(Pl
 void moonlight_xbox_dx::HostSettingsPage::BitrateInput_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e)
 {
 	host->Bitrate = std::stoi(Utils::PlatformStringToStdString(this->BitrateInput->Text));
+}
+
+
+void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	int index = AutoStartSelector->SelectedIndex - 1;
+	if (index >= 0 && host->Apps->Size > index) {
+		host->AutostartID = host->Apps->GetAt(index)->Id;
+	}
 }

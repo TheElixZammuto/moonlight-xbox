@@ -22,8 +22,7 @@ namespace moonlight_xbox_dx
 		Windows::Foundation::Collections::IVector<int>^ availableFps;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
 		int currentResolutionIndex = 0;
-		int currentFPSIndex = 0;
-		int currentAudioConfigIndex = 0;
+		int currentAppIndex = 0;
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	public:
@@ -73,24 +72,18 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-		property int CurrentFPSIndex
+		property int CurrentAppIndex
 		{
-			int get() { return this->currentFPSIndex; }
+			int get() { return this->currentAppIndex; }
 			void set(int value) {
-				this->currentFPSIndex = value;
+				this->currentAppIndex = value;
 			}
 		}
 
-		property int CurrentAudioConfigIndex
-		{
-			int get() { return this->currentAudioConfigIndex; }
-			void set(int value) {
-				this->currentAudioConfigIndex = value;
-			}
-		}
 	private:
 		void backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void BitrateInput_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
+		void AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 	};
 }

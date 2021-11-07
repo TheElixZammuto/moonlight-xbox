@@ -26,6 +26,24 @@ namespace moonlight_xbox_dx {
 		return client->Connect(ipAddressStr);
 	}
 
+	void MoonlightHost::UpdateApps() {
+		auto that = this;
+		Concurrency::create_async([that]() {
+			that->UpdateStats();
+			auto apps = that->client->GetApplications();
+
+			Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+				Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that, apps]() {
+					that->Apps->Clear();
+					for (auto a : apps) {
+						if (a->Id == that->CurrentlyRunningAppId)a->CurrentlyRunning = true;
+						that->Apps->Append(a);
+					}
+					}));
+			});
+	}
+
+
 	void MoonlightHost::Unpair()
 	{
 		client->Unpair();

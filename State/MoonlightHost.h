@@ -18,7 +18,9 @@ namespace moonlight_xbox_dx {
         int bitrate = 8000;
         ScreenResolution^ resolution;
         int fps = 60;
+        int autostartID = -1;
         Platform::String^ audioConfig = "Stereo";
+        Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -28,6 +30,7 @@ namespace moonlight_xbox_dx {
         void UpdateStats();
         int Connect();
         void Unpair();
+        void UpdateApps();
         void OnPropertyChanged(Platform::String^ propertyName);
         property Platform::String^ InstanceId
         {
@@ -101,6 +104,15 @@ namespace moonlight_xbox_dx {
             }
         } 
 
+        property int AutostartID
+        {
+            int get() { return this->autostartID; }
+            void set(int value) {
+                this->autostartID = value;
+                OnPropertyChanged("AutostartID");
+            }
+        }
+
         property ScreenResolution^ Resolution
         {
             ScreenResolution^ get() { return this->resolution; }
@@ -136,6 +148,16 @@ namespace moonlight_xbox_dx {
                 if (audioConfig == value)return;
                 this->audioConfig = value;
                 OnPropertyChanged("AudioConfig");
+            }
+        }
+
+        property Windows::Foundation::Collections::IVector<MoonlightApp^>^ Apps {
+            Windows::Foundation::Collections::IVector<MoonlightApp^>^ get() {
+                if (this->apps == nullptr)
+                {
+                    this->apps = ref new Platform::Collections::Vector<MoonlightApp^>();
+                }
+                return this->apps;
             }
         }
     };
