@@ -33,14 +33,19 @@ AppPage::AppPage()
 }
 
 void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr)return;
 	host = mhost;
-	if (host->AutostartID >= 0) {
-		this->Connect(host->AutostartID);
-	}
-	else {
-		host->UpdateApps();
+	host->UpdateApps();
+	auto bs = Frame->BackStack;
+	auto v = bs->GetAt(bs->Size - 1);
+	OutputDebugStringW(v->SourcePageType.Name->Data());
+	if (host->AutostartID >= 0 && v->SourcePageType.Name->Equals(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid).Name)) {
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+			Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this]() {
+				this->Connect(host->AutostartID);
+		}));
 	}
 }
 
@@ -61,6 +66,9 @@ void AppPage::Connect(int appId) {
 	config->FPS = host->FPS;
 	config->audioConfig = host->AudioConfig;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
+	if (!result) {
+		printf("C");
+	}
 }
 
 
@@ -87,7 +95,7 @@ void moonlight_xbox_dx::AppPage::closeAppButton_Click(Platform::Object^ sender, 
 		int status = client->Connect(ipAddressStr);
 		if (status == 0)client->StopApp();
 		host->UpdateApps();
-	});
+		});
 }
 
 
