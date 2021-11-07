@@ -26,6 +26,9 @@ MoonlightClient::MoonlightClient() {
 	this->pacer = p;
 }
 
+void MoonlightClient::StopApp() {
+	gs_quit_app(&serverData);
+}
 int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,StreamConfiguration ^sConfig) {
 	//Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
 	std::wstring fooW(sConfig->hostname->Begin());
@@ -35,13 +38,19 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	STREAM_CONFIGURATION config;
 	config.width = sConfig->width;
 	config.height = sConfig->height;
-	config.bitrate = 8000;
+	config.bitrate = sConfig->bitrate;
 	config.clientRefreshRateX100 = 60 * 100;
 	config.colorRange = COLOR_RANGE_LIMITED;
 	config.encryptionFlags = 0;
-	config.fps = 60;
+	config.fps = sConfig->FPS;
 	config.packetSize = 1024;
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
+	if (sConfig->audioConfig == "Surround 5.1") {
+		config.audioConfiguration = AUDIO_CONFIGURATION_51_SURROUND;
+	}
+	if (sConfig->audioConfig == "Surround 7.1") {
+		config.audioConfiguration = AUDIO_CONFIGURATION_71_SURROUND;
+	}
 	config.supportsHevc = false;
 	config.streamingRemotely = STREAM_CFG_AUTO;
 	char message[2048];
@@ -60,7 +69,14 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	FFMpegDecoder::createDecoderInstance(res, this->pacer);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
-	return LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
+	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
+	sprintf(message, "LiStartConnection %d\n",k);
+	Utils::Log(message);
+	return k;
+}
+
+void MoonlightClient::StopStreaming() {
+	LiStopConnection();
 }
 
 void log_message(const char* fmt, ...) {
@@ -138,21 +154,22 @@ int MoonlightClient::Pair() {
 	if (serverData.paired)return -7;
 	int status;
 	if ((status = gs_pair(&serverData, &connectionPin[0])) != 0) {
+		//TODO: Handle gs WRONG STATE
 		gs_unpair(&serverData);
 		return status;
 	}
 	return 0;
 }
 
-std::vector<MoonlightApplication> MoonlightClient::GetApplications() {
+std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 	PAPP_LIST list;
 	gs_applist(&serverData, &list);
-	std::vector<MoonlightApplication> values;
+	std::vector<MoonlightApp^> values;
 	if (list == NULL)return values;
 	while (list != NULL) {
-		MoonlightApplication a;
-		a.id = list->id;
-		a.name = list->name;
+		MoonlightApp^a = ref new MoonlightApp();
+		a->Id = list->id;
+		a->Name = Utils::StringFromChars(list->name);
 		values.push_back(a);
 		list = list->next;
 	}
@@ -190,4 +207,16 @@ void MoonlightClient::SendScroll(float value) {
 
 void MoonlightClient::SetSoftwareEncoder(bool value) {
 	useSoftwareEncoder = value;
+}
+
+int MoonlightClient::GetRunningAppID() {
+	return serverData.currentGame;
+}
+
+void MoonlightClient::Unpair() {
+	int status = gs_unpair(&serverData);
+}
+
+Platform::String^ MoonlightClient::GetInstanceID() {
+	return Utils::StringFromChars(hostname); //TODO: Try to get the ACTUAL instance id
 }

@@ -55,6 +55,11 @@ void StatsRenderer::Update(DX::StepTimer const& timer)
 		m_text += L"Frame Lag: " + std::to_wstring(Utils::stats.drLatency) + L"\n";
 		m_text += L"AVG Rendering time: " + std::to_wstring(Utils::stats.averageRenderingTime) + L"ms \n";
 	}
+}
+
+// Renders a frame to the screen.
+void StatsRenderer::Render()
+{
 	ComPtr<IDWriteTextLayout> textLayout;
 	DX::ThrowIfFailed(
 		m_deviceResources->GetDWriteFactory()->CreateTextLayout(
@@ -74,11 +79,7 @@ void StatsRenderer::Update(DX::StepTimer const& timer)
 	DX::ThrowIfFailed(
 		m_textLayout->GetMetrics(&m_textMetrics)
 	);
-}
 
-// Renders a frame to the screen.
-void StatsRenderer::Render()
-{
 	ID2D1DeviceContext* context = m_deviceResources->GetD2DDeviceContext();
 	Windows::Foundation::Size logicalSize = m_deviceResources->GetLogicalSize();
 

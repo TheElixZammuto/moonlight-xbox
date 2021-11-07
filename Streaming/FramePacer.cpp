@@ -42,7 +42,7 @@ void FramePacer::Setup(int width, int height) {
 	}
 }
 void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext) {
-	Frame currentFrame = frames[(decodeIndex+1) % queueSize];
+	VideoFrame currentFrame = frames[(decodeIndex+1) % queueSize];
 	currentFrame.frameNumber = decodeIndex +1;
 	currentFrame.decodeMutex->AcquireSync(0, 2);
 	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, NULL);
@@ -87,10 +87,10 @@ void FramePacer::PrepareFrameForRendering() {
 		if (decodeIndex - nextIndex >= 0) {
 			droppedFrames = 0;
 			if (renderIndex >= 0 && decodeIndex > 0) {
-				Frame currentFrame = frames[renderIndex % queueSize];
+				VideoFrame currentFrame = frames[renderIndex % queueSize];
 				currentFrame.renderMutex->ReleaseSync(0);
 			}
-			Frame nextFrame = frames[nextIndex % queueSize];
+			VideoFrame nextFrame = frames[nextIndex % queueSize];
 			nextFrame.renderMutex->AcquireSync(1, 2);
 			renderIndex = nextIndex;
 			advanced = true;
@@ -103,7 +103,7 @@ void FramePacer::PrepareFrameForRendering() {
 
 Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {
 	if (frames.size() < queueSize || renderIndex < 0)return NULL;
-	Frame currentFrame = frames[renderIndex % queueSize];
+	VideoFrame currentFrame = frames[renderIndex % queueSize];
 	statsMutex.lock();
 	renderedFrames++;
 	statsMutex.unlock();

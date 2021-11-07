@@ -74,9 +74,9 @@ namespace moonlight_xbox_dx {
 		D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, creationFlags, featureLevels, 6, D3D11_SDK_VERSION, &dev, NULL, ffmpegDeviceContext.GetAddressOf());
 		//DX11-FFMpeg association
 		ffmpegDevice = (ID3D11Device1*)dev;
-		static AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
-		AVHWDeviceContext* device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
-		AVD3D11VADeviceContext* d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
+	    AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
+		device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
+		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
 		d3d11va_device_ctx->device = dev;
 		d3d11va_device_ctx->device_context = ffmpegDeviceContext.Get();
 		int err2;
@@ -140,7 +140,16 @@ namespace moonlight_xbox_dx {
 	}
 
 	void FFMpegDecoder::Cleanup() {
-
+		//av_free_packet(&pkt);
+		avcodec_close(decoder_ctx);
+		avcodec_free_context(&decoder_ctx);
+		ffmpegDevice->Release();
+		ffmpegDeviceContext->Release();
+		free(ready_frames);
+		free(dec_frames);
+		free(ffmpeg_buffer);
+		pacer = NULL;
+		Utils::Log("Decoding Clean\n");
 	}
 
 	int FFMpegDecoder::SubmitDU(PDECODE_UNIT decodeUnit) {
@@ -213,7 +222,9 @@ namespace moonlight_xbox_dx {
 	FFMpegDecoder *instance;
 
 	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, FramePacer *pacer) {
-		if (instance == NULL)instance = new FFMpegDecoder(resources, pacer);
+		if (instance == NULL) {
+			instance = new FFMpegDecoder(resources, pacer);
+		}
 		return instance;
 	}
 	
@@ -232,6 +243,8 @@ namespace moonlight_xbox_dx {
 	}
 	void cleanupCallback() {
 		instance->Cleanup();
+		delete instance;
+		instance = NULL;
 	}
 	int submitCallback(PDECODE_UNIT decodeUnit) {
 		return instance->SubmitDU(decodeUnit);

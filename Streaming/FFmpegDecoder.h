@@ -8,6 +8,8 @@
 extern "C" {
 #include <Limelight.h>
 #include <libavcodec/avcodec.h>
+#include<libswscale/swscale.h>
+#include<libavutil/hwcontext_d3d11va.h>
 }
 #define MAX_BUFFER 1024 * 1024
 namespace moonlight_xbox_dx
@@ -34,6 +36,8 @@ namespace moonlight_xbox_dx
 		AVPacket pkt;
 		AVCodec* decoder;
 		AVCodecContext* decoder_ctx;
+		AVHWDeviceContext* device_ctx;
+		AVD3D11VADeviceContext* d3d11va_device_ctx;
 		unsigned char* ffmpeg_buffer;
 		int dec_frames_cnt;
 		AVFrame** dec_frames;
@@ -42,6 +46,5 @@ namespace moonlight_xbox_dx
 		std::shared_ptr<DX::DeviceResources> resources;
 		Microsoft::WRL::ComPtr<ID3D11Device1> ffmpegDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> ffmpegDeviceContext;
-		ID3D11Texture2D* ffmpegTexture;
 	};
 }

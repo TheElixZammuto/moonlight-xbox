@@ -91,6 +91,10 @@
       <Filter>Client</Filter>
     </ClCompile>
     <ClCompile Include="Content\StatsRenderer.cpp" />
+    <ClCompile Include="State\ApplicationState.cpp" />
+    <ClCompile Include="State\MoonlightHost.cpp" />
+    <ClCompile Include="State\MoonlightApp.cpp" />
+    <ClCompile Include="State\ScreenResolution.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -120,6 +124,10 @@
       <Filter>Client</Filter>
     </ClInclude>
     <ClInclude Include="Content\StatsRenderer.h" />
+    <ClInclude Include="State\ApplicationState.h" />
+    <ClInclude Include="State\MoonlightHost.h" />
+    <ClInclude Include="State\MoonlightApp.h" />
+    <ClInclude Include="State\ScreenResolution.h" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -202,6 +210,11 @@
     <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />
     <None Include="Package.StoreAssociation.xml" />
     <None Include="packages.config" />
+    <None Include="Assets\desktop.svg" />
+    <None Include="Assets\lock.svg" />
+    <None Include="Assets\disconnected.svg" />
+    <None Include="Assets\gamepad.svg" />
+    <None Include="Assets\Play.svg" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\SmallTile.scale-100.png">
@@ -341,11 +354,12 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Pages\MenuPage.xaml">
-      <Filter>Pages</Filter>
-    </Page>
     <Page Include="Pages\StreamPage.xaml">
       <Filter>Pages</Filter>
     </Page>
+    <Page Include="Pages\HostSelectorPage.xaml" />
+    <Page Include="Pages\AppPage.xaml" />
+    <Page Include="Pages\HostSettingsPage.xaml" />
+    <Page Include="Pages\MoonlightSettings.xaml" />
   </ItemGroup>
 </Project>

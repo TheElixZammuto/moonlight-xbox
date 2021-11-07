@@ -2,7 +2,7 @@
 #include "pch.h"
 #include <queue>
 #include <mutex>
-struct Frame
+struct VideoFrame
 {
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> decodeTexture;
 	Microsoft::WRL::ComPtr <IDXGIKeyedMutex> decodeMutex;
@@ -37,6 +37,6 @@ private:
 	LARGE_INTEGER startTimer;
 	LARGE_INTEGER lastTimer;
 	LARGE_INTEGER frequency;
-	std::vector<Frame> frames;
+	std::vector<VideoFrame> frames;
 };
 

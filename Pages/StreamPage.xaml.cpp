@@ -44,7 +44,6 @@ StreamPage::~StreamPage()
 {
 	// Stop rendering and processing events on destruction.
 	m_main->StopRenderLoop();
-	m_coreInput->Dispatcher->StopProcessEvents();
 }
 
 void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequestedEventArgs^ args)
@@ -115,7 +114,7 @@ void moonlight_xbox_dx::StreamPage::flyoutButton_Click(Platform::Object^ sender,
 
 void moonlight_xbox_dx::StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e)
 {
-	m_main->SetFlyoutOpened(false);
+	if(m_main != nullptr) m_main->SetFlyoutOpened(false);
 }
 
 
@@ -141,4 +140,12 @@ void moonlight_xbox_dx::StreamPage::toggleStatsButton_Click(Platform::Object^ se
 {
 	Utils::showStats = !Utils::showStats;
 	this->toggleStatsButton->Text = Utils::showStats ? "Hide Stats" : "Show Stats";
+}
+
+
+void moonlight_xbox_dx::StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->m_main->StopRenderLoop();
+	this->m_main->Disconnect();
+	this->Frame->GoBack();
 }

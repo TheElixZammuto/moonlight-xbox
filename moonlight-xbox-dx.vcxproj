@@ -315,14 +315,27 @@
     <ClInclude Include="Content\VideoRenderer.h" />
     <ClInclude Include="Content\LogRenderer.h" />
     <ClInclude Include="Content\ShaderStructures.h" />
-    <ClInclude Include="Pages\MenuPage.xaml.h">
-      <DependentUpon>Pages\MenuPage.xaml</DependentUpon>
+    <ClInclude Include="Pages\HostSettingsPage.xaml.h">
+      <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Pages\MoonlightSettings.xaml.h">
+      <DependentUpon>Pages\MoonlightSettings.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="State\ScreenResolution.h" />
+    <ClInclude Include="State\MoonlightApp.h" />
+    <ClInclude Include="Pages\AppPage.xaml.h">
+      <DependentUpon>Pages\AppPage.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Pages\HostSelectorPage.xaml.h">
+      <DependentUpon>Pages\HostSelectorPage.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Pages\StreamPage.xaml.h">
       <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Content\StatsRenderer.h" />
+    <ClInclude Include="State\ApplicationState.h" />
+    <ClInclude Include="State\MoonlightHost.h" />
     <ClInclude Include="Streaming\AudioPlayer.h" />
     <ClInclude Include="Streaming\FFmpegDecoder.h" />
     <ClInclude Include="Streaming\FramePacer.h" />
@@ -337,8 +350,19 @@
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="Content\LogRenderer.cpp" />
     <ClCompile Include="Content\VideoRenderer.cpp" />
-    <ClCompile Include="Pages\MenuPage.xaml.cpp">
-      <DependentUpon>Pages\MenuPage.xaml</DependentUpon>
+    <ClCompile Include="Pages\HostSettingsPage.xaml.cpp">
+      <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Pages\MoonlightSettings.xaml.cpp">
+      <DependentUpon>Pages\MoonlightSettings.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="State\ScreenResolution.cpp" />
+    <ClCompile Include="State\MoonlightApp.cpp" />
+    <ClCompile Include="Pages\AppPage.xaml.cpp">
+      <DependentUpon>Pages\AppPage.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Pages\HostSelectorPage.xaml.cpp">
+      <DependentUpon>Pages\HostSelectorPage.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Pages\StreamPage.xaml.cpp">
       <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
@@ -354,6 +378,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Content\StatsRenderer.cpp" />
+    <ClCompile Include="State\ApplicationState.cpp" />
+    <ClCompile Include="State\MoonlightHost.cpp" />
     <ClCompile Include="Streaming\AudioPlayer.cpp" />
     <ClCompile Include="Streaming\FFmpegDecoder.cpp" />
     <ClCompile Include="Streaming\FramePacer.cpp" />
@@ -458,6 +484,21 @@
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\desktop.svg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Assets\disconnected.svg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Assets\gamepad.svg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Assets\lock.svg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Assets\Play.svg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />
     <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\opus.dll">
       <FileType>Document</FileType>
@@ -468,7 +509,18 @@
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Pages\MenuPage.xaml" />
+    <Page Include="Pages\AppPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\HostSelectorPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\HostSettingsPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\MoonlightSettings.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Pages\StreamPage.xaml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

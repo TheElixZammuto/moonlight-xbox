@@ -6,7 +6,7 @@
 namespace moonlight_xbox_dx {
 	namespace Utils {
 		std::vector<std::wstring> logLines;
-		bool showLogs = false;
+		bool showLogs = true;
 		bool showStats = false;
 		StreamingStats stats;
 
@@ -39,6 +39,32 @@ namespace moonlight_xbox_dx {
 
 		std::vector<std::wstring> GetLogLines() {
 			return logLines;
+		}
+
+		//https://stackoverflow.com/a/20707518
+		Platform::String^ StringFromChars(char* chars)
+		{
+			size_t newsize = strlen(chars) + 1;
+			wchar_t* wcstring = new wchar_t[newsize];
+			size_t convertedChars = 0;
+			mbstowcs_s(&convertedChars, wcstring, newsize, chars, _TRUNCATE);
+			Platform::String^ str = ref new Platform::String(wcstring);
+			delete[] wcstring;
+			return str;
+		}
+
+		//https://stackoverflow.com/a/43628199
+		Platform::String^ StringFromStdString(std::string input) {
+			std::wstring w_str = std::wstring(input.begin(), input.end());
+			const wchar_t* w_chars = w_str.c_str();
+			return (ref new Platform::String(w_chars));
+		}
+
+		//https://stackoverflow.com/a/35905753
+		std::string PlatformStringToStdString(Platform::String ^input) {
+			std::wstring fooW(input->Begin());
+			std::string fooA(fooW.begin(), fooW.end());
+			return fooA;
 		}
 	}
 
