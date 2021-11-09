@@ -149,3 +149,9 @@ void moonlight_xbox_dx::StreamPage::disonnectButton_Click(Platform::Object^ send
 	this->m_main->Disconnect();
 	this->Frame->GoBack();
 }
+
+
+void moonlight_xbox_dx::StreamPage::flyoutButton_Click_1(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+
+}

@@ -41,6 +41,7 @@ namespace moonlight_xbox_dx
 		StreamConfiguration^ configuration;
 		void toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void flyoutButton_Click_1(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }
 
