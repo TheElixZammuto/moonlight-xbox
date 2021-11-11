@@ -50,7 +50,7 @@
                 </Button>
             </StackPanel>
         </Grid>
-        <GridView IsRightTapEnabled="True" RightTapped="HostsGrid_RightTapped" Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind State.SavedHosts}" IsItemClickEnabled="True" ItemClick="GridView_ItemClick" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <GridView IsRightTapEnabled="True" RightTapped="HostsGrid_RightTapped" Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind State.SavedHosts}" IsItemClickEnabled="True" ItemClick="GridView_ItemClick" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center" SelectionMode="None">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal"

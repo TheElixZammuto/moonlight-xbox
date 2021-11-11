@@ -16,6 +16,7 @@ namespace moonlight_xbox_dx {
 			this->Loading = false;
 			this->InstanceId = client->GetInstanceID();
 		}));
+		if(status)UpdateApps();
 	}
 
 	int MoonlightHost::Connect()

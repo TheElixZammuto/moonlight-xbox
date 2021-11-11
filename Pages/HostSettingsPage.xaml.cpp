@@ -103,4 +103,7 @@ void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Pla
 	if (index >= 0 && host->Apps->Size > index) {
 		host->AutostartID = host->Apps->GetAt(index)->Id;
 	}
+	else {
+		host->AutostartID = -1;
+	}
 }

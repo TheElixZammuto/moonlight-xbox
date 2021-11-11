@@ -108,8 +108,19 @@ void moonlight_xbox_dx::HostSelectorPage::removeHostButton_Click(Platform::Objec
 
 void moonlight_xbox_dx::HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e)
 {
+	//Thanks to https://stackoverflow.com/questions/62878368/uwp-gridview-listview-get-the-righttapped-item-supporting-both-mouse-and-xbox-co
 	FrameworkElement^ senderElement = (FrameworkElement^)e->OriginalSource;
-	currentHost = (MoonlightHost^)senderElement->DataContext;
+	OutputDebugString(senderElement->GetType()->FullName->Data());
+	if (senderElement->GetType()->FullName->Equals(GridViewItem::typeid->FullName)) {
+		auto gi = (GridViewItem^)senderElement;
+		currentHost = (MoonlightHost^)(gi->Content);
+	}
+	else {
+		currentHost = (MoonlightHost^)(senderElement->DataContext);
+	}
+	if (currentHost == nullptr) {
+		return;
+	}
 	this->ActionsFlyout->ShowAt(senderElement);
 }
 

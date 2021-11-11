@@ -14,7 +14,7 @@
                 <SymbolIcon Symbol="Back" />
             </Button.Content>
         </Button>
-        <Grid>
+        <Grid RowSpacing="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="200"></ColumnDefinition>
                 <ColumnDefinition Width="*"></ColumnDefinition>

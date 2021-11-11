@@ -44,6 +44,7 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 				this->Connect(host->AutostartID);
 		}));
 	}
+	GetApplicationState()->shouldAutoConnect = false;
 }
 
 
