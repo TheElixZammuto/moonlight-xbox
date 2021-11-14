@@ -21,6 +21,7 @@ namespace moonlight_xbox_dx {
         int autostartID = -1;
         Platform::String^ audioConfig = "Stereo";
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
+        void UpdateApps();
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -30,7 +31,6 @@ namespace moonlight_xbox_dx {
         void UpdateStats();
         int Connect();
         void Unpair();
-        void UpdateApps();
         void OnPropertyChanged(Platform::String^ propertyName);
         property Platform::String^ InstanceId
         {

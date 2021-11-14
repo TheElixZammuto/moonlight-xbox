@@ -36,7 +36,7 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr)return;
 	host = mhost;
-	host->UpdateApps();
+	host->UpdateStats();
 	if (host->AutostartID >= 0 && GetApplicationState()->shouldAutoConnect) {
 		GetApplicationState()->shouldAutoConnect = false;
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
@@ -92,8 +92,8 @@ void moonlight_xbox_dx::AppPage::closeAppButton_Click(Platform::Object^ sender, 
 	Concurrency::create_async([client, this, ipAddressStr]() {
 		int status = client->Connect(ipAddressStr);
 		if (status == 0)client->StopApp();
-		host->UpdateApps();
-		});
+		host->UpdateStats();
+	});
 }
 
 
