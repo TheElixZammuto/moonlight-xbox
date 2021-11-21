@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29905.134
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "moonlight-xbox-dx", "moonlight-xbox-dx.vcxproj", "{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "moonlight-common-c", "third_party\moonlight-common-c\moonlight-common-c.vcxproj", "{48A9B6E0-570E-39C4-B6F3-A602055E79FF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "moonlight-common-c", "third_party\moonlight-common-c\build\moonlight-common-c.vcxproj", "{93DDFC16-8C7B-3AC5-AE38-B87854639DA8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gamestream", "libgamestream\gamestream.vcxproj", "{EE443326-86F3-3E91-9C60-F84E520B2609}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gamestream", "libgamestream\build\gamestream.vcxproj", "{403D53DC-7F7F-3D3D-8A7F-FAE61750691D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,22 +29,22 @@ Global
 		{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}.RelWithDebInfo|x64.ActiveCfg = Release|x64
 		{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}.RelWithDebInfo|x64.Build.0 = Release|x64
 		{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}.RelWithDebInfo|x64.Deploy.0 = Release|x64
-		{48A9B6E0-570E-39C4-B6F3-A602055E79FF}.Debug|x64.ActiveCfg = Debug|x64
-		{48A9B6E0-570E-39C4-B6F3-A602055E79FF}.Debug|x64.Build.0 = Debug|x64
-		{48A9B6E0-570E-39C4-B6F3-A602055E79FF}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
-		{48A9B6E0-570E-39C4-B6F3-A602055E79FF}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
-		{48A9B6E0-570E-39C4-B6F3-A602055E79FF}.Release|x64.ActiveCfg = Release|x64
-		{48A9B6E0-570E-39C4-B6F3-A602055E79FF}.Release|x64.Build.0 = Release|x64
-		{48A9B6E0-570E-39C4-B6F3-A602055E79FF}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
-		{48A9B6E0-570E-39C4-B6F3-A602055E79FF}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
-		{EE443326-86F3-3E91-9C60-F84E520B2609}.Debug|x64.ActiveCfg = Debug|x64
-		{EE443326-86F3-3E91-9C60-F84E520B2609}.Debug|x64.Build.0 = Debug|x64
-		{EE443326-86F3-3E91-9C60-F84E520B2609}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
-		{EE443326-86F3-3E91-9C60-F84E520B2609}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
-		{EE443326-86F3-3E91-9C60-F84E520B2609}.Release|x64.ActiveCfg = Release|x64
-		{EE443326-86F3-3E91-9C60-F84E520B2609}.Release|x64.Build.0 = Release|x64
-		{EE443326-86F3-3E91-9C60-F84E520B2609}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
-		{EE443326-86F3-3E91-9C60-F84E520B2609}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
+		{93DDFC16-8C7B-3AC5-AE38-B87854639DA8}.Debug|x64.ActiveCfg = Debug|x64
+		{93DDFC16-8C7B-3AC5-AE38-B87854639DA8}.Debug|x64.Build.0 = Debug|x64
+		{93DDFC16-8C7B-3AC5-AE38-B87854639DA8}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
+		{93DDFC16-8C7B-3AC5-AE38-B87854639DA8}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
+		{93DDFC16-8C7B-3AC5-AE38-B87854639DA8}.Release|x64.ActiveCfg = Release|x64
+		{93DDFC16-8C7B-3AC5-AE38-B87854639DA8}.Release|x64.Build.0 = Release|x64
+		{93DDFC16-8C7B-3AC5-AE38-B87854639DA8}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
+		{93DDFC16-8C7B-3AC5-AE38-B87854639DA8}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
+		{403D53DC-7F7F-3D3D-8A7F-FAE61750691D}.Debug|x64.ActiveCfg = Debug|x64
+		{403D53DC-7F7F-3D3D-8A7F-FAE61750691D}.Debug|x64.Build.0 = Debug|x64
+		{403D53DC-7F7F-3D3D-8A7F-FAE61750691D}.MinSizeRel|x64.ActiveCfg = MinSizeRel|x64
+		{403D53DC-7F7F-3D3D-8A7F-FAE61750691D}.MinSizeRel|x64.Build.0 = MinSizeRel|x64
+		{403D53DC-7F7F-3D3D-8A7F-FAE61750691D}.Release|x64.ActiveCfg = Release|x64
+		{403D53DC-7F7F-3D3D-8A7F-FAE61750691D}.Release|x64.Build.0 = Release|x64
+		{403D53DC-7F7F-3D3D-8A7F-FAE61750691D}.RelWithDebInfo|x64.ActiveCfg = RelWithDebInfo|x64
+		{403D53DC-7F7F-3D3D-8A7F-FAE61750691D}.RelWithDebInfo|x64.Build.0 = RelWithDebInfo|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

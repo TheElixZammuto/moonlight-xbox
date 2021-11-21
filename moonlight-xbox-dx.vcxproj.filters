@@ -209,12 +209,12 @@
   <ItemGroup>
     <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />
     <None Include="Package.StoreAssociation.xml" />
-    <None Include="packages.config" />
     <None Include="Assets\desktop.svg" />
     <None Include="Assets\lock.svg" />
     <None Include="Assets\disconnected.svg" />
     <None Include="Assets\gamepad.svg" />
     <None Include="Assets\Play.svg" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\SmallTile.scale-100.png">

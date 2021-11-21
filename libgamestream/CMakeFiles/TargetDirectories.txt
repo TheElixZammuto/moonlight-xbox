@@ -1,5 +1,0 @@
-D:/Progetti/moonlight-xbox/libgamestream/CMakeFiles/moonlight-common.dir
-D:/Progetti/moonlight-xbox/libgamestream/CMakeFiles/gamestream.dir
-D:/Progetti/moonlight-xbox/libgamestream/CMakeFiles/INSTALL.dir
-D:/Progetti/moonlight-xbox/libgamestream/CMakeFiles/ALL_BUILD.dir
-D:/Progetti/moonlight-xbox/libgamestream/CMakeFiles/ZERO_CHECK.dir
