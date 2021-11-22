@@ -6,13 +6,13 @@
 using namespace Windows::Storage;
 Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 {
-	auto that = this;	
+	auto that = this;
 	this->SavedHosts->Clear();
 	StorageFolder^ storageFolder = ApplicationData::Current->LocalFolder;
 	return concurrency::create_task(storageFolder->CreateFileAsync("state.json", CreationCollisionOption::OpenIfExists)).then([](StorageFile^ file) {
 		return FileIO::ReadTextAsync(file);
-	}).then([this](Concurrency::task<Platform::String^> jsonTask) {
-			Platform::String ^jsonFile = jsonTask.get();
+		}).then([this](Concurrency::task<Platform::String^> jsonTask) {
+			Platform::String^ jsonFile = jsonTask.get();
 			if (jsonFile != nullptr && jsonFile->Length() > 0) {
 				nlohmann::json stateJson = nlohmann::json::parse(jsonFile);
 				if (stateJson.contains("autostartInstance"))this->autostartInstance = stateJson["autostartInstance"];
@@ -21,7 +21,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					h->LastHostname = Utils::StringFromStdString(a["hostname"].get<std::string>());
 					h->InstanceId = h->LastHostname;
 					if (a.contains("width") && a.contains("height")) {
-						h->Resolution = ref new ScreenResolution(a["width"],a["height"]);
+						h->Resolution = ref new ScreenResolution(a["width"], a["height"]);
 					}
 					if (a.contains("bitrate"))h->Bitrate = a["bitrate"];
 					if (a.contains("fps"))h->FPS = a["fps"];
@@ -29,13 +29,13 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
 					this->SavedHosts->Append(h);
 				}
-				return concurrency::create_task([this]() {
-					for (auto a : this->SavedHosts) {
-						a->UpdateStats();
-					}
-					});
 			}
-	});
+			return concurrency::create_task([this]() {
+				for (auto a : this->SavedHosts) {
+					a->UpdateStats();
+				}
+				});
+			});
 }
 
 Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
@@ -57,8 +57,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["autoStartID"] = host->AutostartID;
 			stateJson["hosts"].push_back(hostJson);
 		}
-		return FileIO::WriteTextAsync(file,Utils::StringFromStdString(stateJson.dump()));
-	});
+		return FileIO::WriteTextAsync(file, Utils::StringFromStdString(stateJson.dump()));
+		});
 }
 
 void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
