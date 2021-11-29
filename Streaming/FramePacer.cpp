@@ -76,12 +76,12 @@ void FramePacer::PrepareFrameForRendering() {
 	if (decodeIndex < 0)return;
 	bool advanced = false;
 	int nextIndex = renderIndex + 1;
-	if (decodeIndex - nextIndex >= 2) {
+	/*if (decodeIndex - nextIndex >= 2) {
 		char msg[4096];
 		sprintf(msg,"Cathcing up: decode as %d and rendering as %d\n",decodeIndex,nextIndex);
 		moonlight_xbox_dx::Utils::Log(msg);
-		nextIndex = decodeIndex;
-	}
+		nextIndex++;
+	}*/
 	//Try a couple times before going to next frame
 	for(int i = 0; i < 16;i++){
 		if (decodeIndex - nextIndex >= 0) {

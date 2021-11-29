@@ -18,7 +18,7 @@ class FramePacer
 public:
 	void Setup(int width, int height);
 	void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture, int index, Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext);
-	int queueSize = 16;
+	int queueSize = 3;
 	int catchUpThreshold = 4;
 	Microsoft::WRL::ComPtr<ID3D11Device1> renderingDevice, decodingDevice;
 	void PrepareFrameForRendering();
