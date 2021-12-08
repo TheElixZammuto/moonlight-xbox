@@ -496,6 +496,7 @@
       <FileType>Document</FileType>
     </CopyFileToFolders>
     <None Include="packages.config" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Package.StoreAssociation.xml" />

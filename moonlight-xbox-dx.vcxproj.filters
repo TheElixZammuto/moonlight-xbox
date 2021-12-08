@@ -215,6 +215,7 @@
     <None Include="Assets\gamepad.svg" />
     <None Include="Assets\Play.svg" />
     <None Include="packages.config" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\SmallTile.scale-100.png">
