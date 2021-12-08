@@ -27,6 +27,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*"/>
+            <RowDefinition Height="64" />
         </Grid.RowDefinitions>
         <Grid Grid.Row="0" VerticalAlignment="Center" Padding="0,0,0,8" >
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Padding="8">
@@ -67,5 +68,6 @@
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
+        <TextBlock Grid.Row="2" TextAlignment="Center">Did you know? You can press Menu + View to show the options during streaming</TextBlock>
     </Grid>
 </Page>
