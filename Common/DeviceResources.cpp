@@ -12,23 +12,6 @@ using namespace Windows::UI::Core;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Platform;
 
-namespace DisplayMetrics
-{
-	// High resolution displays can require a lot of GPU and battery power to render.
-	// High resolution phones, for example, may suffer from poor battery life if
-	// games attempt to render at 60 frames per second at full fidelity.
-	// The decision to render at full fidelity across all platforms and form factors
-	// should be deliberate.
-	static const bool SupportHighResolutions = false;
-
-	// The default thresholds that define a "high resolution" display. If the thresholds
-	// are exceeded and SupportHighResolutions is false, the dimensions will be scaled
-	// by 50%.
-	static const float DpiThreshold = 192.0f;		// 200% of standard desktop display.
-	static const float WidthThreshold = 1920.0f;	// 1080p width.
-	static const float HeightThreshold = 1080.0f;	// 1080p height.
-};
-
 // Constants used to calculate screen rotations.
 namespace ScreenRotation
 {
@@ -274,7 +257,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	else
 	{
 		// Otherwise, create a new one using the same adapter as the existing Direct3D device.
-		DXGI_SCALING scaling = DisplayMetrics::SupportHighResolutions ? DXGI_SCALING_NONE : DXGI_SCALING_STRETCH;
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {0};
 
 		swapChainDesc.Width = lround(m_d3dRenderTargetSize.Width);		// Match the size of the window.
@@ -287,7 +269,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.BufferCount = 2;									// Use double-buffering to minimize latency.
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;	// All Microsoft Store apps must use _FLIP_ SwapEffects.
 		swapChainDesc.Flags = 0;
-		swapChainDesc.Scaling = scaling;
+		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
 		// This sequence obtains the DXGI factory that was used to create the Direct3D device above.
@@ -486,26 +468,7 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 	m_effectiveDpi = m_dpi;
 	m_effectiveCompositionScaleX = m_compositionScaleX;
 	m_effectiveCompositionScaleY = m_compositionScaleY;
-
-	// To improve battery life on high resolution devices, render to a smaller render target
-	// and allow the GPU to scale the output when it is presented.
-	if (!DisplayMetrics::SupportHighResolutions && m_dpi > DisplayMetrics::DpiThreshold)
-	{
-		float width = DX::ConvertDipsToPixels(m_logicalSize.Width, m_dpi);
-		float height = DX::ConvertDipsToPixels(m_logicalSize.Height, m_dpi);
-
-		// When the device is in portrait orientation, height > width. Compare the
-		// larger dimension against the width threshold and the smaller dimension
-		// against the height threshold.
-		if (max(width, height) > DisplayMetrics::WidthThreshold && min(width, height) > DisplayMetrics::HeightThreshold)
-		{
-			// To scale the app we change the effective DPI. Logical size does not change.
-			m_effectiveDpi /= 2.0f;
-			m_effectiveCompositionScaleX /= 2.0f;
-			m_effectiveCompositionScaleY /= 2.0f;
-		}
-	}
-
+    
 	// Calculate the necessary render target size in pixels.
 	m_outputSize.Width = DX::ConvertDipsToPixels(m_logicalSize.Width, m_effectiveDpi);
 	m_outputSize.Height = DX::ConvertDipsToPixels(m_logicalSize.Height, m_effectiveDpi);
