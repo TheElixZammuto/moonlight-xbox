@@ -25,13 +25,13 @@ namespace moonlight_xbox_dx {
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
+        void OnPropertyChanged(Platform::String^ propertyName);
         MoonlightHost() {
             resolution = ref new ScreenResolution(1280, 720);
         }
         void UpdateStats();
         int Connect();
         void Unpair();
-        void OnPropertyChanged(Platform::String^ propertyName);
         property Platform::String^ InstanceId
         {
             Platform::String^ get() { return this->instanceId; }

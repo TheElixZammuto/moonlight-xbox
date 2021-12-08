@@ -7,7 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-    <StackPanel Padding="8,16,8,8">
+    <StackPanel Padding="32,64,32,32" Margin="{x:Bind State.ScreenMargin,Mode=OneWay}" BorderBrush="Green" BorderThickness="2">
         <Button Margin="0 0 0 16" Name="backButton" Click="backButton_Click">
             <Button.Content>
                 <SymbolIcon Symbol="Back" />
@@ -16,6 +16,9 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition></ColumnDefinition>
@@ -23,6 +26,11 @@
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Grid.Row="0">Autostart Host:</TextBlock>
             <ComboBox Grid.Column="1" Grid.Row="0" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged"></ComboBox>
+            <TextBlock Grid.Column="0" Grid.Row="1">Screen Margin Height:</TextBlock>
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{x:Bind State.ScreenMarginWidth}" x:DefaultBindMode="TwoWay"/>
+            <TextBlock Grid.Column="0" Grid.Row="2">Screen Margin Width:</TextBlock>
+            <TextBox Grid.Row="2" Grid.Column="1" Text="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay"/>
+            <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center">Change these parameters until you can see a green border around the screen</TextBlock>
         </Grid>
     </StackPanel>
 </Page>

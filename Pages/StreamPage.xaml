@@ -9,7 +9,7 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     Loaded="Page_Loaded">
 
-    <SwapChainPanel x:Name="swapChainPanel">
+    <SwapChainPanel x:Name="swapChainPanel" Margin="{x:Bind State.ScreenMargin}">
         <SwapChainPanel.ColumnDefinitions>
             <ColumnDefinition Width="671*"/>
             <ColumnDefinition Width="829*"/>

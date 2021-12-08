@@ -30,6 +30,7 @@ AppPage::AppPage()
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &AppPage::OnBackRequested);
 	InitializeComponent();
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 }
 
 void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {

@@ -6,6 +6,7 @@
 #include "pch.h"
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
+using namespace Windows::UI::Core;
 
 using namespace moonlight_xbox_dx;
 
@@ -26,10 +27,13 @@ MoonlightSettings::MoonlightSettings()
 {
 	InitializeComponent();
 	state = GetApplicationState();
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightSettings::OnBackRequested);
 	auto item = ref new ComboBoxItem();
 	item->Content = "Don't autoconnect";
 	item->DataContext = "";
 	HostSelector->Items->Append(item);
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	auto iid = Utils::StringFromStdString(state->autostartInstance);
 	for (int i = 0; i < state->SavedHosts->Size;i++) {
 		auto host = state->SavedHosts->GetAt(i);
@@ -57,5 +61,16 @@ void moonlight_xbox_dx::MoonlightSettings::HostSelector_SelectionChanged(Platfor
 
 	auto s = Utils::PlatformStringToStdString(item->DataContext->ToString());
 	state->autostartInstance = s;
+
+}
+
+void moonlight_xbox_dx::MoonlightSettings::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
+{
+	// UWP on Xbox One triggers a back request whenever the B
+	// button is pressed which can result in the app being
+	// suspended if unhandled
+	GetApplicationState()->UpdateFile();
+	this->Frame->GoBack();
+	args->Handled = true;
 
 }

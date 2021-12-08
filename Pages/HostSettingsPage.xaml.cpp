@@ -28,6 +28,7 @@ HostSettingsPage::HostSettingsPage()
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
 	InitializeComponent();
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 
 }
 

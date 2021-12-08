@@ -21,6 +21,11 @@ namespace moonlight_xbox_dx
 		StreamPage();
 		virtual ~StreamPage();
 		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
+		property ApplicationState^ State {
+			ApplicationState^ get() {
+				return GetApplicationState();
+			}
+		}
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	private:

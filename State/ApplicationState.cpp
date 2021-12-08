@@ -16,6 +16,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 			if (jsonFile != nullptr && jsonFile->Length() > 0) {
 				nlohmann::json stateJson = nlohmann::json::parse(jsonFile);
 				if (stateJson.contains("autostartInstance"))this->autostartInstance = stateJson["autostartInstance"];
+				if (stateJson.contains("marginWidth"))this->ScreenMarginWidth = stateJson["marginWidth"];
+				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost();
 					h->LastHostname = Utils::StringFromStdString(a["hostname"].get<std::string>());
@@ -46,6 +48,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		nlohmann::json stateJson;
 		stateJson["hosts"] = nlohmann::json::array();
 		stateJson["autostartInstance"] = that->autostartInstance;
+		stateJson["marginWidth"] = max(0,min(that->ScreenMarginWidth,250));
+		stateJson["marginHeight"] = max(0, min(that->ScreenMarginHeight, 250));
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
@@ -73,6 +77,11 @@ void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
 		host->Unpair();
 	}
 	UpdateFile();
+}
+
+void moonlight_xbox_dx::ApplicationState::OnPropertyChanged(Platform::String^ propertyName)
+{
+	PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 }
 
 moonlight_xbox_dx::ApplicationState^ __stateInstance;

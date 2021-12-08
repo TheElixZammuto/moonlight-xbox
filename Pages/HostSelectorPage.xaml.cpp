@@ -30,6 +30,7 @@ HostSelectorPage::HostSelectorPage()
 {
 	state = GetApplicationState();
 	InitializeComponent();
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 }
 
 
