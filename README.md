@@ -33,14 +33,21 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Everything else not listed above
 
 ## Building
-Remember to clone with submodules enabled!
-You need [VCPKG](https://vcpkg.io/en/index.html) installed in the "vcpkg" folder inside the repository to handle the dependencies. 
 
-In particular, the FFMPEG port file (https://github.com/microsoft/vcpkg/blob/master/ports/ffmpeg/portfile.cmake) shoud be modified to include the `--enable-d3d11va` configure flag
+### Requirements
 
-Required ports are `pthread:x64-uwp, pthreads:x64-uwp, curl:x64-uwp, openssl:x64-uwp, expat:x64-uwp, zlib:x64-uwp, ffmpeg:x64-uwp, nlohmann-json:x64-uwp`
-**NEW:** nlohmann-json:x64-uwp is also needed as of builds > 1.6.0
+- Windows 10
+- Visual Studio 2022
 
-On a native x64 Visual Studio Prompt, run the `generate-thirdparty-projects.bat` inside the source folder to generate moonlight-common-c build files
+### Steps to build
 
-After that, you can open and run the .sln fie
+1. Clone this repository (`moonlight-xbox`) with submodules enabled!
+2. Install [VCPKG](https://vcpkg.io/en/index.html) and all dependencies:
+    1. Clone VCPKG (`git clone https://github.com/Microsoft/vcpkg.git`) into `moonlight-xbox/vcpkg`
+    2. Run `vcpkg/bootstrap-vcpkg.bat`
+    3. Hack `ffmpeg` port by adding `set(OPTIONS "${OPTIONS} --enable-d3d11va")` to `vcpkg/ports/ffmpeg/portfile.cmake`
+    4. Install dependencies: `vcpkg install pthread:x64-uwp pthreads:x64-uwp curl:x64-uwp openssl:x64-uwp expat:x64-uwp zlib:x64-uwp ffmpeg[avcodec,avdevice,avfilter,avformat,core,gpl,postproc,swresample,swscale]:x64-uwp nlohmann-json:x64-uwp bzip2:x64-uwp brotli:x64-uwp x264:x64-uwp freetype:x64-uwp opus:x64-uwp`
+3. Run x64 Visual Studio Prompt (Tools → Command Line → Developer Command Prompt)
+    1. Run `generate-thirdparty-projects.bat` to generate `moonlight-common-c` VS project
+    2. Go to `libgamestream` and run `build-uwp.bat` to generate `libgamestream` VS project
+4. After all the actions above, you finnally can open and build solution. Please, build it only in Release mode (Debug mode is broken)
