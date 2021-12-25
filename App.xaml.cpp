@@ -4,6 +4,7 @@
 //
 
 #include "pch.h"
+#include <Utils.hpp>
 
 using namespace moonlight_xbox_dx;
 
@@ -47,7 +48,7 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 		DebugSettings->EnableFrameRateCounter = true;
 	}
 #endif
-
+	moonlight_xbox_dx::Utils::Log("Hello from Moonlight!\n");
 	auto rootFrame = dynamic_cast<Frame^>(Window::Current->Content);
 
 	// Do not repeat app initialization when the Window already has content,
