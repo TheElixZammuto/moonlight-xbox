@@ -2,7 +2,7 @@
 A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games using GeForce Experience or [Sunshine](https://github.com/loki-47-6F-64/sunshine) for the Xbox One and Xbox Series X|S family of consoles
 
 
-**This Application uses [XBOX UWP Dev Mode](https://docs.microsoft.com/en-us/windows/uwp/xbox-apps/devkit-activation) to function properly**
+**Looking for the Store Link? Can be found here: ** (Link)[https://www.microsoft.com/store/apps/9MW1BS08ZBTH]
 
 **This application is still in early stages of development. Expect things to not work or working badly**
 
