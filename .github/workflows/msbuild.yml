@@ -24,15 +24,19 @@ jobs:
     - name: Restore VCPKG packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
-      run: Invoke-WebRequest -Uri "https://github.com/TheElixZammuto/moonlight-xbox/releases/download/1.8.5/vcpkg.zip" -OutFile ${{env.GITHUB_WORKSPACE}}\vcpkg.zip
+      run: Invoke-WebRequest -Uri "https://github.com/TheElixZammuto/moonlight-xbox/releases/download/1.8.5/vcpkg.zip" -OutFile .\vcpkg.zip
     - name: Extract VCPKG packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
-      run: Expand-Archive ${{env.GITHUB_WORKSPACE}}\vcpkg.zip -DestinationPath ${{env.GITHUB_WORKSPACE}}\vcpkg
-    - name: Extract VCPKG packages
+      run: Expand-Archive ${{env.GITHUB_WORKSPACE}}\vcpkg.zip -DestinationPath .\vcpkg
+    - name: Check
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
       run: ls
+    - name: Check 2
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: pwsh
+      run: ls vcpkg
 
 
 #    - name: Build
