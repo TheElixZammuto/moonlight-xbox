@@ -28,7 +28,7 @@ jobs:
     - name: Extract VCPKG packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
-      run: Expand-Archive ${{env.GITHUB_WORKSPACE}}\vcpkg.zip -DestinationPath .\vcpkg
+      run: Expand-Archive .\vcpkg.zip -DestinationPath .\vcpkg
     - name: Check
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
