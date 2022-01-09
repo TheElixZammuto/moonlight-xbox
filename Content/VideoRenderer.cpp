@@ -52,13 +52,15 @@ void VideoRenderer::Render()
 		//Create a rendering texture
 		LARGE_INTEGER start, end,frequency;
 		QueryPerformanceCounter(&start);
-		client->pacer->PrepareFrameForRendering();
-		auto texture = client->pacer->GetCurrentRenderingFrame();
-		if (texture == NULL || texture == nullptr) {
-			return;
+		if (client->pacer->PrepareFrameForRendering()) {
+			auto texture = client->pacer->GetCurrentRenderingFrame();
+			if (texture == NULL || texture == nullptr) {
+				return;
+			}
+			m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), texture.Get());
+			m_deviceResources->GetD3DDeviceContext()->Flush();
+			client->pacer->ReleaseTexture();
 		}
-		m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), texture.Get());
-		client->pacer->ReleaseTexture();
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
 		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);

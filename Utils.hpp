@@ -13,6 +13,8 @@ namespace moonlight_xbox_dx {
 		extern std::vector<std::wstring> logLines;
 		extern bool showLogs;
 		extern bool showStats;
+		extern float outputW;
+		extern float outputH;
 		extern StreamingStats stats;
 		Platform::String^ StringPrintf(const char* fmt, ...);
 

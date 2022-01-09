@@ -228,9 +228,8 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	bool swapDimensions = displayRotation == DXGI_MODE_ROTATION_ROTATE90 || displayRotation == DXGI_MODE_ROTATION_ROTATE270;
 	m_d3dRenderTargetSize.Width = swapDimensions ? m_outputSize.Height : m_outputSize.Width;
 	m_d3dRenderTargetSize.Height = swapDimensions ? m_outputSize.Width : m_outputSize.Height;
-	char messageOutput[2048];
-	sprintf_s(messageOutput,2047,"Using D3D Output Size of %f x %f\n", m_outputSize.Width, m_outputSize.Height);
-	moonlight_xbox_dx::Utils::Log(messageOutput);
+	moonlight_xbox_dx::Utils::outputW = m_outputSize.Width;
+	moonlight_xbox_dx::Utils::outputH = m_outputSize.Height;
 	if (m_swapChain != nullptr)
 	{
 		// If the swap chain already exists, resize it.

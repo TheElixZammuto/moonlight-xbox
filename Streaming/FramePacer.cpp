@@ -42,11 +42,18 @@ void FramePacer::Setup(int width, int height) {
 	}
 }
 void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext) {
-	VideoFrame currentFrame = frames[(decodeIndex+1) % queueSize];
-	currentFrame.frameNumber = decodeIndex +1;
-	currentFrame.decodeMutex->AcquireSync(0, 16);
+	int i = (decodeIndex + 1) % queueSize;
+	VideoFrame currentFrame = frames[i];
+	currentFrame.frameNumber = decodeIndex + 1;
+	HRESULT status = currentFrame.decodeMutex->AcquireSync(0, INFINITE);
+	if (status != S_OK) {
+		return;
+	}
 	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, NULL);
-	currentFrame.decodeMutex->ReleaseSync(1);
+	status = currentFrame.decodeMutex->ReleaseSync(1);
+	if (status != S_OK) {
+		return;
+	}
 	decodeIndex = decodeIndex + 1;
 	statsMutex.lock();
 	decodedFrames++;
@@ -72,33 +79,22 @@ void FramePacer::UpdateStats() {
 	statsMutex.unlock();
 }
 
-void FramePacer::PrepareFrameForRendering() {
-	if (decodeIndex < 0)return;
-	bool advanced = false;
+bool FramePacer::PrepareFrameForRendering() {
+	if (decodeIndex < 0)return false;
 	int nextIndex = renderIndex + 1;
-	/*if (decodeIndex - nextIndex >= 2) {
-		char msg[4096];
-		sprintf(msg,"Cathcing up: decode as %d and rendering as %d\n",decodeIndex,nextIndex);
-		moonlight_xbox_dx::Utils::Log(msg);
-		nextIndex++;
-	}*/
-	//Try a couple times before going to next frame
-	for(int i = 0; i < 16;i++){
-		if (decodeIndex - nextIndex >= 0) {
-			droppedFrames = 0;
-			if (renderIndex >= 0 && decodeIndex > 0) {
-				VideoFrame currentFrame = frames[renderIndex % queueSize];
-				currentFrame.renderMutex->ReleaseSync(0);
-			}
-			VideoFrame nextFrame = frames[nextIndex % queueSize];
-			nextFrame.renderMutex->AcquireSync(1, 16);
+	if (decodeIndex - nextIndex >= 0) {
+		int i = nextIndex % queueSize;
+		VideoFrame nextFrame = frames[i];
+		HRESULT status = nextFrame.renderMutex->AcquireSync(1, INFINITE);
+		if (status == S_OK) {
 			renderIndex = nextIndex;
-			advanced = true;
-			break;
+			return true;
 		}
-		UpdateStats();
-		//Sleep(1);
+		else {
+			return false;
+		}
 	}
+	UpdateStats();
 }
 
 Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {
@@ -111,5 +107,9 @@ Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {
 }
 
 void FramePacer::ReleaseTexture() {
-	
+	int i = renderIndex % queueSize;
+	if (renderIndex >= 0 && decodeIndex >= 0) {
+		VideoFrame currentFrame = frames[i];
+		currentFrame.renderMutex->ReleaseSync(0);
+	}
 }
