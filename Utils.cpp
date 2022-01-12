@@ -6,7 +6,7 @@
 namespace moonlight_xbox_dx {
 	namespace Utils {
 		std::vector<std::wstring> logLines;
-		bool showLogs = true;
+		bool showLogs = false;
 		bool showStats = false;
 		float outputW = 0;
 		float outputH = 0;

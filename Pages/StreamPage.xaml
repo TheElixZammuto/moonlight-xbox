@@ -10,11 +10,7 @@
     Loaded="Page_Loaded">
 
     <SwapChainPanel x:Name="swapChainPanel" Margin="{x:Bind State.ScreenMargin}">
-        <SwapChainPanel.ColumnDefinitions>
-            <ColumnDefinition Width="671*"/>
-            <ColumnDefinition Width="829*"/>
-        </SwapChainPanel.ColumnDefinitions>
-        <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" Opacity="0" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1">
+        <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1" Opacity="0">
             <FlyoutBase.AttachedFlyout>
                 <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
                     <MenuFlyoutItem x:Name="toggleMouseButton" Text="Enable Mouse Mode" Click="toggleMouseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
