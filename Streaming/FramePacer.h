@@ -11,6 +11,8 @@ struct VideoFrame
 	Microsoft::WRL::ComPtr <IDXGIKeyedMutex> renderMutex;
 	std::mutex *mutex;
 	int frameNumber;
+	int textureWidth;
+	int textureHeight;
 };
 
 class FramePacer

@@ -37,19 +37,31 @@ void FramePacer::Setup(int width, int height) {
 			renderingTexture,
 			renderingMutex,
 			new std::mutex(),
-			0
+			0,
+			width,
+			height
 		});
 	}
 }
 void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext) {
 	int i = (decodeIndex + 1) % queueSize;
 	VideoFrame currentFrame = frames[i];
+	D3D11_TEXTURE2D_DESC desc;
+	texture->GetDesc(&desc);
+	VideoFrame currentFrame = frames[(decodeIndex + 1) % queueSize];
+	D3D11_BOX box;
+	box.left = 0;
+	box.top = 0;
+	box.right = min(desc.Width, currentFrame.textureWidth);
+	box.bottom = min(desc.Height, currentFrame.textureHeight);
+	box.front = 0;
+	box.back = 1;
 	currentFrame.frameNumber = decodeIndex + 1;
 	HRESULT status = currentFrame.decodeMutex->AcquireSync(0, INFINITE);
 	if (status != S_OK) {
 		return;
 	}
-	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, NULL);
+	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, box);
 	status = currentFrame.decodeMutex->ReleaseSync(1);
 	if (status != S_OK) {
 		return;
