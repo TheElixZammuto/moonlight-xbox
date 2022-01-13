@@ -1,0 +1,64 @@
+name: MSBuild
+
+on: [push]
+
+env:
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+      
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Restore VCPKG packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: pwsh
+      run: Invoke-WebRequest -Uri "https://github.com/TheElixZammuto/moonlight-xbox/releases/download/1.8.5/vcpkg.zip" -OutFile .\vcpkg.zip
+    - name: Extract VCPKG packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: pwsh
+      run: Expand-Archive .\vcpkg.zip -DestinationPath .\vcpkg
+    - name: Build third party tools
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: .\generate-thirdparty-projects.bat
+    - name: Restore NuGet
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
+    - name: Load Certificate
+      run: |
+        $encodedBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_FILE); 
+        Set-Content "cert.pfx" -Value $encodedBytes -AsByteStream;
+      shell: pwsh
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      env:
+        CERTIFICATE_FILE: ${{ secrets.CERTIFICATE_FILE }}
+    - name: Build
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      # Add additional options to the MSBuild command line here (like platform or verbosity level).
+      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:AppxBundle=Always /p:AppxPackageDir=output /p:PackageCertificateKeyFile=cert.pfx /p:PackageCertificatePassword=$env:CERTIFICATE_PASSWORD /p:UapAppxPackageBuildMode=SideLoadOnly ${{env.SOLUTION_FILE_PATH}}
+      env:
+        CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+    - name: Load Certificate
+      run: Remove-Item -path cert.pfx
+      shell: pwsh
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: moonlight-uwp
+        path: |
+          output
