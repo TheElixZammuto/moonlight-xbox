@@ -37,7 +37,7 @@ jobs:
     - name: Restore NuGet
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
-    - name: Create secret-file.txt from B64_SECRET1
+    - name: Load Certificate
       run: |
         $encodedBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_FILE); 
         Set-Content "cert.pfx" -Value $encodedBytes -AsByteStream;
@@ -52,9 +52,13 @@ jobs:
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:AppxBundle=Always /p:AppxPackageDir=output /p:PackageCertificateKeyFile=cert.pfx /p:PackageCertificatePassword=$env:CERTIFICATE_PASSWORD ${{env.SOLUTION_FILE_PATH}}
       env:
         CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+    - name: Load Certificate
+      run: Remove-Item -path cert.pfx
+      shell: pwsh
+      working-directory: ${{env.GITHUB_WORKSPACE}}
     - name: Archive artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: dist-without-markdown
+        name: moonlight-uwp
         path: |
           output
