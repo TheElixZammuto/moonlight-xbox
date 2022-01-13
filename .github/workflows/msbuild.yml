@@ -40,10 +40,10 @@ jobs:
     - name: Create secret-file.txt from B64_SECRET1
       id: secret-file1
       run: |
-        $secretFile = Join-Path -Path $env:GITHUB_WORKSPACE -ChildPath "cert.pfx"; 
         $encodedBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_FILE); 
-        Set-Content $secretFile -Value $encodedBytes -AsByteStream;
+        Set-Content "cert.pfx" -Value $encodedBytes -AsByteStream;
       shell: pwsh
+      working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
         CERTIFICATE_DATA: ${{ secrets.CERTIFICATE_DATA }}
     - name: Build
