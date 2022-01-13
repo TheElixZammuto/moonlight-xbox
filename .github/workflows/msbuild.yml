@@ -38,14 +38,13 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
     - name: Create secret-file.txt from B64_SECRET1
-      id: secret-file1
       run: |
         $encodedBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_FILE); 
         Set-Content "cert.pfx" -Value $encodedBytes -AsByteStream;
       shell: pwsh
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
-        CERTIFICATE_DATA: ${{ secrets.CERTIFICATE_DATA }}
+        CERTIFICATE_FILE: ${{ secrets.CERTIFICATE_FILE }}
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
