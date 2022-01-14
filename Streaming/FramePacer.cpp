@@ -48,7 +48,6 @@ void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int
 	VideoFrame currentFrame = frames[i];
 	D3D11_TEXTURE2D_DESC desc;
 	texture->GetDesc(&desc);
-	VideoFrame currentFrame = frames[(decodeIndex + 1) % queueSize];
 	D3D11_BOX box;
 	box.left = 0;
 	box.top = 0;
