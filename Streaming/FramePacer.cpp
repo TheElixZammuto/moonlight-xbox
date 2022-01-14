@@ -61,7 +61,7 @@ void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int
 	if (status != S_OK) {
 		return;
 	}
-	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, box);
+	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, &box);
 	status = currentFrame.decodeMutex->ReleaseSync(1);
 	if (status != S_OK) {
 		return;
