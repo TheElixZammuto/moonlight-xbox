@@ -226,10 +226,19 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	DXGI_MODE_ROTATION displayRotation = ComputeDisplayRotation();
 
 	bool swapDimensions = displayRotation == DXGI_MODE_ROTATION_ROTATE90 || displayRotation == DXGI_MODE_ROTATION_ROTATE270;
-	m_d3dRenderTargetSize.Width = swapDimensions ? m_outputSize.Height : m_outputSize.Width;
-	m_d3dRenderTargetSize.Height = swapDimensions ? m_outputSize.Width : m_outputSize.Height;
-	moonlight_xbox_dx::Utils::outputW = m_outputSize.Width;
-	moonlight_xbox_dx::Utils::outputH = m_outputSize.Height;
+	//Get the correct screen resolution and adapt the swapchain to 16:9 aspect ratio
+	float normalizedWidth = uwp_get_width();
+	float normalizedHeight = uwp_get_height();
+	if (normalizedHeight >= (normalizedWidth / 16.0f * 9.0f)) {
+		normalizedHeight = (normalizedWidth / 16.0f * 9.0f);
+	}
+	else {
+		normalizedWidth = normalizedHeight / 9.0f * 16.0f;
+	}
+	m_d3dRenderTargetSize.Width = normalizedWidth;
+	m_d3dRenderTargetSize.Height = normalizedHeight;
+	moonlight_xbox_dx::Utils::outputW = m_d3dRenderTargetSize.Width;
+	moonlight_xbox_dx::Utils::outputH = m_d3dRenderTargetSize.Height;
 	if (m_swapChain != nullptr)
 	{
 		// If the swap chain already exists, resize it.
@@ -469,14 +478,6 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 	m_effectiveDpi = m_dpi;
 	m_effectiveCompositionScaleX = m_compositionScaleX;
 	m_effectiveCompositionScaleY = m_compositionScaleY;
-    
-	// Calculate the necessary render target size in pixels.
-	m_outputSize.Width = DX::ConvertDipsToPixels(m_logicalSize.Width, m_effectiveDpi);
-	m_outputSize.Height = DX::ConvertDipsToPixels(m_logicalSize.Height, m_effectiveDpi);
-
-	// Prevent zero size DirectX content from being created.
-	m_outputSize.Width = max(m_outputSize.Width, 1);
-	m_outputSize.Height = max(m_outputSize.Height, 1);
 }
 
 // This method is called when the XAML control is created (or re-created).
@@ -709,4 +710,39 @@ DXGI_MODE_ROTATION DX::DeviceResources::ComputeDisplayRotation()
 		break;
 	}
 	return rotation;
+}
+
+
+//Thank you tunip3 for https://github.com/libretro/RetroArch/pull/13406/files
+//Check if we are running on Xbox
+bool is_running_on_xbox(void)
+{
+	Platform::String^ device_family = Windows::System::Profile::AnalyticsInfo::VersionInfo->DeviceFamily;
+	return (device_family == L"Windows.Xbox");
+}
+
+int DX::DeviceResources::uwp_get_height()
+{
+	if (is_running_on_xbox())
+	{
+		const Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+		if (hdi)
+			return Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionHeightInRawPixels;
+	}
+	const LONG32 resolution_scale = static_cast<LONG32>(Windows::Graphics::Display::DisplayInformation::GetForCurrentView()->ResolutionScale);
+	auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;
+	return static_cast<LONG32>(CoreWindow::GetForCurrentThread()->Bounds.Height * surface_scale);
+}
+
+int DX::DeviceResources::uwp_get_width()
+{
+	if (is_running_on_xbox())
+	{
+		const Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+		if (hdi)
+			return Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionWidthInRawPixels;
+	}
+	const LONG32 resolution_scale = static_cast<LONG32>(Windows::Graphics::Display::DisplayInformation::GetForCurrentView()->ResolutionScale);
+	auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;
+	return static_cast<LONG32>(CoreWindow::GetForCurrentThread()->Bounds.Width * surface_scale);
 }
