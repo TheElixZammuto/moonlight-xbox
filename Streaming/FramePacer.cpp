@@ -4,7 +4,7 @@
 #include <Utils.hpp>
 #include <synchapi.h>
 
-void FramePacer::Setup(int width, int height) {
+void FramePacer::Setup(int width, int height, int fps) {
 	D3D11_TEXTURE2D_DESC desc;
 	desc.ArraySize = 1;
 	desc.Format = DXGI_FORMAT_NV12;
@@ -42,6 +42,8 @@ void FramePacer::Setup(int width, int height) {
 			height
 		});
 	}
+
+	this->fps = fps;
 }
 void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext) {
 	int i = (decodeIndex + 1) % queueSize;
@@ -56,7 +58,7 @@ void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int
 	box.front = 0;
 	box.back = 1;
 	currentFrame.frameNumber = decodeIndex + 1;
-	HRESULT status = currentFrame.decodeMutex->AcquireSync(0, INFINITE);
+	HRESULT status = currentFrame.decodeMutex->AcquireSync(0, 1000 / fps);
 	if (status != S_OK) {
 		return;
 	}
@@ -106,6 +108,7 @@ bool FramePacer::PrepareFrameForRendering() {
 		}
 	}
 	UpdateStats();
+	return false;
 }
 
 Microsoft::WRL::ComPtr<ID3D11Texture2D> FramePacer::GetCurrentRenderingFrame() {

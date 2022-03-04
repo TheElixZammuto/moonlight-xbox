@@ -18,7 +18,7 @@ struct VideoFrame
 class FramePacer
 {
 public:
-	void Setup(int width, int height);
+	void Setup(int width, int height, int fps);
 	void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture, int index, Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext);
 	int queueSize = 3;
 	int catchUpThreshold = 4;
@@ -40,5 +40,6 @@ private:
 	LARGE_INTEGER lastTimer;
 	LARGE_INTEGER frequency;
 	std::vector<VideoFrame> frames;
+	int fps;
 };
 

@@ -127,7 +127,7 @@ namespace moonlight_xbox_dx {
 			}
 		}
 		pacer->decodingDevice = ffmpegDevice.Get();
-		pacer->Setup(width, height);
+		pacer->Setup(width, height, redrawRate);
 		return 0;
 	}
 
