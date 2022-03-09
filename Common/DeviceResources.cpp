@@ -229,12 +229,12 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	//Get the correct screen resolution and adapt the swapchain to 16:9 aspect ratio
 	float normalizedWidth = uwp_get_width();
 	float normalizedHeight = uwp_get_height();
-	if (normalizedHeight >= (normalizedWidth / 16.0f * 9.0f)) {
+	/*if(normalizedHeight >= (normalizedWidth / 16.0f * 9.0f)) {
 		normalizedHeight = (normalizedWidth / 16.0f * 9.0f);
 	}
 	else {
 		normalizedWidth = normalizedHeight / 9.0f * 16.0f;
-	}
+	}*/
 	m_d3dRenderTargetSize.Width = normalizedWidth;
 	m_d3dRenderTargetSize.Height = normalizedHeight;
 	moonlight_xbox_dx::Utils::outputW = m_d3dRenderTargetSize.Width;
