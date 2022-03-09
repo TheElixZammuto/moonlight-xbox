@@ -45,7 +45,7 @@ void FramePacer::Setup(int width, int height, int fps) {
 
 	this->fps = fps;
 }
-void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext) {
+void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int index,Microsoft::WRL::ComPtr<ID3D11DeviceContext> decodeContext, Microsoft::WRL::ComPtr<ID3D11Device> decodeDevice) {
 	int i = (decodeIndex + 1) % queueSize;
 	VideoFrame currentFrame = frames[i];
 	D3D11_TEXTURE2D_DESC desc;
@@ -62,7 +62,22 @@ void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int
 	if (status != S_OK) {
 		return;
 	}
+	//According to https://stackoverflow.com/questions/64283447/how-to-understand-the-asynchrony-of-copyresource
+	D3D11_QUERY_DESC queryDesc;
+	queryDesc.Query = D3D11_QUERY_EVENT;
+	queryDesc.MiscFlags = 0;
+	ID3D11Query* pQuery;
+	status = decodeDevice->CreateQuery(&queryDesc, &pQuery);
+	if (status != S_OK) {
+		return;
+	}
 	decodeContext->CopySubresourceRegion(currentFrame.decodeTexture.Get(), 0, 0, 0, 0, texture.Get(), index, &box);
+	decodeContext->Flush();
+	decodeContext->End(pQuery);
+	HRESULT dataStatus = -1;
+	do {
+		dataStatus = decodeContext->GetData(pQuery, NULL, 0, 0);
+	} while (dataStatus != S_OK);
 	status = currentFrame.decodeMutex->ReleaseSync(1);
 	if (status != S_OK) {
 		return;

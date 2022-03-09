@@ -213,7 +213,7 @@ namespace moonlight_xbox_dx {
 			AVFrame* frame = dec_frames[next_frame];
 			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
 			int index = (int)(frame->data[1]);
-			pacer->SubmitFrame(ffmpegTexture, index, ffmpegDeviceContext);
+			pacer->SubmitFrame(ffmpegTexture, index, ffmpegDeviceContext,ffmpegDevice);
 		}
 		return 0;
 	}
