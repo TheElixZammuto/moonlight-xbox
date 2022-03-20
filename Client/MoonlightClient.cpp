@@ -177,7 +177,7 @@ std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 	return values;
 }
 
-void MoonlightClient::SendGamepadReading(GamepadReading reading) {
+void MoonlightClient::SendGamepadReading(short controllerNumber, GamepadReading reading) {
 	int buttonFlags = 0;
 	GamepadButtons buttons[] = { GamepadButtons::A,GamepadButtons::B,GamepadButtons::X,GamepadButtons::Y,GamepadButtons::DPadLeft,GamepadButtons::DPadRight,GamepadButtons::DPadUp,GamepadButtons::DPadDown,GamepadButtons::LeftShoulder,GamepadButtons::RightShoulder,GamepadButtons::Menu,GamepadButtons::View,GamepadButtons::LeftThumbstick,GamepadButtons::RightThumbstick };
 	int LiButtonFlags[] = { A_FLAG,B_FLAG,X_FLAG,Y_FLAG,LEFT_FLAG,RIGHT_FLAG,UP_FLAG,DOWN_FLAG,LB_FLAG,RB_FLAG,PLAY_FLAG,BACK_FLAG,LS_CLK_FLAG,RS_CLK_FLAG };
@@ -186,7 +186,7 @@ void MoonlightClient::SendGamepadReading(GamepadReading reading) {
 			buttonFlags |= LiButtonFlags[i];
 		}
 	}
-	LiSendControllerEvent(buttonFlags, (short)(reading.LeftTrigger * 32767), (short)(reading.RightTrigger * 32767), (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
+	LiSendMultiControllerEvent(controllerNumber, activeGamepadMask, buttonFlags, (short)(reading.LeftTrigger * 32767), (short)(reading.RightTrigger * 32767), (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
 }
 
 
@@ -208,6 +208,10 @@ void MoonlightClient::SendScroll(float value) {
 
 void MoonlightClient::SetSoftwareEncoder(bool value) {
 	useSoftwareEncoder = value;
+}
+
+void MoonlightClient::SetGamepadCount(short count) {
+	activeGamepadMask = (1 << count) - 1;
 }
 
 int MoonlightClient::GetRunningAppID() {

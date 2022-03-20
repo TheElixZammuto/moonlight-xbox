@@ -111,57 +111,59 @@ void moonlight_xbox_dxMain::ProcessInput()
 	
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	if (gamepads->Size == 0)return;
-	Windows::Gaming::Input::Gamepad^ gamepad = gamepads->GetAt(0);
-	auto reading = gamepad->GetCurrentReading();
-	//If this combination is pressed on gamed we should handle some magic things :)
-	GamepadButtons magicKey[] = { GamepadButtons::Menu,GamepadButtons::View };
-	bool isCurrentlyPressed = true;
-	for (auto k : magicKey) {
-		if ((reading.Buttons & k) != k) {
-			isCurrentlyPressed = false;
-			break;
-		}
-	}
-	if (isCurrentlyPressed) {
-		m_dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
-			Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_flyoutButton);
-		}));
-		insideFlyout = true;
-	}
-	if (insideFlyout)return;
-	//If mouse mode is enabled the gamepad acts as a mouse, instead we pass the raw events to the host
-	if (mouseMode) {
-		//Position
-		moonlightClient->SendMousePosition(reading.LeftThumbstickX * 5, reading.LeftThumbstickY * -5);
-		//Left Click
-		if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {
-			if (!leftMouseButtonPressed) {
-				leftMouseButtonPressed = true;
-				moonlightClient->SendMousePressed(BUTTON_LEFT);
+	moonlightClient->SetGamepadCount(gamepads->Size);
+	for (int i = 0; i < gamepads->Size; i++) {
+		Windows::Gaming::Input::Gamepad^ gamepad = gamepads->GetAt(i);
+		auto reading = gamepad->GetCurrentReading();
+		//If this combination is pressed on gamed we should handle some magic things :)
+		GamepadButtons magicKey[] = { GamepadButtons::Menu,GamepadButtons::View };
+		bool isCurrentlyPressed = true;
+		for (auto k : magicKey) {
+			if ((reading.Buttons & k) != k) {
+				isCurrentlyPressed = false;
+				break;
 			}
 		}
-		else if (leftMouseButtonPressed) {
-			leftMouseButtonPressed = false;
-			moonlightClient->SendMouseReleased(BUTTON_LEFT);
+		if (isCurrentlyPressed) {
+			m_dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
+				Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_flyoutButton);
+			}));
+			insideFlyout = true;
 		}
-		//Right Click
-		if ((reading.Buttons & GamepadButtons::X) == GamepadButtons::X) {
-			if (!rightMouseButtonPressed) {
-				rightMouseButtonPressed = true;
-				moonlightClient->SendMousePressed(BUTTON_RIGHT);
+		if (insideFlyout)return;
+		//If mouse mode is enabled the gamepad acts as a mouse, instead we pass the raw events to the host
+		if (mouseMode) {
+			//Position
+			moonlightClient->SendMousePosition(reading.LeftThumbstickX * 5, reading.LeftThumbstickY * -5);
+			//Left Click
+			if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {
+				if (!leftMouseButtonPressed) {
+					leftMouseButtonPressed = true;
+					moonlightClient->SendMousePressed(BUTTON_LEFT);
+				}
 			}
+			else if (leftMouseButtonPressed) {
+				leftMouseButtonPressed = false;
+				moonlightClient->SendMouseReleased(BUTTON_LEFT);
+			}
+			//Right Click
+			if ((reading.Buttons & GamepadButtons::X) == GamepadButtons::X) {
+				if (!rightMouseButtonPressed) {
+					rightMouseButtonPressed = true;
+					moonlightClient->SendMousePressed(BUTTON_RIGHT);
+				}
+			}
+			else if (rightMouseButtonPressed) {
+				rightMouseButtonPressed = false;
+				moonlightClient->SendMouseReleased(BUTTON_RIGHT);
+			}
+			//Scroll
+			moonlightClient->SendScroll(reading.RightThumbstickY);
 		}
-		else if (rightMouseButtonPressed) {
-			rightMouseButtonPressed = false;
-			moonlightClient->SendMouseReleased(BUTTON_RIGHT);
+		else {
+			moonlightClient->SendGamepadReading(i, reading);
 		}
-		//Scroll
-		moonlightClient->SendScroll(reading.RightThumbstickY);
 	}
-	else {
-		moonlightClient->SendGamepadReading(reading);
-	}
-	
 }
 
 
