@@ -3,6 +3,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 
 
 **Looking for the Store Link? Can be found here:** [Link](https://www.microsoft.com/store/apps/9MW1BS08ZBTH)
+
 **Looking for the Dev Mode Builds? Can be found here:** [Link](https://github.com/TheElixZammuto/moonlight-xbox/releases)
 
 **This application is still in early stages of development. Expect things to not work or working badly**
