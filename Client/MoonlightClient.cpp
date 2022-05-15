@@ -22,8 +22,7 @@ void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
 MoonlightClient::MoonlightClient() {
-	FramePacer* p = new FramePacer();
-	this->pacer = p;
+	
 }
 
 void MoonlightClient::StopApp() {
@@ -66,7 +65,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	callbacks.stageFailed = stage_failed;
 	callbacks.stageComplete = connection_status_update;
 	callbacks.rumble = connection_rumble;
-	FFMpegDecoder::createDecoderInstance(res, this->pacer);
+	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
 	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);

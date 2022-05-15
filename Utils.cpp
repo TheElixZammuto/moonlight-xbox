@@ -6,8 +6,8 @@
 namespace moonlight_xbox_dx {
 	namespace Utils {
 		std::vector<std::wstring> logLines;
-		bool showLogs = false;
-		bool showStats = false;
+		bool showLogs = true;
+		bool showStats = true;
 		float outputW = 0;
 		float outputH = 0;
 		StreamingStats stats;

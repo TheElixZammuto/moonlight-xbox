@@ -81,9 +81,6 @@
     <ClCompile Include="Streaming\FFmpegDecoder.cpp">
       <Filter>Streaming</Filter>
     </ClCompile>
-    <ClCompile Include="Streaming\FramePacer.cpp">
-      <Filter>Streaming</Filter>
-    </ClCompile>
     <ClCompile Include="Streaming\AudioPlayer.cpp">
       <Filter>Streaming</Filter>
     </ClCompile>
@@ -119,9 +116,6 @@
       <Filter>Content</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\FFmpegDecoder.h">
-      <Filter>Streaming</Filter>
-    </ClInclude>
-    <ClInclude Include="Streaming\FramePacer.h">
       <Filter>Streaming</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\AudioPlayer.h">
@@ -199,9 +193,6 @@
       <Filter>DLLs</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libssl-1_1-x64.dll">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\libx264-163.dll">
       <Filter>DLLs</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="vcpkg\installed\x64-uwp\bin\postproc-55.dll">

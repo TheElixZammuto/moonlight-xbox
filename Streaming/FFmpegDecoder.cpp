@@ -62,7 +62,6 @@ namespace moonlight_xbox_dx {
 			D3D_FEATURE_LEVEL_9_2,
 			D3D_FEATURE_LEVEL_9_1
 		};
-		ID3D11Device *dev;
 		UINT creationFlags = 0;
 		#if defined(_DEBUG)
 				if (DX::SdkLayersAvailable())
@@ -71,14 +70,11 @@ namespace moonlight_xbox_dx {
 					creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
 				}
 		#endif
-		D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, creationFlags, featureLevels, 6, D3D11_SDK_VERSION, &dev, NULL, ffmpegDeviceContext.GetAddressOf());
-		//DX11-FFMpeg association
-		ffmpegDevice = (ID3D11Device1*)dev;
 	    AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
 		device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
 		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
-		d3d11va_device_ctx->device = dev;
-		d3d11va_device_ctx->device_context = ffmpegDeviceContext.Get();
+		d3d11va_device_ctx->device = this->resources->GetD3DDevice();
+		d3d11va_device_ctx->device_context = this->resources->GetD3DDeviceContext();
 		int err2;
 		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
 			char msg[2048];
@@ -126,8 +122,6 @@ namespace moonlight_xbox_dx {
 				return -1;
 			}
 		}
-		pacer->decodingDevice = ffmpegDevice.Get();
-		pacer->Setup(width, height, redrawRate);
 		return 0;
 	}
 
@@ -143,19 +137,22 @@ namespace moonlight_xbox_dx {
 		//av_free_packet(&pkt);
 		avcodec_close(decoder_ctx);
 		avcodec_free_context(&decoder_ctx);
-		ffmpegDevice->Release();
-		ffmpegDeviceContext->Release();
+		//ffmpegDevice->Release();
+		//ffmpegDeviceContext->Release();
 		free(ready_frames);
 		free(dec_frames);
 		free(ffmpeg_buffer);
-		pacer = NULL;
 		Utils::Log("Decoding Clean\n");
 	}
 
-	int FFMpegDecoder::SubmitDU(PDECODE_UNIT decodeUnit) {
+	void FFMpegDecoder::SubmitDU() {
+		PDECODE_UNIT decodeUnit = nullptr;
+		VIDEO_FRAME_HANDLE frameHandle = nullptr;
+		bool status = LiWaitForNextVideoFrame(&frameHandle, &decodeUnit);
+		if (status == false)return;
 		if (decodeUnit->fullLength > DECODER_BUFFER_SIZE) {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
-			return -1;
+			return;
 		}
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
@@ -167,12 +164,9 @@ namespace moonlight_xbox_dx {
 		int err;
 		err = Decode(ffmpeg_buffer, length);
 		if (err < 0) {
-			char errorstringnew[1024];
-			sprintf(errorstringnew, "!!!!!!!Error from FFMPEG while decoding: %s\n", errorstringnew);
-			Utils::Log(errorstringnew);
-			return DR_NEED_IDR;
+			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
 		}
-		return DR_OK;
+		LiCompleteVideoFrame(frameHandle, DR_OK);
 	}
 
 	int FFMpegDecoder::Decode(unsigned char* indata, int inlen) {
@@ -190,40 +184,30 @@ namespace moonlight_xbox_dx {
 			Utils::Log(errorstringnew);
 			return err == 1 ? 0 : err;
 		}
-		err = GetFrame();
-		if (err != 0) {
-			char errorstringnew[1024];
-			sprintf(errorstringnew, "Error GetFrame: %d\n", AVERROR(err));
-			Utils::Log(errorstringnew);
-			return err;
-		}
-		int te = GetTickCount64();
 		return err < 0 ? err : 0;
 	}
 
-	int FFMpegDecoder::GetFrame() {
+	AVFrame* FFMpegDecoder::GetFrame() {
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
 		if (err != 0 && err != AVERROR(EAGAIN)) {
 			char errorstringnew[1024];
 			sprintf(errorstringnew, "Error avcodec_receive_frame: %d\n", AVERROR(err));
 			Utils::Log(errorstringnew);
-			return err;
+			return nullptr;
 		}
 		if (err == 0) {
 			AVFrame* frame = dec_frames[next_frame];
-			ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
-			int index = (int)(frame->data[1]);
-			pacer->SubmitFrame(ffmpegTexture, index, ffmpegDeviceContext,ffmpegDevice);
+			return frame;
 		}
-		return 0;
+		return nullptr;
 	}
 	
 	//Helpers
 	FFMpegDecoder *instance;
 
-	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, FramePacer *pacer) {
+	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources) {
 		if (instance == NULL) {
-			instance = new FFMpegDecoder(resources, pacer);
+			instance = new FFMpegDecoder(resources);
 		}
 		return instance;
 	}
@@ -247,7 +231,8 @@ namespace moonlight_xbox_dx {
 		instance = NULL;
 	}
 	int submitCallback(PDECODE_UNIT decodeUnit) {
-		return instance->SubmitDU(decodeUnit);
+		instance->SubmitDU();
+		return 0;
 	}
 
 	FFMpegDecoder* FFMpegDecoder::getInstance() {
@@ -261,8 +246,8 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.start = startCallback;
 		decoder_callbacks_sdl.stop = stopCallback;
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
-		decoder_callbacks_sdl.submitDecodeUnit = submitCallback;
-		decoder_callbacks_sdl.capabilities = CAPABILITY_DIRECT_SUBMIT | CAPABILITY_REFERENCE_FRAME_INVALIDATION_AVC | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC;
+		//decoder_callbacks_sdl.submitDecodeUnit = submitCallback;
+		decoder_callbacks_sdl.capabilities = CAPABILITY_REFERENCE_FRAME_INVALIDATION_AVC | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC | CAPABILITY_PULL_RENDERER;
 		return decoder_callbacks_sdl;
 	}
 }

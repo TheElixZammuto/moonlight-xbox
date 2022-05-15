@@ -1,7 +1,6 @@
 #pragma once
 #include "pch.h"
 #include "Common/DeviceResources.h"
-#include <Streaming\FramePacer.h>
 #include <Client/StreamConfiguration.h>
 #include "State\MoonlightApp.h"
 extern "C" {
@@ -32,7 +31,6 @@ namespace moonlight_xbox_dx {
 		void StopStreaming();
 		void StopApp();
 		void Unpair();
-		FramePacer *pacer;
 		Platform::String^ GetInstanceID();
 	private:
 		SERVER_DATA serverData;
