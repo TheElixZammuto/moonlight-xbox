@@ -58,7 +58,7 @@ void FramePacer::SubmitFrame(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture,int
 	box.front = 0;
 	box.back = 1;
 	currentFrame.frameNumber = decodeIndex + 1;
-	HRESULT status = currentFrame.decodeMutex->AcquireSync(0, 1000 / fps);
+	HRESULT status = currentFrame.decodeMutex->AcquireSync(0, 500 / fps);
 	if (status != S_OK) {
 		return;
 	}
