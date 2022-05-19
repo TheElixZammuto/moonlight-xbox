@@ -21,12 +21,13 @@ namespace moonlight_xbox_dx {
 		int Pair();
 		char *GeneratePIN();
 		std::vector<MoonlightApp^> MoonlightClient::GetApplications();
-		void SendGamepadReading(Windows::Gaming::Input::GamepadReading reading);
+		void SendGamepadReading(short controllerNumber, Windows::Gaming::Input::GamepadReading reading);
 		void SendMousePosition(float x, float y);
 		void SendMousePressed(int button);
 		void SendMouseReleased(int button);
 		void SendScroll(float value);
 		void SetSoftwareEncoder(bool value);
+		void SetGamepadCount(short count);
 		int GetRunningAppID();
 		void StopStreaming();
 		void StopApp();
@@ -37,5 +38,6 @@ namespace moonlight_xbox_dx {
 		char* connectionPin = NULL;
 		char* hostname = NULL;
 		bool useSoftwareEncoder = false;
+		int activeGamepadMask = 0;
 	};
 }
