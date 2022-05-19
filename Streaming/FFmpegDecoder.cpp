@@ -246,7 +246,7 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.start = startCallback;
 		decoder_callbacks_sdl.stop = stopCallback;
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
-		//decoder_callbacks_sdl.submitDecodeUnit = submitCallback;
+		decoder_callbacks_sdl.submitDecodeUnit = NULL;
 		decoder_callbacks_sdl.capabilities = CAPABILITY_REFERENCE_FRAME_INVALIDATION_AVC | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC | CAPABILITY_PULL_RENDERER;
 		return decoder_callbacks_sdl;
 	}
