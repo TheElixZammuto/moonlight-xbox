@@ -165,6 +165,7 @@ namespace moonlight_xbox_dx {
 		err = Decode(ffmpeg_buffer, length);
 		if (err < 0) {
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
+			return;
 		}
 		LiCompleteVideoFrame(frameHandle, DR_OK);
 	}
