@@ -224,7 +224,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>avcodec.lib;avutil.lib;swscale.lib;d2d1.lib; d3d11.lib; dxgi.lib; windowscodecs.lib; dwrite.lib;opus.lib; %(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)/libgamestream/build/$(Configuration)/gamestream.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib; d3d11.lib; dxgi.lib; windowscodecs.lib; dwrite.lib;opus.lib; %(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg\installed\x64-uwp\lib;$(VCInstallDir)\lib\store\amd64;$(VCInstallDir)\lib\amd64</AdditionalLibraryDirectories>
     </Link>
     <ClCompile>
@@ -338,7 +338,6 @@
     <ClInclude Include="State\MoonlightHost.h" />
     <ClInclude Include="Streaming\AudioPlayer.h" />
     <ClInclude Include="Streaming\FFmpegDecoder.h" />
-    <ClInclude Include="Streaming\FramePacer.h" />
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
     <ClInclude Include="Utils.hpp" />
   </ItemGroup>
@@ -382,7 +381,6 @@
     <ClCompile Include="State\MoonlightHost.cpp" />
     <ClCompile Include="Streaming\AudioPlayer.cpp" />
     <ClCompile Include="Streaming\FFmpegDecoder.cpp" />
-    <ClCompile Include="Streaming\FramePacer.cpp" />
     <ClCompile Include="Streaming\moonlight_xbox_dxMain.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>

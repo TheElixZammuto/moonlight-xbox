@@ -52,15 +52,21 @@ void VideoRenderer::Render()
 		//Create a rendering texture
 		LARGE_INTEGER start, end,frequency;
 		QueryPerformanceCounter(&start);
-		if (client->pacer->PrepareFrameForRendering()) {
-			auto texture = client->pacer->GetCurrentRenderingFrame();
-			if (texture == NULL || texture == nullptr) {
-				return;
-			}
-			m_deviceResources->GetD3DDeviceContext()->CopyResource(renderTexture.Get(), texture.Get());
-			m_deviceResources->GetD3DDeviceContext()->Flush();
-			client->pacer->ReleaseTexture();
-		}
+		FFMpegDecoder::getInstance()->SubmitDU();
+		AVFrame *frame = FFMpegDecoder::getInstance()->GetFrame();
+		if (frame == nullptr)return;
+		ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
+		D3D11_TEXTURE2D_DESC desc;
+		ffmpegTexture->GetDesc(&desc);
+		int index = (int)(frame->data[1]);
+		D3D11_BOX box;
+		box.left = 0;
+		box.top = 0;
+		box.right = min(configuration->width,desc.Width);
+		box.bottom = min(configuration->width,desc.Height);
+		box.front = 0;
+		box.back = 1;
+		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
 		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
@@ -98,7 +104,8 @@ void VideoRenderer::Render()
 		/*char msg[4096];
 		sprintf(msg, "Rendering took %f ms\n", ms);
 		Utils::Log(msg);*/
-		client->pacer->totalRenderingTime += ms;
+		Utils::stats.averageRenderingTime = ms;
+		//client->pacer->totalRenderingTime += ms;
 		//m_luminance_shader_resource_view->Release();
 		//m_chrominance_shader_resource_view->Release();
 }
@@ -252,7 +259,6 @@ void VideoRenderer::CreateDeviceDependentResources()
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()),"Render Texture Creation");
 	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
 	createCubeTask.then([this,width,height] () {
-		client->pacer->renderingDevice = m_deviceResources->GetD3DDevice();
 		int status = client->StartStreaming(m_deviceResources, configuration);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();

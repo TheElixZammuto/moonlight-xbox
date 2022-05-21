@@ -2,8 +2,6 @@
 
 #include "Common/DeviceResources.h"
 #include<queue>
-#include <Streaming\FramePacer.h>
-
 
 extern "C" {
 #include <Limelight.h>
@@ -17,20 +15,18 @@ namespace moonlight_xbox_dx
 	
 	class FFMpegDecoder {
 	public: 
-		FFMpegDecoder(std::shared_ptr<DX::DeviceResources> r, FramePacer *pacer) {
+		FFMpegDecoder(std::shared_ptr<DX::DeviceResources> r) {
 			resources = r;
-			this->pacer = pacer;
 		};
 		int Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags);
 		void Start();
 		void Stop();
 		void Cleanup();
-		int SubmitDU(PDECODE_UNIT decodeUnit);
-		int GetFrame();
+		void SubmitDU();
+		AVFrame* GetFrame();
 		static FFMpegDecoder* getInstance();
 		static DECODER_RENDERER_CALLBACKS getDecoder();
-		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources, FramePacer *pacer);
-		FramePacer *pacer;
+		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources);
 	private:
 		int Decode(unsigned char* indata, int inlen);
 		AVPacket pkt;
@@ -44,7 +40,5 @@ namespace moonlight_xbox_dx
 		AVFrame** ready_frames;
 		int next_frame, current_frame;
 		std::shared_ptr<DX::DeviceResources> resources;
-		Microsoft::WRL::ComPtr<ID3D11Device1> ffmpegDevice;
-		Microsoft::WRL::ComPtr<ID3D11DeviceContext> ffmpegDeviceContext;
 	};
 }
