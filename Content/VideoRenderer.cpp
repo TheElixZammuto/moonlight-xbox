@@ -62,8 +62,8 @@ void VideoRenderer::Render()
 		D3D11_BOX box;
 		box.left = 0;
 		box.top = 0;
-		box.right = desc.Width;
-		box.bottom = desc.Height;
+		box.right = min(configuration->width,desc.Width);
+		box.bottom = min(configuration->width,desc.Height);
 		box.front = 0;
 		box.back = 1;
 		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);

@@ -38,6 +38,7 @@ namespace moonlight_xbox_dx {
 	AUDIO_RENDERER_CALLBACKS AudioPlayer::getDecoder() {
 		instance = AudioPlayer::getInstance();
 		AUDIO_RENDERER_CALLBACKS decoder_callbacks_sdl;
+		LiInitializeAudioCallbacks(&decoder_callbacks_sdl);
 		decoder_callbacks_sdl.init = audioInitCallback;
 		decoder_callbacks_sdl.start = audioStartCallback;
 		decoder_callbacks_sdl.stop = audioStopCallback;

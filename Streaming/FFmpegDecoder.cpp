@@ -152,6 +152,7 @@ namespace moonlight_xbox_dx {
 		if (status == false)return;
 		if (decodeUnit->fullLength > DECODER_BUFFER_SIZE) {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
+			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
 			return;
 		}
 		PLENTRY entry = decodeUnit->bufferList;
@@ -231,11 +232,7 @@ namespace moonlight_xbox_dx {
 		delete instance;
 		instance = NULL;
 	}
-	int submitCallback(PDECODE_UNIT decodeUnit) {
-		instance->SubmitDU();
-		return 0;
-	}
-
+	
 	FFMpegDecoder* FFMpegDecoder::getInstance() {
 		return instance;
 	}
@@ -243,12 +240,13 @@ namespace moonlight_xbox_dx {
 	DECODER_RENDERER_CALLBACKS FFMpegDecoder::getDecoder() {
 		instance = FFMpegDecoder::getInstance();
 		DECODER_RENDERER_CALLBACKS decoder_callbacks_sdl;
+		LiInitializeVideoCallbacks(&decoder_callbacks_sdl);
 		decoder_callbacks_sdl.setup = initCallback;
 		decoder_callbacks_sdl.start = startCallback;
 		decoder_callbacks_sdl.stop = stopCallback;
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
 		decoder_callbacks_sdl.submitDecodeUnit = NULL;
-		decoder_callbacks_sdl.capabilities = CAPABILITY_REFERENCE_FRAME_INVALIDATION_AVC | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC | CAPABILITY_PULL_RENDERER;
+		decoder_callbacks_sdl.capabilities =  CAPABILITY_PULL_RENDERER;
 		return decoder_callbacks_sdl;
 	}
 }

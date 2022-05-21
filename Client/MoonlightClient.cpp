@@ -35,6 +35,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	const char* charStr = fooA.c_str();
 	this->Connect(charStr);
 	STREAM_CONFIGURATION config;
+	LiInitializeStreamConfiguration(&config);
 	config.width = sConfig->width;
 	config.height = sConfig->height;
 	config.bitrate = sConfig->bitrate;
@@ -55,11 +56,15 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	char message[2048];
 	sprintf(message, "Inserted App ID %d\n", sConfig->appID);
 	Utils::Log(message);
-	int a = gs_start_app(&serverData, &config, sConfig->appID, false, true, 0);
+	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
+	//Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
+	this->SetGamepadCount(max(1, gamepads->Size));
+	int a = gs_start_app(&serverData, &config, sConfig->appID, false, false, activeGamepadMask);
 	if (a != 0) {
 		Utils::Log("Failed to start app");
 	}
 	CONNECTION_LISTENER_CALLBACKS callbacks;
+	LiInitializeConnectionCallbacks(&callbacks);
 	callbacks.logMessage = log_message;
 	callbacks.connectionStarted = connection_started;
 	callbacks.connectionStatusUpdate = connection_status_update;
@@ -71,10 +76,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
-	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
-	//Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
-	this->SetGamepadCount(max(1, gamepads->Size));
-	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, activeGamepadMask);
+	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
 	sprintf(message, "LiStartConnection %d\n",k);
 	Utils::Log(message);
 	return k;
