@@ -56,14 +56,14 @@ void VideoRenderer::Render()
 		AVFrame *frame = FFMpegDecoder::getInstance()->GetFrame();
 		if (frame == nullptr)return;
 		ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
-		D3D11_TEXTURE2D_DESC desc;
-		ffmpegTexture->GetDesc(&desc);
+		D3D11_TEXTURE2D_DESC ffmpegDesc;
+		ffmpegTexture->GetDesc(&ffmpegDesc);
 		int index = (int)(frame->data[1]);
 		D3D11_BOX box;
 		box.left = 0;
 		box.top = 0;
-		box.right = min(configuration->width,desc.Width);
-		box.bottom = min(configuration->width,desc.Height);
+		box.right = min(renderTextureDesc.Width, ffmpegDesc.Width);
+		box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
 		box.front = 0;
 		box.back = 1;
 		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
@@ -257,6 +257,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 	renderTextureDesc.CPUAccessFlags = 0;
 	renderTextureDesc.MiscFlags = 0;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()),"Render Texture Creation");
+	this->renderTextureDesc = renderTextureDesc;
 	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
 	createCubeTask.then([this,width,height] () {
 		int status = client->StartStreaming(m_deviceResources, configuration);
