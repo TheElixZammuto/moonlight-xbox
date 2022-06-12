@@ -31,7 +31,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 
 ## What does NOT work
 - Other means of input (e.g. Hardware Mouse and Keyboard)
-- 4K Support
+- 4K Support (Pending)
 - 120FPS
 - HDR (Probably not possible with the Xbox UWP Platform)
 - Everything else not listed above
