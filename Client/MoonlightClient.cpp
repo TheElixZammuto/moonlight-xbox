@@ -60,7 +60,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	if (sConfig->audioConfig == "Surround 7.1") {
 		config.audioConfiguration = AUDIO_CONFIGURATION_71_SURROUND;
 	}
-	config.supportsHevc = false;
+
 	config.streamingRemotely = STREAM_CFG_AUTO;
 	char message[2048];
 	sprintf(message, "Inserted App ID %d\n", sConfig->appID);
