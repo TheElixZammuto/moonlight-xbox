@@ -64,6 +64,7 @@ void AppPage::Connect(int appId) {
 	config->bitrate = host->Bitrate;
 	config->FPS = host->FPS;
 	config->audioConfig = host->AudioConfig;
+	config->videoCodec = host->VideoCodec;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 	if (!result) {
 		printf("C");

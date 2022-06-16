@@ -9,4 +9,5 @@ public:
 	property int bitrate;
 	property int FPS;
 	property Platform::String^ audioConfig;
+	property Platform::String^ videoCodec;
 };

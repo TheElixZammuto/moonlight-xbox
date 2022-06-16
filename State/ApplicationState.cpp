@@ -28,6 +28,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("bitrate"))h->Bitrate = a["bitrate"];
 					if (a.contains("fps"))h->FPS = a["fps"];
 					if (a.contains("audioConfig"))h->AudioConfig = Utils::StringFromStdString(a["audioConfig"].get<std::string>());
+					if (a.contains("videoCodec"))h->VideoCodec = Utils::StringFromStdString(a["videoCodec"].get<std::string>());
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
 					this->SavedHosts->Append(h);
 				}
@@ -58,6 +59,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["bitrate"] = host->Bitrate;
 			hostJson["fps"] = host->FPS;
 			hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
+			hostJson["videoCodec"] = Utils::PlatformStringToStdString(host->VideoCodec);
 			hostJson["autoStartID"] = host->AutostartID;
 			stateJson["hosts"].push_back(hostJson);
 		}
