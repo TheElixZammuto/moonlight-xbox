@@ -2,7 +2,9 @@
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
 #include <windows.ui.xaml.media.dxinterop.h>
+#include <Pages/StreamPage.xaml.h>
 
+using namespace moonlight_xbox_dx;
 using namespace D2D1;
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -475,9 +477,16 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 // Determine the dimensions of the render target and whether it will be scaled down.
 void DX::DeviceResources::UpdateRenderTargetSize()
 {
+	moonlight_xbox_dx::StreamConfiguration^ config = GetStreamConfig();
 	m_effectiveDpi = m_dpi;
-	m_effectiveCompositionScaleX = m_compositionScaleX;
-	m_effectiveCompositionScaleY = m_compositionScaleY;
+	int compositionScaleMultiplier = 1;
+
+	if (config->compositionScale != "Normal") {
+		compositionScaleMultiplier = 2;
+	}
+
+	m_effectiveCompositionScaleX = m_compositionScaleX * compositionScaleMultiplier;
+	m_effectiveCompositionScaleY = m_compositionScaleY * compositionScaleMultiplier;
 }
 
 // This method is called when the XAML control is created (or re-created).

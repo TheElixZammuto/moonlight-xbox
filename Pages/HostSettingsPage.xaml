@@ -26,6 +26,7 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0">Resolution</TextBlock>
             <ComboBox x:Name="ResolutionSelector" SelectionChanged="ResolutionSelector_SelectionChanged" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind AvailableResolutions}" Width="200">
@@ -53,6 +54,8 @@
             </ComboBox>
               <TextBlock Grid.Row="5" Grid.Column="0">Video Codecs</TextBlock>
             <ComboBox ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}"  Grid.Row="5"  Grid.Column="1"></ComboBox>
+            <TextBlock Grid.Row="6" Grid.Column="0">Resolution Scale</TextBlock>
+            <ComboBox ItemsSource="{x:Bind AvailableCompositionScale}" SelectedItem="{x:Bind Host.CompositionScale,Mode=TwoWay}" Grid.Row="6"  Grid.Column="1"></ComboBox>
             </Grid>
         </StackPanel>
 </Page>

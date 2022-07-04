@@ -136,6 +136,7 @@ void moonlight_xbox_dx::StreamPage::toggleLogsButton_Click(Platform::Object^ sen
 
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
+	SetStreamConfig(configuration);
 	if (configuration == nullptr)return;
 }
 
