@@ -35,6 +35,10 @@ MoonlightSettings::MoonlightSettings()
 	HostSelector->Items->Append(item);
 	AvailableCompositionScale->Append("Normal");
 	AvailableCompositionScale->Append("4k Xbox Series S/Xbox One S");
+
+	if (state->CompositionScale != "Normal") {
+		CompositionScaleIndex = 1;
+	}
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	auto iid = Utils::StringFromStdString(state->autostartInstance);
 	for (int i = 0; i < state->SavedHosts->Size;i++) {
@@ -68,7 +72,7 @@ void moonlight_xbox_dx::MoonlightSettings::HostSelector_SelectionChanged(Platfor
 
 void moonlight_xbox_dx::MoonlightSettings::CompositionScaleSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
-	state->compositionScale = AvailableCompositionScale->GetAt(this->CompositionScaleSelector->SelectedIndex);
+	state->CompositionScale = AvailableCompositionScale->GetAt(this->CompositionScaleSelector->SelectedIndex);
 }
 
 

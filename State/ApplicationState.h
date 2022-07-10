@@ -11,13 +11,14 @@ namespace moonlight_xbox_dx {
 		Windows::Foundation::Collections::IVector<MoonlightHost^>^ hosts;
 		int screenMarginW;
 		int screenMarginH;
+		Platform::String^ compositionScale;
 	internal:
 		Concurrency::task<void> Init();
 		Concurrency::task<void> UpdateFile();
 		void RemoveHost(MoonlightHost^ host);
 		std::string autostartInstance = "";
 		bool shouldAutoConnect = false;
-		Platform::String^ compositionScale = "Normal";
+		 
 	public:
 		//Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
 		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -55,6 +56,18 @@ namespace moonlight_xbox_dx {
 				this->screenMarginH = value;
 				OnPropertyChanged("ScreenMarginHeight");
 				OnPropertyChanged("ScreenMargin");
+			}
+		}
+
+		property Platform::String^ CompositionScale
+		{
+			Platform::String^ get()
+			{
+				return this->compositionScale;
+			};
+			void set(Platform::String^ value) {
+				this->compositionScale = value;
+				OnPropertyChanged("CompositionScale");
 			}
 		}
 

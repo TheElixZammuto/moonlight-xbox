@@ -477,11 +477,11 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 // Determine the dimensions of the render target and whether it will be scaled down.
 void DX::DeviceResources::UpdateRenderTargetSize()
 {
-	moonlight_xbox_dx::StreamConfiguration^ config = GetStreamConfig();
+	auto state = GetApplicationState();
 	m_effectiveDpi = m_dpi;
 	int compositionScaleMultiplier = 1;
 
-	if (config->compositionScale != "Normal") {
+	if (state->CompositionScale != "Normal") {
 		compositionScaleMultiplier = 2;
 	}
 
