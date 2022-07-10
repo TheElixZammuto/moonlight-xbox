@@ -17,6 +17,7 @@ namespace moonlight_xbox_dx {
 		void RemoveHost(MoonlightHost^ host);
 		std::string autostartInstance = "";
 		bool shouldAutoConnect = false;
+		Platform::String^ compositionScale = "Normal";
 	public:
 		//Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
 		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
