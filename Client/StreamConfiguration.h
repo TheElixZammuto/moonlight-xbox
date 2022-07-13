@@ -11,7 +11,6 @@ namespace moonlight_xbox_dx
 		property int bitrate;
 		property int FPS;
 		property bool supportsHevc;
-		property Platform::String^ compositionScale;
 		property Platform::String^ audioConfig;
 		property Platform::String^ videoCodec;
 	};
