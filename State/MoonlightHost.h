@@ -19,7 +19,6 @@ namespace moonlight_xbox_dx {
         ScreenResolution^ resolution;
         int fps = 60;
         int autostartID = -1;
-        Platform::String^ compositionScale = "Normal";
         Platform::String^ videoCodec = "H.264";
         Platform::String^ audioConfig = "Stereo";
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
@@ -160,16 +159,6 @@ namespace moonlight_xbox_dx {
                 if (audioConfig == value)return;
                 this->audioConfig = value;
                 OnPropertyChanged("AudioConfig");
-            }
-        }
-
-        property Platform::String^ CompositionScale
-        {
-            Platform::String^ get() { return this->compositionScale; }
-            void set(Platform::String^ value) {
-                if (compositionScale == value)return;
-                this->compositionScale = value;
-                OnPropertyChanged("CompositionScale");
             }
         }
 
