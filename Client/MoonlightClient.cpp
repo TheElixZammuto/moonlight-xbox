@@ -46,7 +46,10 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	config.packetSize = 1024;
     config.hevcBitratePercentageMultiplier = 75;
 	config.enableHdr = false;
-	if (sConfig->videoCodec == "H.264") {
+	if (config.height == 2160) {
+		config.supportsHevc = true;
+	}
+	else if (sConfig->videoCodec == "H.264") {
 		config.supportsHevc = false;
 	}
 	else {
