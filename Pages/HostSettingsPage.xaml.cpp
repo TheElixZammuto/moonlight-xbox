@@ -43,8 +43,6 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	AvailableFPS->Append(30);
 	AvailableFPS->Append(60);
 	AvailableFPS->Append(120);
-	AvailableCompositionScale->Append("Normal");
-	AvailableCompositionScale->Append("4k Xbox Series S/Xbox One S");
 	AvailableVideoCodecs->Append("H.264");
 	AvailableVideoCodecs->Append("HEVC (H.265)");
 	AvailableAudioConfigs->Append("Stereo");

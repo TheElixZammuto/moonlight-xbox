@@ -22,7 +22,6 @@ namespace moonlight_xbox_dx
 		Windows::Foundation::Collections::IVector<int>^ availableFps;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableVideoCodecs;
-		Windows::Foundation::Collections::IVector<Platform::String^>^ availableCompositionScale;
 		int currentResolutionIndex = 0;
 		int currentAppIndex = 0;
 	protected:
