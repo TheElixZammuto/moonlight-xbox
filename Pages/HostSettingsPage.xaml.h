@@ -65,17 +65,6 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-
-		property Windows::Foundation::Collections::IVector<Platform::String^>^ AvailableCompositionScale {
-			Windows::Foundation::Collections::IVector<Platform::String^>^ get() {
-				if (this->availableCompositionScale == nullptr)
-				{
-					this->availableCompositionScale = ref new Platform::Collections::Vector<Platform::String^>();
-				}
-				return this->availableCompositionScale;
-			}
-		}
-
 		property Windows::Foundation::Collections::IVector<Platform::String^>^ AvailableVideoCodecs {
 			Windows::Foundation::Collections::IVector<Platform::String^>^ get() {
 				if (this->availableVideoCodecs == nullptr)
