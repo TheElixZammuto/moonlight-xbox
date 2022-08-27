@@ -12,7 +12,7 @@ extern "C" {
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
-
+using namespace Windows::Media::Core;
 
 void log_message(const char* fmt, ...);
 void connection_started();
@@ -22,7 +22,19 @@ void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
 MoonlightClient::MoonlightClient() {
-	
+
+	auto CodecQ = ref new CodecQuery;
+	CodecCategory CodecCategoryObj;
+	CodecKind CodecKindObj;
+
+	if (CodecQ->FindAllAsync(CodecKindObj, CodecCategoryObj, "H265"))
+	{
+		HEVC = true;
+	}
+	else if (CodecQ->FindAllAsync(CodecKindObj, CodecCategoryObj, "H264"))
+	{
+		HEVC = false;
+	}
 }
 
 void MoonlightClient::StopApp() {
@@ -51,7 +63,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	if (sConfig->audioConfig == "Surround 7.1") {
 		config.audioConfiguration = AUDIO_CONFIGURATION_71_SURROUND;
 	}
-	config.supportsHevc = false;
+	config.supportsHevc = HEVC;
 	config.streamingRemotely = STREAM_CFG_AUTO;
 	char message[2048];
 	sprintf(message, "Inserted App ID %d\n", sConfig->appID);
