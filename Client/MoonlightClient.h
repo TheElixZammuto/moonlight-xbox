@@ -33,6 +33,7 @@ namespace moonlight_xbox_dx {
 		void StopApp();
 		void Unpair();
 		Platform::String^ GetInstanceID();
+		bool HEVC;
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;
