@@ -21,6 +21,7 @@ namespace moonlight_xbox_dx
 		Windows::Foundation::Collections::IVector<ScreenResolution^>^ availableResolutions;
 		Windows::Foundation::Collections::IVector<int>^ availableFps;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
+		Windows::Foundation::Collections::IVector<Platform::String^>^ availableVideoCodecs;
 		int currentResolutionIndex = 0;
 		int currentAppIndex = 0;
 	protected:
@@ -63,6 +64,17 @@ namespace moonlight_xbox_dx
 				return this->availableAudioConfigs;
 			}
 		}
+
+		property Windows::Foundation::Collections::IVector<Platform::String^>^ AvailableVideoCodecs {
+			Windows::Foundation::Collections::IVector<Platform::String^>^ get() {
+				if (this->availableVideoCodecs == nullptr)
+				{
+					this->availableVideoCodecs = ref new Platform::Collections::Vector<Platform::String^>();
+				}
+				return this->availableVideoCodecs;
+			}
+		}
+
 
 		property int CurrentResolutionIndex
 		{

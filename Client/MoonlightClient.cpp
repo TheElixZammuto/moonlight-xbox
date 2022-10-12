@@ -44,6 +44,18 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	config.encryptionFlags = 0;
 	config.fps = sConfig->FPS;
 	config.packetSize = 1024;
+    config.hevcBitratePercentageMultiplier = 75;
+	config.enableHdr = false;
+	if (config.height == 2160) {
+		config.supportsHevc = true;
+	}
+	else if (sConfig->videoCodec == "H.264") {
+		config.supportsHevc = false;
+	}
+	else {
+		config.supportsHevc = true;
+	}
+
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
 	if (sConfig->audioConfig == "Surround 5.1") {
 		config.audioConfiguration = AUDIO_CONFIGURATION_51_SURROUND;
@@ -51,7 +63,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	if (sConfig->audioConfig == "Surround 7.1") {
 		config.audioConfiguration = AUDIO_CONFIGURATION_71_SURROUND;
 	}
-	config.supportsHevc = false;
+
 	config.streamingRemotely = STREAM_CFG_AUTO;
 	char message[2048];
 	sprintf(message, "Inserted App ID %d\n", sConfig->appID);
