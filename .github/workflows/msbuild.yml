@@ -41,6 +41,7 @@ jobs:
       run: |
         $encodedBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_FILE); 
         Set-Content "cert.pfx" -Value $encodedBytes -AsByteStream;
+        Get-FileHash -Path "cert.pfx";
       shell: pwsh
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
