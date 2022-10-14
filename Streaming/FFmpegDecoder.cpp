@@ -31,16 +31,14 @@ namespace moonlight_xbox_dx {
 #pragma warning(suppress : 4996)
         av_init_packet(&pkt);
 
-        switch (videoFormat) {
-        case VIDEO_FORMAT_H264:
-            decoder = avcodec_find_decoder_by_name("h264");
-			Utils::Log("Using H264\n");
-            break;
-        case VIDEO_FORMAT_H265:
-            decoder = avcodec_find_decoder_by_name("hevc");
-			Utils::Log("Using HEVC\n");
-            break;
+        if (videoFormat & VIDEO_FORMAT_MASK_H264) {
+             decoder = avcodec_find_decoder(AV_CODEC_ID_H264);
+			 Utils::Log("Using H264\n");
         }
+       else if (videoFormat & VIDEO_FORMAT_MASK_H265) {
+            decoder = avcodec_find_decoder(AV_CODEC_ID_HEVC);
+			Utils::Log("Using HEVC\n");
+       }
 
         if (decoder == NULL) {
             Utils::Log("Couldn't find decoder\n");

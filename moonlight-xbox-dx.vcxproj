@@ -346,6 +346,7 @@
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Client\MoonlightClient.cpp" />
+    <ClCompile Include="Client\StreamConfiguration.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="Content\LogRenderer.cpp" />
     <ClCompile Include="Content\VideoRenderer.cpp" />

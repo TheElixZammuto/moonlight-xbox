@@ -41,6 +41,7 @@ jobs:
       run: |
         $encodedBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_FILE); 
         Set-Content "cert.pfx" -Value $encodedBytes -AsByteStream;
+        Get-FileHash -Path "cert.pfx";
       shell: pwsh
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
@@ -49,9 +50,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:AppxBundle=Always /p:AppxPackageDir=output /p:PackageCertificateKeyFile=cert.pfx /p:PackageCertificatePassword=$env:CERTIFICATE_PASSWORD /p:UapAppxPackageBuildMode=SideLoadOnly ${{env.SOLUTION_FILE_PATH}}
-      env:
-        CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:AppxBundle=Always /p:AppxPackageDir=output /p:PackageCertificateKeyFile=cert.pfx /p:UapAppxPackageBuildMode=SideLoadOnly ${{env.SOLUTION_FILE_PATH}}
     - name: Load Certificate
       run: Remove-Item -path cert.pfx
       shell: pwsh
