@@ -205,7 +205,9 @@ void MoonlightClient::SendGamepadReading(short controllerNumber, GamepadReading 
 			buttonFlags |= LiButtonFlags[i];
 		}
 	}
-	LiSendMultiControllerEvent(controllerNumber, activeGamepadMask, buttonFlags, (short)(reading.LeftTrigger * 32767), (short)(reading.RightTrigger * 32767), (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
+	unsigned char leftTrigger = (unsigned char)(round(reading.LeftTrigger * 255.0f));
+	unsigned char rightTrigger = (unsigned char)(round(reading.RightTrigger * 255.0f));
+	LiSendMultiControllerEvent(controllerNumber, activeGamepadMask, buttonFlags, leftTrigger, rightTrigger, (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
 }
 
 
