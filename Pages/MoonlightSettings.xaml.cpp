@@ -34,7 +34,7 @@ MoonlightSettings::MoonlightSettings()
 	item->DataContext = "";
 	HostSelector->Items->Append(item);
 	AvailableCompositionScale->Append("Normal");
-	AvailableCompositionScale->Append("4k Xbox Series S/Xbox One S");
+	AvailableCompositionScale->Append("4k");
 
 	if (state->CompositionScale != "Normal") {
 		CompositionScaleIndex = 1;
