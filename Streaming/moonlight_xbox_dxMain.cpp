@@ -10,6 +10,19 @@ using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 using namespace Concurrency;
 
+void usleep(unsigned int usec)
+{
+	HANDLE timer;
+	LARGE_INTEGER ft;
+
+	ft.QuadPart = -(10 * (__int64)usec);
+
+	timer = CreateWaitableTimer(NULL, TRUE, NULL);
+	SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
+	WaitForSingleObject(timer, INFINITE);
+	CloseHandle(timer);
+}
+
 // Loads and initializes application assets when the application is loaded.
 moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::FrameworkElement^ flyoutButton, Windows::UI::Xaml::Controls::MenuFlyout^ flyout, Windows::UI::Core::CoreDispatcher^ dispatcher, MoonlightClient* client,StreamConfiguration ^configuration):
 
@@ -77,8 +90,16 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			// Calculate the updated frame and render once per vertical blanking interval.
 			while (action->Status == AsyncStatus::Started)
 			{
+				/*LARGE_INTEGER start, end, frequency;
+						QueryPerformanceFrequency(&frequency);
+				QueryPerformanceCounter(&start);*/
 				ProcessInput();
-				Sleep(8); // 8ms = about 120Hz of polling rate (i guess)
+				usleep(8000); // 8ms = about 120Hz of polling rate (i guess)
+				/*QueryPerformanceCounter(&end);
+				double ms = (end.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
+				char msg[4096];
+				sprintf(msg, "ms elapsed for input: %f ms\n", ms);
+				Utils::Log(msg);*/
 			}
 		});
 
@@ -133,8 +154,13 @@ void moonlight_xbox_dxMain::ProcessInput()
 		if (insideFlyout)return;
 		//If mouse mode is enabled the gamepad acts as a mouse, instead we pass the raw events to the host
 		if (mouseMode) {
+			auto state = GetApplicationState();
 			//Position
-			moonlightClient->SendMousePosition(reading.LeftThumbstickX * 5, reading.LeftThumbstickY * -5);
+			double multiplier = state->MouseSensitivity;
+			char msg[2048];
+			sprintf(msg,"Multiplier %f - %f - %f\n", multiplier, reading.LeftThumbstickX * multiplier, reading.LeftThumbstickY * -1 * multiplier);
+			Utils::Log(msg);
+			moonlightClient->SendMousePosition(reading.LeftThumbstickX * multiplier, reading.LeftThumbstickY * -1 * multiplier);
 			//Left Click
 			if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {
 				if (!leftMouseButtonPressed) {
