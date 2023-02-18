@@ -146,12 +146,18 @@ void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMo
 int MoonlightClient::Connect(const char* hostname) {
 	this->hostname = (char*)malloc(2048 * sizeof(char));
 	strcpy_s(this->hostname, 2048,hostname);
+	if (strchr(this->hostname, ':') != 0) {
+		char portStr[2048];
+		strcpy_s(portStr, 2048, strchr(this->hostname, ':') + 1);
+		port = atoi(portStr);
+		*strchr(this->hostname, ':') = '\0';
+	}
 	Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
 	folderString = folderString->Concat(folderString, "\\");
 	char folder[2048];
 	wcstombs_s(NULL, folder, folderString->Data(), 2047);
 	int status = 0;
-	status = gs_init(&serverData, this->hostname, folder, 0, 0);
+	status = gs_init(&serverData, this->hostname, port, folder, 0, 0);
 	char msg[4096];
 	sprintf(msg,"Got status %d from Moonlight\n", status);
 	Utils::Log(msg);

@@ -37,6 +37,7 @@ namespace moonlight_xbox_dx {
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;
 		char* hostname = NULL;
+		int port = 0;
 		bool useSoftwareEncoder = false;
 		int activeGamepadMask = 0;
 	};

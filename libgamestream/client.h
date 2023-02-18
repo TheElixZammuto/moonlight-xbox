@@ -29,7 +29,6 @@
 #define MAX_SUPPORTED_GFE_VERSION 7
 
 typedef struct _SERVER_DATA {
-  const char* address;
   char* gpuType;
   bool paired;
   bool supports4K;
@@ -39,9 +38,11 @@ typedef struct _SERVER_DATA {
   char* gsVersion;
   PDISPLAY_MODE modes;
   SERVER_INFORMATION serverInfo;
+  unsigned short httpPort;
+  unsigned short httpsPort;
 } SERVER_DATA, *PSERVER_DATA;
 
-int gs_init(PSERVER_DATA server, char* address, const char *keyDirectory, int logLevel, bool unsupported);
+int gs_init(PSERVER_DATA server, char* address, unsigned short httpPort, const char *keyDirectory, int logLevel, bool unsupported);
 int gs_start_app(PSERVER_DATA server, PSTREAM_CONFIGURATION config, int appId, bool sops, bool localaudio, int gamepad_mask);
 int gs_applist(PSERVER_DATA server, PAPP_LIST *app_list);
 int gs_unpair(PSERVER_DATA server);
