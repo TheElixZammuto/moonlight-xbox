@@ -11,6 +11,7 @@ namespace moonlight_xbox_dx {
 		Windows::Foundation::Collections::IVector<MoonlightHost^>^ hosts;
 		int screenMarginW;
 		int screenMarginH;
+		int mouseSensitivity = 5;
 		Platform::String^ compositionScale;
 	internal:
 		Concurrency::task<void> Init();
@@ -77,6 +78,18 @@ namespace moonlight_xbox_dx {
 			{
 				return { (double)this->screenMarginW,(double)this->screenMarginH,(double)this->screenMarginW,(double)this->screenMarginH };
 			};
+		}
+
+		property int MouseSensitivity
+		{
+			int get()
+			{
+				return this->mouseSensitivity;
+			};
+			void set(int value) {
+				this->mouseSensitivity = value;
+				OnPropertyChanged("MouseSensitivity");
+			}
 		}
 	};
 

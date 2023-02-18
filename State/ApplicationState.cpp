@@ -19,6 +19,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("marginWidth"))this->ScreenMarginWidth = stateJson["marginWidth"];
 				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
 				if (stateJson.contains("compositionScale"))this->CompositionScale = Utils::StringFromStdString(stateJson["compositionScale"]);
+				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost();
 					h->LastHostname = Utils::StringFromStdString(a["hostname"].get<std::string>());
@@ -52,6 +53,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		stateJson["autostartInstance"] = that->autostartInstance;
 		stateJson["marginWidth"] = max(0,min(that->ScreenMarginWidth,250));
 		stateJson["marginHeight"] = max(0, min(that->ScreenMarginHeight, 250));
+		stateJson["mouseSensitivity"] = max(1, min(that->MouseSensitivity, 16));
 		stateJson["compositionScale"] = Utils::PlatformStringToStdString(that->CompositionScale);
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;

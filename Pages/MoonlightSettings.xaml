@@ -24,16 +24,19 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Column="0" Grid.Row="0">Autostart Host:</TextBlock>
             <ComboBox Grid.Column="1" Grid.Row="0" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged"></ComboBox>
             <TextBlock Grid.Column="0" Grid.Row="1">Resolution Scale:</TextBlock>
             <ComboBox  x:Name="CompositionScaleSelector" SelectionChanged="CompositionScaleSelector_SelectionChanged" SelectedIndex="{x:Bind CompositionScaleIndex,Mode=TwoWay}" ItemsSource="{x:Bind AvailableCompositionScale}"  Grid.Row="1"  Grid.Column="1"></ComboBox>
             <TextBlock Grid.Column="0" Grid.Row="2">Screen Margin Height:</TextBlock>
-            <TextBox Grid.Row="2" Grid.Column="1" Text="{x:Bind State.ScreenMarginWidth}" x:DefaultBindMode="TwoWay"/>
+            <Slider Grid.Row="2" Grid.Column="1" Value="{x:Bind State.ScreenMarginWidth}" x:DefaultBindMode="TwoWay" Minimum="0" Maximum="100" StepFrequency="1" />
             <TextBlock Grid.Column="0" Grid.Row="3">Screen Margin Width:</TextBlock>
-            <TextBox Grid.Row="3" Grid.Column="1" Text="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay"/>
+            <Slider Grid.Row="3" Grid.Column="1" Value="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay" Minimum="0" Maximum="100" StepFrequency="1"/>
             <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center">Change these parameters until you can see a green border around the screen</TextBlock>
+            <TextBlock Grid.Column="0" Grid.Row="5">Mouse Sensitivity:</TextBlock>
+            <Slider Grid.Row="5" Grid.Column="1" Value="{x:Bind State.MouseSensitivity}" x:DefaultBindMode="TwoWay" Minimum="1" Maximum="16" StepFrequency="1"/>
         </Grid>
     </StackPanel>
 </Page>
