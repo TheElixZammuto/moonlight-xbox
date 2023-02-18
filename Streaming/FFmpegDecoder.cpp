@@ -60,14 +60,6 @@ namespace moonlight_xbox_dx {
 			D3D_FEATURE_LEVEL_9_2,
 			D3D_FEATURE_LEVEL_9_1
 		};
-		UINT creationFlags = 0;
-		#if defined(_DEBUG)
-				if (DX::SdkLayersAvailable())
-				{
-					// If the project is in a debug build, enable debugging via SDK Layers with this flag.
-					creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
-				}
-		#endif
 	    AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
 		device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
 		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);

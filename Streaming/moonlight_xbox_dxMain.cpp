@@ -157,9 +157,6 @@ void moonlight_xbox_dxMain::ProcessInput()
 			auto state = GetApplicationState();
 			//Position
 			double multiplier = state->MouseSensitivity;
-			char msg[2048];
-			sprintf(msg,"Multiplier %f - %f - %f\n", multiplier, reading.LeftThumbstickX * multiplier, reading.LeftThumbstickY * -1 * multiplier);
-			Utils::Log(msg);
 			moonlightClient->SendMousePosition(reading.LeftThumbstickX * multiplier, reading.LeftThumbstickY * -1 * multiplier);
 			//Left Click
 			if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {
@@ -214,7 +211,7 @@ bool moonlight_xbox_dxMain::Render()
 	context->OMSetRenderTargets(1, targets, m_deviceResources->GetDepthStencilView());
 
 	// Clear the back buffer and depth stencil view.
-	context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::CornflowerBlue);
+	context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::Black);
 	context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	// Render the scene objects.

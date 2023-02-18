@@ -67,7 +67,7 @@
                                 <Image Source="ms-appx:///Assets/lock.svg" Visibility="{x:Bind NotPaired}" Width="96" Height="96" Canvas.Left="70" Canvas.Top="50" />
                                 <Image Source="ms-appx:///Assets/disconnected.svg" Visibility="{x:Bind NotConnected}" Width="96" Height="96" Canvas.Left="70" Canvas.Top="50" />
                             </Canvas>
-                            <TextBlock Text="{x:Bind LastHostname}"></TextBlock>
+                            <TextBlock Text="{x:Bind ComputerName}"></TextBlock>
                         </StackPanel>
                         <ProgressBar IsIndeterminate="True" Visibility="{x:Bind Loading}"></ProgressBar>
                     </StackPanel>

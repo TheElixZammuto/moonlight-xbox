@@ -11,11 +11,13 @@ namespace moonlight_xbox_dx {
 		bool status = this->Connect() == 0;
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,status]() {
 			this->Connected = status;
+
 			this->Paired = client->IsPaired();
 			this->CurrentlyRunningAppId = client->GetRunningAppID();
-			this->Loading = false;
 			this->InstanceId = client->GetInstanceID();
+			if(this->Connected) this->ComputerName = client->GetComputerName();
 			if (this->Paired && this->Connected)UpdateApps();
+			this->Loading = false;
 		}));
 	}
 

@@ -32,6 +32,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("audioConfig"))h->AudioConfig = Utils::StringFromStdString(a["audioConfig"].get<std::string>());
 					if (a.contains("videoCodec"))h->VideoCodec = Utils::StringFromStdString(a["videoCodec"].get<std::string>());
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
+					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
+					else h->ComputerName = h->LastHostname;
 					this->SavedHosts->Append(h);
 				}
 			}
@@ -58,6 +60,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
+			hostJson["computername"] = Utils::PlatformStringToStdString(host->ComputerName);
 			hostJson["width"] = host->Resolution->Width;
 			hostJson["height"] = host->Resolution->Height;
 			hostJson["bitrate"] = host->Bitrate;

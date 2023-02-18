@@ -36,7 +36,7 @@
                         <SymbolIcon Symbol="Back" />
                     </Button.Content>
                 </Button>
-                <TextBlock VerticalAlignment="Center" Padding="8" FontSize="20" Text="{x:Bind Host.LastHostname}"></TextBlock>
+                <TextBlock VerticalAlignment="Center" Padding="8" FontSize="20" Text="{x:Bind Host.ComputerName}"></TextBlock>
             </StackPanel>
             <StackPanel  Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="8" Orientation="Horizontal" Spacing="16">
                 <Button TabIndex="2" x:Name="settingsButton" Click="settingsButton_Click">

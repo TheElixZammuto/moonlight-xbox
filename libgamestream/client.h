@@ -40,6 +40,7 @@ typedef struct _SERVER_DATA {
   SERVER_INFORMATION serverInfo;
   unsigned short httpPort;
   unsigned short httpsPort;
+  char* serverName;
 } SERVER_DATA, *PSERVER_DATA;
 
 int gs_init(PSERVER_DATA server, char* address, unsigned short httpPort, const char *keyDirectory, int logLevel, bool unsupported);

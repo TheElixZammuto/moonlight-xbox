@@ -58,7 +58,7 @@ void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::U
 	state->UpdateFile();
 	Concurrency::create_task([host]() {
 		host->UpdateStats();
-		});
+	});
 }
 
 
@@ -89,9 +89,7 @@ void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 					dialog->Hide();
 				}
 				else {
-					if (a == -4 && host->CurrentlyRunningAppId >= 0) {
-						dialog->Content = L"The computer is currently in a game. You must close the game before pairing";
-					}
+					//dialog->Content = Utils::StringFromStdString(std::string(gs_error));
 				}
 				host->UpdateStats();
 			}
@@ -111,7 +109,7 @@ void moonlight_xbox_dx::HostSelectorPage::HostsGrid_RightTapped(Platform::Object
 {
 	//Thanks to https://stackoverflow.com/questions/62878368/uwp-gridview-listview-get-the-righttapped-item-supporting-both-mouse-and-xbox-co
 	FrameworkElement^ senderElement = (FrameworkElement^)e->OriginalSource;
-	OutputDebugString(senderElement->GetType()->FullName->Data());
+
 	if (senderElement->GetType()->FullName->Equals(GridViewItem::typeid->FullName)) {
 		auto gi = (GridViewItem^)senderElement;
 		currentHost = (MoonlightHost^)(gi->Content);
