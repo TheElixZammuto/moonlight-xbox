@@ -45,7 +45,7 @@ bool renderedOneFrame = false;
 void VideoRenderer::Render()
 {
 		// Loading is asynchronous. Only draw geometry after it's loaded.
-		if (!m_loadingComplete || renderTexture == NULL)
+		if (!m_loadingComplete)
 		{
 			return;
 		}
@@ -66,6 +66,8 @@ void VideoRenderer::Render()
 		box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
 		box.front = 0;
 		box.back = 1;
+		if(renderTexture != NULL)renderTexture->Release();
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
 		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
@@ -242,7 +244,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 	samplerDesc.MinLOD = -FLT_MAX;
 	samplerDesc.MaxLOD = FLT_MAX;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf()),"Sampler Creation");
-	D3D11_TEXTURE2D_DESC renderTextureDesc = { 0 };
+	renderTextureDesc = { 0 };
 	int width = configuration->width;
 	int height = configuration->height;
 	renderTextureDesc.Width = width;
@@ -256,8 +258,6 @@ void VideoRenderer::CreateDeviceDependentResources()
 	renderTextureDesc.SampleDesc.Count = 1;
 	renderTextureDesc.CPUAccessFlags = 0;
 	renderTextureDesc.MiscFlags = 0;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()),"Render Texture Creation");
-	this->renderTextureDesc = renderTextureDesc;
 	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
 	createCubeTask.then([this,width,height] () {
 		int status = client->StartStreaming(m_deviceResources, configuration);
