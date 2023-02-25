@@ -39,6 +39,7 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	host = mhost;
 	AvailableResolutions->Append(ref new ScreenResolution(1280, 720));
 	AvailableResolutions->Append(ref new ScreenResolution(1920, 1080));
+	AvailableResolutions->Append(ref new ScreenResolution(2560, 1440));
 	AvailableResolutions->Append(ref new ScreenResolution(3840, 2160));
 	AvailableFPS->Append(30);
 	AvailableFPS->Append(60);
