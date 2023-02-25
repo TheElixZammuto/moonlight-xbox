@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "VideoRenderer.h"
-#include "Client\MoonlightClient.h"
+#include <State\MoonlightClient.h>
 #include "..\Common\DirectXHelper.h"
 #include <Streaming\FFMpegDecoder.h>
 #include <Utils.hpp>

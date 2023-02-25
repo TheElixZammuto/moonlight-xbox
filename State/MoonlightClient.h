@@ -1,7 +1,7 @@
 #pragma once
 #include "pch.h"
 #include "Common/DeviceResources.h"
-#include <Client/StreamConfiguration.h>
+#include <State/StreamConfiguration.h>
 #include "State\MoonlightApp.h"
 extern "C" {
 	#include <libavcodec/avcodec.h>

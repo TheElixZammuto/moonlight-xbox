@@ -1,6 +1,6 @@
 #pragma once
 #include "pch.h"
-#include "Client\MoonlightClient.h"
+#include "State\MoonlightClient.h"
 #include "State\ScreenResolution.h"
 namespace moonlight_xbox_dx {
     

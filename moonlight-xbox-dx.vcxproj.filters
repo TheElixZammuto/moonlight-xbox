@@ -8,9 +8,6 @@
       <UniqueIdentifier>30a90681-471c-4ea9-8d2f-5b6ede57a8c9</UniqueIdentifier>
       <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
     </Filter>
-    <Filter Include="Content">
-      <UniqueIdentifier>2ed9c725-2c14-46fb-9e79-db1c9f62ec7e</UniqueIdentifier>
-    </Filter>
     <ClInclude Include="Common\DirectXHelper.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -23,15 +20,6 @@
     <ClCompile Include="Common\DeviceResources.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClInclude Include="Content\ShaderStructures.h">
-      <Filter>Content</Filter>
-    </ClInclude>
-    <FxCompile Include="Content\SamplePixelShader.hlsl">
-      <Filter>Content</Filter>
-    </FxCompile>
-    <FxCompile Include="Content\SampleVertexShader.hlsl">
-      <Filter>Content</Filter>
-    </FxCompile>
     <Image Include="Assets\LockScreenLogo.scale-200.png">
       <Filter>Assets</Filter>
     </Image>
@@ -59,9 +47,6 @@
     <Filter Include="Pages">
       <UniqueIdentifier>{b5851d1d-2e90-41ca-b2b8-444c0994647b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Client">
-      <UniqueIdentifier>{8504f692-b80e-4b9c-82a1-3f9f9d18a9e5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="State">
       <UniqueIdentifier>{ed5e4490-fc17-42ca-bb3f-9f62b1ada40d}</UniqueIdentifier>
     </Filter>
@@ -71,13 +56,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="Content\VideoRenderer.cpp">
-      <Filter>Content</Filter>
-    </ClCompile>
     <ClCompile Include="Utils.cpp" />
-    <ClCompile Include="Content\LogRenderer.cpp">
-      <Filter>Content</Filter>
-    </ClCompile>
     <ClCompile Include="Streaming\FFmpegDecoder.cpp">
       <Filter>Streaming</Filter>
     </ClCompile>
@@ -86,9 +65,6 @@
     </ClCompile>
     <ClCompile Include="Streaming\moonlight_xbox_dxMain.cpp">
       <Filter>Streaming</Filter>
-    </ClCompile>
-    <ClCompile Include="Client\MoonlightClient.cpp">
-      <Filter>Client</Filter>
     </ClCompile>
     <ClCompile Include="State\ApplicationState.cpp">
       <Filter>State</Filter>
@@ -102,23 +78,20 @@
     <ClCompile Include="State\ScreenResolution.cpp">
       <Filter>State</Filter>
     </ClCompile>
-    <ClCompile Include="Content\StatsRenderer.cpp">
-      <Filter>Content</Filter>
-    </ClCompile>
-    <ClCompile Include="Client\StreamConfiguration.cpp" />
     <ClCompile Include="MDNSHandler.cpp">
       <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="State\MoonlightClient.cpp" />
+    <ClCompile Include="State\StreamConfiguration.cpp" />
+    <ClCompile Include="Streaming\VideoRenderer.cpp" />
+    <ClCompile Include="Streaming\StatsRenderer.cpp" />
+    <ClCompile Include="Streaming\LogRenderer.cpp">
+      <Filter>Streaming</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Content\VideoRenderer.h">
-      <Filter>Content</Filter>
-    </ClInclude>
     <ClInclude Include="Utils.hpp" />
-    <ClInclude Include="Content\LogRenderer.h">
-      <Filter>Content</Filter>
-    </ClInclude>
     <ClInclude Include="Streaming\FFmpegDecoder.h">
       <Filter>Streaming</Filter>
     </ClInclude>
@@ -127,12 +100,6 @@
     </ClInclude>
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h">
       <Filter>Streaming</Filter>
-    </ClInclude>
-    <ClInclude Include="Client\MoonlightClient.h">
-      <Filter>Client</Filter>
-    </ClInclude>
-    <ClInclude Include="Client\StreamConfiguration.h">
-      <Filter>Client</Filter>
     </ClInclude>
     <ClInclude Include="State\ApplicationState.h">
       <Filter>State</Filter>
@@ -146,11 +113,14 @@
     <ClInclude Include="State\ScreenResolution.h">
       <Filter>State</Filter>
     </ClInclude>
-    <ClInclude Include="Content\StatsRenderer.h">
-      <Filter>Content</Filter>
-    </ClInclude>
-    <ClInclude Include="MDNSHandler.h">
-      <Filter>State</Filter>
+    <ClInclude Include="State\MoonlightClient.h" />
+    <ClInclude Include="State\StreamConfiguration.h" />
+    <ClInclude Include="Streaming\VideoRenderer.h" />
+    <ClInclude Include="Streaming\ShaderStructures.h" />
+    <ClInclude Include="State\MDNSHandler.h" />
+    <ClInclude Include="Streaming\StatsRenderer.h" />
+    <ClInclude Include="Streaming\LogRenderer.h">
+      <Filter>Streaming</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -399,5 +369,9 @@
     <Page Include="Pages\MoonlightSettings.xaml">
       <Filter>Pages</Filter>
     </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Streaming\YUVRGBPixelShader.hlsl" />
+    <FxCompile Include="Streaming\YUVRGBVertexShader.hlsl" />
   </ItemGroup>
 </Project>

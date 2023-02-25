@@ -8,7 +8,7 @@ extern "C" {
 #include "Streaming\FFMpegDecoder.h"
 #include <Streaming\AudioPlayer.h>
 #include <Utils.hpp>
-#include <Client\StreamConfiguration.h>
+#include <State\StreamConfiguration.h>
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;

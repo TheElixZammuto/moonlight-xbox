@@ -1,6 +1,6 @@
 #include "pch.h"
 #include <Utils.hpp>
-#include <Client\StreamConfiguration.h>
+#include <State\StreamConfiguration.h>
 
 using namespace moonlight_xbox_dx;
 moonlight_xbox_dx::StreamConfiguration^ __streamConfig;

@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-#include "..\Common\DeviceResources.h"
+#include "Common\DeviceResources.h"
 #include "ShaderStructures.h"
-#include "..\Common\StepTimer.h"
-#include "Client\MoonlightClient.h"
-#include "Client\StreamConfiguration.h"
+#include "Common\StepTimer.h"
+#include "State\MoonlightClient.h"
+#include "State\StreamConfiguration.h"
 
 namespace moonlight_xbox_dx
 {

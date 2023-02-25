@@ -5,7 +5,7 @@
 
 #include "pch.h"
 #include "AppPage.xaml.h"
-#include "Client\MoonlightClient.h"
+#include "State\MoonlightClient.h"
 #include "StreamPage.xaml.h"
 #include "HostSettingsPage.xaml.h"
 

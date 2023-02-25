@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "MoonlightHost.h"
-#include "Client\MoonlightClient.h"
+#include "State\MoonlightClient.h"
 #include <ppltasks.h>
 
 namespace moonlight_xbox_dx {

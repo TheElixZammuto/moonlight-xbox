@@ -308,15 +308,15 @@
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Client\MoonlightClient.h" />
-    <ClInclude Include="Client\StreamConfiguration.h" />
+    <ClInclude Include="State\MoonlightClient.h" />
+    <ClInclude Include="State\StreamConfiguration.h" />
     <ClInclude Include="Common\DeviceResources.h" />
     <ClInclude Include="Common\DirectXHelper.h" />
     <ClInclude Include="Common\StepTimer.h" />
-    <ClInclude Include="Content\VideoRenderer.h" />
-    <ClInclude Include="Content\LogRenderer.h" />
-    <ClInclude Include="Content\ShaderStructures.h" />
-    <ClInclude Include="MDNSHandler.h" />
+    <ClInclude Include="Streaming\VideoRenderer.h" />
+    <ClInclude Include="Streaming\LogRenderer.h" />
+    <ClInclude Include="Streaming\ShaderStructures.h" />
+    <ClInclude Include="State\MDNSHandler.h" />
     <ClInclude Include="Pages\HostSettingsPage.xaml.h">
       <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
     </ClInclude>
@@ -335,7 +335,7 @@
       <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Content\StatsRenderer.h" />
+    <ClInclude Include="Streaming\StatsRenderer.h" />
     <ClInclude Include="State\ApplicationState.h" />
     <ClInclude Include="State\MoonlightHost.h" />
     <ClInclude Include="Streaming\AudioPlayer.h" />
@@ -347,11 +347,11 @@
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Client\MoonlightClient.cpp" />
-    <ClCompile Include="Client\StreamConfiguration.cpp" />
+    <ClCompile Include="State\MoonlightClient.cpp" />
+    <ClCompile Include="State\StreamConfiguration.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />
-    <ClCompile Include="Content\LogRenderer.cpp" />
-    <ClCompile Include="Content\VideoRenderer.cpp" />
+    <ClCompile Include="Streaming\LogRenderer.cpp" />
+    <ClCompile Include="Streaming\VideoRenderer.cpp" />
     <ClCompile Include="MDNSHandler.cpp" />
     <ClCompile Include="Pages\HostSettingsPage.xaml.cpp">
       <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
@@ -380,7 +380,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Content\StatsRenderer.cpp" />
+    <ClCompile Include="Streaming\StatsRenderer.cpp" />
     <ClCompile Include="State\ApplicationState.cpp" />
     <ClCompile Include="State\MoonlightHost.cpp" />
     <ClCompile Include="Streaming\AudioPlayer.cpp" />
@@ -394,10 +394,10 @@
     </AppxManifest>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Content\SamplePixelShader.hlsl">
+    <FxCompile Include="Streaming\YUVRGBPixelShader.hlsl">
       <ShaderType>Pixel</ShaderType>
     </FxCompile>
-    <FxCompile Include="Content\SampleVertexShader.hlsl">
+    <FxCompile Include="Streaming\YUVRGBVertexShader.hlsl">
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>

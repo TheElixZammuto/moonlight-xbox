@@ -2,9 +2,9 @@
 
 #include "Common\StepTimer.h"
 #include "Common\DeviceResources.h"
-#include "Content\VideoRenderer.h"
-#include "Content\LogRenderer.h"
-#include "Content\StatsRenderer.h"
+#include "Streaming\VideoRenderer.h"
+#include "Streaming\LogRenderer.h"
+#include "Streaming\StatsRenderer.h"
 
 // Renders Direct2D and 3D content on the screen.
 namespace moonlight_xbox_dx
