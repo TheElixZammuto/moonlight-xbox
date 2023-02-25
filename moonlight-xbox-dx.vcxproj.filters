@@ -106,6 +106,9 @@
       <Filter>Content</Filter>
     </ClCompile>
     <ClCompile Include="Client\StreamConfiguration.cpp" />
+    <ClCompile Include="MDNSHandler.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -145,6 +148,9 @@
     </ClInclude>
     <ClInclude Include="Content\StatsRenderer.h">
       <Filter>Content</Filter>
+    </ClInclude>
+    <ClInclude Include="MDNSHandler.h">
+      <Filter>State</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

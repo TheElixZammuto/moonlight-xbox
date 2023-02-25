@@ -91,11 +91,9 @@ void moonlight_xbox_dx::AppPage::closeAppButton_Click(Platform::Object^ sender, 
 	auto client = new MoonlightClient();
 	char ipAddressStr[2048];
 	wcstombs_s(NULL, ipAddressStr, Host->LastHostname->Data(), 2047);
-	Concurrency::create_async([client, this, ipAddressStr]() {
-		int status = client->Connect(ipAddressStr);
-		if (status == 0)client->StopApp();
-		host->UpdateStats();
-	});
+	int status = client->Connect(ipAddressStr);
+	if (status == 0)client->StopApp();
+	host->UpdateStats();
 }
 
 

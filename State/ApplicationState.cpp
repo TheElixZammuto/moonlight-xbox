@@ -37,12 +37,25 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					this->SavedHosts->Append(h);
 				}
 			}
-			return concurrency::create_task([this]() {
+			return Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this]() {
 				for (auto a : this->SavedHosts) {
 					a->UpdateStats();
 				}
-				});
+				}));
 			});
+}
+
+void moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
+	MoonlightHost^ host = ref new MoonlightHost();
+	host->LastHostname = hostname;
+	host->UpdateStats();
+	if (host->Connected) {
+		for (auto h : SavedHosts) {
+			if (host->InstanceId == h->InstanceId)return;
+		}
+		SavedHosts->Append(host);
+		UpdateFile();
+	}
 }
 
 Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
@@ -53,7 +66,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		nlohmann::json stateJson;
 		stateJson["hosts"] = nlohmann::json::array();
 		stateJson["autostartInstance"] = that->autostartInstance;
-		stateJson["marginWidth"] = max(0,min(that->ScreenMarginWidth,250));
+		stateJson["marginWidth"] = max(0, min(that->ScreenMarginWidth, 250));
 		stateJson["marginHeight"] = max(0, min(that->ScreenMarginHeight, 250));
 		stateJson["mouseSensitivity"] = max(1, min(that->MouseSensitivity, 16));
 		stateJson["compositionScale"] = Utils::PlatformStringToStdString(that->CompositionScale);
@@ -65,7 +78,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["height"] = host->Resolution->Height;
 			hostJson["bitrate"] = host->Bitrate;
 			hostJson["fps"] = host->FPS;
-		    hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
+			hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
 			hostJson["videoCodec"] = Utils::PlatformStringToStdString(host->VideoCodec);
 			hostJson["autoStartID"] = host->AutostartID;
 			stateJson["hosts"].push_back(hostJson);

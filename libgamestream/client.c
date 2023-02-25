@@ -206,6 +206,10 @@ static int load_serverinfo(PSERVER_DATA server, bool https) {
       goto cleanup;
   }
 
+  if (xml_search(data->memory, data->size, "uniqueid", &server->uniqueId) != GS_OK) {
+      goto cleanup;
+  }
+
   if (xml_search(data->memory, data->size, "currentgame", &currentGameText) != GS_OK) {
     goto cleanup;
   }

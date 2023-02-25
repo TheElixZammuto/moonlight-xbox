@@ -250,7 +250,7 @@ void MoonlightClient::Unpair() {
 }
 
 Platform::String^ MoonlightClient::GetInstanceID() {
-	return Utils::StringFromChars(hostname); //TODO: Try to get the ACTUAL instance id
+	return Utils::StringFromChars(serverData.uniqueId);
 }
 
 Platform::String^ MoonlightClient::GetComputerName() {

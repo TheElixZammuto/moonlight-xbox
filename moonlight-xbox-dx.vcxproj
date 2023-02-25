@@ -316,6 +316,7 @@
     <ClInclude Include="Content\VideoRenderer.h" />
     <ClInclude Include="Content\LogRenderer.h" />
     <ClInclude Include="Content\ShaderStructures.h" />
+    <ClInclude Include="MDNSHandler.h" />
     <ClInclude Include="Pages\HostSettingsPage.xaml.h">
       <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
     </ClInclude>
@@ -351,6 +352,7 @@
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="Content\LogRenderer.cpp" />
     <ClCompile Include="Content\VideoRenderer.cpp" />
+    <ClCompile Include="MDNSHandler.cpp" />
     <ClCompile Include="Pages\HostSettingsPage.xaml.cpp">
       <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
     </ClCompile>

@@ -5,20 +5,16 @@
 
 namespace moonlight_xbox_dx {
 	void MoonlightHost::UpdateStats() {
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High,ref new Windows::UI::Core::DispatchedHandler([this](){
-			this->Loading = true;
-		}));
 		bool status = this->Connect() == 0;
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,status]() {
-			this->Connected = status;
-
+		this->Connected = status;
+		if (status) {
 			this->Paired = client->IsPaired();
 			this->CurrentlyRunningAppId = client->GetRunningAppID();
 			this->InstanceId = client->GetInstanceID();
-			if(this->Connected) this->ComputerName = client->GetComputerName();
+			if (this->Connected) this->ComputerName = client->GetComputerName();
 			if (this->Paired && this->Connected)UpdateApps();
-			this->Loading = false;
-		}));
+		}
+		this->Loading = false;
 	}
 
 	int MoonlightHost::Connect()
@@ -31,19 +27,12 @@ namespace moonlight_xbox_dx {
 	}
 
 	void MoonlightHost::UpdateApps() {
-		auto that = this;
-		Concurrency::create_async([that]() {
-			auto apps = that->client->GetApplications();
-
-			Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
-				Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that, apps]() {
-					that->Apps->Clear();
-					for (auto a : apps) {
-						if (a->Id == that->CurrentlyRunningAppId)a->CurrentlyRunning = true;
-						that->Apps->Append(a);
-					}
-					}));
-			});
+		Apps->Clear();
+		auto apps = client->GetApplications();
+		for (auto a : apps) {
+			if (a->Id == CurrentlyRunningAppId)a->CurrentlyRunning = true;
+			Apps->Append(a);
+		}
 	}
 
 
