@@ -26,7 +26,7 @@ jobs:
     - name: Restore VCPKG packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
-      run: Invoke-WebRequest -Uri "https://github.com/TheElixZammuto/moonlight-xbox/releases/download/1.8.5/vcpkg.zip" -OutFile .\vcpkg.zip
+      run: Invoke-WebRequest -Uri "https://github.com/TheElixZammuto/moonlight-xbox/releases/download/1.10.0/vcpkg.zip" -OutFile .\vcpkg.zip
     - name: Extract VCPKG packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
