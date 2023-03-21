@@ -14,19 +14,32 @@ extern "C" {
 }
 #define DECODER_BUFFER_SIZE 1048576
 namespace moonlight_xbox_dx {
+
+	void lock_context(void* dec) {
+		Utils::Log("Lock");
+		auto ff = (FFMpegDecoder*)dec;
+		ff->mutex.lock();
+	}
+
+	void unlock_context(void* dec) {
+		Utils::Log("Unlock");
+		auto ff = (FFMpegDecoder*)dec;
+		ff->mutex.unlock();
+	}
 	
 	void ffmpeg_log_callback(void* avcl,int	level,const char* fmt,va_list vl) {
-		/*if (level > AV_LOG_INFO)return;
+		//if (level > AV_LOG_INFO)return;
 		char message[2048];
 		vsprintf_s(message, fmt, vl);
-		Utils::Log(message);*/
+		OutputDebugStringA("[FFMPEG]");
+		OutputDebugStringA(message);
 	}
 	
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
         avcodec_register_all();
 #endif
-
+		av_log_set_level(AV_LOG_VERBOSE);
 		av_log_set_callback(&ffmpeg_log_callback);
 #pragma warning(suppress : 4996)
         av_init_packet(&pkt);
@@ -65,6 +78,9 @@ namespace moonlight_xbox_dx {
 		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
 		d3d11va_device_ctx->device = this->resources->GetD3DDevice();
 		d3d11va_device_ctx->device_context = this->resources->GetD3DDeviceContext();
+		d3d11va_device_ctx->lock = lock_context;
+		d3d11va_device_ctx->unlock = unlock_context;
+		d3d11va_device_ctx->lock_ctx = this;
 		int err2;
 		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
 			char msg[2048];
@@ -73,12 +89,44 @@ namespace moonlight_xbox_dx {
 			return err2;
 
 		}
+		auto hw_frames_ctx = av_hwframe_ctx_alloc(hw_device_ctx);
+		if (!hw_frames_ctx) {
+			return 1;
+		}
+
+		AVHWFramesContext* framesContext = (AVHWFramesContext*)hw_frames_ctx->data;
+
+		// We require NV12 or P010 textures for our shader
+		framesContext->format = AV_PIX_FMT_D3D11;
+		framesContext->sw_format = AV_PIX_FMT_NV12;
+
+		framesContext->width = FFALIGN(width, 16);
+		framesContext->height = FFALIGN(height, 16);
+		
+		// We can have up to 16 reference frames plus a working surface
+		framesContext->initial_pool_size = 2;
+
+		AVD3D11VAFramesContext* d3d11vaFramesContext = (AVD3D11VAFramesContext*)framesContext->hwctx;
+
+		d3d11vaFramesContext->texture = NULL;
+		d3d11vaFramesContext->BindFlags = D3D11_BIND_DECODER;
+
+		int err = av_hwframe_ctx_init(hw_frames_ctx);
+		if (err < 0) {
+			return -1;
+		}
+
+		auto a = d3d11vaFramesContext->texture_infos != nullptr;
+		if (a) {
+			Utils::Log("B");
+		}
 		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+		decoder_ctx->hw_frames_ctx = av_buffer_ref(hw_frames_ctx);
 		
 		decoder_ctx->width = width;
         decoder_ctx->height = height;
 
-        int err = avcodec_open2(decoder_ctx, decoder, NULL);
+        err = avcodec_open2(decoder_ctx, decoder, NULL);
         if (err < 0) {
 			char msg[2048];
 			sprintf(msg, "Failed to create FFMpeg Codec: %d\n", err);
@@ -193,7 +241,7 @@ namespace moonlight_xbox_dx {
 		}
 		return nullptr;
 	}
-	
+
 	//Helpers
 	FFMpegDecoder *instance;
 

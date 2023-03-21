@@ -3,6 +3,7 @@
 #include "DirectXHelper.h"
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <Pages/StreamPage.xaml.h>
+#include <Streaming/FFmpegDecoder.h>
 
 using namespace moonlight_xbox_dx;
 using namespace D2D1;
@@ -644,7 +645,7 @@ void DX::DeviceResources::Present()
 	// to sleep until the next VSync. This ensures we don't waste any cycles rendering
 	// frames that will never be displayed to the screen.
 	DXGI_PRESENT_PARAMETERS parameters = { 0 };
-	HRESULT hr = m_swapChain->Present1(1, 0, &parameters);
+	HRESULT hr = m_swapChain->Present1(0, 0, &parameters);
 
 	// Discard the contents of the render target.
 	// This is a valid operation only when the existing contents will be entirely
@@ -664,6 +665,8 @@ void DX::DeviceResources::Present()
 	{
 		DX::ThrowIfFailed(hr);
 	}
+	if(moonlight_xbox_dx::FFMpegDecoder::getInstance() != nullptr && moonlight_xbox_dx::FFMpegDecoder::getInstance()->shouldUnlock)
+		moonlight_xbox_dx::FFMpegDecoder::getInstance()->mutex.unlock();
 }
 
 // This method determines the rotation between the display device's native orientation and the

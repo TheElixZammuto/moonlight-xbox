@@ -27,10 +27,12 @@ namespace moonlight_xbox_dx
 		static FFMpegDecoder* getInstance();
 		static DECODER_RENDERER_CALLBACKS getDecoder();
 		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources);
+		std::recursive_mutex mutex;
+		bool shouldUnlock = false;
 	private:
 		int Decode(unsigned char* indata, int inlen);
 		AVPacket pkt;
-		AVCodec* decoder;
+		const AVCodec* decoder;
 		AVCodecContext* decoder_ctx;
 		AVHWDeviceContext* device_ctx;
 		AVD3D11VADeviceContext* d3d11va_device_ctx;

@@ -1,0 +1,19 @@
+{
+ "name": "moonlight-xbox",
+  "dependencies": [
+  {
+    "name": "ffmpeg",
+    "default-features": false,
+    "features":  ["avcodec","avdevice","swscale","x264"]
+  },
+  "curl",
+  "openssl",
+  "expat",
+  "zlib",
+  "nlohmann-json",
+  "bzip2",
+  "freetype",
+  "opus",
+  "mdns"
+  ]
+}

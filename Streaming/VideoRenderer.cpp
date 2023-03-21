@@ -52,9 +52,12 @@ void VideoRenderer::Render()
 		//Create a rendering texture
 		LARGE_INTEGER start, end,frequency;
 		QueryPerformanceCounter(&start);
+		FFMpegDecoder::getInstance()->shouldUnlock = false;
 		FFMpegDecoder::getInstance()->SubmitDU();
 		AVFrame *frame = FFMpegDecoder::getInstance()->GetFrame();
 		if (frame == nullptr)return;
+		FFMpegDecoder::getInstance()->mutex.lock();
+		FFMpegDecoder::getInstance()->shouldUnlock = true;
 		ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
 		D3D11_TEXTURE2D_DESC ffmpegDesc;
 		ffmpegTexture->GetDesc(&ffmpegDesc);
@@ -66,7 +69,7 @@ void VideoRenderer::Render()
 		box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
 		box.front = 0;
 		box.back = 1;
-		if(renderTexture != NULL)renderTexture->Release();
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
 		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
 		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;

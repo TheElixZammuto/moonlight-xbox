@@ -16,7 +16,7 @@ add_library(gamestream STATIC ${GAMESTREAM_SRC_LIST})
 
 target_link_libraries(gamestream moonlight-common-c)
 
-target_include_directories(gamestream PRIVATE ../third_party/moonlight-common-c/src ../third_party/h264bitstream)
+target_include_directories(gamestream PRIVATE ${EXPAT_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ../third_party/moonlight-common-c/src ../third_party/h264bitstream)
 target_link_libraries(gamestream ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES} ${EXPAT_LIBRARIES})
 target_link_libraries(gamestream ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 

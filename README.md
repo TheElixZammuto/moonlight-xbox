@@ -1,5 +1,5 @@
 # moonlight-xbox
-A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games using GeForce Experience or [Sunshine](https://github.com/loki-47-6F-64/sunshine) for the Xbox One and Xbox Series X|S family of consoles
+A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games using GeForce Experience or [Sunshine](https://github.com/LizardByte/sunshine) for the Xbox One and Xbox Series X|S family of consoles
 
 **This application is still in early stages of development. Expect things to not work or working badly**
 
@@ -36,7 +36,6 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 
 ## What does NOT work
 - Other means of input (e.g. Hardware Mouse and Keyboard)
-- 4K Support (Pending)
 - 120FPS
 - HDR (Probably not possible with the Xbox UWP Platform)
 - Everything else not listed above
@@ -53,10 +52,9 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 1. Clone this repository (`moonlight-xbox`) with submodules enabled!
 2. Install [VCPKG](https://vcpkg.io/en/index.html) and all dependencies:
     1. Clone VCPKG (`git clone https://github.com/Microsoft/vcpkg.git`) into `moonlight-xbox/vcpkg`
-    2. Run `vcpkg/bootstrap-vcpkg.bat`
-    3. Hack `ffmpeg` port by adding `set(OPTIONS "${OPTIONS} --enable-d3d11va")` to `vcpkg/ports/ffmpeg/portfile.cmake`
-    4. Install dependencies: `vcpkg install pthread:x64-uwp pthreads:x64-uwp curl:x64-uwp openssl:x64-uwp expat:x64-uwp zlib:x64-uwp ffmpeg[avcodec,avdevice,avfilter,avformat,core,gpl,postproc,swresample,swscale]:x64-uwp nlohmann-json:x64-uwp bzip2:x64-uwp brotli:x64-uwp x264:x64-uwp freetype:x64-uwp opus:x64-uwp`
+    2. Run `vcpkg\bootstrap-vcpkg.bat`
+    4. Install dependencies: `.\vcpkg\vcpkg.exe install --triplet x64-uwp`
 3. Run x64 Visual Studio Prompt (Tools → Command Line → Developer Command Prompt)
     1. Run `generate-thirdparty-projects.bat` to generate `moonlight-common-c` VS project
     2. Go to `libgamestream` and run `build-uwp.bat` to generate `libgamestream` VS project
-4. After all the actions above, you finnally can open and build solution. Please, build it only in Release mode (Debug mode is broken)
+4. After all the actions above, you finally can open and build solution.
