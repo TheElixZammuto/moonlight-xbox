@@ -10,7 +10,7 @@ using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 using namespace Concurrency;
 
-void usleep(unsigned int usec)
+void moonlight_xbox_dx::usleep(unsigned int usec)
 {
 	HANDLE timer;
 	LARGE_INTEGER ft;

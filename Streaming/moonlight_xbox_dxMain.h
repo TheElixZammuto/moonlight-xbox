@@ -56,4 +56,5 @@ namespace moonlight_xbox_dx
 		Windows::UI::Xaml::Controls::MenuFlyout^ m_flyout;
 		MoonlightClient* moonlightClient;
 	};
+	void usleep(unsigned int usec);
 }

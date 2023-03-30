@@ -4,6 +4,8 @@
 #include <Common\DirectXHelper.h>
 #include <d3d11_1.h>
 #include "Utils.hpp"
+#include "moonlight_xbox_dxMain.h"
+#include <gamingdeviceinformation.h>
 
 extern "C" {
 #include "Limelight.h"
@@ -13,6 +15,7 @@ extern "C" {
 #include<libavutil/hwcontext_d3d11va.h>
 }
 #define DECODER_BUFFER_SIZE 1048576
+
 namespace moonlight_xbox_dx {
 
 	void lock_context(void* dec) {
@@ -160,6 +163,16 @@ namespace moonlight_xbox_dx {
 				return -1;
 			}
 		}
+		GAMING_DEVICE_MODEL_INFORMATION info = {};
+		GetGamingDeviceModelInformation(&info);
+		if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && 
+			(info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE || 
+				info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE_S ||
+				info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE_X || 
+				info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE_X_DEVKIT)) {
+			Utils::Log("Using hack for Xbox One Consoles");
+			hackWait = true;
+		}
 		return 0;
 	}
 
@@ -229,6 +242,10 @@ namespace moonlight_xbox_dx {
 
 	AVFrame* FFMpegDecoder::GetFrame() {
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
+		//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!
+		//Honestly this did take too much time of my life to care to make a better version
+		//If you want to fix this, have fun! (And hopefully you have Microsoft blessing/tools/support for that)
+		if(hackWait)moonlight_xbox_dx::usleep(12000);
 		if (err != 0 && err != AVERROR(EAGAIN)) {
 			char errorstringnew[1024];
 			sprintf(errorstringnew, "Error avcodec_receive_frame: %d\n", AVERROR(err));
