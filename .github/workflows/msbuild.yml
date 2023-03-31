@@ -34,7 +34,7 @@ jobs:
     - name: Complete install of folder
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
-      run: .\vcpkg\vcpkg.exe bootstrap
+      run: .\vcpkg\bootstrap-vcpkg.bat
     - name: Complete install of folder
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
