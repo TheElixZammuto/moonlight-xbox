@@ -13,36 +13,23 @@ env:
 
 jobs:
   build:
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-uwp
     runs-on: windows-2022
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
+        
       
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.0.2
+    
+    - name: Setup VCPKG
+      uses: lukka/run-vcpkg@v11
+      id: runvcpkg
 
-    - name: Restore VCPKG packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: Invoke-WebRequest -Uri "https://github.com/TheElixZammuto/moonlight-xbox/releases/download/1.10.0/vcpkg_installed.zip" -OutFile .\vcpkg_installed.zip
-    - name: Extract VCPKG packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: Expand-Archive .\vcpkg_installed.zip -DestinationPath .\
-    - name: Extract VCPKG packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: tree
-    - name: Complete install of folder
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: .\vcpkg\bootstrap-vcpkg.bat
-    - name: Complete install of folder
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: .\vcpkg\vcpkg.exe install --triplet x64-uwp
     - name: Build third party tools
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: .\generate-thirdparty-projects.bat
