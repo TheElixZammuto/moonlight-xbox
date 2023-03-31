@@ -1,3 +1,6 @@
 [submodule "third_party/moonlight-common-c"]
 	path = third_party/moonlight-common-c
 	url = https://github.com/TheElixZammuto/moonlight-common-c
+[submodule "vcpkg"]
+	path = vcpkg
+	url = git@github.com:microsoft/vcpkg.git
