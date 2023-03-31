@@ -30,7 +30,7 @@ jobs:
     - name: Extract VCPKG packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
-      run: Expand-Archive .\vcpkg_installed.zip -DestinationPath .\vcpkg_installed
+      run: Expand-Archive .\vcpkg_installed.zip -DestinationPath .
     - name: Complete install of folder
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
