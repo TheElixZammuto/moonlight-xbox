@@ -29,6 +29,9 @@ jobs:
     - name: Setup VCPKG
       uses: lukka/run-vcpkg@v11
       id: runvcpkg
+      env:
+        ACTIONS_RUNTIME_TOKEN: ${{env.ACTIONS_RUNTIME_TOKEN}}
+        ACTIONS_CACHE_URL: ${{env.ACTIONS_CACHE_URL}}
 
     - name: Build third party tools
       working-directory: ${{env.GITHUB_WORKSPACE}}
