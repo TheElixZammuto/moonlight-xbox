@@ -34,15 +34,15 @@ jobs:
     - name: Extract VCPKG packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
-      run: tree
+      run: dir
     - name: Complete install of folder
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
       run: .\vcpkg\bootstrap-vcpkg.bat
-    - name: Complete install of folder
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: .\vcpkg\vcpkg.exe install --triplet x64-uwp
+    #- name: Complete install of folder
+    #  working-directory: ${{env.GITHUB_WORKSPACE}}
+    #  shell: pwsh
+    #  run: .\vcpkg\vcpkg.exe install --triplet x64-uwp
     - name: Build third party tools
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: .\generate-thirdparty-projects.bat
