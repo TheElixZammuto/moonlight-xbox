@@ -30,15 +30,19 @@ jobs:
     - name: Extract VCPKG packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
-      run: Expand-Archive .\vcpkg_installed.zip -DestinationPath .\vcpkg_installed
+      run: Expand-Archive .\vcpkg_installed.zip -DestinationPath .\
+    - name: Extract VCPKG packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      shell: pwsh
+      run: dir .\vcpkg_installed
     - name: Complete install of folder
       working-directory: ${{env.GITHUB_WORKSPACE}}
       shell: pwsh
-      run: .\vcpkg\vcpkg.exe bootstrap
-    - name: Complete install of folder
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: .\vcpkg\vcpkg.exe install --triplet x64-uwp
+      run: .\vcpkg\bootstrap-vcpkg.bat
+    #- name: Complete install of folder
+    #  working-directory: ${{env.GITHUB_WORKSPACE}}
+    #  shell: pwsh
+    #  run: .\vcpkg\vcpkg.exe install --triplet x64-uwp
     - name: Build third party tools
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: .\generate-thirdparty-projects.bat
