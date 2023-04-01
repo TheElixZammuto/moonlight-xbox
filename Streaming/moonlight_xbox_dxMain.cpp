@@ -90,16 +90,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			// Calculate the updated frame and render once per vertical blanking interval.
 			while (action->Status == AsyncStatus::Started)
 			{
-				/*LARGE_INTEGER start, end, frequency;
-						QueryPerformanceFrequency(&frequency);
-				QueryPerformanceCounter(&start);*/
 				ProcessInput();
-				usleep(8000); // 8ms = about 120Hz of polling rate (i guess)
-				/*QueryPerformanceCounter(&end);
-				double ms = (end.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
-				char msg[4096];
-				sprintf(msg, "ms elapsed for input: %f ms\n", ms);
-				Utils::Log(msg);*/
+				usleep(2000);
 			}
 		});
 
@@ -156,7 +148,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 		if (mouseMode) {
 			auto state = GetApplicationState();
 			//Position
-			double multiplier = state->MouseSensitivity;
+			double multiplier = ((double)state->MouseSensitivity) / ((double)2.0f);
 			moonlightClient->SendMousePosition(reading.LeftThumbstickX * multiplier, reading.LeftThumbstickY * -1 * multiplier);
 			//Left Click
 			if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {

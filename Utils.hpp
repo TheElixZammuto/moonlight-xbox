@@ -16,6 +16,8 @@ namespace moonlight_xbox_dx {
 		extern float outputW;
 		extern float outputH;
 		extern StreamingStats stats;
+		extern std::mutex logMutex;
+		
 		Platform::String^ StringPrintf(const char* fmt, ...);
 
 		void Log(const char* fmt);

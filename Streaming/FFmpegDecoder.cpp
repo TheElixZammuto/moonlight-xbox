@@ -19,13 +19,11 @@ extern "C" {
 namespace moonlight_xbox_dx {
 
 	void lock_context(void* dec) {
-		Utils::Log("Lock");
 		auto ff = (FFMpegDecoder*)dec;
 		ff->mutex.lock();
 	}
 
 	void unlock_context(void* dec) {
-		Utils::Log("Unlock");
 		auto ff = (FFMpegDecoder*)dec;
 		ff->mutex.unlock();
 	}

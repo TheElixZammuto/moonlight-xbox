@@ -83,7 +83,9 @@ query_callback(int sock, const struct sockaddr* from, size_t addrlen, mdns_entry
 		auto hostname = std::string(srv.name.str);
 		hostname.pop_back();
 		auto hostnamePlusPort = Utils::StringFromStdString(hostname) + ":" + srv.port;
-		GetApplicationState()->AddHost(hostnamePlusPort);
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([hostnamePlusPort]() {
+			GetApplicationState()->AddHost(hostnamePlusPort);
+		}));
 	}
 	/*else if (rtype == MDNS_RECORDTYPE_A) {
 		struct sockaddr_in addr;
@@ -114,18 +116,18 @@ query_callback(int sock, const struct sockaddr* from, size_t addrlen, mdns_entry
 int init_mdns() {
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
-	for(auto h : NetworkInformation::GetHostNames()) {
+	/*for (auto h : NetworkInformation::GetHostNames()) {
 		if (h->IPInformation == nullptr || h->Type != Windows::Networking::HostNameType::Ipv4)continue;
 		auto ip = h->ToString();
 		sockaddr_in addr;
 		addr.sin_family = AF_INET;
 		addr.sin_port = MDNS_PORT;
-		inet_pton(AF_INET, Utils::PlatformStringToStdString(ip).c_str(), &addr.sin_addr.s_addr);
-		int socket = mdns_socket_open_ipv4(&addr);
+		inet_pton(AF_INET, Utils::PlatformStringToStdString(ip).c_str(), &addr.sin_addr.s_addr);*/
+		int socket = mdns_socket_open_ipv4(NULL);
 		auto str = "_nvstream._tcp.local";
 		mdns_query_send(socket, MDNS_RECORDTYPE_PTR, str, strlen(str), &mdns_buffer, 4096, 0);
 		return socket;
-	}
+	/* }*/
 }
 
 int query_mdns(int socket) {

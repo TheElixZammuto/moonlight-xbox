@@ -132,10 +132,8 @@ void moonlight_xbox_dx::HostSelectorPage::SettingsButton_Click(Platform::Object^
 void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
 	Concurrency::create_task([] {
 		int a = init_mdns();
-		while (true) {
-			Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([a]() {
-				query_mdns(a);
-			}));
+		while (a >= 0) {
+			query_mdns(a);
 			Sleep(1000);
 		}
 	});

@@ -50,10 +50,12 @@ void LogRenderer::Update(DX::StepTimer const& timer)
 {
 	m_text = L"";
 	if (Utils::showLogs) {
+		Utils::logMutex.lock();
 		std::vector<std::wstring> lines = Utils::GetLogLines();
 		for (std::wstring line : lines) {
 			m_text += line;
 		}
+		Utils::logMutex.unlock();
 	}
 	
 }

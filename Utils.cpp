@@ -11,6 +11,7 @@ namespace moonlight_xbox_dx {
 		float outputW = 0;
 		float outputH = 0;
 		StreamingStats stats;
+		std::mutex logMutex;
 
 		Platform::String^ StringPrintf(const char* fmt, ...) {
 			va_list list;
@@ -31,8 +32,10 @@ namespace moonlight_xbox_dx {
 				if (stringBuf == NULL)return;
 				mbstowcs(stringBuf, fmt, len);
 				std::wstring string(stringBuf);
+				logMutex.lock();
 				if (logLines.size() == LOG_LINES)logLines.erase(logLines.begin());
 				logLines.push_back(string);
+				logMutex.unlock();
 			}
 			catch (...){
 
