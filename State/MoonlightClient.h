@@ -32,6 +32,8 @@ namespace moonlight_xbox_dx {
 		void StopStreaming();
 		void StopApp();
 		void Unpair();
+		void KeyDown(unsigned short v);
+		void KeyUp(unsigned short v);
 		Platform::String^ GetInstanceID();
 		Platform::String^ GetComputerName();
 	private:

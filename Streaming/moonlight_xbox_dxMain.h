@@ -21,6 +21,8 @@ namespace moonlight_xbox_dx
 		void SetFlyoutOpened(bool value);
 		Concurrency::critical_section& GetCriticalSection() { return m_criticalSection; }
 		bool mouseMode = false;
+		void OnKeyDown(Windows::UI::Core::KeyEventArgs^ args);
+		void OnKeyUp(Windows::UI::Core::KeyEventArgs^ args);
 		// IDeviceNotify
 		virtual void OnDeviceLost();
 		virtual void OnDeviceRestored();
@@ -51,6 +53,7 @@ namespace moonlight_xbox_dx
 		bool insideFlyout = false;
 		bool leftMouseButtonPressed = false;
 		bool rightMouseButtonPressed = false;
+		bool keyboardButtonPressed = false;
 		Windows::UI::Xaml::FrameworkElement ^m_flyoutButton;
 		Windows::UI::Core::CoreDispatcher ^m_dispatcher;
 		Windows::UI::Xaml::Controls::MenuFlyout^ m_flyout;

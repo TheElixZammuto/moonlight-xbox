@@ -40,6 +40,8 @@ StreamPage::StreamPage():
 
 	//Resize to make fullscreen on Xbox
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyDown);
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyUp);
 }
 
 
@@ -154,8 +156,14 @@ void moonlight_xbox_dx::StreamPage::disonnectButton_Click(Platform::Object^ send
 	this->Frame->GoBack();
 }
 
-
-void moonlight_xbox_dx::StreamPage::flyoutButton_Click_1(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void moonlight_xbox_dx::StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
 {
+	this->m_main->OnKeyDown(args);
+}
+
+
+void moonlight_xbox_dx::StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
+{
+	this->m_main->OnKeyUp(args);
 
 }

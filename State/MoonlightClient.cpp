@@ -273,3 +273,11 @@ Platform::String^ MoonlightClient::GetInstanceID() {
 Platform::String^ MoonlightClient::GetComputerName() {
 	return Utils::StringFromChars(serverData.serverName);
 }
+
+void MoonlightClient::KeyDown(unsigned short v) {
+	LiSendKeyboardEvent2(v, KEY_ACTION_DOWN, 0, 0);
+}
+
+void MoonlightClient::KeyUp(unsigned short v) {
+	LiSendKeyboardEvent2(v, KEY_ACTION_UP, 0, 0);
+}

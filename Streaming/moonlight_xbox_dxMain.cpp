@@ -9,6 +9,7 @@ using namespace moonlight_xbox_dx;
 using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 using namespace Concurrency;
+using namespace Windows::UI::ViewManagement::Core;
 
 void moonlight_xbox_dx::usleep(unsigned int usec)
 {
@@ -172,6 +173,14 @@ void moonlight_xbox_dxMain::ProcessInput()
 				rightMouseButtonPressed = false;
 				moonlightClient->SendMouseReleased(BUTTON_RIGHT);
 			}
+			if ((reading.Buttons & GamepadButtons::Y) == GamepadButtons::Y) {
+				if (!keyboardButtonPressed) {
+					CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+				}
+			}
+			else if (keyboardButtonPressed) {
+				keyboardButtonPressed = false;
+			}
 			//Scroll
 			moonlightClient->SendScroll(reading.RightThumbstickY);
 		}
@@ -237,4 +246,21 @@ void moonlight_xbox_dxMain::SetFlyoutOpened(bool value) {
 
 void moonlight_xbox_dxMain::Disconnect() {
 	moonlightClient->StopStreaming();
+}
+
+void moonlight_xbox_dxMain::OnKeyDown(Windows::UI::Core::KeyEventArgs^ e)
+{
+	if (this == nullptr || moonlightClient == nullptr)return;
+	//Ignore Gamepad input
+	if (!e->DeviceId->IsEmpty())return;
+	moonlightClient->KeyDown((unsigned short)e->VirtualKey);
+}
+
+
+void moonlight_xbox_dxMain::OnKeyUp(Windows::UI::Core::KeyEventArgs^ e)
+{
+	if (this == nullptr || moonlightClient == nullptr)return;
+	//Ignore Gamepad input
+	if (!e->DeviceId->IsEmpty())return;
+	moonlightClient->KeyUp((unsigned short)e->VirtualKey);
 }
