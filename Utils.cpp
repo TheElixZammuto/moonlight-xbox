@@ -49,12 +49,11 @@ namespace moonlight_xbox_dx {
 		//https://stackoverflow.com/a/20707518
 		Platform::String^ StringFromChars(char* chars)
 		{
-			size_t newsize = strlen(chars) + 1;
-			wchar_t* wcstring = new wchar_t[newsize];
-			size_t convertedChars = 0;
-			mbstowcs_s(&convertedChars, wcstring, newsize, chars, _TRUNCATE);
-			Platform::String^ str = ref new Platform::String(wcstring);
-			delete[] wcstring;
+			int wchars_num = MultiByteToWideChar(CP_UTF8, 0, chars, -1, NULL, 0);
+			wchar_t* wstr = new wchar_t[wchars_num];
+			MultiByteToWideChar(CP_UTF8, 0, chars, -1, wstr, wchars_num);
+			Platform::String^ str = ref new Platform::String(wstr);
+			delete[] wstr;
 			return str;
 		}
 
