@@ -22,13 +22,13 @@ void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
 MoonlightClient::MoonlightClient() {
-	
+
 }
 
 void MoonlightClient::StopApp() {
 	gs_quit_app(&serverData);
 }
-int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,StreamConfiguration ^sConfig) {
+int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration^ sConfig) {
 	//Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
 	std::wstring fooW(sConfig->hostname->Begin());
 	std::string fooA(fooW.begin(), fooW.end());
@@ -44,7 +44,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	config.encryptionFlags = 0;
 	config.fps = sConfig->FPS;
 	config.packetSize = 1024;
-    config.hevcBitratePercentageMultiplier = 75;
+	config.hevcBitratePercentageMultiplier = 75;
 	config.enableHdr = false;
 	if (config.height == 2160) {
 		config.supportsHevc = true;
@@ -89,7 +89,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res,Str
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
 	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
-	sprintf(message, "LiStartConnection %d\n",k);
+	sprintf(message, "LiStartConnection %d\n", k);
 	Utils::Log(message);
 	return k;
 }
@@ -102,7 +102,7 @@ void log_message(const char* fmt, ...) {
 	va_list argp;
 	va_start(argp, fmt);
 	char message[2048];
-	vsprintf_s(message, fmt,argp);
+	vsprintf_s(message, fmt, argp);
 	Utils::Log(message);
 }
 
@@ -134,7 +134,7 @@ void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMo
 	if (Windows::Gaming::Input::Gamepad::Gamepads->Size == 0)return;
 	auto gp = Windows::Gaming::Input::Gamepad::Gamepads->GetAt(0);
 	float normalizedHigh = highFreqMotor / (float)(256 * 256);
-	float normalizedLow  = lowFreqMotor / (float)(256 * 256);
+	float normalizedLow = lowFreqMotor / (float)(256 * 256);
 	Windows::Gaming::Input::GamepadVibration v;
 	v.LeftTrigger = normalizedHigh;
 	v.RightTrigger = normalizedHigh;
@@ -145,7 +145,7 @@ void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMo
 
 int MoonlightClient::Connect(const char* hostname) {
 	this->hostname = (char*)malloc(2048 * sizeof(char));
-	strcpy_s(this->hostname, 2048,hostname);
+	strcpy_s(this->hostname, 2048, hostname);
 	if (strchr(this->hostname, ':') != 0) {
 		char portStr[2048];
 		strcpy_s(portStr, 2048, strchr(this->hostname, ':') + 1);
@@ -159,7 +159,7 @@ int MoonlightClient::Connect(const char* hostname) {
 	int status = 0;
 	status = gs_init(&serverData, this->hostname, port, folder, 0, 0);
 	char msg[4096];
-	sprintf(msg,"Got status %d from Moonlight\n", status);
+	sprintf(msg, "Got status %d from Moonlight\n", status);
 	Utils::Log(msg);
 	return status;
 }
@@ -168,7 +168,7 @@ bool MoonlightClient::IsPaired() {
 	return serverData.paired;
 }
 
-char *MoonlightClient::GeneratePIN() {
+char* MoonlightClient::GeneratePIN() {
 	srand(time(NULL));
 	if (connectionPin == NULL)connectionPin = (char*)malloc(5 * sizeof(char));
 	sprintf(connectionPin, "%d%d%d%d", rand() % 10, rand() % 10, rand() % 10, rand() % 10);
@@ -188,16 +188,33 @@ int MoonlightClient::Pair() {
 
 std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 	PAPP_LIST list;
-	int status = gs_applist(&serverData, &list);
+	struct app {
+		int Id;
+		Platform::String^ Name;
+	};
+	std::vector<struct app> tempValues;
 	std::vector<MoonlightApp^> values;
+	int status = gs_applist(&serverData, &list);
 	if (list == NULL)return values;
 	if (status != 0)return values;
 	while (list != NULL) {
-		MoonlightApp^a = ref new MoonlightApp();
-		a->Id = list->id;
-		a->Name = Utils::StringFromChars(list->name);
-		values.push_back(a);
+		struct app a;
+		a.Id = list->id;
+		a.Name = Utils::StringFromChars(list->name);
+		tempValues.push_back(a);
 		list = list->next;
+	}
+	std::sort(begin(tempValues), end(tempValues), [](struct app& lhs, struct app& rhs)
+		{
+			if (lhs.Name->Data()[0] == '_' && rhs.Name->Data()[0] != '_')return true;
+			if (rhs.Name->Data()[0] == '_' && lhs.Name->Data()[0] != '_')return false;
+			return lhs.Name < rhs.Name;
+		});
+	for (auto s : tempValues) {
+		MoonlightApp^ a = ref new MoonlightApp();
+		a->Id = s.Id;
+		a->Name = s.Name;
+		values.push_back(a);
 	}
 	return values;
 }
