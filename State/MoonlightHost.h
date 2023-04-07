@@ -14,6 +14,7 @@ namespace moonlight_xbox_dx {
         bool paired;
         bool connected;
         bool loading = true;
+        bool playAudioOnPC = false;
         MoonlightClient* client;
         int currentlyRunningAppId;
         int bitrate = 8000;
@@ -179,6 +180,15 @@ namespace moonlight_xbox_dx {
                     this->apps = ref new Platform::Collections::Vector<MoonlightApp^>();
                 }
                 return this->apps;
+            }
+        }
+
+        property bool PlayAudioOnPC
+        {
+            bool get() { return this->playAudioOnPC; }
+            void set(bool value) {
+                this->playAudioOnPC = value;
+                OnPropertyChanged("PlayAudioOnPC");
             }
         }
     };

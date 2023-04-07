@@ -33,6 +33,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("videoCodec"))h->VideoCodec = Utils::StringFromStdString(a["videoCodec"].get<std::string>());
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
 					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
+					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
 					else h->ComputerName = h->LastHostname;
 					this->SavedHosts->Append(h);
 				}
@@ -82,6 +83,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
 			hostJson["videoCodec"] = Utils::PlatformStringToStdString(host->VideoCodec);
 			hostJson["autoStartID"] = host->AutostartID;
+			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
 			stateJson["hosts"].push_back(hostJson);
 		}
 		return FileIO::WriteTextAsync(file, Utils::StringFromStdString(stateJson.dump()));

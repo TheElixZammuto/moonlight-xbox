@@ -13,6 +13,7 @@ namespace moonlight_xbox_dx
 		property bool supportsHevc;
 		property Platform::String^ audioConfig;
 		property Platform::String^ videoCodec;
+		property bool playAudioOnPC;
 	};
 
 	moonlight_xbox_dx::StreamConfiguration^ GetStreamConfig();

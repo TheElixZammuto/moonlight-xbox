@@ -26,6 +26,7 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0">Resolution</TextBlock>
             <ComboBox x:Name="ResolutionSelector" SelectionChanged="ResolutionSelector_SelectionChanged" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind AvailableResolutions}" Width="200">
@@ -48,11 +49,13 @@
             </StackPanel>
             <TextBlock Grid.Row="3" Grid.Column="0">Audio Configuration</TextBlock>
             <ComboBox ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}"  Grid.Row="3"  Grid.Column="1"></ComboBox>
-            <TextBlock Grid.Row="4" Grid.Column="0">Autostart</TextBlock>
-            <ComboBox  Grid.Row="4"  Grid.Column="1" SelectedIndex="{x:Bind CurrentAppIndex,Mode=TwoWay}" Name="AutoStartSelector" SelectionChanged="AutoStartSelector_SelectionChanged">
+            <TextBlock Grid.Row="4" Grid.Column="0">Play Audio on Host PC</TextBlock>
+            <CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{x:Bind Host.PlayAudioOnPC, Mode=TwoWay}"></CheckBox>
+            <TextBlock Grid.Row="5" Grid.Column="0">Autostart</TextBlock>
+            <ComboBox  Grid.Row="5"  Grid.Column="1" SelectedIndex="{x:Bind CurrentAppIndex,Mode=TwoWay}" Name="AutoStartSelector" SelectionChanged="AutoStartSelector_SelectionChanged">
             </ComboBox>
-              <TextBlock Grid.Row="5" Grid.Column="0">Video Codecs</TextBlock>
-            <ComboBox ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}"  Grid.Row="5"  Grid.Column="1"></ComboBox>
+              <TextBlock Grid.Row="6" Grid.Column="0">Video Codecs</TextBlock>
+            <ComboBox ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}"  Grid.Row="6"  Grid.Column="1"></ComboBox>
             </Grid>
         </StackPanel>
 </Page>
