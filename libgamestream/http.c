@@ -47,6 +47,12 @@ static size_t _write_curl(void *contents, size_t size, size_t nmemb, void *userp
   return realsize;
 }
 
+static size_t _write_curl_binary(void* contents, size_t size, size_t nmemb, void* userp)
+{
+    size_t written = fwrite(contents, size, nmemb, userp);
+    return written;
+}
+
 int http_init(const char* keyDirectory, int logLevel) {
   curl = curl_easy_init();
   debug = logLevel >= 2;
@@ -88,7 +94,6 @@ int http_init(const char* keyDirectory, int logLevel) {
   curl_easy_setopt(curl, CURLOPT_SSLKEYTYPE, "PEM");
   int b = curl_easy_setopt(curl, CURLOPT_SSLKEY_BLOB, keyBlob);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _write_curl);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_SESSIONID_CACHE, 0L);
   return GS_OK;
@@ -97,6 +102,7 @@ int http_init(const char* keyDirectory, int logLevel) {
 int http_request(char* url, PHTTP_DATA data) {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
   curl_easy_setopt(curl, CURLOPT_URL, url);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _write_curl);
 
   if (debug)
     printf("Request %s\n", url);
@@ -122,6 +128,23 @@ int http_request(char* url, PHTTP_DATA data) {
     printf("Response:\n%s\n\n", data->memory);
 
   return GS_OK;
+}
+
+int http_request_binary(char* url, FILE *data) {
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _write_curl_binary);
+
+    if (debug)
+        printf("Request %s\n", url);
+
+    CURLcode res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK) {
+        gs_error = curl_easy_strerror(res);
+        return GS_FAILED;
+    }
+    return GS_OK;
 }
 
 void http_cleanup() {

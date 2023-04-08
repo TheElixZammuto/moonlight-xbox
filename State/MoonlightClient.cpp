@@ -224,6 +224,11 @@ std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 		a.Name = Utils::StringFromChars(list->name);
 		tempValues.push_back(a);
 		list = list->next;
+		Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+		folderString = folderString->Concat(folderString, "\\");
+		char folder[2048];
+		wcstombs_s(NULL, folder, folderString->Data(), 2047);
+		gs_appasset(&serverData, folder, a.Id);
 	}
 	std::sort(begin(tempValues), end(tempValues), [](struct app& lhs, struct app& rhs)
 		{

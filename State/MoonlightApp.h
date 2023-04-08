@@ -21,6 +21,17 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("Name");
             }
         }
+
+        property Platform::String^ ImagePath
+        {
+            Platform::String^ get() { 
+                Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+                folderString = folderString->Concat(folderString, "\\");
+                folderString = folderString->Concat(folderString, id);
+                folderString = folderString->Concat(folderString, ".png");
+                return folderString;
+            }
+        }
         
         property int Id
         {

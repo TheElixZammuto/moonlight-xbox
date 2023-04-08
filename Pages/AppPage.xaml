@@ -58,11 +58,11 @@
                 <DataTemplate x:DataType="local:MoonlightApp" x:DefaultBindMode="OneWay">
                     <StackPanel>
                         <StackPanel Padding="16" VerticalAlignment="Center">
-                            <Canvas Width="216" Height="216">
-                                <Image Source="ms-appx:///Assets/gamepad.svg" Width="200" Height="200" Canvas.Left="16" Canvas.Top="16" />
-                                <Image Source="ms-appx:///Assets/play.svg" Visibility="{x:Bind CurrentlyRunning}" Width="96" Height="96" Canvas.Left="125" Canvas.Top="125" />
-                            </Canvas>
-                            <TextBlock Text="{x:Bind Name}"></TextBlock>
+                            <Image Source="{x:Bind ImagePath}" Stretch="Fill" Height="300" Width="225"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Stretch">
+                                <Image Source="ms-appx:///Assets/play.svg" Visibility="{x:Bind CurrentlyRunning}" Width="24" Height="24" />
+                                <TextBlock Text="{x:Bind Name}"></TextBlock>
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </DataTemplate>

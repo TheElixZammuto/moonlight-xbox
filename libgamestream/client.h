@@ -50,3 +50,4 @@ int gs_applist(PSERVER_DATA server, PAPP_LIST *app_list);
 int gs_unpair(PSERVER_DATA server);
 int gs_pair(PSERVER_DATA server, char* pin);
 int gs_quit_app(PSERVER_DATA server);
+int gs_appasset(PSERVER_DATA server, const char *keyDirectory, int appId);
