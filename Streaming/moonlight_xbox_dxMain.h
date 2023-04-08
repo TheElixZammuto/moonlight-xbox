@@ -5,6 +5,7 @@
 #include "Streaming\VideoRenderer.h"
 #include "Streaming\LogRenderer.h"
 #include "Streaming\StatsRenderer.h"
+#include "Pages\StreamPage.xaml.h"
 
 // Renders Direct2D and 3D content on the screen.
 namespace moonlight_xbox_dx
@@ -12,7 +13,7 @@ namespace moonlight_xbox_dx
 	class moonlight_xbox_dxMain : public DX::IDeviceNotify
 	{
 	public:
-		moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::FrameworkElement^ flyoutButton, Windows::UI::Xaml::Controls::MenuFlyout^ flyout, Windows::UI::Core::CoreDispatcher^ dispatcher, MoonlightClient* client,StreamConfiguration ^config);
+		moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, StreamPage^ streamPage, MoonlightClient* client, StreamConfiguration^ configuration);
 		~moonlight_xbox_dxMain();
 		void CreateWindowSizeDependentResources();
 		void TrackingUpdate(float positionX) { m_pointerLocationX = positionX; }
@@ -54,9 +55,7 @@ namespace moonlight_xbox_dx
 		bool leftMouseButtonPressed = false;
 		bool rightMouseButtonPressed = false;
 		bool keyboardButtonPressed = false;
-		Windows::UI::Xaml::FrameworkElement ^m_flyoutButton;
-		Windows::UI::Core::CoreDispatcher ^m_dispatcher;
-		Windows::UI::Xaml::Controls::MenuFlyout^ m_flyout;
+		StreamPage^ m_streamPage;
 		MoonlightClient* moonlightClient;
 	};
 	void usleep(unsigned int usec);

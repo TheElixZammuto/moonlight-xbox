@@ -5,11 +5,16 @@
     xmlns:local="using:moonlight_xbox_dx"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     Loaded="Page_Loaded">
 
     <SwapChainPanel x:Name="swapChainPanel" Margin="{x:Bind State.ScreenMargin}">
+        <StackPanel x:Name="ProgressView" HorizontalAlignment="Center" VerticalAlignment="Center"  Orientation="Vertical">
+            <muxc:ProgressRing Width="128" Height="128" IsActive="True" ></muxc:ProgressRing>
+            <TextBlock x:Name="StatusText">Initializing Moonlight...</TextBlock>
+        </StackPanel>
         <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1" Opacity="0">
             <FlyoutBase.AttachedFlyout>
                 <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">

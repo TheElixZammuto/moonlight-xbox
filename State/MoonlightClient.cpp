@@ -17,9 +17,12 @@ using namespace Windows::Gaming::Input;
 void log_message(const char* fmt, ...);
 void connection_started();
 void connection_status_update(int status);
+void connection_status_completed(int status);
 void connection_terminated(int status);
 void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
+
+MoonlightClient *connectedInstance;
 
 MoonlightClient::MoonlightClient() {
 
@@ -75,6 +78,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	if (a != 0) {
 		Utils::Log("Failed to start app");
 	}
+	connectedInstance = this;
 	CONNECTION_LISTENER_CALLBACKS callbacks;
 	LiInitializeConnectionCallbacks(&callbacks);
 	callbacks.logMessage = log_message;
@@ -83,7 +87,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.connectionTerminated = connection_terminated;
 	callbacks.stageStarting = connection_status_update;
 	callbacks.stageFailed = stage_failed;
-	callbacks.stageComplete = connection_status_update;
+	callbacks.stageComplete = connection_status_completed;
 	callbacks.rumble = connection_rumble;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
@@ -110,12 +114,26 @@ void connection_started() {
 	char message[2048];
 	sprintf(message, "Connection Started\n");
 	Utils::Log(message);
+	if (connectedInstance->OnCompleted != nullptr) {
+		connectedInstance->OnCompleted();
+	}
 }
 
 void connection_status_update(int status) {
 	char message[4096];
-	sprintf(message, "Connection updated with status %d\n", status);
+	sprintf(message, "Stage %d started\n", status);
 	Utils::Log(message);
+	
+}
+
+void connection_status_completed(int status) {
+	char message[4096];
+	sprintf(message, "Stage %d completed\n", status);
+	Utils::Log(message);
+	if (connectedInstance->OnStatusUpdate != nullptr) {
+		connectedInstance->OnStatusUpdate(status);
+	}
+
 }
 
 void connection_terminated(int status) {
@@ -128,6 +146,9 @@ void stage_failed(int stage, int err) {
 	char message[4096];
 	sprintf(message, "Stage %d failed with error %d\n", stage, err);
 	Utils::Log(message);
+	if (connectedInstance->OnFailed != nullptr) {
+		connectedInstance->OnFailed(stage,err);
+	}
 }
 
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {

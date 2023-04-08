@@ -266,7 +266,14 @@ void VideoRenderer::CreateDeviceDependentResources()
 		int status = client->StartStreaming(m_deviceResources, configuration);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			dialog->Content = Utils::StringPrintf("Got status %d from Moonlight init", status);
+			Utils::logMutex.lock();
+			std::wstring m_text = L"";
+			std::vector<std::wstring> lines = Utils::GetLogLines();
+			for (std::wstring line : lines) {
+				m_text += line;
+			}
+			Utils::logMutex.unlock();
+			dialog->Content = ref new Platform::String(m_text.c_str());
 			dialog->CloseButtonText = L"OK";
 			dialog->ShowAsync();
 		}

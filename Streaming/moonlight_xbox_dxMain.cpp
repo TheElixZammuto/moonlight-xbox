@@ -2,6 +2,7 @@
 #include "moonlight_xbox_dxMain.h"
 #include "Common\DirectXHelper.h"
 #include "Utils.hpp"
+#include <Pages/StreamPage.xaml.h>
 using namespace Windows::Gaming::Input;
 
 
@@ -11,6 +12,10 @@ using namespace Windows::System::Threading;
 using namespace Concurrency;
 using namespace Windows::UI::ViewManagement::Core;
 
+extern "C" {
+#include<Limelight.h>
+}
+
 void moonlight_xbox_dx::usleep(unsigned int usec)
 {
 	HANDLE timer;
@@ -19,15 +24,16 @@ void moonlight_xbox_dx::usleep(unsigned int usec)
 	ft.QuadPart = -(10 * (__int64)usec);
 
 	timer = CreateWaitableTimer(NULL, TRUE, NULL);
+	if (timer == 0)return;
 	SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
 	WaitForSingleObject(timer, INFINITE);
 	CloseHandle(timer);
 }
 
 // Loads and initializes application assets when the application is loaded.
-moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, Windows::UI::Xaml::FrameworkElement^ flyoutButton, Windows::UI::Xaml::Controls::MenuFlyout^ flyout, Windows::UI::Core::CoreDispatcher^ dispatcher, MoonlightClient* client,StreamConfiguration ^configuration):
+moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, StreamPage ^streamPage, MoonlightClient* client,StreamConfiguration ^configuration):
 
-	m_deviceResources(deviceResources), m_pointerLocationX(0.0f),m_flyoutButton(flyoutButton),m_dispatcher(dispatcher),m_flyout(flyout),moonlightClient(client)
+	m_deviceResources(deviceResources), m_pointerLocationX(0.0f),m_streamPage(streamPage), moonlightClient(client)
 {
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
@@ -37,6 +43,21 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	m_fpsTextRenderer = std::unique_ptr<LogRenderer>(new LogRenderer(m_deviceResources));
 
 	m_statsTextRenderer = std::unique_ptr<StatsRenderer>(new StatsRenderer(m_deviceResources));
+
+	client->OnStatusUpdate = ([streamPage](int status) {
+		const char* msg = LiGetStageName(status);
+		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(msg));
+	});
+
+	client->OnCompleted = ([streamPage]() {
+		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+	});
+
+	client->OnFailed = ([streamPage](int status,int error) {
+		char msg[4096];
+		sprintf_s(msg, "Stage %s failed with error %d", LiGetStageName(status), error);
+		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(msg));
+	});
 
 	// TODO: Change the timer settings if you want something other than the default variable timestep mode.
 	// e.g. for 60 FPS fixed timestep update logic, call:
@@ -139,8 +160,8 @@ void moonlight_xbox_dxMain::ProcessInput()
 			}
 		}
 		if (isCurrentlyPressed) {
-			m_dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
-				Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_flyoutButton);
+			m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
+				Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_streamPage->m_flyoutButton);
 			}));
 			insideFlyout = true;
 		}

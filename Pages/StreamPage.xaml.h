@@ -10,11 +10,15 @@
 #include "Common\DeviceResources.h"
 #include "Streaming\moonlight_xbox_dxMain.h"
 
+using namespace Microsoft::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml::Controls;
 namespace moonlight_xbox_dx
 {
 	/// <summary>
 	/// A page that hosts a DirectX SwapChainPanel.
 	/// </summary>
+	
+	class moonlight_xbox_dxMain;
 	public ref class StreamPage sealed
 	{
 	public:
@@ -26,6 +30,30 @@ namespace moonlight_xbox_dx
 				return GetApplicationState();
 			}
 		}
+		property MenuFlyout^ m_flyout {
+			MenuFlyout^ get() {
+				return this->ActionsFlyout;
+			}
+		}
+
+		property Button^ m_flyoutButton {
+			Button^ get() {
+				return this->flyoutButton;
+			}
+		}
+
+		property StackPanel^ m_progressView {
+			StackPanel^ get() {
+				return this->ProgressView;
+			}
+		}
+
+		property TextBlock^ m_statusText {
+			TextBlock^ get() {
+				return this->StatusText;
+			}
+		}
+		
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	private:

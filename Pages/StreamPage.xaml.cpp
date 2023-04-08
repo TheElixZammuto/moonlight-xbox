@@ -66,7 +66,7 @@ void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::Routed
 		// We can create the device-dependent resources.
 		m_deviceResources = std::make_shared<DX::DeviceResources>();
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
-		m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources,this->flyoutButton,this->ActionsFlyout,Dispatcher,new MoonlightClient(),configuration));
+		m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources,this,new MoonlightClient(),configuration));
 		m_main->CreateWindowSizeDependentResources();
 		m_main->StartRenderLoop();
 	}

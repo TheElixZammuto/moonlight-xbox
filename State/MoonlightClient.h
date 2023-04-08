@@ -36,6 +36,9 @@ namespace moonlight_xbox_dx {
 		void KeyUp(unsigned short v);
 		Platform::String^ GetInstanceID();
 		Platform::String^ GetComputerName();
+		std::function<void(int)> OnStatusUpdate;
+		std::function<void()> OnCompleted;
+		std::function<void(int,int)> OnFailed;
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;
