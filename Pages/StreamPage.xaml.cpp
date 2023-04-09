@@ -167,3 +167,12 @@ void moonlight_xbox_dx::StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sende
 	this->m_main->OnKeyUp(args);
 
 }
+
+
+void moonlight_xbox_dx::StreamPage::disconnectAndCloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->m_main->StopRenderLoop();
+	this->m_main->Disconnect();
+	this->m_main->CloseApp();
+	this->Frame->GoBack();
+}
