@@ -194,15 +194,17 @@ namespace moonlight_xbox_dx {
 		Utils::Log("Decoding Clean\n");
 	}
 
-	void FFMpegDecoder::SubmitDU() {
+	bool FFMpegDecoder::SubmitDU() {
 		PDECODE_UNIT decodeUnit = nullptr;
 		VIDEO_FRAME_HANDLE frameHandle = nullptr;
 		bool status = LiWaitForNextVideoFrame(&frameHandle, &decodeUnit);
-		if (status == false)return;
+		if (status == false)return false;
+		int n = LiGetPendingVideoFrames();
+		Utils::stats.queueSize = n;
 		if (decodeUnit->fullLength > DECODER_BUFFER_SIZE) {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
-			return;
+			return false;
 		}
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
@@ -215,9 +217,10 @@ namespace moonlight_xbox_dx {
 		err = Decode(ffmpeg_buffer, length);
 		if (err < 0) {
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
-			return;
+			return false;
 		}
 		LiCompleteVideoFrame(frameHandle, DR_OK);
+		return true;
 	}
 
 	int FFMpegDecoder::Decode(unsigned char* indata, int inlen) {

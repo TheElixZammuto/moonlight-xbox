@@ -22,7 +22,7 @@ namespace moonlight_xbox_dx
 		void Start();
 		void Stop();
 		void Cleanup();
-		void SubmitDU();
+		bool SubmitDU();
 		AVFrame* GetFrame();
 		static FFMpegDecoder* getInstance();
 		static DECODER_RENDERER_CALLBACKS getDecoder();

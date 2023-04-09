@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "HostSettingsPage.xaml.h"
+#include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
 using namespace Windows::UI::Core;
 
@@ -111,4 +112,10 @@ void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Pla
 	else {
 		host->AutostartID = -1;
 	}
+}
+
+
+void moonlight_xbox_dx::HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
 }

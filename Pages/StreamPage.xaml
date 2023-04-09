@@ -12,7 +12,7 @@
 
     <SwapChainPanel x:Name="swapChainPanel" Margin="{x:Bind State.ScreenMargin}">
         <StackPanel x:Name="ProgressView" HorizontalAlignment="Center" VerticalAlignment="Center"  Orientation="Vertical">
-            <muxc:ProgressRing Width="128" Height="128" IsActive="True" ></muxc:ProgressRing>
+            <muxc:ProgressRing Width="64" Height="64" IsActive="True" Margin="0,0,0,16" ></muxc:ProgressRing>
             <TextBlock x:Name="StatusText">Initializing Moonlight...</TextBlock>
         </StackPanel>
         <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1" Opacity="0">

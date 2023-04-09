@@ -68,6 +68,9 @@
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
-        <TextBlock Grid.Row="2" TextAlignment="Center">Did you know? You can press Menu + View to show the options during streaming</TextBlock>
+        <TextBlock Grid.Row="2" TextAlignment="Center">
+            <Bold>Useful Shortcuts:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xEDE3;</Run>+<Run FontFamily="Segoe Fluent Icons">&#xEECA;</Run> for toggling Menu and enabling mouse mode.<LineBreak></LineBreak>
+            <Bold>In Mouse mode:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run> Left click <Run FontFamily="Segoe Fluent Icons">&#xF096;</Run> Right click <Run FontFamily="Segoe Fluent Icons">&#xF095;</Run> Show Keyboard
+        </TextBlock>
     </Grid>
 </Page>
