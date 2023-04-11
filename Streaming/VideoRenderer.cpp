@@ -290,6 +290,8 @@ void VideoRenderer::CreateDeviceDependentResources()
 			}
 			Utils::logMutex.unlock();
 			auto sv = ref new Windows::UI::Xaml::Controls::ScrollViewer();
+			sv->VerticalScrollMode = Windows::UI::Xaml::Controls::ScrollMode::Enabled;
+			sv->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Visible;
 			auto tb = ref new Windows::UI::Xaml::Controls::TextBlock();
 			tb->Text = ref new Platform::String(m_text.c_str());
 			sv->Content = tb;

@@ -95,7 +95,7 @@ static int mkdirtree(const char* directory) {
 
 static int load_unique_id(const char* keyDirectory) {
   char uniqueFilePath[PATH_MAX];
-  snprintf(uniqueFilePath, PATH_MAX, "%\\%s", keyDirectory, UNIQUE_FILE_NAME);
+  snprintf(uniqueFilePath, PATH_MAX, "%s/%s", keyDirectory, UNIQUE_FILE_NAME);
 
   FILE *fd = fopen(uniqueFilePath, "r");
   if (fd == NULL || fread(unique_id, UNIQUEID_CHARS, 1, fd) != UNIQUEID_CHARS) {
@@ -117,10 +117,10 @@ static int load_unique_id(const char* keyDirectory) {
 
 static int load_cert(const char* keyDirectory) {
   char certificateFilePath[PATH_MAX];
-  snprintf(certificateFilePath, PATH_MAX, "%s\\%s", keyDirectory, CERTIFICATE_FILE_NAME);
+  snprintf(certificateFilePath, PATH_MAX, "%s/%s", keyDirectory, CERTIFICATE_FILE_NAME);
 
   char keyFilePath[PATH_MAX];
-  snprintf(&keyFilePath[0], PATH_MAX, "%s\\%s", keyDirectory, KEY_FILE_NAME);
+  snprintf(&keyFilePath[0], PATH_MAX, "%s/%s", keyDirectory, KEY_FILE_NAME);
 
   FILE *fd = fopen(certificateFilePath, "r");
   if (fd == NULL) {
@@ -129,7 +129,7 @@ static int load_cert(const char* keyDirectory) {
     printf("done\n");
 
     char p12FilePath[PATH_MAX];
-    snprintf(p12FilePath, PATH_MAX, "%s\\%s", keyDirectory, P12_FILE_NAME);
+    snprintf(p12FilePath, PATH_MAX, "%s/%s", keyDirectory, P12_FILE_NAME);
 
     mkcert_save(certificateFilePath, p12FilePath, keyFilePath, cert);
     mkcert_free(cert);

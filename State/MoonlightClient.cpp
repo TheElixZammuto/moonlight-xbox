@@ -76,7 +76,10 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	this->SetGamepadCount(max(1, gamepads->Size));
 	int a = gs_start_app(&serverData, &config, sConfig->appID, false, sConfig->playAudioOnPC, activeGamepadMask);
 	if (a != 0) {
-		Utils::Log("Failed to start app");
+		char message[2048];
+		sprintf(message, "gs_startapp failed with status code %d\n",a);
+		Utils::Log(message);
+		return a;
 	}
 	connectedInstance = this;
 	CONNECTION_LISTENER_CALLBACKS callbacks;
@@ -178,9 +181,9 @@ int MoonlightClient::Connect(const char* hostname) {
 	char folder[2048];
 	wcstombs_s(NULL, folder, folderString->Data(), 2047);
 	int status = 0;
-	status = gs_init(&serverData, this->hostname, port, folder, 0, 0);
+	status = gs_init(&serverData, this->hostname, port, folder, 3, true);
 	char msg[4096];
-	sprintf(msg, "Got status %d from Moonlight\n", status);
+	sprintf(msg, "Got status %d from gs_init\n", status);
 	Utils::Log(msg);
 	return status;
 }
