@@ -83,9 +83,7 @@ query_callback(int sock, const struct sockaddr* from, size_t addrlen, mdns_entry
 		auto hostname = std::string(srv.name.str);
 		hostname.pop_back();
 		auto hostnamePlusPort = Utils::StringFromStdString(hostname) + ":" + srv.port;
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([hostnamePlusPort]() {
-			GetApplicationState()->AddHost(hostnamePlusPort);
-		}));
+		GetApplicationState()->AddHost(hostnamePlusPort);
 	}
 	/*else if (rtype == MDNS_RECORDTYPE_A) {
 		struct sockaddr_in addr;

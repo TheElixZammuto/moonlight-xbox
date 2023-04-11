@@ -38,6 +38,7 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 	if (mhost == nullptr)return;
 	host = mhost;
 	host->UpdateStats();
+	host->UpdateApps();
 	if (host->AutostartID >= 0 && GetApplicationState()->shouldAutoConnect) {
 		GetApplicationState()->shouldAutoConnect = false;
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(

@@ -5,6 +5,7 @@
     xmlns:local="using:moonlight_xbox_dx"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     XYFocusKeyboardNavigation="Disabled"
@@ -69,7 +70,7 @@
                             </Canvas>
                             <TextBlock Text="{x:Bind ComputerName}"></TextBlock>
                         </StackPanel>
-                        <ProgressBar IsIndeterminate="True" Visibility="{x:Bind Loading}"></ProgressBar>
+                        <muxc:ProgressBar IsIndeterminate="True" Visibility="{x:Bind Loading}"></muxc:ProgressBar>
                     </StackPanel>
                 </DataTemplate>
             </GridView.ItemTemplate>

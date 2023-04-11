@@ -24,17 +24,19 @@ namespace moonlight_xbox_dx {
         Platform::String^ videoCodec = "H.264";
         Platform::String^ audioConfig = "Stereo";
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
-        void UpdateApps();
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
         void OnPropertyChanged(Platform::String^ propertyName);
-        MoonlightHost() {
+        MoonlightHost(Platform::String ^host) {
+            lastHostname = host;
             resolution = ref new ScreenResolution(1280, 720);
+            loading = true;
         }
         void UpdateStats();
         int Connect();
         void Unpair();
+        void UpdateApps();
         property Platform::String^ InstanceId
         {
             Platform::String^ get() { return this->instanceId; }
@@ -86,12 +88,12 @@ namespace moonlight_xbox_dx {
 
         property bool NotConnected
         {
-            bool get() { return !this->loading && !this->connected; }
+            bool get() { return !this->connected; }
         }
 
         property bool NotPaired
         {
-            bool get() { return !this->loading && this->connected && !this->paired; }
+            bool get() { return this->connected && !this->paired; }
         }
 
         property bool Loading

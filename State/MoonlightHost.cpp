@@ -5,6 +5,7 @@
 
 namespace moonlight_xbox_dx {
 	void MoonlightHost::UpdateStats() {
+		this->Loading = true;
 		bool status = this->Connect() == 0;
 		this->Connected = status;
 		if (status) {
@@ -12,7 +13,6 @@ namespace moonlight_xbox_dx {
 			this->CurrentlyRunningAppId = client->GetRunningAppID();
 			this->InstanceId = client->GetInstanceID();
 			if (this->Connected) this->ComputerName = client->GetComputerName();
-			if (this->Paired && this->Connected)UpdateApps();
 		}
 		this->Loading = false;
 	}
@@ -27,12 +27,14 @@ namespace moonlight_xbox_dx {
 	}
 
 	void MoonlightHost::UpdateApps() {
-		Apps->Clear();
 		auto apps = client->GetApplications();
-		for (auto a : apps) {
-			if (a->Id == CurrentlyRunningAppId)a->CurrentlyRunning = true;
-			Apps->Append(a);
-		}
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, apps]() {
+			Apps->Clear();
+			for (auto a : apps) {
+				if (a->Id == CurrentlyRunningAppId)a->CurrentlyRunning = true;
+				Apps->Append(a);
+			}
+		}));
 	}
 
 
@@ -44,6 +46,8 @@ namespace moonlight_xbox_dx {
 	
 	void MoonlightHost::OnPropertyChanged(Platform::String^ propertyName)
 	{
-		PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, propertyName]() {
+			PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+		}));
 	}
 }

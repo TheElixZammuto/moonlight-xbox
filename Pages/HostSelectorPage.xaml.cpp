@@ -132,9 +132,12 @@ void moonlight_xbox_dx::HostSelectorPage::SettingsButton_Click(Platform::Object^
 void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
 	Concurrency::create_task([] {
 		int a = init_mdns();
-		while (a >= 0) {
-			query_mdns(a);
-			Sleep(1000);
+		while (true) {
+			if(a != 0)query_mdns(a);
+			for (auto a : GetApplicationState()->SavedHosts) {
+				a->UpdateStats();
+			}
+			Sleep(5000);
 		}
 	});
 	
