@@ -50,6 +50,7 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 }
 
 
+
 void moonlight_xbox_dx::AppPage::AppsGrid_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)
 {
 	MoonlightApp^ app = (MoonlightApp^)e->ClickedItem;

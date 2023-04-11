@@ -130,16 +130,6 @@ void moonlight_xbox_dx::HostSelectorPage::SettingsButton_Click(Platform::Object^
 }
 
 void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
-	Concurrency::create_task([] {
-		int a = init_mdns();
-		while (true) {
-			if(a != 0)query_mdns(a);
-			for (auto a : GetApplicationState()->SavedHosts) {
-				a->UpdateStats();
-			}
-			Sleep(5000);
-		}
-	});
 	
 	if (state->autostartInstance.size() > 0) {
 		auto pii = Utils::StringFromStdString(state->autostartInstance);
@@ -164,4 +154,22 @@ void moonlight_xbox_dx::HostSelectorPage::Connect(MoonlightHost^ host) {
 	}
 	state->shouldAutoConnect = true;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
+	if (result) {
+		continueFetch = false;
+	}
+}
+
+
+void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	continueFetch = true;
+	Concurrency::create_task([this] {
+		int a = init_mdns();
+		while (continueFetch) {
+			if (a != 0)query_mdns(a);
+			for (auto a : GetApplicationState()->SavedHosts) {
+				a->UpdateStats();
+			}
+			Sleep(5000);
+		}
+		});
 }
