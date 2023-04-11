@@ -351,7 +351,7 @@
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="Streaming\LogRenderer.cpp" />
     <ClCompile Include="Streaming\VideoRenderer.cpp" />
-    <ClCompile Include="MDNSHandler.cpp" />
+    <ClCompile Include="State\MDNSHandler.cpp" />
     <ClCompile Include="Pages\HostSettingsPage.xaml.cpp">
       <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
     </ClCompile>

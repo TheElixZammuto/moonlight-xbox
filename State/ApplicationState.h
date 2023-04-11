@@ -15,7 +15,7 @@ namespace moonlight_xbox_dx {
 		Platform::String^ compositionScale;
 	internal:
 		Concurrency::task<void> Init();
-		void AddHost(Platform::String^ hostname);
+		bool AddHost(Platform::String^ hostname);
 		Concurrency::task<void> UpdateFile();
 		void RemoveHost(MoonlightHost^ host);
 		std::string autostartInstance = "";

@@ -40,18 +40,18 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 		});
 }
 
-void moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
+bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
 	MoonlightHost^ host = ref new MoonlightHost(hostname);
 	host->UpdateStats();
-	if (host->Connected) {
-		for (auto h : SavedHosts) {
-			if (host->InstanceId == h->InstanceId)return;
-		}
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,host]() {
-			SavedHosts->Append(host);
-		}));
-		UpdateFile();
+	if (!host->Connected)return false;
+	for (auto h : SavedHosts) {
+		if (host->InstanceId == h->InstanceId)return true;
 	}
+	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,host]() {
+		SavedHosts->Append(host);
+	}));
+	UpdateFile();
+	return true;
 }
 
 Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
