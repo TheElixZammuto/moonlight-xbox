@@ -227,11 +227,6 @@ std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 		a.Name = Utils::StringFromChars(list->name);
 		tempValues.push_back(a);
 		list = list->next;
-		Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
-		folderString = folderString->Concat(folderString, "\\");
-		char folder[2048];
-		wcstombs_s(NULL, folder, folderString->Data(), 2047);
-		gs_appasset(&serverData, folder, a.Id);
 	}
 	std::sort(begin(tempValues), end(tempValues), [](struct app& lhs, struct app& rhs)
 		{
@@ -245,6 +240,23 @@ std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 		a->Name = s.Name;
 		values.push_back(a);
 	}
+	Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+	folderString = folderString->Concat(folderString, "\\images\\");
+	char folder[2048];
+	wcstombs_s(NULL, folder, folderString->Data(), 2047);
+	CreateDirectory(folderString->Data(),NULL);
+	Concurrency::create_task([folder,folderString,values,this]() {
+		for (auto a : values) {
+			auto imgPath = folderString->Concat(folderString, a->Id + ".png");
+			https://stackoverflow.com/a/6218957
+			DWORD dwAttrib = GetFileAttributes(imgPath->Data());
+			if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
+				gs_appasset(&serverData, folder, a->Id);
+			}
+			a->ImagePath = imgPath;
+		}
+	});
+	
 	return values;
 }
 

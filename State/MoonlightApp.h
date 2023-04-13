@@ -6,6 +6,7 @@ namespace moonlight_xbox_dx {
     {
     private:
         Platform::String^ name;
+        Platform::String^ imagePath = "ms-appx:///Assets/gamepad.svg";
         int id;
         bool currentlyRunning;
     public:
@@ -25,11 +26,11 @@ namespace moonlight_xbox_dx {
         property Platform::String^ ImagePath
         {
             Platform::String^ get() { 
-                Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
-                folderString = folderString->Concat(folderString, "\\");
-                folderString = folderString->Concat(folderString, id);
-                folderString = folderString->Concat(folderString, ".png");
-                return folderString;
+                return imagePath;
+            }
+            void set(Platform::String^ path) {
+                this->imagePath = path;
+                OnPropertyChanged("ImagePath");
             }
         }
         
