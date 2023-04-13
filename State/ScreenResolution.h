@@ -17,6 +17,7 @@ namespace moonlight_xbox_dx {
             Width = width;
             Height = height;
         }
+        
         property int Width
         {
             int get() { return this->width; }

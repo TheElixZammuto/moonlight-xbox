@@ -269,6 +269,11 @@ void moonlight_xbox_dxMain::Disconnect() {
 	moonlightClient->StopStreaming();
 }
 
+void moonlight_xbox_dxMain::CloseApp() {
+	moonlightClient->StopApp();
+}
+
+
 void moonlight_xbox_dxMain::OnKeyDown(Windows::UI::Core::KeyEventArgs^ e)
 {
 	if (this == nullptr || moonlightClient == nullptr)return;

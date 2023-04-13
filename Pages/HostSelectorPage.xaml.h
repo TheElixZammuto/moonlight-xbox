@@ -8,6 +8,7 @@
 #include "Pages\HostSelectorPage.g.h"
 #include "State\ApplicationState.h"
 
+using namespace Windows::UI::Core;
 namespace moonlight_xbox_dx
 {
 	/// <summary>
@@ -25,6 +26,8 @@ namespace moonlight_xbox_dx
 		}
 		void OnStateLoaded();
 		void Connect(MoonlightHost^ host);
+	protected:
+		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	private:
 		ApplicationState ^state;
 		void NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
@@ -37,5 +40,7 @@ namespace moonlight_xbox_dx
 		MoonlightHost^ currentHost;
 		void hostSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		bool continueFetch = false;
+		void OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
 	};
 }

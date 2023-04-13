@@ -40,6 +40,22 @@ void VideoRenderer::Update(DX::StepTimer const& timer)
 {
 
 }
+
+void UpdateStats(LARGE_INTEGER start) {
+	LARGE_INTEGER end, frequency;
+	QueryPerformanceCounter(&end);
+	QueryPerformanceFrequency(&frequency);
+	//Update stats
+	double ms = (end.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
+	Utils::stats._accumulatedSeconds += ms;
+	if (Utils::stats._accumulatedSeconds >= 1000) {
+		Utils::stats.fps = Utils::stats._framesDecoded;
+		Utils::stats.averageRenderingTime = Utils::stats._accumulatedSeconds / ((double)Utils::stats._framesDecoded);
+		Utils::stats._accumulatedSeconds = 0;
+		Utils::stats._framesDecoded = 0;
+	}
+}
+
 bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
 void VideoRenderer::Render()
@@ -50,12 +66,18 @@ void VideoRenderer::Render()
 			return;
 		}
 		//Create a rendering texture
-		LARGE_INTEGER start, end,frequency;
+		LARGE_INTEGER start;
 		QueryPerformanceCounter(&start);
 		FFMpegDecoder::getInstance()->shouldUnlock = false;
-		FFMpegDecoder::getInstance()->SubmitDU();
+		if (!FFMpegDecoder::getInstance()->SubmitDU()) {
+			UpdateStats(start);
+			return;
+		}
 		AVFrame *frame = FFMpegDecoder::getInstance()->GetFrame();
-		if (frame == nullptr)return;
+		if (frame == nullptr) {
+			UpdateStats(start);
+			return;
+		}
 		FFMpegDecoder::getInstance()->mutex.lock();
 		FFMpegDecoder::getInstance()->shouldUnlock = true;
 		ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
@@ -103,17 +125,11 @@ void VideoRenderer::Render()
 		context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
 		context->PSSetShader(m_pixelShader.Get(),nullptr,0);
 		context->DrawIndexed(m_indexCount,0,0);
-		QueryPerformanceCounter(&end);
-		QueryPerformanceFrequency(&frequency);
-		double ms = (end.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
-		/*char msg[4096];
-		sprintf(msg, "Rendering took %f ms\n", ms);
-		Utils::Log(msg);*/
-		Utils::stats.averageRenderingTime = ms;
-		//client->pacer->totalRenderingTime += ms;
-		//m_luminance_shader_resource_view->Release();
-		//m_chrominance_shader_resource_view->Release();
+		Utils::stats._framesDecoded++;
+		UpdateStats(start);
 }
+
+
 
 void VideoRenderer::CreateDeviceDependentResources()
 {
@@ -273,7 +289,13 @@ void VideoRenderer::CreateDeviceDependentResources()
 				m_text += line;
 			}
 			Utils::logMutex.unlock();
-			dialog->Content = ref new Platform::String(m_text.c_str());
+			auto sv = ref new Windows::UI::Xaml::Controls::ScrollViewer();
+			sv->VerticalScrollMode = Windows::UI::Xaml::Controls::ScrollMode::Enabled;
+			sv->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Visible;
+			auto tb = ref new Windows::UI::Xaml::Controls::TextBlock();
+			tb->Text = ref new Platform::String(m_text.c_str());
+			sv->Content = tb;
+			dialog->Content = sv;
 			dialog->CloseButtonText = L"OK";
 			dialog->ShowAsync();
 		}

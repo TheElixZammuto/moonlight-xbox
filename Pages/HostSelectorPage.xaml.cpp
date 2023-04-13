@@ -10,7 +10,7 @@
 #include "HostSettingsPage.xaml.h"
 #include "Utils.hpp"
 #include "MoonlightSettings.xaml.h"
-#include <MDNSHandler.h>
+#include "State\MDNSHandler.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -24,6 +24,8 @@ using namespace Windows::UI::Xaml::Data;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
+using namespace Windows::UI::ViewManagement::Core;
+
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -31,7 +33,6 @@ HostSelectorPage::HostSelectorPage()
 {
 	state = GetApplicationState();
 	InitializeComponent();
-	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 }
 
 
@@ -39,6 +40,7 @@ void moonlight_xbox_dx::HostSelectorPage::NewHostButton_Click(Platform::Object^ 
 {
 	dialogHostnameTextBox = ref new TextBox();
 	dialogHostnameTextBox->AcceptsReturn = false;
+	dialogHostnameTextBox->KeyDown += ref new Windows::UI::Xaml::Input::KeyEventHandler(this, &moonlight_xbox_dx::HostSelectorPage::OnKeyDown);
 	ContentDialog^ dialog = ref new ContentDialog();
 	dialog->Content = dialogHostnameTextBox;
 	dialog->Title = L"Add new Host";
@@ -52,8 +54,23 @@ void moonlight_xbox_dx::HostSelectorPage::NewHostButton_Click(Platform::Object^ 
 
 void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::ContentDialog^ sender, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^ args)
 {
+	sender->IsPrimaryButtonEnabled = false;
 	Platform::String^ hostname = dialogHostnameTextBox->Text;
-	state->AddHost(hostname);
+	auto def = args->GetDeferral();
+	Concurrency::create_task([def,hostname,this,args,sender]() {
+		bool status = state->AddHost(hostname);
+		if (!status) {
+			Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([sender, this,hostname,def,args]() {
+				args->Cancel = true;
+				sender->Content = L"Failed to Connect to " + hostname;
+				def->Complete();
+			}));
+			return;
+		}
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([def]() {
+			def->Complete();
+		}));
+	});
 }
 
 
@@ -130,14 +147,9 @@ void moonlight_xbox_dx::HostSelectorPage::SettingsButton_Click(Platform::Object^
 }
 
 void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
-	Concurrency::create_task([] {
-		int a = init_mdns();
-		while (a >= 0) {
-			query_mdns(a);
-			Sleep(1000);
-		}
-	});
-	
+	for (auto a : GetApplicationState()->SavedHosts) {
+		a->UpdateStats();
+	}
 	if (state->autostartInstance.size() > 0) {
 		auto pii = Utils::StringFromStdString(state->autostartInstance);
 		for (int i = 0; i < state->SavedHosts->Size; i++) {
@@ -161,4 +173,30 @@ void moonlight_xbox_dx::HostSelectorPage::Connect(MoonlightHost^ host) {
 	}
 	state->shouldAutoConnect = true;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
+	if (result) {
+		continueFetch = false;
+	}
+}
+
+
+void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
+	continueFetch = true;
+	Concurrency::create_task([this] {
+		int a = init_mdns();
+		while (continueFetch) {
+			if (a != 0)query_mdns(a);
+			for (auto a : GetApplicationState()->SavedHosts) {
+				a->UpdateStats();
+			}
+			Sleep(5000);
+		}
+		});
+}
+
+void moonlight_xbox_dx::HostSelectorPage::OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
+{
+	if (e->Key == Windows::System::VirtualKey::Enter) {
+		CoreInputView::GetForCurrentView()->TryHide();
+	}
 }

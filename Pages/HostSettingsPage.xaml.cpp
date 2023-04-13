@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "HostSettingsPage.xaml.h"
+#include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
 using namespace Windows::UI::Core;
 
@@ -20,8 +21,7 @@ using namespace Windows::UI::Xaml::Data;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
-
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
+using namespace Windows::UI::ViewManagement::Core;
 
 HostSettingsPage::HostSettingsPage()
 {
@@ -110,5 +110,19 @@ void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Pla
 	}
 	else {
 		host->AutostartID = -1;
+	}
+}
+
+
+void moonlight_xbox_dx::HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+}
+
+
+void moonlight_xbox_dx::HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
+{
+	if (e->Key == Windows::System::VirtualKey::Enter) {
+		CoreInputView::GetForCurrentView()->TryHide();
 	}
 }

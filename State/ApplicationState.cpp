@@ -21,8 +21,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("compositionScale"))this->CompositionScale = Utils::StringFromStdString(stateJson["compositionScale"]);
 				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
 				for (auto a : stateJson["hosts"]) {
-					MoonlightHost^ h = ref new MoonlightHost();
-					h->LastHostname = Utils::StringFromStdString(a["hostname"].get<std::string>());
+					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
 					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
 					if (a.contains("width") && a.contains("height")) {
 						h->Resolution = ref new ScreenResolution(a["width"], a["height"]);
@@ -38,25 +37,21 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					this->SavedHosts->Append(h);
 				}
 			}
-			return Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this]() {
-				for (auto a : this->SavedHosts) {
-					a->UpdateStats();
-				}
-				}));
-			});
+		});
 }
 
-void moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
-	MoonlightHost^ host = ref new MoonlightHost();
-	host->LastHostname = hostname;
+bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
+	MoonlightHost^ host = ref new MoonlightHost(hostname);
 	host->UpdateStats();
-	if (host->Connected) {
-		for (auto h : SavedHosts) {
-			if (host->InstanceId == h->InstanceId)return;
-		}
-		SavedHosts->Append(host);
-		UpdateFile();
+	if (!host->Connected)return false;
+	for (auto h : SavedHosts) {
+		if (host->InstanceId == h->InstanceId)return true;
 	}
+	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,host]() {
+		SavedHosts->Append(host);
+	}));
+	UpdateFile();
+	return true;
 }
 
 Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
@@ -106,7 +101,9 @@ void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
 
 void moonlight_xbox_dx::ApplicationState::OnPropertyChanged(Platform::String^ propertyName)
 {
-	PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,propertyName]() {
+		PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+	}));
 }
 
 moonlight_xbox_dx::ApplicationState^ __stateInstance;

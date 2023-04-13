@@ -7,7 +7,9 @@ namespace moonlight_xbox_dx {
 	
 	void ScreenResolution::OnPropertyChanged(Platform::String^ propertyName)
 	{
-		PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, propertyName]() {
+			PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+		}));
 	}
 
 }
