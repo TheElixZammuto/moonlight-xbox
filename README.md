@@ -19,7 +19,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 1. Enable the Dev Mode on your Xbox https://docs.microsoft.com/en-us/windows/uwp/xbox-apps/devkit-activation
 2. Using the Device Portal, install the Application (moonlight-xbox-dx.msixbundle) and, in the following step, add the required dependencies (Microsoft.UI.Xaml.2.7.appx and Microsoft.VCLibs.x64.14.00.appx)
 3. Open Moonlight on Xbox and, if not already, your host app
-4. Press the "+" button, Insert your PC IP Address and press "Connect"
+4. Your PC should already be on the list. If not, press the "+" button, Insert your PC IP Address and press "Connect"
 5. Pair if neeeded
 6. Choose from the list below the application you want to run
 7. ???
@@ -30,12 +30,13 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Application List fetching
 - Video Streaming (configurable on a host-basis in the settings)
 - Gamepad Input (with Rumble and a mouse mode to move the pointer using the gamepad)
+- Keyboard (both on-screen and using an Hardware one)
 - Graceful Disconnection
 - Host configuration (for resolution and bitrate) and saved host history
 - Audio
 
 ## What does NOT work
-- Other means of input (e.g. Hardware Mouse and Keyboard)
+- Hardware Mouse (UWP Limitations sadly)
 - 120FPS
 - HDR (Probably not possible with the Xbox UWP Platform)
 - Everything else not listed above
