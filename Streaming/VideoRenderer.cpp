@@ -298,6 +298,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 			dialog->Content = sv;
 			dialog->CloseButtonText = L"OK";
 			dialog->ShowAsync();
+			return;
 		}
 		m_loadingComplete = true;
 		Utils::Log("Loading Complete!\n");
