@@ -26,14 +26,15 @@ namespace moonlight_xbox_dx {
 		void SendMousePressed(int button);
 		void SendMouseReleased(int button);
 		void SendScroll(float value);
+		void SendScrollH(float value);
 		void SetSoftwareEncoder(bool value);
 		void SetGamepadCount(short count);
 		int GetRunningAppID();
 		void StopStreaming();
 		void StopApp();
 		void Unpair();
-		void KeyDown(unsigned short v);
-		void KeyUp(unsigned short v);
+		void KeyDown(unsigned short v,char modifiers);
+		void KeyUp(unsigned short v, char modifiers);
 		Platform::String^ GetInstanceID();
 		Platform::String^ GetComputerName();
 		std::function<void(int)> OnStatusUpdate;

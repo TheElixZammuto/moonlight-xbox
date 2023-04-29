@@ -75,7 +75,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	//Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
 	this->SetGamepadCount(max(1, gamepads->Size));
 	int a = gs_start_app(&serverData, &config, sConfig->appID, false, sConfig->playAudioOnPC, activeGamepadMask);
-	if (a != 0) {
+	if (a < 0) {
 		char message[2048];
 		sprintf(message, "gs_startapp failed with status code %d\n",a);
 		Utils::Log(message);
@@ -288,7 +288,11 @@ void MoonlightClient::SendMouseReleased(int button) {
 }
 
 void MoonlightClient::SendScroll(float value) {
-	LiSendScrollEvent((signed char)(value * 2.0f));
+	LiSendHighResScrollEvent((short)value);
+}
+
+void MoonlightClient::SendScrollH(float value) {
+	LiSendHighResHScrollEvent((short)value);
 }
 
 void MoonlightClient::SetSoftwareEncoder(bool value) {
@@ -315,10 +319,10 @@ Platform::String^ MoonlightClient::GetComputerName() {
 	return Utils::StringFromChars(serverData.serverName);
 }
 
-void MoonlightClient::KeyDown(unsigned short v) {
-	LiSendKeyboardEvent2(v, KEY_ACTION_DOWN, 0, 0);
+void MoonlightClient::KeyDown(unsigned short v, char modifiers) {
+	LiSendKeyboardEvent2(v, KEY_ACTION_DOWN, modifiers, 0);
 }
 
-void MoonlightClient::KeyUp(unsigned short v) {
-	LiSendKeyboardEvent2(v, KEY_ACTION_UP, 0, 0);
+void MoonlightClient::KeyUp(unsigned short v, char modifiers) {
+	LiSendKeyboardEvent2(v, KEY_ACTION_UP, modifiers, 0);
 }

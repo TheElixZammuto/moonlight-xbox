@@ -40,15 +40,14 @@ StreamPage::StreamPage():
 
 	//Resize to make fullscreen on Xbox
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
-	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyDown);
-	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyUp);
+	keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyDown));
+	keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyUp));
 }
 
 
 StreamPage::~StreamPage()
 {
 	// Stop rendering and processing events on destruction.
-	m_main->StopRenderLoop();
 }
 
 void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequestedEventArgs^ args)
@@ -151,6 +150,8 @@ void moonlight_xbox_dx::StreamPage::toggleStatsButton_Click(Platform::Object^ se
 
 void moonlight_xbox_dx::StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
 	this->m_main->StopRenderLoop();
 	this->m_main->Disconnect();
 	this->Frame->GoBack();
@@ -171,6 +172,8 @@ void moonlight_xbox_dx::StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sende
 
 void moonlight_xbox_dx::StreamPage::disconnectAndCloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;	
 	this->m_main->StopRenderLoop();
 	this->m_main->Disconnect();
 	this->m_main->CloseApp();
