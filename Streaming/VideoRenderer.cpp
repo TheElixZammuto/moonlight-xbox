@@ -285,10 +285,14 @@ void VideoRenderer::CreateDeviceDependentResources()
 			Utils::logMutex.lock();
 			std::wstring m_text = L"";
 			std::vector<std::wstring> lines = Utils::GetLogLines();
-			for (std::wstring line : lines) {
-				m_text += line;
+			for (int i = 0; i < lines.size();i++) {
+				//Get only the last 24 lines
+				if (lines.size() - i < 24) {
+					m_text += lines[i];
+				}
 			}
 			Utils::logMutex.unlock();
+			Utils::showLogs = true;
 			auto sv = ref new Windows::UI::Xaml::Controls::ScrollViewer();
 			sv->VerticalScrollMode = Windows::UI::Xaml::Controls::ScrollMode::Enabled;
 			sv->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Visible;
