@@ -172,10 +172,8 @@ void moonlight_xbox_dx::HostSelectorPage::Connect(MoonlightHost^ host) {
 		return;
 	}
 	state->shouldAutoConnect = true;
+	continueFetch = false;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
-	if (result) {
-		continueFetch = false;
-	}
 }
 
 

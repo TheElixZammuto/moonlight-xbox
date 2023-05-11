@@ -279,8 +279,9 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.SampleDesc.Count = 1;								// Don't use multi-sampling.
 		swapChainDesc.SampleDesc.Quality = 0;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapChainDesc.BufferCount = 2;									// Use double-buffering to minimize latency.
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;	// All Microsoft Store apps must use _FLIP_ SwapEffects.
+		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
+		swapChainDesc.BufferCount = 5;							
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.Flags = 0;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
@@ -330,12 +331,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 				panelNative->SetSwapChain(m_swapChain.Get())
 				);
 		}, CallbackContext::Any));
-
-		// Ensure that DXGI does not queue more than one frame at a time. This both reduces latency and
-		// ensures that the application will only render after each VSync, minimizing power consumption.
-		DX::ThrowIfFailed(
-			dxgiDevice->SetMaximumFrameLatency(1)
-			);
 	}
 
 	// Set the proper orientation for the swap chain, and generate 2D and
@@ -739,7 +734,8 @@ int DX::DeviceResources::uwp_get_height()
 	{
 		const Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 		if (hdi)
-			return Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionHeightInRawPixels;
+			//720p on HDMI = 1080p on UWP Window - We should handle this
+			return max(1080,Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionHeightInRawPixels);
 	}
 	const LONG32 resolution_scale = static_cast<LONG32>(Windows::Graphics::Display::DisplayInformation::GetForCurrentView()->ResolutionScale);
 	auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;
@@ -752,7 +748,8 @@ int DX::DeviceResources::uwp_get_width()
 	{
 		const Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 		if (hdi)
-			return Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionWidthInRawPixels;
+			//720p on HDMI = 1080p on UWP Window - We should handle this
+			return max(1920,Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionWidthInRawPixels);
 	}
 	const LONG32 resolution_scale = static_cast<LONG32>(Windows::Graphics::Display::DisplayInformation::GetForCurrentView()->ResolutionScale);
 	auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;

@@ -243,10 +243,6 @@ namespace moonlight_xbox_dx {
 
 	AVFrame* FFMpegDecoder::GetFrame() {
 		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
-		//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!
-		//Honestly this did take too much time of my life to care to make a better version
-		//If you want to fix this, have fun! (And hopefully you have Microsoft blessing/tools/support for that)
-		if(hackWait)moonlight_xbox_dx::usleep(12000);
 		if (err != 0 && err != AVERROR(EAGAIN)) {
 			char errorstringnew[1024];
 			sprintf(errorstringnew, "Error avcodec_receive_frame: %d\n", AVERROR(err));
@@ -254,6 +250,10 @@ namespace moonlight_xbox_dx {
 			return nullptr;
 		}
 		if (err == 0) {
+			//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!
+			//Honestly this did take too much time of my life to care to make a better version
+			//If you want to fix this, have fun! (And hopefully you have Microsoft blessing/tools/support for that)
+			if (hackWait && LiGetPendingVideoFrames() < 2)moonlight_xbox_dx::usleep(12000);
 			AVFrame* frame = dec_frames[next_frame];
 			return frame;
 		}
