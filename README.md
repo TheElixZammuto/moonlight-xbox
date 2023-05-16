@@ -1,11 +1,16 @@
-# moonlight-xbox
+# moonlight-xbox 
+
+<a href="ms-windows-store://pdp/?ProductId=9MW1BS08ZBTH&mode=full">
+   <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Download Discord" />
+</a>
+
 A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games using GeForce Experience or [Sunshine](https://github.com/LizardByte/sunshine) for the Xbox One and Xbox Series X|S family of consoles
 
 **This application is still in early stages of development. Expect things to not work or working badly**
 
 ## Installation and Usage
 ### For Retail Mode (you probably want to use this)
-1. Open Microsoft Edge and type this URL: [https://www.microsoft.com/store/apps/9MW1BS08ZBTH](https://www.microsoft.com/store/apps/9MW1BS08ZBTH)
+1. Open Microsoft Edge and click the "Get it from Microsoft" Button above 
 2. Downlad Moonlight UWP from the Microsoft Store
 3. Open Moonlight on Xbox and, if not already, your host app
 4. Press the "+" button, Insert your PC IP Address and press "Connect"
