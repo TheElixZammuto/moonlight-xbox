@@ -1,8 +1,6 @@
 # moonlight-xbox 
 
-<a href="ms-windows-store://pdp/?ProductId=9MW1BS08ZBTH&mode=full">
-   <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Download Discord" />
-</a>
+[![Download](https://get.microsoft.com/images/en-us%20dark.svg)](https://apps.microsoft.com/store/detail/9MW1BS08ZBTH?launch=true&mode=full)
 
 A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games using GeForce Experience or [Sunshine](https://github.com/LizardByte/sunshine) for the Xbox One and Xbox Series X|S family of consoles
 
