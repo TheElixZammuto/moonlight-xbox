@@ -95,6 +95,9 @@ namespace moonlight_xbox_dx {
 			return 1;
 		}
 
+		decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
+		decoder_ctx->sw_pix_fmt = AV_PIX_FMT_NV12;
+
 		AVHWFramesContext* framesContext = (AVHWFramesContext*)hw_frames_ctx->data;
 
 		// We require NV12 or P010 textures for our shader
