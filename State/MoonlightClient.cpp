@@ -2,8 +2,9 @@
 #include "MoonlightClient.h"
 
 extern "C" {
-#include<Limelight.h>
-#include<libgamestream/client.h>
+  #include<Limelight.h>
+  #include<libgamestream/client.h>
+  #include <libgamestream/errors.h>
 }
 #include "Streaming\FFMpegDecoder.h"
 #include <Streaming\AudioPlayer.h>
@@ -75,10 +76,11 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	//Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
 	this->SetGamepadCount(max(1, gamepads->Size));
 	int a = gs_start_app(&serverData, &config, sConfig->appID, false, sConfig->playAudioOnPC, activeGamepadMask);
-	if (a < 0) {
+	if (a != 0) {
 		char message[2048];
 		sprintf(message, "gs_startapp failed with status code %d\n",a);
 		Utils::Log(message);
+		Utils::Log(gs_error);
 		return a;
 	}
 	connectedInstance = this;
