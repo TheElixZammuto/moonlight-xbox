@@ -9,11 +9,17 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <StackPanel Padding="8,16,8,8">
-        <Button Margin="0 0 0 16" Name="backButton" Click="backButton_Click">
-            <Button.Content>
-                <SymbolIcon Symbol="Back" />
-            </Button.Content>
-        </Button>
+        <StackPanel Orientation="Horizontal">
+            <Button Margin="0 0 0 16" Name="backButton" Click="backButton_Click">
+                <Button.Content>
+                    <SymbolIcon Symbol="Back" />
+                </Button.Content>
+            </Button>
+            <StackPanel Margin="16 0 0 0">
+                <TextBlock Text="{x:Bind Host.ComputerName}"></TextBlock>
+                <TextBlock Text="{x:Bind Host.LastHostname}"></TextBlock>
+            </StackPanel>
+        </StackPanel>
         <Grid RowSpacing="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="200"></ColumnDefinition>

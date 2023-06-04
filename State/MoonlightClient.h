@@ -39,7 +39,7 @@ namespace moonlight_xbox_dx {
 		Platform::String^ GetComputerName();
 		std::function<void(int)> OnStatusUpdate;
 		std::function<void()> OnCompleted;
-		std::function<void(int,int)> OnFailed;
+		std::function<void(int,int, char*)> OnFailed;
 	private:
 		SERVER_DATA serverData;
 		char* connectionPin = NULL;

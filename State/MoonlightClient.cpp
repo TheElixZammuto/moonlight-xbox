@@ -2,9 +2,9 @@
 #include "MoonlightClient.h"
 
 extern "C" {
-  #include<Limelight.h>
-  #include<libgamestream/client.h>
-  #include <libgamestream/errors.h>
+#include<Limelight.h>
+#include<libgamestream/client.h>
+#include <libgamestream/errors.h>
 }
 #include "Streaming\FFMpegDecoder.h"
 #include <Streaming\AudioPlayer.h>
@@ -23,7 +23,7 @@ void connection_terminated(int status);
 void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
-MoonlightClient *connectedInstance;
+MoonlightClient* connectedInstance;
 
 MoonlightClient::MoonlightClient() {
 
@@ -78,11 +78,12 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	int a = gs_start_app(&serverData, &config, sConfig->appID, false, sConfig->playAudioOnPC, activeGamepadMask);
 	if (a != 0) {
 		char message[2048];
-		sprintf(message, "gs_startapp failed with status code %d\n",a);
+		sprintf(message, "gs_startapp failed with status code %d\n", a);
 		Utils::Log(message);
 		Utils::Log(gs_error);
 		return a;
 	}
+	//Sleep(10000);
 	connectedInstance = this;
 	CONNECTION_LISTENER_CALLBACKS callbacks;
 	LiInitializeConnectionCallbacks(&callbacks);
@@ -128,7 +129,7 @@ void connection_status_update(int status) {
 	char message[4096];
 	sprintf(message, "Stage %d started\n", status);
 	Utils::Log(message);
-	
+
 }
 
 void connection_status_completed(int status) {
@@ -149,10 +150,14 @@ void connection_terminated(int status) {
 
 void stage_failed(int stage, int err) {
 	char message[4096];
-	sprintf(message, "Stage %d failed with error %d\n", stage, err);
+	unsigned int portFlags = LiGetPortFlagsFromStage(stage);
+	int portResult = LiTestClientConnectivity("qt.conntest.moonlight-stream.org", 443, portFlags);
+	char failingPorts[128];
+	LiStringifyPortFlags(portFlags, ", ", failingPorts, sizeof(failingPorts));
+	sprintf(message, "%s failed with error %d.\n Check Firewall and Connections to port: %s\n", LiGetStageName(stage), err, failingPorts);
 	Utils::Log(message);
 	if (connectedInstance->OnFailed != nullptr) {
-		connectedInstance->OnFailed(stage,err);
+		connectedInstance->OnFailed(stage, err,message);
 	}
 }
 
@@ -246,19 +251,19 @@ std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 	folderString = folderString->Concat(folderString, "\\images\\");
 	char folder[2048];
 	wcstombs_s(NULL, folder, folderString->Data(), 2047);
-	CreateDirectory(folderString->Data(),NULL);
-	Concurrency::create_task([folder,folderString,values,this]() {
+	CreateDirectory(folderString->Data(), NULL);
+	Concurrency::create_task([folder, folderString, values, this]() {
 		for (auto a : values) {
 			auto imgPath = folderString->Concat(folderString, a->Id + ".png");
-			https://stackoverflow.com/a/6218957
+		https://stackoverflow.com/a/6218957
 			DWORD dwAttrib = GetFileAttributes(imgPath->Data());
 			if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
 				gs_appasset(&serverData, folder, a->Id);
 			}
 			a->ImagePath = imgPath;
 		}
-	});
-	
+		});
+
 	return values;
 }
 

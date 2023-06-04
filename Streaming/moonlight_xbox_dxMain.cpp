@@ -53,18 +53,11 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 	});
 
-	client->OnFailed = ([streamPage](int status,int error) {
-		char msg[4096];
-		sprintf_s(msg, "Stage %s failed with error %d", LiGetStageName(status), error);
-		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(msg));
+	client->OnFailed = ([streamPage](int status,int error, char* message) {
+		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(message));
 	});
 
-	// TODO: Change the timer settings if you want something other than the default variable timestep mode.
-	// e.g. for 60 FPS fixed timestep update logic, call:
-	/*
-	*/
 	m_timer.SetFixedTimeStep(false);
-	//m_timer.SetTargetElapsedSeconds(1.0 / 60);
 }
 
 moonlight_xbox_dxMain::~moonlight_xbox_dxMain()

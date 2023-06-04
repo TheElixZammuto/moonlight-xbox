@@ -181,9 +181,9 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 	continueFetch = true;
 	Concurrency::create_task([this] {
-		int a = init_mdns();
+		init_mdns();
 		while (continueFetch) {
-			if (a != 0)query_mdns(a);
+			query_mdns();
 			for (auto a : GetApplicationState()->SavedHosts) {
 				a->UpdateStats();
 			}

@@ -45,7 +45,11 @@ bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
 	host->UpdateStats();
 	if (!host->Connected)return false;
 	for (auto h : SavedHosts) {
-		if (host->InstanceId == h->InstanceId)return true;
+		if (host->InstanceId == h->InstanceId) {
+			h->LastHostname = host->LastHostname;
+			UpdateFile();
+			return true;
+		}
 	}
 	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,host]() {
 		SavedHosts->Append(host);
