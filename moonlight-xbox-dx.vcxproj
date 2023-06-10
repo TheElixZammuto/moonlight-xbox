@@ -307,6 +307,10 @@
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="KeyboardControl.xaml.h">
+      <DependentUpon>KeyboardControl.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Keyboard\KeyboardCommon.h" />
     <ClInclude Include="State\MoonlightClient.h" />
     <ClInclude Include="State\StreamConfiguration.h" />
     <ClInclude Include="Common\DeviceResources.h" />
@@ -345,6 +349,11 @@
   <ItemGroup>
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Keyboard/*.cpp" />
+    <ClCompile Include="KeyboardCommon.cpp" />
+    <ClCompile Include="KeyboardControl.xaml.cpp">
+      <DependentUpon>KeyboardControl.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="State\MoonlightClient.cpp" />
     <ClCompile Include="State\StreamConfiguration.cpp" />
@@ -434,6 +443,7 @@
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="KeyboardControl.xaml" />
     <Page Include="Pages\AppPage.xaml">
       <SubType>Designer</SubType>
     </Page>

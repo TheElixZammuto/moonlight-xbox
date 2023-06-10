@@ -160,7 +160,55 @@ void moonlight_xbox_dxMain::ProcessInput()
 		}
 		if (insideFlyout)return;
 		//If mouse mode is enabled the gamepad acts as a mouse, instead we pass the raw events to the host
-		if (mouseMode) {
+		if (keyboardMode) {
+			//B to close
+			if ((reading.Buttons & GamepadButtons::B) == GamepadButtons::B) {
+				if (false/*xkb*/)CoreInputView::GetForCurrentView()->TryHide();
+				else {
+					m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
+						m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+					}));
+				}
+				keyboardMode = false;
+			}
+			//X to backspace
+			if ((reading.Buttons & GamepadButtons::X) == GamepadButtons::X && !backspacePressed) {
+				moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Back, 0);
+				backspacePressed = true;
+			}
+			else if (backspacePressed) {
+				moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Back, 0);
+				backspacePressed = false;
+			}
+			//Y to Space
+			if ((reading.Buttons & GamepadButtons::Y) == GamepadButtons::Y && !spacePressed) {
+				moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Space, 0);
+				spacePressed = true;
+			}
+			else if (spacePressed) {
+				moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Space, 0);
+				spacePressed = false;
+			}
+			//LB to Left
+			if ((reading.Buttons & GamepadButtons::LeftShoulder) == GamepadButtons::LeftShoulder && !leftPressed) {
+				moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Left, 0);
+				leftPressed = true;
+			}
+			else if (leftPressed) {
+				moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Left, 0);
+				leftPressed = false;
+			}
+			//RB to  Right
+			if ((reading.Buttons & GamepadButtons::RightShoulder) == GamepadButtons::RightShoulder && !rightPressed) {
+				moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Right, 0);
+				rightPressed = true;
+			}
+			else if (rightPressed) {
+				moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Right, 0);
+				rightPressed = false;
+			}
+		}
+		else if (mouseMode) {
 			auto state = GetApplicationState();
 			//Position
 			double multiplier = ((double)state->MouseSensitivity) / ((double)2.0f);
@@ -189,7 +237,14 @@ void moonlight_xbox_dxMain::ProcessInput()
 			}
 			if ((reading.Buttons & GamepadButtons::Y) == GamepadButtons::Y) {
 				if (!keyboardButtonPressed) {
-					CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+					if(false/*xkb*/)CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+					else {
+						m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
+							m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+						}));
+					}
+					keyboardButtonPressed = true;
+					keyboardMode = true;
 				}
 			}
 			else if (keyboardButtonPressed) {
@@ -268,31 +323,15 @@ void moonlight_xbox_dxMain::CloseApp() {
 }
 
 
-void moonlight_xbox_dxMain::OnKeyDown(Windows::UI::Core::KeyEventArgs^ e)
+void moonlight_xbox_dxMain::OnKeyDown(unsigned short virtualKey, char modifiers)
 {
 	if (this == nullptr || moonlightClient == nullptr)return;
-	//Ignore Gamepad input
-	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
-		return;
-	}
-	char modifiers = 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) ==    (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) ==   (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
-	moonlightClient->KeyDown((unsigned short)e->VirtualKey,modifiers);
+	moonlightClient->KeyDown(virtualKey,modifiers);
 }
 
 
-void moonlight_xbox_dxMain::OnKeyUp(Windows::UI::Core::KeyEventArgs^ e)
+void moonlight_xbox_dxMain::OnKeyUp(unsigned short virtualKey, char modifiers)
 {
 	if (this == nullptr || moonlightClient == nullptr)return;
-	//Ignore Gamepad input
-	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
-		return;
-	}
-	char modifiers = 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
-	moonlightClient->KeyUp((unsigned short)e->VirtualKey,modifiers);
+	moonlightClient->KeyUp(virtualKey,modifiers);
 }

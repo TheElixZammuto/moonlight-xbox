@@ -9,6 +9,7 @@
 
 #include "Common\DeviceResources.h"
 #include "Streaming\moonlight_xbox_dxMain.h"
+#include "KeyboardControl.xaml.h"
 
 using namespace Microsoft::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls;
@@ -53,6 +54,18 @@ namespace moonlight_xbox_dx
 				return this->StatusText;
 			}
 		}
+
+		property RelativePanel^ m_keyboardView {
+			RelativePanel^ get() {
+				return this->KeyboardView;
+			}
+		}
+
+		property KeyboardControl^ m_keyboard {
+			KeyboardControl^ get() {
+				return this->Keyboard;
+			}
+		}
 		
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
@@ -78,6 +91,8 @@ namespace moonlight_xbox_dx
 		void OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
 		void disconnectAndCloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		Windows::Foundation::EventRegistrationToken keyDownHandler, keyUpHandler;
+		void Keyboard_OnKeyDown(moonlight_xbox_dx::KeyboardControl^ sender, moonlight_xbox_dx::KeyEvent^ e);
+		void Keyboard_OnKeyUp(moonlight_xbox_dx::KeyboardControl^ sender, moonlight_xbox_dx::KeyEvent^ e);
 	};
 }
 

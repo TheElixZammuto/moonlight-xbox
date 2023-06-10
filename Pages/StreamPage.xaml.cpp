@@ -6,6 +6,7 @@
 #include "pch.h"
 #include "StreamPage.xaml.h"
 #include <Utils.hpp>
+#include <KeyboardControl.xaml.h>
 
 using namespace moonlight_xbox_dx;
 
@@ -157,15 +158,31 @@ void moonlight_xbox_dx::StreamPage::disonnectButton_Click(Platform::Object^ send
 	this->Frame->GoBack();
 }
 
-void moonlight_xbox_dx::StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
+void moonlight_xbox_dx::StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
 {
-	this->m_main->OnKeyDown(args);
+	//Ignore Gamepad input
+	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
+		return;
+	}
+	char modifiers = 0;
+	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
+	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
+	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
+	this->m_main->OnKeyDown((unsigned short)e->VirtualKey,modifiers);
 }
 
 
-void moonlight_xbox_dx::StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
+void moonlight_xbox_dx::StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
 {
-	this->m_main->OnKeyUp(args);
+	//Ignore Gamepad input
+	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
+		return;
+	}
+	char modifiers = 0;
+	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
+	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
+	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0; 
+	this->m_main->OnKeyUp((unsigned short) e->VirtualKey, modifiers);
 
 }
 
@@ -178,4 +195,15 @@ void moonlight_xbox_dx::StreamPage::disconnectAndCloseButton_Click(Platform::Obj
 	this->m_main->Disconnect();
 	this->m_main->CloseApp();
 	this->Frame->GoBack();
+}
+
+void moonlight_xbox_dx::StreamPage::Keyboard_OnKeyDown(moonlight_xbox_dx::KeyboardControl^ sender, moonlight_xbox_dx::KeyEvent^ e)
+{
+	this->m_main->OnKeyDown(e->VirtualKey, e->Modifiers);
+}
+
+
+void moonlight_xbox_dx::StreamPage::Keyboard_OnKeyUp(moonlight_xbox_dx::KeyboardControl^ sender, moonlight_xbox_dx::KeyEvent^ e)
+{
+	this->m_main->OnKeyUp(e->VirtualKey, e->Modifiers);
 }

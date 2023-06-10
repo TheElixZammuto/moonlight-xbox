@@ -15,6 +15,9 @@
             <muxc:ProgressRing Width="64" Height="64" IsActive="True" Margin="0,0,0,16" ></muxc:ProgressRing>
             <TextBlock x:Name="StatusText">Initializing Moonlight...</TextBlock>
         </StackPanel>
+        <RelativePanel Height="400" Width="1000" x:Name="KeyboardView" Visibility="Collapsed" VerticalAlignment="Bottom" Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}">
+            <local:KeyboardControl OnKeyDown="Keyboard_OnKeyDown" OnKeyUp="Keyboard_OnKeyUp" x:Name="Keyboard" HorizontalAlignment="Center" VerticalAlignment="Center"></local:KeyboardControl>
+        </RelativePanel>
         <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1" Opacity="0">
             <FlyoutBase.AttachedFlyout>
                 <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">

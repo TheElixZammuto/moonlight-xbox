@@ -22,8 +22,9 @@ namespace moonlight_xbox_dx
 		void SetFlyoutOpened(bool value);
 		Concurrency::critical_section& GetCriticalSection() { return m_criticalSection; }
 		bool mouseMode = false;
-		void OnKeyDown(Windows::UI::Core::KeyEventArgs^ args);
-		void OnKeyUp(Windows::UI::Core::KeyEventArgs^ args);
+		bool keyboardMode = false;
+		void OnKeyDown(unsigned short virtualKey, char modifiers);
+		void OnKeyUp(unsigned short virtualKey, char modifiers);
 		// IDeviceNotify
 		virtual void OnDeviceLost();
 		virtual void OnDeviceRestored();
@@ -37,6 +38,7 @@ namespace moonlight_xbox_dx
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
+		// TODO: Replace with your own content renderers.
 		// TODO: Replace with your own content renderers.
 		std::unique_ptr<VideoRenderer> m_sceneRenderer;
 		std::unique_ptr<LogRenderer> m_fpsTextRenderer;
@@ -55,6 +57,10 @@ namespace moonlight_xbox_dx
 		bool leftMouseButtonPressed = false;
 		bool rightMouseButtonPressed = false;
 		bool keyboardButtonPressed = false;
+		bool spacePressed = false;
+		bool backspacePressed = false;
+		bool leftPressed = false;
+		bool rightPressed = false;
 		StreamPage^ m_streamPage;
 		MoonlightClient* moonlightClient;
 	};
