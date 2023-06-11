@@ -21,5 +21,7 @@ namespace moonlight_xbox_dx
 		void GoForward(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void GoBack(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void CloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void Page_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
+		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
 	};
 }

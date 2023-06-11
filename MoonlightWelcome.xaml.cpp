@@ -24,6 +24,24 @@ using namespace Windows::UI::Xaml::Navigation;
 MoonlightWelcome::MoonlightWelcome()
 {
 	InitializeComponent();
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightWelcome::OnBackRequested);
+}
+
+void moonlight_xbox_dx::MoonlightWelcome::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
+{
+	// UWP on Xbox One triggers a back request whenever the B
+	// button is pressed which can result in the app being
+	// suspended if unhandled
+	if (this->FlipView->SelectedIndex > 0) {
+		this->FlipView->SelectedIndex = this->FlipView->SelectedIndex - 1;
+		return;
+	}
+	if (this->Frame->CanGoBack && !GetApplicationState()->FirstTime) {
+		this->Frame->GoBack();
+		args->Handled = true;
+	}
+
 }
 
 
@@ -42,4 +60,18 @@ void moonlight_xbox_dx::MoonlightWelcome::CloseButton_Click(Platform::Object^ se
 	GetApplicationState()->FirstTime = false;
 	GetApplicationState()->UpdateFile();
 	this->Frame->GoBack();
+}
+
+
+void moonlight_xbox_dx::MoonlightWelcome::Page_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
+{
+	if (e->OriginalKey != Windows::System::VirtualKey::GamepadA)return;
+	if (this->FlipView->Items->Size == (this->FlipView->SelectedIndex + 1)) {
+		GetApplicationState()->FirstTime = false;
+		GetApplicationState()->UpdateFile();
+		this->Frame->GoBack();
+	}
+	else {
+		this->FlipView->SelectedIndex = this->FlipView->SelectedIndex + 1;
+	}
 }
