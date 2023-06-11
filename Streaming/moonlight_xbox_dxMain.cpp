@@ -237,17 +237,17 @@ void moonlight_xbox_dxMain::ProcessInput()
 			}
 			if ((reading.Buttons & GamepadButtons::Y) == GamepadButtons::Y) {
 				if (!keyboardButtonPressed) {
-					if(false/*xkb*/)CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
-					else {
-						m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
-							m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
-						}));
-					}
 					keyboardButtonPressed = true;
-					keyboardMode = true;
 				}
 			}
 			else if (keyboardButtonPressed) {
+				if (false/*xkb*/)CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+				else {
+					m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
+						m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+						}));
+				}
+				keyboardMode = true;
 				keyboardButtonPressed = false;
 			}
 			//Scroll
