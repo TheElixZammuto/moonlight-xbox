@@ -86,7 +86,6 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	state->Init().then([that](){
 		that->m_menuPage->OnStateLoaded();
 	});
-	rootFrame->Navigate(TypeName(MoonlightWelcome::typeid), e->Arguments);
 }
 /// <summary>
 /// Invoked when application execution is being suspended.  Application state is saved

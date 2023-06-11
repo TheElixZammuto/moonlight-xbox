@@ -39,5 +39,7 @@ void moonlight_xbox_dx::MoonlightWelcome::GoBack(Platform::Object^ sender, Windo
 
 void moonlight_xbox_dx::MoonlightWelcome::CloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
+	GetApplicationState()->FirstTime = false;
+	GetApplicationState()->UpdateFile();
 	this->Frame->GoBack();
 }

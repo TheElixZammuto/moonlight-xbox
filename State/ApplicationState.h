@@ -13,6 +13,7 @@ namespace moonlight_xbox_dx {
 		int screenMarginH;
 		int mouseSensitivity = 5;
 		Platform::String^ compositionScale;
+		bool firstTime;
 	internal:
 		Concurrency::task<void> Init();
 		bool AddHost(Platform::String^ hostname);
@@ -90,6 +91,18 @@ namespace moonlight_xbox_dx {
 			void set(int value) {
 				this->mouseSensitivity = value;
 				OnPropertyChanged("MouseSensitivity");
+			}
+		}
+
+		property bool FirstTime
+		{
+			bool get()
+			{
+				return this->firstTime;
+			};
+			void set(bool value) {
+				this->firstTime = value;
+				OnPropertyChanged("FirstTime");
 			}
 		}
 	};

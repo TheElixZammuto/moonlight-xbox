@@ -25,6 +25,7 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Column="0" Grid.Row="0">Autostart Host:</TextBlock>
             <ComboBox Grid.Column="1" Grid.Row="0" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged"></ComboBox>
@@ -37,6 +38,7 @@
             <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center">Change these parameters until you can see a green border around the screen</TextBlock>
             <TextBlock Grid.Column="0" Grid.Row="5">Mouse Sensitivity:</TextBlock>
             <Slider Grid.Row="5" Grid.Column="1" Value="{x:Bind State.MouseSensitivity}" x:DefaultBindMode="TwoWay" Minimum="1" Maximum="16" StepFrequency="1"/>
+            <Button x:Name="WelcomeButton" Grid.Row="6" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
         </Grid>
     </StackPanel>
 </Page>

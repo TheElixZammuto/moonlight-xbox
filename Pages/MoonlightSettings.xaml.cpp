@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "MoonlightSettings.xaml.h"
+#include "MoonlightWelcome.xaml.h"
 #include "Utils.hpp"
 using namespace Windows::UI::Core;
 
@@ -85,4 +86,9 @@ void moonlight_xbox_dx::MoonlightSettings::OnBackRequested(Platform::Object^ e, 
 	this->Frame->GoBack();
 	args->Handled = true;
 
+}
+
+void moonlight_xbox_dx::MoonlightSettings::WelcomeButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
 }

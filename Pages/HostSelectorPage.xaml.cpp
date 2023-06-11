@@ -11,6 +11,7 @@
 #include "Utils.hpp"
 #include "MoonlightSettings.xaml.h"
 #include "State\MDNSHandler.h"
+#include "MoonlightWelcome.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -147,6 +148,10 @@ void moonlight_xbox_dx::HostSelectorPage::SettingsButton_Click(Platform::Object^
 }
 
 void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
+	if (GetApplicationState()->FirstTime) {
+		this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
+		return;
+	}
 	for (auto a : GetApplicationState()->SavedHosts) {
 		a->UpdateStats();
 	}
