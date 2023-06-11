@@ -1,0 +1,125 @@
+﻿<Page
+    x:Class="moonlight_xbox_dx.MoonlightWelcome"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <FlipView Name="FlipView">
+        <!-- Page 1-->
+        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Image Source="ms-appx:///Assets/StoreLogo.scale-400.png" Width="128" Height="128"></Image>
+            <TextBlock Margin="0,16,0,16" FontSize="32">Welcome to Moonlight</TextBlock>
+            <TextBlock>Moonlight allows your Xbox to control and stream your Computer!</TextBlock>
+            <Button Click="GoForward" HorizontalAlignment="Center" Margin="8">→</Button>
+        </StackPanel>
+        <!-- Page 2 -->
+        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Image Source="ms-appx:///Assets/StoreLogo.scale-400.png" Width="128" Height="128"></Image>
+            <TextBlock Margin="0,16,0,16" FontSize="32">Servers</TextBlock>
+            <TextBlock Margin="0,0,0,16">To make Moonlight work, you need a Server, you can use one of the following ones:</TextBlock>
+            <StackPanel Orientation="Vertical">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="ms-appx:///Assets/qrSunshine.svg" Width="128" Height="128"></Image>
+                    <StackPanel Orientation="Vertical" Margin="16,16,0,16">
+                        <TextBlock FontSize="24">Sunshine</TextBlock>
+                        <TextBlock>The recommended open source solution. Compatible with Windows/macOS/Linux and with any GPU.</TextBlock>
+                        <HyperlinkButton>https://github.com/LizardByte/Sunshine</HyperlinkButton>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel  Margin="0,16,0,16" Orientation="Horizontal">
+                    <FontIcon FontSize="100" FontFamily="Segoe Fluent Icons" Glyph="&#xE7BA;" Width="128" Height="128"></FontIcon>
+                    <StackPanel Margin="16,16,0,16">
+                        <TextBlock FontSize="24">Nvidia Geforce Experience (DEPRECATED)</TextBlock>
+                        <TextBlock>GFE is still compatible with Moonlight, but it may be removed soon from your system</TextBlock>
+                    </StackPanel> 
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Click="GoBack" Margin="8">←</Button>
+                <Button Click="GoForward" Margin="8">→</Button>
+            </StackPanel>
+        </StackPanel>
+        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Image Source="ms-appx:///Assets/StoreLogo.scale-400.png" Width="128" Height="128"></Image>
+            <TextBlock Margin="0,16,0,16" FontSize="32">Hints</TextBlock>
+            <StackPanel  Orientation="Horizontal" VerticalAlignment="Center">
+                <Image Source="ms-appx:///Assets/desktop.svg" Width="64" Height="64"></Image>
+                <TextBlock VerticalAlignment="Center">After installing your server, wait or press + for adding your PC manually</TextBlock>
+            </StackPanel>
+            <StackPanel  Orientation="Horizontal"  VerticalAlignment="Center">
+                <Image Source="ms-appx:///Assets/play.svg" Width="64" Height="64"></Image>
+                <TextBlock VerticalAlignment="Center">During the stream, you can press <Run FontFamily="Segoe Fluent Icons">&#xEDE3;</Run>+<Run FontFamily="Segoe Fluent Icons">&#xEECA;</Run> to show more options and enable mouse mode</TextBlock>
+            </StackPanel>
+            <StackPanel  Orientation="Horizontal"  VerticalAlignment="Center">
+                <FontIcon FontSize="50" FontFamily="Segoe Fluent Icons" Glyph="&#xE962;" Width="64" Height="64"></FontIcon>
+                <TextBlock VerticalAlignment="Center">In mouse mode, you can move and scroll using your sticks, <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run> Left click <Run FontFamily="Segoe Fluent Icons">&#xF096;</Run> Right click</TextBlock>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal"  VerticalAlignment="Center">
+                <FontIcon FontSize="50" FontFamily="Segoe Fluent Icons" Glyph="&#xE765;" Width="64" Height="64"></FontIcon>
+                <TextBlock VerticalAlignment="Center">In mouse mode, you can press <Run FontFamily="Segoe Fluent Icons">&#xF095;</Run> to show Keyboard. You can also use an USB Keyboard</TextBlock>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal"  VerticalAlignment="Center">
+                <FontIcon FontSize="50" FontFamily="Segoe Fluent Icons" Glyph="&#xEA5F;" Width="64" Height="64"></FontIcon>
+                <TextBlock VerticalAlignment="Center">Is your screen a quarter of its size? Change the global composition scale inside the Global Settings of the App</TextBlock>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Click="GoBack" Margin="8">←</Button>
+                <Button Click="GoForward" Margin="8">→</Button>
+            </StackPanel>
+        </StackPanel>
+        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Image Source="ms-appx:///Assets/StoreLogo.scale-400.png" Width="128" Height="128"></Image>
+            <TextBlock Margin="0,16,0,16" FontSize="32">Support</TextBlock>
+            <TextBlock Margin="0,0,0,16">Need some Help?</TextBlock>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <StackPanel Margin="16" Orientation="Horizontal" Grid.Row="0" Grid.Column="0">
+                    <Image Source="ms-appx:///Assets/qrSupportWiki.svg" Width="128" Height="128"></Image>
+                    <StackPanel Orientation="Vertical" Margin="16,16,0,16">
+                        <TextBlock FontSize="24">Moonlight Wiki</TextBlock>
+                        <TextBlock>Access the Documentation of The Moonlight Project</TextBlock>
+                        <HyperlinkButton>https://github.com/moonlight-stream/moonlight-docs/wiki/Setup-Guide</HyperlinkButton>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Margin="16" Orientation="Horizontal" Grid.Row="0" Grid.Column="1">
+                    <Image Source="ms-appx:///Assets/qrSupportDiscord.svg" Width="128" Height="128"></Image>
+                    <StackPanel Orientation="Vertical" Margin="16,16,0,16">
+                        <TextBlock FontSize="24">Moonlight Discord</TextBlock>
+                        <TextBlock>Need general support for Moonlight?</TextBlock>
+                        <HyperlinkButton>https://moonlight-stream.org/discord</HyperlinkButton>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Margin="16" Orientation="Horizontal" Grid.Row="1" Grid.Column="0">
+                    <Image Source="ms-appx:///Assets/qrSupportLizardbyte.svg" Width="128" Height="128"></Image>
+                    <StackPanel Orientation="Vertical" Margin="16,16,0,16">
+                        <TextBlock FontSize="24">LizardByte Discord</TextBlock>
+                        <TextBlock>Need help with Sunshine?</TextBlock>
+                        <HyperlinkButton>https://app.lizardbyte.dev/discord</HyperlinkButton>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Margin="16" Orientation="Horizontal" Grid.Row="1" Grid.Column="1">
+                    <Image Source="ms-appx:///Assets/qrSupportGithub.svg" Width="128" Height="128"></Image>
+                    <StackPanel Orientation="Vertical" Margin="16,16,0,16">
+                        <TextBlock FontSize="24">GitHub</TextBlock>
+                        <TextBlock>Want to file an issue with this version of Moonlight?</TextBlock>
+                        <HyperlinkButton>https://github.com/TheElixZammuto/moonlight-xbox</HyperlinkButton>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Click="GoBack" Margin="8">←</Button>
+                <Button Name="CloseButton" Click="CloseButton_Click" Margin="8">OK</Button>
+            </StackPanel>
+        </StackPanel>
+    </FlipView>
+</Page>
