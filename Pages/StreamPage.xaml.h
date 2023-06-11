@@ -55,8 +55,8 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-		property RelativePanel^ m_keyboardView {
-			RelativePanel^ get() {
+		property StackPanel^ m_keyboardView {
+			StackPanel^ get() {
 				return this->KeyboardView;
 			}
 		}
