@@ -28,7 +28,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid Grid.Row="0" VerticalAlignment="Center" Padding="0,0,0,8" >
             <Grid.ColumnDefinitions>
@@ -76,6 +75,5 @@
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
-        <local:KeyboardControl Grid.Row="2"></local:KeyboardControl>
     </Grid>
 </Page>

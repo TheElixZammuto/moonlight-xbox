@@ -12,9 +12,11 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 	return concurrency::create_task(storageFolder->CreateFileAsync("state.json", CreationCollisionOption::OpenIfExists)).then([](StorageFile^ file) {
 		return FileIO::ReadTextAsync(file);
 		}).then([this](Concurrency::task<Platform::String^> jsonTask) {
+			this->FirstTime = true;
 			Platform::String^ jsonFile = jsonTask.get();
 			if (jsonFile != nullptr && jsonFile->Length() > 0) {
 				nlohmann::json stateJson = nlohmann::json::parse(jsonFile);
+				if (stateJson.contains("firstTime"))this->FirstTime = stateJson["firstTime"];
 				if (stateJson.contains("autostartInstance"))this->autostartInstance = stateJson["autostartInstance"];
 				if (stateJson.contains("marginWidth"))this->ScreenMarginWidth = stateJson["marginWidth"];
 				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
@@ -70,6 +72,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		stateJson["marginHeight"] = max(0, min(that->ScreenMarginHeight, 250));
 		stateJson["mouseSensitivity"] = max(1, min(that->MouseSensitivity, 16));
 		stateJson["compositionScale"] = Utils::PlatformStringToStdString(that->CompositionScale);
+		stateJson["firstTime"] = that->FirstTime;
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);

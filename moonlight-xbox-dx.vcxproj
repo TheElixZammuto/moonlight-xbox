@@ -307,6 +307,9 @@
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="MoonlightWelcome.xaml.h">
+      <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="KeyboardControl.xaml.h">
       <DependentUpon>KeyboardControl.xaml</DependentUpon>
     </ClInclude>
@@ -354,6 +357,9 @@
     <ClCompile Include="KeyboardCommon.cpp" />
     <ClCompile Include="KeyboardControl.xaml.cpp">
       <DependentUpon>KeyboardControl.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="MoonlightWelcome.xaml.cpp">
+      <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="State\MoonlightClient.cpp" />
     <ClCompile Include="State\StreamConfiguration.cpp" />
@@ -435,6 +441,12 @@
     <None Include="Assets\Play.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="Assets\qrSunshine.svg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Assets\qrSupport.svg">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="README.md" />
@@ -443,6 +455,9 @@
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="MoonlightWelcome.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="KeyboardControl.xaml" />
     <Page Include="Pages\AppPage.xaml">
       <SubType>Designer</SubType>

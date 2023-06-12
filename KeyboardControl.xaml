@@ -13,6 +13,8 @@
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="Margin" Value="4,4,4,4" />
             <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Opacity" Value="1" />
         </Style>
     </UserControl.Resources>
     <Grid>
@@ -135,7 +137,7 @@
         <Button Grid.Row="5" Grid.Column="13" Click="Click" Name="Key_E05D">Menu</Button>
         <Button Grid.Row="5" Grid.Column="14" Click="Click" Name="Key_E01D">CTRL</Button>
         <Button Grid.Row="5" Grid.Column="16" Click="Click" Name="Key_E04B">←</Button>
-        <Button Grid.Row="5" Grid.Column="17" Click="Click" Name="Key_E050">↓</Button>
+        <Button Grid.Row="5" Grid.Column="17" Click="Click" Name="Key_E050" XYFocusRight="{x:Bind Key_E04D}">↓</Button>
         <Button Grid.Row="5" Grid.Column="18" Click="Click" Name="Key_E04D" XYFocusRight="{x:Bind Key_1D}">→</Button>
     </Grid>
 </UserControl>

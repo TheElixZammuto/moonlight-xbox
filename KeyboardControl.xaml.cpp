@@ -50,12 +50,12 @@ void KeyboardControl::UpdateLabel(int virtualCode, wchar_t c) {
 }
 
 void KeyboardControl::UpdateKeys() {
-	((Button^)FindName("Key_2A"))->Background = toggleShift ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : nullptr;
-	((Button^)FindName("Key_36"))->Background = toggleShift ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : nullptr;
-	((Button^)FindName("Key_38"))->Background = toggleAlt ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : nullptr;
-	((Button^)FindName("Key_E038"))->Background = toggleAlt ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : nullptr;
-	((Button^)FindName("Key_E01D"))->Background = toggleCtrl ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : nullptr;
-	((Button^)FindName("Key_1D"))->Background = toggleCtrl ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : nullptr;
+	((Button^)FindName("Key_2A"))->Background = toggleShift ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16,255,255,255)));
+	((Button^)FindName("Key_36"))->Background = toggleShift ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
+	((Button^)FindName("Key_38"))->Background = toggleAlt ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
+	((Button^)FindName("Key_E038"))->Background = toggleAlt ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
+	((Button^)FindName("Key_E01D"))->Background = toggleCtrl ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
+	((Button^)FindName("Key_1D"))->Background = toggleCtrl ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
 	
 	auto currentModifier = layout.pVkToWcharTable;
 	while (true) {
@@ -139,7 +139,21 @@ void moonlight_xbox_dx::KeyboardControl::Click(Platform::Object^ sender, Windows
 		name = name.substr(name.find("_") + 1, 8);
 		int number = (int)strtol(name.data(), NULL, 16);
 		KeyEvent^ ev = ref new KeyEvent();
-		ev->VirtualKey = layout.pusVSCtoVK[number];
+		if (number > 0xE000) {
+			number -= 0xE000;
+			auto a = layout.pVSCtoVK_E0;
+			while (true) {
+				if (a->Vk == 0)break;
+				if (a->Vsc == number) {
+					ev->VirtualKey = a->Vk;
+					break;
+				}
+				a++;
+			}
+		}
+		else {
+			ev->VirtualKey = layout.pusVSCtoVK[number];
+		}
 		int currentState = toggleShift + (toggleCtrl ? 2 : 0) + (toggleAlt ? 4 : 0);
 		ev->Modifiers = currentState;
 		OnKeyDown(this, ev);
