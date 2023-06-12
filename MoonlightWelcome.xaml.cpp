@@ -26,6 +26,7 @@ MoonlightWelcome::MoonlightWelcome()
 	InitializeComponent();
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightWelcome::OnBackRequested);
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 }
 
 void moonlight_xbox_dx::MoonlightWelcome::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
@@ -34,12 +35,14 @@ void moonlight_xbox_dx::MoonlightWelcome::OnBackRequested(Platform::Object^ e, W
 	// button is pressed which can result in the app being
 	// suspended if unhandled
 	if (this->FlipView->SelectedIndex > 0) {
+		args->Handled = true;
 		this->FlipView->SelectedIndex = this->FlipView->SelectedIndex - 1;
 		return;
 	}
 	if (this->Frame->CanGoBack && !GetApplicationState()->FirstTime) {
 		this->Frame->GoBack();
 		args->Handled = true;
+		return;
 	}
 
 }

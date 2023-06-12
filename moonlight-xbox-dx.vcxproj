@@ -435,16 +435,7 @@
     <None Include="Assets\qrSunshine.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="Assets\qrSupportDiscord.svg">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Assets\qrSupportGithub.svg">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Assets\qrSupportLizardbyte.svg">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Assets\qrSupportWiki.svg">
+    <None Include="Assets\qrSupport.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />

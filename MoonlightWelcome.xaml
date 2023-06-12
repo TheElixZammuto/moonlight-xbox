@@ -14,11 +14,15 @@
             <Image Source="ms-appx:///Assets/StoreLogo.scale-400.png" Width="128" Height="128"></Image>
             <TextBlock Margin="0,16,0,16" FontSize="32">Welcome to Moonlight</TextBlock>
             <TextBlock>Moonlight allows your Xbox to control and stream your Computer!</TextBlock>
-            <Button Click="GoForward" HorizontalAlignment="Center" Margin="8">→</Button>
+            <Button Click="GoForward" HorizontalAlignment="Center" Margin="8">
+                <TextBlock>
+                    <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run>
+                    <Run FontSize="24">→</Run>
+                </TextBlock>
+            </Button>
         </StackPanel>
         <!-- Page 2 -->
         <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Image Source="ms-appx:///Assets/StoreLogo.scale-400.png" Width="128" Height="128"></Image>
             <TextBlock Margin="0,16,0,16" FontSize="32">Servers</TextBlock>
             <TextBlock Margin="0,0,0,16">To make Moonlight work, you need a Server, you can use one of the following ones:</TextBlock>
             <StackPanel Orientation="Vertical">
@@ -35,16 +39,25 @@
                     <StackPanel Margin="16,16,0,16">
                         <TextBlock FontSize="24">Nvidia Geforce Experience (DEPRECATED)</TextBlock>
                         <TextBlock>GFE is still compatible with Moonlight, but it may be removed soon from your system</TextBlock>
-                    </StackPanel> 
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Click="GoBack" Margin="8">←</Button>
-                <Button Click="GoForward" Margin="8">→</Button>
+                <Button Click="GoBack" Margin="8">
+                    <TextBlock>
+                        <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run>
+                        <Run FontSize="24">←</Run>
+                    </TextBlock>
+                </Button>
+                <Button Click="GoForward" Margin="8">
+                    <TextBlock>
+                    <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run>
+                    <Run FontSize="24">→</Run>
+                    </TextBlock>
+                </Button>
             </StackPanel>
         </StackPanel>
         <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Image Source="ms-appx:///Assets/StoreLogo.scale-400.png" Width="128" Height="128"></Image>
             <TextBlock Margin="0,16,0,16" FontSize="32">Hints</TextBlock>
             <StackPanel  Orientation="Horizontal" VerticalAlignment="Center">
                 <Image Source="ms-appx:///Assets/desktop.svg" Width="64" Height="64"></Image>
@@ -67,59 +80,44 @@
                 <TextBlock VerticalAlignment="Center">Is your screen a quarter of its size? Change the global composition scale inside the Global Settings of the App</TextBlock>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Click="GoBack" Margin="8">←</Button>
-                <Button Click="GoForward" Margin="8">→</Button>
+                <Button Click="GoBack" Margin="8">
+                    <TextBlock>
+                        <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run>
+                        <Run FontSize="24">←</Run>
+                    </TextBlock>
+                </Button>
+                <Button Click="GoForward" Margin="8">
+                    <TextBlock>
+                    <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run>
+                    <Run FontSize="24">→</Run>
+                    </TextBlock>
+                </Button>
             </StackPanel>
         </StackPanel>
         <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Image Source="ms-appx:///Assets/StoreLogo.scale-400.png" Width="128" Height="128"></Image>
             <TextBlock Margin="0,16,0,16" FontSize="32">Support</TextBlock>
             <TextBlock Margin="0,0,0,16">Need some Help?</TextBlock>
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"></RowDefinition>
-                    <RowDefinition Height="*"></RowDefinition>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"></ColumnDefinition>
-                    <ColumnDefinition Width="*"></ColumnDefinition>
-                </Grid.ColumnDefinitions>
-                <StackPanel Margin="16" Orientation="Horizontal" Grid.Row="0" Grid.Column="0">
-                    <Image Source="ms-appx:///Assets/qrSupportWiki.svg" Width="128" Height="128"></Image>
-                    <StackPanel Orientation="Vertical" Margin="16,16,0,16">
-                        <TextBlock FontSize="24">Moonlight Wiki</TextBlock>
-                        <TextBlock>Access the Documentation of The Moonlight Project</TextBlock>
-                        <HyperlinkButton>https://github.com/moonlight-stream/moonlight-docs/wiki/Setup-Guide</HyperlinkButton>
-                    </StackPanel>
+            <StackPanel Margin="16" Orientation="Horizontal" Grid.Row="1" Grid.Column="1">
+                <Image Source="ms-appx:///Assets/qrSupport.svg" Width="128" Height="128"></Image>
+                <StackPanel Orientation="Vertical" Margin="16,16,0,16">
+                    <TextBlock FontSize="24">GitHub</TextBlock>
+                    <TextBlock>Check the Wiki for Support Links, documentation and more!</TextBlock>
+                    <HyperlinkButton>https://github.com/TheElixZammuto/moonlight-xbox/wiki</HyperlinkButton>
                 </StackPanel>
-                <StackPanel Margin="16" Orientation="Horizontal" Grid.Row="0" Grid.Column="1">
-                    <Image Source="ms-appx:///Assets/qrSupportDiscord.svg" Width="128" Height="128"></Image>
-                    <StackPanel Orientation="Vertical" Margin="16,16,0,16">
-                        <TextBlock FontSize="24">Moonlight Discord</TextBlock>
-                        <TextBlock>Need general support for Moonlight?</TextBlock>
-                        <HyperlinkButton>https://moonlight-stream.org/discord</HyperlinkButton>
-                    </StackPanel>
-                </StackPanel>
-                <StackPanel Margin="16" Orientation="Horizontal" Grid.Row="1" Grid.Column="0">
-                    <Image Source="ms-appx:///Assets/qrSupportLizardbyte.svg" Width="128" Height="128"></Image>
-                    <StackPanel Orientation="Vertical" Margin="16,16,0,16">
-                        <TextBlock FontSize="24">LizardByte Discord</TextBlock>
-                        <TextBlock>Need help with Sunshine?</TextBlock>
-                        <HyperlinkButton>https://app.lizardbyte.dev/discord</HyperlinkButton>
-                    </StackPanel>
-                </StackPanel>
-                <StackPanel Margin="16" Orientation="Horizontal" Grid.Row="1" Grid.Column="1">
-                    <Image Source="ms-appx:///Assets/qrSupportGithub.svg" Width="128" Height="128"></Image>
-                    <StackPanel Orientation="Vertical" Margin="16,16,0,16">
-                        <TextBlock FontSize="24">GitHub</TextBlock>
-                        <TextBlock>Want to file an issue with this version of Moonlight?</TextBlock>
-                        <HyperlinkButton>https://github.com/TheElixZammuto/moonlight-xbox</HyperlinkButton>
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
+            </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Click="GoBack" Margin="8">←</Button>
-                <Button Name="CloseButton" Click="CloseButton_Click" Margin="8">OK</Button>
+                <Button Click="GoBack" Margin="8">
+                    <TextBlock>
+                        <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run>
+                        <Run FontSize="24">←</Run>
+                    </TextBlock>
+                </Button>
+                <Button Name="CloseButton" Click="CloseButton_Click" Margin="8">
+                    <TextBlock>
+                    <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run>
+                    <Run FontSize="24">→</Run>
+                    </TextBlock>
+                </Button>
             </StackPanel>
         </StackPanel>
     </FlipView>
