@@ -13,6 +13,7 @@ namespace moonlight_xbox_dx {
 		int screenMarginH;
 		int mouseSensitivity = 5;
 		Platform::String^ compositionScale;
+		Platform::String^ keyboardLayout;
 		bool firstTime;
 	internal:
 		Concurrency::task<void> Init();
@@ -20,6 +21,7 @@ namespace moonlight_xbox_dx {
 		Concurrency::task<void> UpdateFile();
 		void RemoveHost(MoonlightHost^ host);
 		std::string autostartInstance = "";
+		bool enableKeyboard = false;
 		bool shouldAutoConnect = false;
 		 
 	public:
@@ -103,6 +105,30 @@ namespace moonlight_xbox_dx {
 			void set(bool value) {
 				this->firstTime = value;
 				OnPropertyChanged("FirstTime");
+			}
+		}
+
+		property bool EnableKeyboard
+		{
+			bool get()
+			{
+				return this->enableKeyboard;
+			};
+			void set(bool value) {
+				this->enableKeyboard = value;
+				OnPropertyChanged("EnableKeyboard");
+			}
+		}
+
+		property Platform::String^ KeyboardLayout
+		{
+			Platform::String^ get()
+			{
+				return this->keyboardLayout;
+			};
+			void set(Platform::String^ value) {
+				this->keyboardLayout = value;
+				OnPropertyChanged("KeyboardLayout");
 			}
 		}
 	};

@@ -7,7 +7,6 @@
 #include "KeyboardControl.xaml.h"
 #include <regex>
 #include "Utils.hpp"
-#include <resources.resfiles>
 #include "Keyboard/KeyboardCommon.h"
 #include <format>
 
@@ -27,7 +26,11 @@ using namespace Windows::UI::Xaml::Navigation;
 KeyboardControl::KeyboardControl()
 {
 	InitializeComponent();
-	layout = keyboardLayouts["it"];
+	std::string layoutName = "us";
+	if (GetApplicationState()->KeyboardLayout != nullptr && GetApplicationState()->KeyboardLayout->Length() > 0) {
+		layoutName = Utils::PlatformStringToStdString(GetApplicationState()->KeyboardLayout);
+	}
+	layout = keyboardLayouts[layoutName];
  	UpdateKeys();
 }
 

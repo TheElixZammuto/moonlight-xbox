@@ -26,6 +26,7 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Column="0" Grid.Row="0">Autostart Host:</TextBlock>
             <ComboBox Grid.Column="1" Grid.Row="0" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged"></ComboBox>
@@ -38,7 +39,13 @@
             <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center">Change these parameters until you can see a green border around the screen</TextBlock>
             <TextBlock Grid.Column="0" Grid.Row="5">Mouse Sensitivity:</TextBlock>
             <Slider Grid.Row="5" Grid.Column="1" Value="{x:Bind State.MouseSensitivity}" x:DefaultBindMode="TwoWay" Minimum="1" Maximum="16" StepFrequency="1"/>
-            <Button x:Name="WelcomeButton" Grid.Row="6" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
+            <TextBlock Grid.Row="6">Experimental Keyboard</TextBlock>
+            <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal">
+                <CheckBox IsChecked="{x:Bind State.EnableKeyboard,Mode=TwoWay}">Enabled</CheckBox>
+                <ComboBox Grid.Column="7" Grid.Row="0" x:Name="KeyboardLayoutSelector" SelectionChanged="LayoutSelector_SelectionChanged"></ComboBox>
+                <TextBlock>Layout</TextBlock>
+            </StackPanel>
+            <Button x:Name="WelcomeButton" Grid.Row="7" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
         </Grid>
     </StackPanel>
 </Page>

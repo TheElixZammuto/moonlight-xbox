@@ -17,6 +17,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 			if (jsonFile != nullptr && jsonFile->Length() > 0) {
 				nlohmann::json stateJson = nlohmann::json::parse(jsonFile);
 				if (stateJson.contains("firstTime"))this->FirstTime = stateJson["firstTime"];
+				if (stateJson.contains("enableKeyboard"))this->EnableKeyboard = stateJson["enableKeyboard"];
+				if (stateJson.contains("keyboardLayout"))this->KeyboardLayout = Utils::StringFromStdString(stateJson["keyboardLayout"]);
 				if (stateJson.contains("autostartInstance"))this->autostartInstance = stateJson["autostartInstance"];
 				if (stateJson.contains("marginWidth"))this->ScreenMarginWidth = stateJson["marginWidth"];
 				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
@@ -73,6 +75,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		stateJson["mouseSensitivity"] = max(1, min(that->MouseSensitivity, 16));
 		stateJson["compositionScale"] = Utils::PlatformStringToStdString(that->CompositionScale);
 		stateJson["firstTime"] = that->FirstTime;
+		stateJson["enableKeyboard"] = that->EnableKeyboard;
+		stateJson["keyboardLayout"] = Utils::PlatformStringToStdString(that->KeyboardLayout);
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);

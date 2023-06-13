@@ -7,6 +7,7 @@
 #include "MoonlightSettings.xaml.h"
 #include "MoonlightWelcome.xaml.h"
 #include "Utils.hpp"
+#include "Keyboard/KeyboardCommon.h"
 using namespace Windows::UI::Core;
 
 using namespace moonlight_xbox_dx;
@@ -52,6 +53,18 @@ MoonlightSettings::MoonlightSettings()
 			HostSelector->SelectedIndex = i+1;
 		}
 	}
+	int k = 0;
+	for (auto l : keyboardLayouts) {
+		auto item = ref new ComboBoxItem();
+		auto s = Utils::StringFromStdString(l.first);
+		item->Content = s;
+		item->DataContext = s;
+		KeyboardLayoutSelector->Items->Append(item);
+		if (state->KeyboardLayout->Equals(s)) {
+			KeyboardLayoutSelector->SelectedIndex = k;
+		}
+		k++;
+	}
 }
 
 
@@ -91,4 +104,13 @@ void moonlight_xbox_dx::MoonlightSettings::OnBackRequested(Platform::Object^ e, 
 void moonlight_xbox_dx::MoonlightSettings::WelcomeButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
+}
+
+
+void moonlight_xbox_dx::MoonlightSettings::LayoutSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	ComboBoxItem^ item = (ComboBoxItem^)this->KeyboardLayoutSelector->SelectedItem;
+
+	auto s = item->DataContext->ToString();
+	state->KeyboardLayout = s;
 }
