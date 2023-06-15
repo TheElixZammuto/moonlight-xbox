@@ -47,15 +47,15 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	client->OnStatusUpdate = ([streamPage](int status) {
 		const char* msg = LiGetStageName(status);
 		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(msg));
-	});
+		});
 
 	client->OnCompleted = ([streamPage]() {
 		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-	});
+		});
 
 	client->OnFailed = ([streamPage](int status,int error, char* message) {
 		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(message));
-	});
+		});
 
 	m_timer.SetFixedTimeStep(false);
 }
@@ -67,11 +67,11 @@ moonlight_xbox_dxMain::~moonlight_xbox_dxMain()
 }
 
 // Updates application state when the window size changes (e.g. device orientation change)
-void moonlight_xbox_dxMain::CreateWindowSizeDependentResources() 
+void moonlight_xbox_dxMain::CreateWindowSizeDependentResources()
 {
-	// TODO: Replace this with the size-dependent initialization of your app's content.
-	m_sceneRenderer->CreateWindowSizeDependentResources();
-}
+		// TODO: Replace this with the size-dependent initialization of your app's content.
+		m_sceneRenderer->CreateWindowSizeDependentResources();
+	}
 
 void moonlight_xbox_dxMain::StartRenderLoop()
 {
@@ -83,19 +83,19 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 	// Create a task that will be run on a background thread.
 	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action)
-	{
-		// Calculate the updated frame and render once per vertical blanking interval.
-		while (action->Status == AsyncStatus::Started)
 		{
-			critical_section::scoped_lock lock(m_criticalSection);
-			int t1 = GetTickCount64();
-			Update();
-			if (Render())
+			// Calculate the updated frame and render once per vertical blanking interval.
+			while (action->Status == AsyncStatus::Started)
 			{
-				m_deviceResources->Present();
+				critical_section::scoped_lock lock(m_criticalSection);
+				int t1 = GetTickCount64();
+				Update();
+				if (Render())
+				{
+					m_deviceResources->Present();
+				}
 			}
-		}
-	});
+		});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
 	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == AsyncStatus::Started) {
 		return;
@@ -121,22 +121,22 @@ void moonlight_xbox_dxMain::StopRenderLoop()
 }
 
 // Updates the application state once per frame.
-void moonlight_xbox_dxMain::Update() 
+void moonlight_xbox_dxMain::Update()
 {
 
 	// Update scene objects.
 	m_timer.Tick([&]()
-	{
-		m_sceneRenderer->Update(m_timer);
-		m_fpsTextRenderer->Update(m_timer);
-		m_statsTextRenderer->Update(m_timer);
-	});
+		{
+			m_sceneRenderer->Update(m_timer);
+			m_fpsTextRenderer->Update(m_timer);
+			m_statsTextRenderer->Update(m_timer);
+		});
 }
 
 // Process all input from the user before updating game state
 void moonlight_xbox_dxMain::ProcessInput()
 {
-	
+
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	if (gamepads->Size == 0)return;
 	moonlightClient->SetGamepadCount(gamepads->Size);
@@ -155,7 +155,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 		if (isCurrentlyPressed) {
 			m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
 				Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_streamPage->m_flyoutButton);
-			}));
+				}));
 			insideFlyout = true;
 		}
 		if (insideFlyout)return;
@@ -163,13 +163,15 @@ void moonlight_xbox_dxMain::ProcessInput()
 		if (keyboardMode) {
 			//B to close
 			if ((reading.Buttons & GamepadButtons::B) == GamepadButtons::B) {
-				if (false/*xkb*/)CoreInputView::GetForCurrentView()->TryHide();
-				else {
+				if(GetApplicationState()->EnableKeyboard) {
 					m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
 						m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-					}));
+						}));
+					keyboardMode = false;
 				}
-				keyboardMode = false;
+				else {
+					CoreInputView::GetForCurrentView()->TryHide();
+				}
 			}
 			//X to backspace
 			if ((reading.Buttons & GamepadButtons::X) == GamepadButtons::X && !backspacePressed) {
@@ -212,7 +214,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 			auto state = GetApplicationState();
 			//Position
 			double multiplier = ((double)state->MouseSensitivity) / ((double)2.0f);
-			moonlightClient->SendMousePosition(pow(reading.LeftThumbstickX * multiplier,3), pow(reading.LeftThumbstickY * -1 * multiplier,3));
+			moonlightClient->SendMousePosition(pow(reading.LeftThumbstickX * multiplier, 3), pow(reading.LeftThumbstickY * -1 * multiplier, 3));
 			//Left Click
 			if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {
 				if (!leftMouseButtonPressed) {
@@ -241,18 +243,20 @@ void moonlight_xbox_dxMain::ProcessInput()
 				}
 			}
 			else if (keyboardButtonPressed) {
-				if (false/*xkb*/)CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
-				else {
+				if (GetApplicationState()->EnableKeyboard) {
 					m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
 						m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 						}));
+					keyboardMode = true;
 				}
-				keyboardMode = true;
+				else {
+					CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+				}
 				keyboardButtonPressed = false;
 			}
 			//Scroll
-			moonlightClient->SendScroll(pow(reading.RightThumbstickY * multiplier * 2,3));
-			moonlightClient->SendScrollH(pow(reading.RightThumbstickX * multiplier * 2,3));
+			moonlightClient->SendScroll(pow(reading.RightThumbstickY * multiplier * 2, 3));
+			moonlightClient->SendScrollH(pow(reading.RightThumbstickX * multiplier * 2, 3));
 		}
 		else {
 			moonlightClient->SendGamepadReading(i, reading);
@@ -263,7 +267,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 
 // Renders the current frame according to the current application state.
 // Returns true if the frame was rendered and is ready to be displayed.
-bool moonlight_xbox_dxMain::Render() 
+bool moonlight_xbox_dxMain::Render()
 {
 	// Don't try to render anything before the first Update.
 	if (m_timer.GetFrameCount() == 0)
@@ -286,9 +290,9 @@ bool moonlight_xbox_dxMain::Render()
 	context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	// Render the scene objects.
-	m_sceneRenderer->Render();
-	m_fpsTextRenderer->Render();
-	m_statsTextRenderer->Render();
+		m_sceneRenderer->Render();
+		m_fpsTextRenderer->Render();
+		m_statsTextRenderer->Render();
 
 	return true;
 }

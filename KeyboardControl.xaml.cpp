@@ -27,7 +27,7 @@ KeyboardControl::KeyboardControl()
 {
 	InitializeComponent();
 	std::string layoutName = "us";
-	if (GetApplicationState()->KeyboardLayout != nullptr && GetApplicationState()->KeyboardLayout->Length() > 0) {
+	if (GetApplicationState()->EnableKeyboard && GetApplicationState()->KeyboardLayout != nullptr && GetApplicationState()->KeyboardLayout->Length() > 0) {
 		layoutName = Utils::PlatformStringToStdString(GetApplicationState()->KeyboardLayout);
 	}
 	layout = keyboardLayouts[layoutName];
