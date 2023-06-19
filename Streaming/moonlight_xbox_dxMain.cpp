@@ -214,8 +214,14 @@ void moonlight_xbox_dxMain::ProcessInput()
 		else if (mouseMode) {
 			auto state = GetApplicationState();
 			//Position
-			double multiplier = ((double)state->MouseSensitivity) / ((double)2.0f);
-			moonlightClient->SendMousePosition(pow(reading.LeftThumbstickX * multiplier, 3), pow(reading.LeftThumbstickY * -1 * multiplier, 3));
+			double multiplier = ((double)state->MouseSensitivity) / ((double)4.0f);
+			double x = reading.LeftThumbstickX;
+			if (abs(x) < 0.1) x = 0;
+			else x = x + (x > 0 ? 1 : -1); //Add 1 to make sure < 0 values do not make everything broken
+			double y = reading.LeftThumbstickY;
+			if (abs(y) < 0.1) y = 0;
+			else y = (y * -1) + (y > 0 ? -1 : 1); //Add 1 to make sure < 0 values do not make everything broken
+			moonlightClient->SendMousePosition(pow(x * multiplier, 3), pow(y * multiplier, 3));
 			//Left Click
 			if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {
 				if (!leftMouseButtonPressed) {
