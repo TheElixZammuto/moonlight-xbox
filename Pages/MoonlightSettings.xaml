@@ -41,8 +41,8 @@
             <Slider Grid.Row="5" Grid.Column="1" Value="{x:Bind State.MouseSensitivity}" x:DefaultBindMode="TwoWay" Minimum="1" Maximum="16" StepFrequency="1"/>
             <TextBlock Grid.Row="6">Experimental Keyboard</TextBlock>
             <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal">
-                <CheckBox IsChecked="{x:Bind State.EnableKeyboard,Mode=TwoWay}">Enabled</CheckBox>
-                <ComboBox Grid.Column="7" Grid.Row="0" x:Name="KeyboardLayoutSelector" SelectionChanged="LayoutSelector_SelectionChanged"></ComboBox>
+                <CheckBox IsChecked="{x:Bind State.EnableKeyboard,Mode=TwoWay}" Name="KeyboardEnable" XYFocusRight="{x:Bind KeyboardLayoutSelector}">Enabled</CheckBox>
+                <ComboBox XYFocusLeft="{x:Bind KeyboardEnable}" Grid.Column="7" Grid.Row="0" x:Name="KeyboardLayoutSelector" SelectionChanged="LayoutSelector_SelectionChanged"></ComboBox>
                 <TextBlock>Layout</TextBlock>
             </StackPanel>
             <Button x:Name="WelcomeButton" Grid.Row="7" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
