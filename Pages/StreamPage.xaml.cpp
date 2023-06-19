@@ -35,14 +35,11 @@ StreamPage::StreamPage():
 	InitializeComponent();
 
 	DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
-
+	NavigationCacheMode = Windows::UI::Xaml::Navigation::NavigationCacheMode::Enabled;
 	swapChainPanel->SizeChanged +=
 		ref new SizeChangedEventHandler(this, &StreamPage::OnSwapChainPanelSizeChanged);
-
+	m_deviceResources = std::make_shared<DX::DeviceResources>();
 	//Resize to make fullscreen on Xbox
-	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
-	keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyDown));
-	keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyUp));
 }
 
 
@@ -62,9 +59,11 @@ void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequ
 void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	try {
+		Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
+		keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyDown));
+		keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyUp));
 		// At this point we have access to the device. 
 		// We can create the device-dependent resources.
-		m_deviceResources = std::make_shared<DX::DeviceResources>();
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
 		m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources,this,new MoonlightClient(),configuration));
 		m_main->CreateWindowSizeDependentResources();

@@ -43,6 +43,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	m_fpsTextRenderer = std::unique_ptr<LogRenderer>(new LogRenderer(m_deviceResources));
 
 	m_statsTextRenderer = std::unique_ptr<StatsRenderer>(new StatsRenderer(m_deviceResources));
+	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
 	client->OnStatusUpdate = ([streamPage](int status) {
 		const char* msg = LiGetStageName(status);
