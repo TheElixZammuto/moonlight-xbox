@@ -22,6 +22,7 @@ void connection_status_completed(int status);
 void connection_terminated(int status);
 void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
+void connection_trigger_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
 MoonlightClient* connectedInstance;
 
@@ -95,6 +96,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.stageFailed = stage_failed;
 	callbacks.stageComplete = connection_status_completed;
 	callbacks.rumble = connection_rumble;
+	callbacks.rumbleTriggers = connection_trigger_rumble;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
@@ -162,15 +164,27 @@ void stage_failed(int stage, int err) {
 }
 
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
-	if (Windows::Gaming::Input::Gamepad::Gamepads->Size == 0)return;
-	auto gp = Windows::Gaming::Input::Gamepad::Gamepads->GetAt(0);
+	if (Windows::Gaming::Input::Gamepad::Gamepads->Size <= controllerNumber)return;
+	auto gp = Windows::Gaming::Input::Gamepad::Gamepads->GetAt(controllerNumber);
 	float normalizedHigh = highFreqMotor / (float)(256 * 256);
 	float normalizedLow = lowFreqMotor / (float)(256 * 256);
-	Windows::Gaming::Input::GamepadVibration v;
-	v.LeftTrigger = normalizedHigh;
-	v.RightTrigger = normalizedHigh;
-	v.LeftMotor = normalizedHigh;
+	Windows::Gaming::Input::GamepadVibration v = gp->Vibration;
+	//v.LeftTrigger = normalizedHigh;
+	//v.RightTrigger = normalizedHigh;
+	//https://learn.microsoft.com/en-us/gaming/gdk/_content/gc/reference/input/xinputongameinput/structs/xinput_vibration#remarks
+	v.LeftMotor = normalizedLow;
 	v.RightMotor = normalizedHigh;
+	gp->Vibration = v;
+}
+
+void connection_trigger_rumble(unsigned short controllerNumber, unsigned short leftTriggerMotor, unsigned short rightTriggerMotor) {
+	if (Windows::Gaming::Input::Gamepad::Gamepads->Size <= controllerNumber)return;
+	auto gp = Windows::Gaming::Input::Gamepad::Gamepads->GetAt(controllerNumber);
+	float normalizedLeft = leftTriggerMotor / (float)(256 * 256);
+	float normalizedRight = rightTriggerMotor / (float)(256 * 256);
+	Windows::Gaming::Input::GamepadVibration v = gp->Vibration;
+	v.LeftTrigger = normalizedLeft;
+	v.RightTrigger = normalizedRight;
 	gp->Vibration = v;
 }
 
