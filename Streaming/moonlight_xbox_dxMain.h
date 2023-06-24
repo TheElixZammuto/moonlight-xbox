@@ -57,6 +57,7 @@ namespace moonlight_xbox_dx
 		bool leftMouseButtonPressed = false;
 		bool rightMouseButtonPressed = false;
 		bool keyboardButtonPressed = false;
+		bool guideButtonPressed = false;
 		bool spacePressed = false;
 		bool backspacePressed = false;
 		bool leftPressed = false;

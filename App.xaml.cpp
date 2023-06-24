@@ -33,6 +33,7 @@ App::App()
 	RequiresPointerMode = Windows::UI::Xaml::ApplicationRequiresPointerMode::WhenRequested;
 	Suspending += ref new SuspendingEventHandler(this, &App::OnSuspending);
 	Resuming += ref new EventHandler<Object^>(this, &App::OnResuming);
+	displayRequest = ref new Windows::System::Display::DisplayRequest();
 }
 
 /// <summary>
@@ -86,6 +87,7 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	state->Init().then([that](){
 		that->m_menuPage->OnStateLoaded();
 	});
+	displayRequest->RequestActive();
 }
 /// <summary>
 /// Invoked when application execution is being suspended.  Application state is saved
@@ -98,7 +100,7 @@ void App::OnSuspending(Object^ sender, SuspendingEventArgs^ e)
 {
 	(void) sender;	// Unused parameter
 	(void) e;	// Unused parameter
-
+	displayRequest->RequestRelease();
 }
 
 /// <summary>
@@ -110,6 +112,7 @@ void App::OnResuming(Object ^sender, Object ^args)
 {
 	(void) sender; // Unused parameter
 	(void) args; // Unused parameter
+	displayRequest->RequestActive();
 }
 
 /// <summary>

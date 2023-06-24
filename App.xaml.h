@@ -24,5 +24,6 @@ namespace moonlight_xbox_dx
 		void OnResuming(Platform::Object ^sender, Platform::Object ^args);
 		void OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Navigation::NavigationFailedEventArgs ^e);
 		HostSelectorPage^ m_menuPage;
+		Windows::System::Display::DisplayRequest^ displayRequest;
 	};
 }

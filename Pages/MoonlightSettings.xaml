@@ -27,6 +27,7 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Column="0" Grid.Row="0">Autostart Host:</TextBlock>
             <ComboBox Grid.Column="1" Grid.Row="0" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged"></ComboBox>
@@ -45,7 +46,11 @@
                 <ComboBox XYFocusLeft="{x:Bind KeyboardEnable}" Grid.Column="7" Grid.Row="0" x:Name="KeyboardLayoutSelector" SelectionChanged="LayoutSelector_SelectionChanged"></ComboBox>
                 <TextBlock>Layout</TextBlock>
             </StackPanel>
-            <Button x:Name="WelcomeButton" Grid.Row="7" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
+            <TextBlock Grid.Row="7">Use Alternate Menu Combination</TextBlock>
+            <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal">
+                <CheckBox IsChecked="{x:Bind State.AlternateCombination,Mode=TwoWay}" XYFocusRight="{x:Bind KeyboardLayoutSelector}">Use LT+RT+LB+RB instead of Menu+View to show the menu</CheckBox>
+            </StackPanel>
+            <Button x:Name="WelcomeButton" Grid.Row="8" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
         </Grid>
     </StackPanel>
 </Page>

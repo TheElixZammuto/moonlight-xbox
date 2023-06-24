@@ -11,10 +11,11 @@ namespace moonlight_xbox_dx {
 		Windows::Foundation::Collections::IVector<MoonlightHost^>^ hosts;
 		int screenMarginW;
 		int screenMarginH;
-		int mouseSensitivity = 5;
+		int mouseSensitivity = 3;
 		Platform::String^ compositionScale;
 		Platform::String^ keyboardLayout;
 		bool firstTime;
+		bool alternateCombination;
 	internal:
 		Concurrency::task<void> Init();
 		bool AddHost(Platform::String^ hostname);
@@ -117,6 +118,18 @@ namespace moonlight_xbox_dx {
 			void set(bool value) {
 				this->enableKeyboard = value;
 				OnPropertyChanged("EnableKeyboard");
+			}
+		}
+
+		property bool AlternateCombination
+		{
+			bool get()
+			{
+				return this->alternateCombination;
+			};
+			void set(bool value) {
+				this->alternateCombination = value;
+				OnPropertyChanged("AlternateCombination");
 			}
 		}
 

@@ -34,13 +34,6 @@
                         <HyperlinkButton>https://github.com/LizardByte/Sunshine</HyperlinkButton>
                     </StackPanel>
                 </StackPanel>
-                <StackPanel  Margin="0,16,0,16" Orientation="Horizontal">
-                    <FontIcon FontSize="100" FontFamily="Segoe Fluent Icons" Glyph="&#xE7BA;" Width="128" Height="128"></FontIcon>
-                    <StackPanel Margin="16,16,0,16">
-                        <TextBlock FontSize="24">Nvidia Geforce Experience (DEPRECATED)</TextBlock>
-                        <TextBlock>GFE is still compatible with Moonlight, but it may be removed soon from your system</TextBlock>
-                    </StackPanel>
-                </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Click="GoBack" Margin="8">
@@ -69,7 +62,7 @@
             </StackPanel>
             <StackPanel  Orientation="Horizontal"  VerticalAlignment="Center">
                 <FontIcon FontSize="50" FontFamily="Segoe Fluent Icons" Glyph="&#xE962;" Width="64" Height="64"></FontIcon>
-                <TextBlock VerticalAlignment="Center">In mouse mode, you can move and scroll using your sticks, <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run> Left click <Run FontFamily="Segoe Fluent Icons">&#xF096;</Run> Right click</TextBlock>
+                <TextBlock VerticalAlignment="Center">In mouse mode, you can move and scroll using your sticks, <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run> Left click <Run FontFamily="Segoe Fluent Icons">&#xF096;</Run> Right click<Run FontFamily="Segoe Fluent Icons">&#xF094;</Run> Guide/Xbox button </TextBlock>
             </StackPanel>
             <StackPanel Orientation="Horizontal"  VerticalAlignment="Center">
                 <FontIcon FontSize="50" FontFamily="Segoe Fluent Icons" Glyph="&#xE765;" Width="64" Height="64"></FontIcon>

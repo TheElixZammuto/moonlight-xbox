@@ -145,8 +145,14 @@ void moonlight_xbox_dxMain::ProcessInput()
 		Windows::Gaming::Input::Gamepad^ gamepad = gamepads->GetAt(i);
 		auto reading = gamepad->GetCurrentReading();
 		//If this combination is pressed on gamed we should handle some magic things :)
-		GamepadButtons magicKey[] = { GamepadButtons::Menu,GamepadButtons::View };
+		bool alternateCombination = GetApplicationState()->AlternateCombination;
 		bool isCurrentlyPressed = true;
+		GamepadButtons magicKey[] = { GamepadButtons::Menu,GamepadButtons::View };
+		if (alternateCombination) {
+			magicKey[0] = GamepadButtons::LeftShoulder;
+			magicKey[1] = GamepadButtons::RightShoulder;
+			if (reading.LeftTrigger < 0.25 || reading.RightTrigger < 0.25)isCurrentlyPressed = false;
+		}
 		for (auto k : magicKey) {
 			if ((reading.Buttons & k) != k) {
 				isCurrentlyPressed = false;
@@ -244,6 +250,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 				rightMouseButtonPressed = false;
 				moonlightClient->SendMouseReleased(BUTTON_RIGHT);
 			}
+			//Keyboard
 			if ((reading.Buttons & GamepadButtons::Y) == GamepadButtons::Y) {
 				if (!keyboardButtonPressed) {
 					keyboardButtonPressed = true;
@@ -264,6 +271,18 @@ void moonlight_xbox_dxMain::ProcessInput()
 			//Scroll
 			moonlightClient->SendScroll(pow(reading.RightThumbstickY * multiplier * 2, 3));
 			moonlightClient->SendScrollH(pow(reading.RightThumbstickX * multiplier * 2, 3));
+			//Xbox/Guide Button
+			//Right Click
+			if ((reading.Buttons & GamepadButtons::B) == GamepadButtons::B) {
+				if (!guideButtonPressed) {
+					guideButtonPressed = true;
+					moonlightClient->SendGuide(i,true);
+				}
+			}
+			else if (guideButtonPressed) {
+				guideButtonPressed = false;
+				moonlightClient->SendGuide(i,false);
+			}
 		}
 		else {
 			moonlightClient->SendGamepadReading(i, reading);

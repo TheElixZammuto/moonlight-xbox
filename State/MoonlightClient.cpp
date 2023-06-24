@@ -295,6 +295,10 @@ void MoonlightClient::SendGamepadReading(short controllerNumber, GamepadReading 
 	LiSendMultiControllerEvent(controllerNumber, activeGamepadMask, buttonFlags, leftTrigger, rightTrigger, (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
 }
 
+void MoonlightClient::SendGuide(int controllerNumber, bool s) {
+	LiSendMultiControllerEvent(controllerNumber, activeGamepadMask, s ? SPECIAL_FLAG : 0, 0, 0, 0, 0, 0, 0);
+}
+
 
 void MoonlightClient::SendMousePosition(float deltaX, float deltaY) {
 	LiSendMouseMoveEvent(deltaX, deltaY);

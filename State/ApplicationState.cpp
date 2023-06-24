@@ -8,6 +8,13 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 {
 	auto that = this;
 	this->SavedHosts->Clear();
+	int h = DX::DeviceResources::uwp_get_height();
+	if (h < 2000) {
+		this->CompositionScale = "Normal";
+	}
+	else {
+		this->CompositionScale = "4k";
+	}
 	StorageFolder^ storageFolder = ApplicationData::Current->LocalFolder;
 	return concurrency::create_task(storageFolder->CreateFileAsync("state.json", CreationCollisionOption::OpenIfExists)).then([](StorageFile^ file) {
 		return FileIO::ReadTextAsync(file);
@@ -24,6 +31,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
 				if (stateJson.contains("compositionScale"))this->CompositionScale = Utils::StringFromStdString(stateJson["compositionScale"]);
 				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
+				if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
 					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
@@ -77,6 +85,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		stateJson["firstTime"] = that->FirstTime;
 		stateJson["enableKeyboard"] = that->EnableKeyboard;
 		stateJson["keyboardLayout"] = Utils::PlatformStringToStdString(that->KeyboardLayout);
+		stateJson["alternateCombination"] = that->AlternateCombination;
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);

@@ -35,6 +35,7 @@ namespace moonlight_xbox_dx {
 		void Unpair();
 		void KeyDown(unsigned short v,char modifiers);
 		void KeyUp(unsigned short v, char modifiers);
+		void SendGuide(int controllerNumber, bool v);
 		Platform::String^ GetInstanceID();
 		Platform::String^ GetComputerName();
 		std::function<void(int)> OnStatusUpdate;
