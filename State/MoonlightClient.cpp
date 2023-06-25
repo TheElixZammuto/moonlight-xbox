@@ -96,7 +96,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.stageFailed = stage_failed;
 	callbacks.stageComplete = connection_status_completed;
 	callbacks.rumble = connection_rumble;
-	callbacks.rumbleTriggers = connection_trigger_rumble;
+	//callbacks.rumbleTriggers = connection_trigger_rumble;
 	FFMpegDecoder::createDecoderInstance(res);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
