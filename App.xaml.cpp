@@ -6,7 +6,7 @@
 #include "pch.h"
 #include <Utils.hpp>
 #include "MoonlightWelcome.xaml.h"
-
+#include <WerApi.h>
 using namespace moonlight_xbox_dx;
 
 using namespace Platform;
@@ -29,6 +29,27 @@ using namespace Windows::UI::Xaml::Navigation;
 /// </summary>
 App::App()
 {
+	UUID newId;
+	UuidCreate(&newId);
+	wchar_t* uuid;
+	UuidToStringW(&newId, (RPC_WSTR*)&uuid);
+	wchar_t message[2048];
+	swprintf_s(message, L"crash_dumps\\%ws", uuid);
+	WerRegisterAppLocalDump(message);
+	WerRegisterCustomMetadata(L"moonlight_xbox_uuid", uuid);
+	//Generate logs folder
+	Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+	folderString = folderString->Concat(folderString, "\\crash_dumps\\");
+	CreateDirectoryW(folderString->Data(), NULL);
+	folderString = folderString->Concat(folderString, "\\");
+	folderString = folderString->Concat(folderString, ref new Platform::String(uuid));
+	CreateDirectoryW(folderString->Data(), NULL);
+	folderString = folderString->Concat(folderString, "\\");
+	folderString = folderString->Concat(folderString, "log.txt");
+	Utils::logHandle = fopen(Utils::PlatformStringToStdString(folderString).c_str(), "a");
+
+	Utils::start = time(0);
+	
 	InitializeComponent();
 	RequiresPointerMode = Windows::UI::Xaml::ApplicationRequiresPointerMode::WhenRequested;
 	Suspending += ref new SuspendingEventHandler(this, &App::OnSuspending);

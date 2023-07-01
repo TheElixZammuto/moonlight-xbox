@@ -18,6 +18,8 @@ namespace moonlight_xbox_dx {
 		extern float outputH;
 		extern StreamingStats stats;
 		extern std::mutex logMutex;
+		extern FILE* logHandle;
+		extern time_t start;
 		
 		Platform::String^ StringPrintf(const char* fmt, ...);
 
