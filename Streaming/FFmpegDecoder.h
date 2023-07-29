@@ -12,9 +12,9 @@ extern "C" {
 #define MAX_BUFFER 1024 * 1024
 namespace moonlight_xbox_dx
 {
-	
+
 	class FFMpegDecoder {
-	public: 
+	public:
 		FFMpegDecoder(std::shared_ptr<DX::DeviceResources> r) {
 			resources = r;
 		};
@@ -35,10 +35,12 @@ namespace moonlight_xbox_dx
 		AVPacket pkt;
 		const AVCodec* decoder;
 		AVCodecContext* decoder_ctx;
-		AVBufferRef* hw_device_ctx;
+		AVHWDeviceContext* device_ctx;
+		AVD3D11VADeviceContext* d3d11va_device_ctx;
 		unsigned char* ffmpeg_buffer;
 		int dec_frames_cnt;
 		AVFrame** dec_frames;
+		AVFrame** ready_frames;
 		int next_frame, current_frame;
 		std::shared_ptr<DX::DeviceResources> resources;
 	};
