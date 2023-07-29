@@ -9,6 +9,7 @@ namespace moonlight_xbox_dx {
 			int fps = 0;
 			double _accumulatedSeconds = 0;
 			int _framesDecoded = 0;
+			LARGE_INTEGER *lastPresent = nullptr;
 		};
 		
 		extern std::vector<std::wstring> logLines;

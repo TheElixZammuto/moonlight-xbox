@@ -15,6 +15,14 @@ using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
 
 
+#ifndef max
+#define max(a,b)            (((a) > (b)) ? (a) : (b))
+#endif
+
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
+
 void log_message(const char* fmt, ...);
 void connection_started();
 void connection_status_update(int status);

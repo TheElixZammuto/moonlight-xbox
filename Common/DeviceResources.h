@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <mutex>
+#include <tracy/TracyD3D11.hpp>
 namespace DX
 {
 	// Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
@@ -104,5 +105,6 @@ namespace DX
 
 		// The IDeviceNotify can be held directly as it owns the DeviceResources.
 		IDeviceNotify* m_deviceNotify;
+		tracy::D3D11Ctx* tracy_ctx;
 	};
 }

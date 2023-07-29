@@ -2,6 +2,13 @@
 #include "ApplicationState.h"
 #include <Utils.hpp>
 #include <nlohmann/json.hpp>
+#ifndef max
+#define max(a,b)            (((a) > (b)) ? (a) : (b))
+#endif
+
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
 
 using namespace Windows::Storage;
 Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()

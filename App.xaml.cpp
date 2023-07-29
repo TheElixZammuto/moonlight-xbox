@@ -6,6 +6,7 @@
 #include "pch.h"
 #include <Utils.hpp>
 #include "MoonlightWelcome.xaml.h"
+#include "tracy/Tracy.hpp"
 #include <WerApi.h>
 using namespace moonlight_xbox_dx;
 
@@ -47,9 +48,12 @@ App::App()
 	folderString = folderString->Concat(folderString, "\\");
 	folderString = folderString->Concat(folderString, "log.txt");
 	Utils::logHandle = fopen(Utils::PlatformStringToStdString(folderString).c_str(), "a");
-
+	WerRegisterFile(folderString->Data(), WerRegFileTypeOther, WER_FILE_ANONYMOUS_DATA);
 	Utils::start = time(0);
-	
+	//StartupProfiler;
+	//tracy::Profiler p;
+	//p.SpawnWorkerThreads();
+	tracy::StartupProfiler();
 	InitializeComponent();
 	RequiresPointerMode = Windows::UI::Xaml::ApplicationRequiresPointerMode::WhenRequested;
 	Suspending += ref new SuspendingEventHandler(this, &App::OnSuspending);

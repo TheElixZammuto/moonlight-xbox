@@ -230,10 +230,10 @@
     <ClCompile>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)vcpkg_installed\x64-uwp\include;$(IntermediateOutputPath);third_party\moonlight-common-c\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)vcpkg_installed\x64-uwp\include;$(IntermediateOutputPath);third_party\moonlight-common-c\src;$(ProjectDir)\third_party\tracy\public;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <PreprocessorDefinitions>_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;TRACY_UWP;NOMINMAX;TRACY_NO_CALLSTACK;TRACY_DELAYED_INIT;TRACY_MANUAL_LIFETIME;TRACY_ONLY_IPV4;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -244,10 +244,10 @@
     <ClCompile>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)vcpkg_installed\x64-uwp\include;$(IntermediateOutputPath);third_party\moonlight-common-c\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)vcpkg_installed\x64-uwp\include;$(IntermediateOutputPath);third_party\moonlight-common-c\src;$(ProjectDir)\third_party\tracy\public;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;NDEBUG;TRACY_UWP;NOMINMAX;TRACY_NO_CALLSTACK;TRACY_DELAYED_INIT;TRACY_MANUAL_LIFETIME;TRACY_ONLY_IPV4;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -347,6 +347,7 @@
     <ClInclude Include="Streaming\AudioPlayer.h" />
     <ClInclude Include="Streaming\FFmpegDecoder.h" />
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
+    <ClInclude Include="third_party\tracy\public\tracy\Tracy.hpp" />
     <ClInclude Include="Utils.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -400,6 +401,7 @@
     <ClCompile Include="Streaming\AudioPlayer.cpp" />
     <ClCompile Include="Streaming\FFmpegDecoder.cpp" />
     <ClCompile Include="Streaming\moonlight_xbox_dxMain.cpp" />
+    <ClCompile Include="third_party\tracy\public\TracyClient.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>

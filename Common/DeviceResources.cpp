@@ -4,6 +4,8 @@
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <Pages/StreamPage.xaml.h>
 #include <Streaming/FFmpegDecoder.h>
+#include <tracy/Tracy.hpp>
+#include <tracy/TracyD3D11.hpp>
 
 using namespace moonlight_xbox_dx;
 using namespace D2D1;
@@ -14,6 +16,14 @@ using namespace Windows::Graphics::Display;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Platform;
+
+#ifndef max
+#define max(a,b)            (((a) > (b)) ? (a) : (b))
+#endif
+
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
 
 // Constants used to calculate screen rotations.
 namespace ScreenRotation
@@ -207,6 +217,7 @@ void DX::DeviceResources::CreateDeviceResources()
 			&m_d2dContext
 			)
 		);
+	tracy_ctx = TracyD3D11Context(device.Get(),context.Get());
 }
 
 // These resources need to be recreated every time the window size is changed.
@@ -639,9 +650,27 @@ void DX::DeviceResources::Present()
 	// The first argument instructs DXGI to block until VSync, putting the application
 	// to sleep until the next VSync. This ensures we don't waste any cycles rendering
 	// frames that will never be displayed to the screen.
+	ZoneScoped;
 	DXGI_PRESENT_PARAMETERS parameters = { 0 };
 	HRESULT hr = m_swapChain->Present1(0, 0, &parameters);
-
+	TracyD3D11Collect(tracy_ctx);
+	FrameMark;
+	Utils::stats._framesDecoded++;
+	LARGE_INTEGER now,frequency;
+	QueryPerformanceCounter(&now);
+	QueryPerformanceFrequency(&frequency);
+	//Update stats
+	if (Utils::stats.lastPresent != nullptr) {
+		LARGE_INTEGER start = *(Utils::stats.lastPresent);
+		double ms = (now.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
+		Utils::stats._accumulatedSeconds += ms;
+		if (Utils::stats._accumulatedSeconds > 1000) {
+			Utils::stats.fps = Utils::stats._framesDecoded;
+			Utils::stats._accumulatedSeconds = 0;
+			Utils::stats._framesDecoded = 0;
+		}
+	}
+	Utils::stats.lastPresent = &now;
 	// Discard the contents of the render target.
 	// This is a valid operation only when the existing contents will be entirely
 	// overwritten. If dirty or scroll rects are used, this call should be modified.
