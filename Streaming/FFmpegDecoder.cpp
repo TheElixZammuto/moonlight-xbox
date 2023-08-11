@@ -192,6 +192,7 @@ namespace moonlight_xbox_dx {
 		VIDEO_FRAME_HANDLE frameHandle = nullptr;
 		bool status = LiWaitForNextVideoFrame(&frameHandle, &decodeUnit);
 		if (status == false)return false;
+		Utils::stats._frameReceived = Utils::stats._frameReceived + 1;
 		int n = LiGetPendingVideoFrames();
 		Utils::stats.queueSize = n;
 		if (decodeUnit->fullLength > DECODER_BUFFER_SIZE) {
@@ -243,6 +244,7 @@ namespace moonlight_xbox_dx {
 			return nullptr;
 		}
 		if (err == 0) {
+			Utils::stats._framesDecoded = Utils::stats._framesDecoded + 1;
 			//Smooth stream but keep queue small
 			if (LiGetPendingVideoFrames() > 1)return nullptr;
 			//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!

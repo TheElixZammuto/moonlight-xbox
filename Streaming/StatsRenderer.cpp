@@ -50,7 +50,9 @@ void StatsRenderer::Update(DX::StepTimer const& timer)
 {
 	m_text = L"";
 	if (Utils::showStats) {
-		//m_text += L"FPS: " + std::to_wstring(Utils::stats.fps) + L"\n";
+		m_text += L"Incoming: " + std::to_wstring(Utils::stats.incomingFps) + L"fps - ";
+		m_text += L"Decoding: " + std::to_wstring(Utils::stats.decodingFps) + L"fps - ";
+		m_text += L"Rendering: : " + std::to_wstring(Utils::stats.renderingFps) + L"fps \n";
 		m_text += L"Window Size: " + std::to_wstring(Utils::outputW) + L" x " + std::to_wstring(Utils::outputH) + L"\n";
 		m_text += L"AVG Rendering time: " + std::to_wstring(Utils::stats.averageRenderingTime) + L"ms \n";
 		m_text += L"Queue Size: " + std::to_wstring(Utils::stats.queueSize) + L"\n";

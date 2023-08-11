@@ -6,9 +6,13 @@ namespace moonlight_xbox_dx {
 		struct StreamingStats {
 			double averageRenderingTime = 0;
 			int queueSize = 0;
-			int fps = 0;
+			float decodingFps = 0;
+			float incomingFps = 0;
+			float renderingFps = 0;
 			double _accumulatedSeconds = 0;
 			int _framesDecoded = 0;
+			int _framesRendered = 0;
+			int _frameReceived = 0;
 		};
 		
 		extern std::vector<std::wstring> logLines;

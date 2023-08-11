@@ -49,10 +49,14 @@ void UpdateStats(LARGE_INTEGER start) {
 	double ms = (end.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
 	Utils::stats._accumulatedSeconds += ms;
 	if (Utils::stats._accumulatedSeconds >= 1000) {
-		Utils::stats.fps = Utils::stats._framesDecoded;
-		Utils::stats.averageRenderingTime = Utils::stats._accumulatedSeconds / ((double)Utils::stats._framesDecoded);
+		Utils::stats.decodingFps = Utils::stats._framesDecoded / (double)Utils::stats._accumulatedSeconds * 1000.0f;
+		Utils::stats.renderingFps = Utils::stats._framesRendered / (double)Utils::stats._accumulatedSeconds * 1000.0f;
+		Utils::stats.incomingFps = Utils::stats._frameReceived / (double)Utils::stats._accumulatedSeconds * 1000.0f;
+		Utils::stats.averageRenderingTime = Utils::stats._accumulatedSeconds / ((double)Utils::stats._framesRendered);
 		Utils::stats._accumulatedSeconds = 0;
 		Utils::stats._framesDecoded = 0;
+		Utils::stats._framesRendered = 0;
+		Utils::stats._frameReceived = 0;
 	}
 }
 
@@ -125,7 +129,7 @@ bool VideoRenderer::Render()
 		context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
 		context->PSSetShader(m_pixelShader.Get(),nullptr,0);
 		context->DrawIndexed(m_indexCount,0,0);
-		Utils::stats._framesDecoded++;
+		Utils::stats._framesRendered = Utils::stats._framesRendered + 1;
 		UpdateStats(start);
 		return true;
 }
