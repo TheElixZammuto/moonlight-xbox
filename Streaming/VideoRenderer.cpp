@@ -58,12 +58,12 @@ void UpdateStats(LARGE_INTEGER start) {
 
 bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
-void VideoRenderer::Render()
+bool VideoRenderer::Render()
 {
 		// Loading is asynchronous. Only draw geometry after it's loaded.
 		if (!m_loadingComplete)
 		{
-			return;
+			return true;
 		}
 		//Create a rendering texture
 		LARGE_INTEGER start;
@@ -71,12 +71,12 @@ void VideoRenderer::Render()
 		FFMpegDecoder::getInstance()->shouldUnlock = false;
 		if (!FFMpegDecoder::getInstance()->SubmitDU()) {
 			UpdateStats(start);
-			return;
+			return false;
 		}
 		AVFrame *frame = FFMpegDecoder::getInstance()->GetFrame();
 		if (frame == nullptr) {
 			UpdateStats(start);
-			return;
+			return false;
 		}
 		FFMpegDecoder::getInstance()->mutex.lock();
 		FFMpegDecoder::getInstance()->shouldUnlock = true;
@@ -127,6 +127,7 @@ void VideoRenderer::Render()
 		context->DrawIndexed(m_indexCount,0,0);
 		Utils::stats._framesDecoded++;
 		UpdateStats(start);
+		return true;
 }
 
 
