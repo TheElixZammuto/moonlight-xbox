@@ -243,6 +243,8 @@ namespace moonlight_xbox_dx {
 			return nullptr;
 		}
 		if (err == 0) {
+			//Smooth stream but keep queue small
+			if (LiGetPendingVideoFrames() > 1)return nullptr;
 			//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!
 			//Honestly this did take too much time of my life to care to make a better version
 			//If you want to fix this, have fun! (And hopefully you have Microsoft blessing/tools/support for that)
