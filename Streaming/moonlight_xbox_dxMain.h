@@ -54,14 +54,7 @@ namespace moonlight_xbox_dx
 		// Track current input pointer position.
 		float m_pointerLocationX;
 		bool insideFlyout = false;
-		bool leftMouseButtonPressed = false;
-		bool rightMouseButtonPressed = false;
-		bool keyboardButtonPressed = false;
-		bool guideButtonPressed = false;
-		bool spacePressed = false;
-		bool backspacePressed = false;
-		bool leftPressed = false;
-		bool rightPressed = false;
+		Windows::Gaming::Input::GamepadReading previousReading[8];
 		StreamPage^ m_streamPage;
 		MoonlightClient* moonlightClient;
 	};

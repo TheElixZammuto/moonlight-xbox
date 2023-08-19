@@ -15,7 +15,7 @@
             <muxc:ProgressRing Width="64" Height="64" IsActive="True" Margin="0,0,0,16" ></muxc:ProgressRing>
             <TextBlock x:Name="StatusText">Initializing Moonlight...</TextBlock>
         </StackPanel>
-        <StackPanel HorizontalAlignment="Stretch" x:Name="KeyboardView" Visibility="Collapsed" VerticalAlignment="Bottom" Margin="16,0,16,16" Padding="8,8,8,8">
+        <StackPanel HorizontalAlignment="Stretch" x:Name="KeyboardView" Visibility="Collapsed" VerticalAlignment="Bottom" Margin="64,0,64,16" Padding="8,8,8,8">
             <StackPanel.Background>
                 <SolidColorBrush Color="{ThemeResource SystemColorBackgroundColor}" Opacity="0.75" />
             </StackPanel.Background>

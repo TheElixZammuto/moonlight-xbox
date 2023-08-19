@@ -134,6 +134,10 @@ void moonlight_xbox_dxMain::Update()
 		});
 }
 
+bool isPressed(Windows::Gaming::Input::GamepadButtons b, Windows::Gaming::Input::GamepadButtons x) {
+	return (b & x) == x;
+}
+
 // Process all input from the user before updating game state
 void moonlight_xbox_dxMain::ProcessInput()
 {
@@ -141,6 +145,9 @@ void moonlight_xbox_dxMain::ProcessInput()
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	if (gamepads->Size == 0)return;
 	moonlightClient->SetGamepadCount(gamepads->Size);
+	auto state = GetApplicationState();
+	//Position
+	double multiplier = ((double)state->MouseSensitivity) / ((double)4.0f);
 	for (int i = 0; i < gamepads->Size; i++) {
 		Windows::Gaming::Input::Gamepad^ gamepad = gamepads->GetAt(i);
 		auto reading = gamepad->GetCurrentReading();
@@ -169,7 +176,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 		//If mouse mode is enabled the gamepad acts as a mouse, instead we pass the raw events to the host
 		if (keyboardMode) {
 			//B to close
-			if ((reading.Buttons & GamepadButtons::B) == GamepadButtons::B) {
+			if (isPressed(reading.Buttons, GamepadButtons::B) && !isPressed(previousReading[i].Buttons, GamepadButtons::B)) {
 				if (GetApplicationState()->EnableKeyboard) {
 					m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
 						m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
@@ -181,40 +188,66 @@ void moonlight_xbox_dxMain::ProcessInput()
 				}
 			}
 			//X to backspace
-			if ((reading.Buttons & GamepadButtons::X) == GamepadButtons::X && !backspacePressed) {
+			if (isPressed(reading.Buttons, GamepadButtons::X) && !isPressed(previousReading[i].Buttons, GamepadButtons::X)) {
 				moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Back, 0);
-				backspacePressed = true;
 			}
-			else if (backspacePressed) {
+			else if (isPressed(previousReading[i].Buttons, GamepadButtons::X)) {
 				moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Back, 0);
-				backspacePressed = false;
 			}
 			//Y to Space
-			if ((reading.Buttons & GamepadButtons::Y) == GamepadButtons::Y && !spacePressed) {
+			if (isPressed(reading.Buttons, GamepadButtons::Y) && !isPressed(previousReading[i].Buttons, GamepadButtons::Y)) {
 				moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Space, 0);
-				spacePressed = true;
 			}
-			else if (spacePressed) {
+			else if (isPressed(previousReading[i].Buttons, GamepadButtons::Y)) {
 				moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Space, 0);
-				spacePressed = false;
 			}
 			//LB to Left
-			if ((reading.Buttons & GamepadButtons::LeftShoulder) == GamepadButtons::LeftShoulder && !leftPressed) {
+			if (isPressed(reading.Buttons, GamepadButtons::LeftShoulder) && !isPressed(previousReading[i].Buttons, GamepadButtons::LeftShoulder)) {
 				moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Left, 0);
-				leftPressed = true;
 			}
-			else if (leftPressed) {
+			else if (isPressed(previousReading[i].Buttons, GamepadButtons::LeftShoulder)) {
 				moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Left, 0);
-				leftPressed = false;
 			}
-			//RB to  Right
-			if ((reading.Buttons & GamepadButtons::RightShoulder) == GamepadButtons::RightShoulder && !rightPressed) {
+			//RB to Right
+			if (isPressed(reading.Buttons, GamepadButtons::RightShoulder) && !isPressed(previousReading[i].Buttons, GamepadButtons::RightShoulder)) {
 				moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Right, 0);
-				rightPressed = true;
 			}
-			else if (rightPressed) {
+			else if (isPressed(previousReading[i].Buttons, GamepadButtons::RightShoulder)) {
 				moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Right, 0);
-				rightPressed = false;
+			}
+			//Start to Enter
+			if (isPressed(reading.Buttons, GamepadButtons::Menu) && !isPressed(previousReading[i].Buttons, GamepadButtons::Menu)) {
+				moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Enter, 0);
+			}
+			else if (isPressed(previousReading[i].Buttons, GamepadButtons::Menu)) {
+				moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Right, 0);
+			}
+			//Move with right stick
+			if (isPressed(reading.Buttons, GamepadButtons::LeftThumbstick)) {
+				moonlightClient->SendScroll(pow(reading.RightThumbstickY * multiplier * 2, 3));
+				moonlightClient->SendScrollH(pow(reading.RightThumbstickX * multiplier * 2, 3));
+			}
+			else {
+				//Move with right stick instead of the left one in KB mode
+				double x = reading.RightThumbstickX;
+				if (abs(x) < 0.1) x = 0;
+				else x = x + (x > 0 ? 1 : -1); //Add 1 to make sure < 0 values do not make everything broken
+				double y = reading.RightThumbstickY;
+				if (abs(y) < 0.1) y = 0;
+				else y = (y * -1) + (y > 0 ? -1 : 1); //Add 1 to make sure < 0 values do not make everything broken
+				moonlightClient->SendMousePosition(pow(x * multiplier, 3), pow(y * multiplier, 3));
+			}
+			if (reading.LeftTrigger > 0.25 && previousReading[i].LeftTrigger < 0.25) {
+				moonlightClient->SendMousePressed(BUTTON_LEFT);
+			}
+			else if (reading.LeftTrigger < 0.25 && previousReading[i].LeftTrigger > 0.25) {
+				moonlightClient->SendMouseReleased(BUTTON_LEFT);
+			}
+			if (reading.RightTrigger > 0.25 && previousReading[i].RightTrigger < 0.25) {
+				moonlightClient->SendMousePressed(BUTTON_RIGHT);
+			}
+			else if (reading.RightTrigger < 0.25 && previousReading[i].RightTrigger > 0.25) {
+				moonlightClient->SendMouseReleased(BUTTON_RIGHT);
 			}
 		}
 		else if (mouseMode) {
@@ -229,34 +262,35 @@ void moonlight_xbox_dxMain::ProcessInput()
 			else y = (y * -1) + (y > 0 ? -1 : 1); //Add 1 to make sure < 0 values do not make everything broken
 			moonlightClient->SendMousePosition(pow(x * multiplier, 3), pow(y * multiplier, 3));
 			//Left Click
-			if ((reading.Buttons & GamepadButtons::A) == GamepadButtons::A) {
-				if (!leftMouseButtonPressed) {
-					leftMouseButtonPressed = true;
-					moonlightClient->SendMousePressed(BUTTON_LEFT);
-				}
+			if (isPressed(reading.Buttons, GamepadButtons::A) && !isPressed(previousReading[i].Buttons, GamepadButtons::A)) {
+				moonlightClient->SendMousePressed(BUTTON_LEFT);
 			}
-			else if (leftMouseButtonPressed) {
-				leftMouseButtonPressed = false;
+			else if (isPressed(previousReading[i].Buttons, GamepadButtons::A)) {
 				moonlightClient->SendMouseReleased(BUTTON_LEFT);
 			}
 			//Right Click
-			if ((reading.Buttons & GamepadButtons::X) == GamepadButtons::X) {
-				if (!rightMouseButtonPressed) {
-					rightMouseButtonPressed = true;
-					moonlightClient->SendMousePressed(BUTTON_RIGHT);
-				}
+			if (isPressed(reading.Buttons, GamepadButtons::X) && !isPressed(previousReading[i].Buttons, GamepadButtons::X)) {
+				moonlightClient->SendMousePressed(BUTTON_RIGHT);
 			}
-			else if (rightMouseButtonPressed) {
-				rightMouseButtonPressed = false;
+			else if (isPressed(previousReading[i].Buttons, GamepadButtons::X)) {
+				moonlightClient->SendMouseReleased(BUTTON_RIGHT);
+			}
+			//Left Trigger Click
+			if (reading.LeftTrigger > 0.25 && previousReading[i].LeftTrigger < 0.25) {
+				moonlightClient->SendMousePressed(BUTTON_LEFT);
+			}
+			else if (reading.LeftTrigger < 0.25 && previousReading[i].LeftTrigger > 0.25) {
+				moonlightClient->SendMouseReleased(BUTTON_LEFT);
+			}
+			//Right Trigger Click
+			if (reading.RightTrigger > 0.25 && previousReading[i].RightTrigger < 0.25) {
+				moonlightClient->SendMousePressed(BUTTON_RIGHT);
+			}
+			else if (reading.RightTrigger < 0.25 && previousReading[i].RightTrigger > 0.25) {
 				moonlightClient->SendMouseReleased(BUTTON_RIGHT);
 			}
 			//Keyboard
-			if ((reading.Buttons & GamepadButtons::Y) == GamepadButtons::Y) {
-				if (!keyboardButtonPressed) {
-					keyboardButtonPressed = true;
-				}
-			}
-			else if (keyboardButtonPressed) {
+			if (!isPressed(reading.Buttons, GamepadButtons::Y) && isPressed(previousReading[i].Buttons, GamepadButtons::Y)) {
 				if (GetApplicationState()->EnableKeyboard) {
 					m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
 						m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
@@ -266,27 +300,23 @@ void moonlight_xbox_dxMain::ProcessInput()
 				else {
 					CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
 				}
-				keyboardButtonPressed = false;
 			}
 			//Scroll
 			moonlightClient->SendScroll(pow(reading.RightThumbstickY * multiplier * 2, 3));
 			moonlightClient->SendScrollH(pow(reading.RightThumbstickX * multiplier * 2, 3));
 			//Xbox/Guide Button
 			//Right Click
-			if ((reading.Buttons & GamepadButtons::B) == GamepadButtons::B) {
-				if (!guideButtonPressed) {
-					guideButtonPressed = true;
-					moonlightClient->SendGuide(i, true);
-				}
+			if (isPressed(reading.Buttons, GamepadButtons::B) && !isPressed(previousReading[i].Buttons, GamepadButtons::B)) {
+				moonlightClient->SendGuide(i, true);
 			}
-			else if (guideButtonPressed) {
-				guideButtonPressed = false;
+			else if (isPressed(previousReading[i].Buttons, GamepadButtons::B)) {
 				moonlightClient->SendGuide(i, false);
 			}
 		}
 		else {
 			moonlightClient->SendGamepadReading(i, reading);
 		}
+		previousReading[i] = reading;
 	}
 }
 

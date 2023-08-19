@@ -11,10 +11,12 @@
     <UserControl.Resources>
         <Style TargetType="Button">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="Margin" Value="4,4,4,4" />
+            <Setter Property="Margin" Value="2,2,2,2" />
+            <Setter Property="Padding" Value="0,8,0,8" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontSize" Value="10" />
             <Setter Property="Opacity" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
         </Style>
     </UserControl.Resources>
     <Grid>
@@ -75,7 +77,12 @@
         <Button Grid.Row="1" Grid.Column="10"  Click="Click" Name="Key_0B">0B</Button>
         <Button Grid.Row="1" Grid.Column="11"  Click="Click" Name="Key_0C">0C</Button>
         <Button Grid.Row="1" Grid.Column="12"  Click="Click" Name="Key_0D">0D</Button>
-        <Button Grid.Row="1" Grid.Column="13"  Click="Click" Name="Key_0E" Grid.ColumnSpan="2">←</Button>
+        <Button Grid.Row="1" Grid.Column="13"  Click="Click" Name="Key_0E" Grid.ColumnSpan="2">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,8,0"><Run FontFamily="Segoe Fluent Icons">&#xF096;</Run></TextBlock>
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">←</TextBlock>
+            </StackPanel>
+        </Button>
         
         <Button Grid.Row="1" Grid.Column="16" Name="Key_E052">Ins</Button>
         <Button Grid.Row="1" Grid.Column="17" Name="Key_E047">Home</Button>
@@ -111,7 +118,12 @@
         <Button Grid.Row="3" Grid.Column="10" Click="Click" Name="Key_26">26</Button>
         <Button Grid.Row="3" Grid.Column="11" Click="Click" Name="Key_27">27</Button>
         <Button Grid.Row="3" Grid.Column="12" Click="Click" Name="Key_28">28</Button>
-        <Button Grid.Row="3" Grid.Column="13" Grid.ColumnSpan="2" Click="Click" Name="Key_1C" XYFocusRight="{x:Bind Key_3A}">↵</Button>
+        <Button Grid.Row="3" Grid.Column="13" Grid.ColumnSpan="2" Click="Click" Name="Key_1C" XYFocusRight="{x:Bind Key_3A}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,8,0"><Run FontFamily="Segoe Fluent Icons">&#xEDE3;</Run></TextBlock>
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">↵</TextBlock>
+            </StackPanel>
+        </Button>
         <!--Row-->
         <Button Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Click="Click" Name="Key_2A" XYFocusLeft="{x:Bind Key_E048}">⇧</Button>
         <Button Grid.Row="4" Grid.Column="2" Click="Click" Name="Key_2C">2C</Button>
@@ -130,14 +142,26 @@
         <Button Grid.Row="5" Grid.Column="0" Click="Click" Name="Key_1D" XYFocusLeft="{x:Bind Key_E04D}">CTRL</Button>
         <Button Grid.Row="5" Grid.Column="1" Click="Click" Name="Key_E05B">⊞</Button>
         <Button Grid.Row="5" Grid.Column="2" Click="Click" Name="Key_38">Alt</Button>
-        <Button Grid.Row="5" Grid.Column="3" Click="Click" Grid.ColumnSpan="7" Name="Key_39">39</Button>
+        <Button Grid.Row="5" Grid.Column="3" Click="Click" Grid.ColumnSpan="7" Name="Key_39">
+            <TextBlock><Run FontFamily="Segoe Fluent Icons">&#xF095;</Run></TextBlock>
+        </Button>
         <Button Grid.Row="5" Grid.Column="10" Click="Click" Name="Key_E038">AltGr</Button>
         <Button Grid.Row="5" Grid.Column="11" Click="Click" Name="Key_56">56</Button>
         <Button Grid.Row="5" Grid.Column="12" Click="Click" Name="Key_E05C">⊞</Button>
         <Button Grid.Row="5" Grid.Column="13" Click="Click" Name="Key_E05D">Menu</Button>
         <Button Grid.Row="5" Grid.Column="14" Click="Click" Name="Key_E01D">CTRL</Button>
-        <Button Grid.Row="5" Grid.Column="16" Click="Click" Name="Key_E04B">←</Button>
+        <Button Grid.Row="5" Grid.Column="16" Click="Click" Name="Key_E04B">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,8,0"><Run FontFamily="Segoe Fluent Icons">&#xF10C;</Run></TextBlock>
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">←</TextBlock>
+            </StackPanel>
+        </Button>
         <Button Grid.Row="5" Grid.Column="17" Click="Click" Name="Key_E050" XYFocusRight="{x:Bind Key_E04D}">↓</Button>
-        <Button Grid.Row="5" Grid.Column="18" Click="Click" Name="Key_E04D" XYFocusRight="{x:Bind Key_1D}">→</Button>
+        <Button Grid.Row="5" Grid.Column="18" Click="Click" Name="Key_E04D" XYFocusRight="{x:Bind Key_1D}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,8,0"><Run FontFamily="Segoe Fluent Icons">&#xF10D;</Run></TextBlock>
+                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">→</TextBlock>
+            </StackPanel>
+        </Button>
     </Grid>
 </UserControl>

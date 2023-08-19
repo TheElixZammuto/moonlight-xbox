@@ -70,7 +70,8 @@
         </GridView>
         <TextBlock Grid.Row="2" TextAlignment="Center">
             <Bold>Useful Shortcuts:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xEDE3;</Run>+<Run FontFamily="Segoe Fluent Icons">&#xEECA;</Run> for toggling Menu and enabling mouse mode.<LineBreak></LineBreak>
-            <Bold>In Mouse mode:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run> Left click <Run FontFamily="Segoe Fluent Icons">&#xF096;</Run> Right click <Run FontFamily="Segoe Fluent Icons">&#xF095;</Run> Show Keyboard <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run> Guide/Xbox button
+            <Bold>In Mouse mode:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run> Left click <Run FontFamily="Segoe Fluent Icons">&#xF096;</Run> Right click <Run FontFamily="Segoe Fluent Icons">&#xF095;</Run> Show Keyboard <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run> Guide/Xbox button<LineBreak></LineBreak>
+            <Bold>In Keyboard mode:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run> Close <Run FontFamily="Segoe Fluent Icons">&#xF10A;</Run> Left Click <Run FontFamily="Segoe Fluent Icons">&#xF10B;</Run> Right Click <Run FontFamily="Segoe Fluent Icons">&#xF109;</Run> Move <Run FontFamily="Segoe Fluent Icons">&#xF108;</Run> Press to Scroll
         </TextBlock>
     </Grid>
 </Page>
