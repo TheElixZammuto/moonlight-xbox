@@ -9,7 +9,7 @@
   <Identity
     Name="50497EliaZammuto.MoonlightUWP"
     Publisher="CN=CE07B73A-712E-4E05-932B-D08CE2C8A87C"
-    Version="1.14.5.0" />
+    Version="1.14.6.0" />
 
   <mp:PhoneIdentity PhoneProductId="05850585-e2ce-441e-beae-1c76b89fe7ed" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

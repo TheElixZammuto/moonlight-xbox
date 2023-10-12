@@ -58,20 +58,20 @@ void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::U
 	sender->IsPrimaryButtonEnabled = false;
 	Platform::String^ hostname = dialogHostnameTextBox->Text;
 	auto def = args->GetDeferral();
-	Concurrency::create_task([def,hostname,this,args,sender]() {
+	Concurrency::create_task([def, hostname, this, args, sender]() {
 		bool status = state->AddHost(hostname);
 		if (!status) {
-			Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([sender, this,hostname,def,args]() {
+			Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([sender, this, hostname, def, args]() {
 				args->Cancel = true;
 				sender->Content = L"Failed to Connect to " + hostname;
 				def->Complete();
-			}));
+				}));
 			return;
 		}
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([def]() {
 			def->Complete();
-		}));
-	});
+			}));
+		});
 }
 
 
@@ -96,7 +96,7 @@ void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 	dialog->ShowAsync();
 	Concurrency::create_task([dialog, host, client, pin]() {
 		int a = client->Pair();
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([a,dialog, host]()
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([a, dialog, host]()
 			{
 				if (a == 0) {
 					dialog->Hide();
@@ -152,22 +152,26 @@ void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
 		this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
 		return;
 	}
-	for (auto a : GetApplicationState()->SavedHosts) {
-		a->UpdateStats();
-	}
-	if (state->autostartInstance.size() > 0) {
-		auto pii = Utils::StringFromStdString(state->autostartInstance);
-		for (int i = 0; i < state->SavedHosts->Size; i++) {
-			auto host = state->SavedHosts->GetAt(i);
-			if (host->InstanceId->Equals(pii)) {
-				auto that = this;
-				Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that, host]() {
-						that->Connect(host);
-				}));
-				break;
-			}
+	Concurrency::create_task([]() {
+		for (auto a : GetApplicationState()->SavedHosts) {
+			a->UpdateStats();
 		}
-	}
+		}).then([this]() {
+			if (GetApplicationState()->autostartInstance.size() > 0) {
+				auto pii = Utils::StringFromStdString(GetApplicationState()->autostartInstance);
+				for (int i = 0; i < GetApplicationState()->SavedHosts->Size; i++) {
+					auto host = GetApplicationState()->SavedHosts->GetAt(i);
+					if (host->InstanceId->Equals(pii)) {
+						auto that = this;
+						Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that, host]() {
+							that->Connect(host);
+							}));
+						break;
+					}
+				}
+			}
+			});
+
 }
 
 void moonlight_xbox_dx::HostSelectorPage::Connect(MoonlightHost^ host) {

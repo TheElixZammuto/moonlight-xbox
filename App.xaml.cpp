@@ -85,9 +85,7 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	auto state = GetApplicationState();
 	auto that = this;
 	state->Init().then([that](){
-		return Concurrency::create_task([that]() {
-			that->m_menuPage->OnStateLoaded();
-		});
+		that->m_menuPage->OnStateLoaded();
 	});
 	displayRequest->RequestActive();
 }
