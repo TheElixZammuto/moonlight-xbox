@@ -16,6 +16,13 @@ using namespace moonlight_xbox_dx;
 using namespace DirectX;
 using namespace Windows::Foundation;
 
+typedef struct _VERTEX
+{
+	float x, y;
+	float tu, tv;
+} VERTEX, * PVERTEX;
+
+
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, MoonlightClient* mclient, StreamConfiguration^ sConfig) :
 	m_loadingComplete(false),
@@ -60,74 +67,72 @@ bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
 bool VideoRenderer::Render()
 {
-		// Loading is asynchronous. Only draw geometry after it's loaded.
-		if (!m_loadingComplete)
-		{
-			return true;
-		}
-		//Create a rendering texture
-		LARGE_INTEGER start;
-		QueryPerformanceCounter(&start);
-		FFMpegDecoder::getInstance()->shouldUnlock = false;
-		if (!FFMpegDecoder::getInstance()->SubmitDU()) {
-			UpdateStats(start);
-			return false;
-		}
-		AVFrame *frame = FFMpegDecoder::getInstance()->GetFrame();
-		if (frame == nullptr) {
-			UpdateStats(start);
-			return false;
-		}
-		FFMpegDecoder::getInstance()->mutex.lock();
-		FFMpegDecoder::getInstance()->shouldUnlock = true;
-		ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
-		D3D11_TEXTURE2D_DESC ffmpegDesc;
-		ffmpegTexture->GetDesc(&ffmpegDesc);
-		int index = (int)(frame->data[1]);
-		D3D11_BOX box;
-		box.left = 0;
-		box.top = 0;
-		box.right = min(renderTextureDesc.Width, ffmpegDesc.Width);
-		box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
-		box.front = 0;
-		box.back = 1;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
-		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
-		D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()),"Luminance SRV Creation");
-		D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()),"Chrominance SRV Creation");
-		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
-		m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
-
-		auto context = m_deviceResources->GetD3DDeviceContext();
-		UINT stride = sizeof(VertexPositionColor);
-		UINT offset = 0;
-		context->IASetVertexBuffers(
-			0,
-			1,
-			m_vertexBuffer.GetAddressOf(),
-			&stride,
-			&offset
-		);
-		context->IASetIndexBuffer(
-			m_indexBuffer.Get(),
-			DXGI_FORMAT_R16_UINT,
-			0
-		);
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		context->IASetInputLayout(m_inputLayout.Get());
-		// Attach our vertex shader.
-		context->VSSetShader(m_vertexShader.Get(),nullptr,0);
-		context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
-		context->PSSetShader(m_pixelShader.Get(),nullptr,0);
-		context->DrawIndexed(m_indexCount,0,0);
-		Utils::stats._framesDecoded++;
-		UpdateStats(start);
+	// Loading is asynchronous. Only draw geometry after it's loaded.
+	if (!m_loadingComplete)
+	{
 		return true;
+	}
+	//Create a rendering texture
+	LARGE_INTEGER start;
+	QueryPerformanceCounter(&start);
+	FFMpegDecoder::getInstance()->shouldUnlock = false;
+	if (!FFMpegDecoder::getInstance()->SubmitDU()) {
+		UpdateStats(start);
+		return false;
+	}
+	AVFrame* frame = FFMpegDecoder::getInstance()->GetFrame();
+	if (frame == nullptr) {
+		UpdateStats(start);
+		return false;
+	}
+	FFMpegDecoder::getInstance()->mutex.lock();
+	FFMpegDecoder::getInstance()->shouldUnlock = true;
+	ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
+	D3D11_TEXTURE2D_DESC ffmpegDesc;
+	ffmpegTexture->GetDesc(&ffmpegDesc);
+	int index = (int)(frame->data[1]);
+	D3D11_BOX box;
+	box.left = 0;
+	box.top = 0;
+	box.right = min(renderTextureDesc.Width, ffmpegDesc.Width);
+	box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
+	box.front = 0;
+	box.back = 1;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
+	m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
+	D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()), "Luminance SRV Creation");
+	D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation");
+	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
+	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
+
+	auto context = m_deviceResources->GetD3DDeviceContext();
+	UINT stride = sizeof(VERTEX);
+	UINT offset = 0;
+	context->IASetIndexBuffer(m_indexBuffer.Get(),
+		DXGI_FORMAT_R32_UINT,
+		0);
+	context->IASetVertexBuffers(
+		0,
+		1,
+		m_vertexBuffer.GetAddressOf(),
+		&stride,
+		&offset
+	);
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->IASetInputLayout(m_inputLayout.Get());
+	// Attach our vertex shader.
+	context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+	context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
+	context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+	context->DrawIndexed(6, 0, 0);
+	Utils::stats._framesDecoded++;
+	UpdateStats(start);
+	return true;
 }
 
 
@@ -136,24 +141,21 @@ void VideoRenderer::CreateDeviceDependentResources()
 {
 	Utils::Log("Started with creation of DXView\n");
 	// Load shaders asynchronously.
-	auto loadVSTask = DX::ReadDataAsync(L"YUVRGBVertexShader.cso");
-	auto loadPSTask = DX::ReadDataAsync(L"YUVRGBPixelShader.cso");
-
 	// After the vertex shader file is loaded, create the shader and input layout.
-	auto createVSTask = loadVSTask.then([this](const std::vector<byte>& fileData) {
+	auto createVSTask = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_vertex.fxc").then([this](const std::vector<byte>& fileData) {
 		DX::ThrowIfFailed(
 			m_deviceResources->GetD3DDevice()->CreateVertexShader(
 				&fileData[0],
 				fileData.size(),
 				nullptr,
 				&m_vertexShader
-				)
-			,"Vertex Shader Creation");
+			)
+			, "Vertex Shader Creation");
 
-		static const D3D11_INPUT_ELEMENT_DESC vertexDesc [] =
+		static const D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			 { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			 { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 
 		DX::ThrowIfFailed(
@@ -163,78 +165,80 @@ void VideoRenderer::CreateDeviceDependentResources()
 				&fileData[0],
 				fileData.size(),
 				&m_inputLayout
-				)
-			,"Input Layout Creation");
-	});
+			)
+			, "Input Layout Creation");
+		});
 
 	// After the pixel shader file is loaded, create the shader and constant buffer.
-	auto createPSTask = loadPSTask.then([this](const std::vector<byte>& fileData) {
+	auto createPSTask = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_bt601lim_pixel.fxc").then([this](const std::vector<byte>& fileData) {
 		DX::ThrowIfFailed(
 			m_deviceResources->GetD3DDevice()->CreatePixelShader(
 				&fileData[0],
 				fileData.size(),
 				nullptr,
 				&m_pixelShader
-				)
+			)
 			, "Pixel Shader Creation");
-	});
+		});
 
 	// Once both shaders are loaded, create the mesh.
-	auto createCubeTask = (createPSTask && createVSTask).then([this] () {
-		
-		/*
-		 12
-		 03
-		*/
-		// Load mesh vertices. Each vertex has a position and a color.
-		static const VertexPositionColor cubeVertices[] = 
+	auto createCubeTask = (createPSTask && createVSTask).then([this]() {
+		// Scale video to the window size while preserving aspect ratio
+		int m_DisplayWidth = 1920;
+		int m_DisplayHeight = 1080;
+		RECT src, dst;
+		src.x = src.y = 0;
+		src.w = this->configuration->width;
+		src.h = this->configuration->height;
+		dst.x = dst.y = 0;
+		dst.w = m_DisplayWidth;
+		dst.h = m_DisplayHeight;
+		scaleSourceToDestinationSurface(&src, &dst);
+
+		// Convert screen space to normalized device coordinates
+		FRECT renderRect;
+		screenSpaceToNormalizedDeviceCoords(&dst, &renderRect, m_DisplayWidth, m_DisplayHeight);
+		VERTEX verts[] =
 		{
-			{XMFLOAT3(-1.0f,-1.0f,0.0f), XMFLOAT2(0.0f, 1.0f)},
-			{XMFLOAT3(-1.0f,1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f)},
-			{XMFLOAT3(1.0f,1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f)},
-			{XMFLOAT3(1.0f,-1.0f,0.0f), XMFLOAT2(1.0f, 1.0f)},
-			
+			{renderRect.x, renderRect.y, 0, 1.0f},
+			{renderRect.x, renderRect.y + renderRect.h, 0, 0},
+			{renderRect.x + renderRect.w, renderRect.y, 1.0f, 1.0f},
+			{renderRect.x + renderRect.w, renderRect.y + renderRect.h, 1.0f, 0},
 		};
 
-		D3D11_SUBRESOURCE_DATA vertexBufferData = {0};
-		vertexBufferData.pSysMem = cubeVertices;
-		vertexBufferData.SysMemPitch = 0;
-		vertexBufferData.SysMemSlicePitch = 0;
-		CD3D11_BUFFER_DESC vertexBufferDesc(sizeof(cubeVertices), D3D11_BIND_VERTEX_BUFFER);
+		D3D11_BUFFER_DESC vbDesc = {};
+		vbDesc.ByteWidth = sizeof(verts);
+		vbDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vbDesc.CPUAccessFlags = 0;
+		vbDesc.MiscFlags = 0;
+		vbDesc.StructureByteStride = sizeof(VERTEX);
+
+		D3D11_SUBRESOURCE_DATA vbData = {};
+		vbData.pSysMem = verts;
 		DX::ThrowIfFailed(
 			m_deviceResources->GetD3DDevice()->CreateBuffer(
-				&vertexBufferDesc,
-				&vertexBufferData,
+				&vbDesc,
+				&vbData,
 				&m_vertexBuffer
-				)
-			,"Vertex Buffer Creation");
+			)
+			, "Vertex Buffer Creation");
 
-		// Load mesh indices. Each trio of indices represents
-		// a triangle to be rendered on the screen.
-		// For example: 0,2,1 means that the vertices with indexes
-		// 0, 2 and 1 from the vertex buffer compose the 
-		// first triangle of this mesh.
-		static const unsigned short cubeIndices [] =
-		{
-			0,2,1,
-			3,2,0
-		};
+		const int indexes[] = { 0, 1, 2, 3, 2, 1 };
+		D3D11_BUFFER_DESC indexBufferDesc = {};
+		indexBufferDesc.ByteWidth = sizeof(indexes);
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = sizeof(int);
 
-		m_indexCount = ARRAYSIZE(cubeIndices);
+		D3D11_SUBRESOURCE_DATA indexBufferData = {};
+		indexBufferData.pSysMem = indexes;
+		indexBufferData.SysMemPitch = sizeof(int);
 
-		D3D11_SUBRESOURCE_DATA indexBufferData = {0};
-		indexBufferData.pSysMem = cubeIndices;
-		indexBufferData.SysMemPitch = 0;
-		indexBufferData.SysMemSlicePitch = 0;
-		CD3D11_BUFFER_DESC indexBufferDesc(sizeof(cubeIndices), D3D11_BIND_INDEX_BUFFER);
-		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreateBuffer(
-				&indexBufferDesc,
-				&indexBufferData,
-				&m_indexBuffer
-				)
-			,"Index Buffer Creation");
-	});
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
+		});
 
 	D3D11_RASTERIZER_DESC rasterizerState;
 	ZeroMemory(&rasterizerState, sizeof(D3D11_RASTERIZER_DESC));
@@ -249,8 +253,9 @@ void VideoRenderer::CreateDeviceDependentResources()
 	rasterizerState.MultisampleEnable = false;
 	rasterizerState.ScissorEnable = false;
 	rasterizerState.SlopeScaledDepthBias = 0.0f;
+	//rasterizerState.FillMode = D3D11_FILL_WIREFRAME;
 	ID3D11RasterizerState* m_pRasterState;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateRasterizerState(&rasterizerState, &m_pRasterState),"Rasterizer Creation");
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateRasterizerState(&rasterizerState, &m_pRasterState), "Rasterizer Creation");
 	m_deviceResources->GetD3DDeviceContext()->RSSetState(m_pRasterState);
 
 	D3D11_SAMPLER_DESC samplerDesc;
@@ -263,7 +268,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	samplerDesc.MinLOD = -FLT_MAX;
 	samplerDesc.MaxLOD = FLT_MAX;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf()),"Sampler Creation");
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf()), "Sampler Creation");
 	renderTextureDesc = { 0 };
 	int width = configuration->width;
 	int height = configuration->height;
@@ -279,14 +284,14 @@ void VideoRenderer::CreateDeviceDependentResources()
 	renderTextureDesc.CPUAccessFlags = 0;
 	renderTextureDesc.MiscFlags = 0;
 	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
-	createCubeTask.then([this,width,height] () {
+	createCubeTask.then([this, width, height]() {
 		int status = client->StartStreaming(m_deviceResources, configuration);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 			Utils::logMutex.lock();
 			std::wstring m_text = L"";
 			std::vector<std::wstring> lines = Utils::GetLogLines();
-			for (int i = 0; i < lines.size();i++) {
+			for (int i = 0; i < lines.size(); i++) {
 				//Get only the last 24 lines
 				if (lines.size() - i < 24) {
 					m_text += lines[i];
@@ -307,7 +312,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 		}
 		m_loadingComplete = true;
 		Utils::Log("Loading Complete!\n");
-	});
+		});
 }
 
 void VideoRenderer::ReleaseDeviceDependentResources()
@@ -319,4 +324,27 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_constantBuffer.Reset();
 	m_vertexBuffer.Reset();
 	m_indexBuffer.Reset();
+}
+
+void VideoRenderer::scaleSourceToDestinationSurface(RECT* src, RECT* dst)
+{
+	int dstH = ceil((float)dst->w * src->h / src->w);
+	int dstW = ceil((float)dst->h * src->w / src->h);
+
+	if (dstH > dst->h) {
+		dst->x += (dst->w - dstW) / 2;
+		dst->w = dstW;
+	}
+	else {
+		dst->y += (dst->h - dstH) / 2;
+		dst->h = dstH;
+	}
+}
+
+void VideoRenderer::screenSpaceToNormalizedDeviceCoords(RECT* src, FRECT* dst, int viewportWidth, int viewportHeight)
+{
+	dst->x = ((float)src->x / (viewportWidth / 2.0f)) - 1.0f;
+	dst->y = ((float)src->y / (viewportHeight / 2.0f)) - 1.0f;
+	dst->w = (float)src->w / (viewportWidth / 2.0f);
+	dst->h = (float)src->h / (viewportHeight / 2.0f);
 }

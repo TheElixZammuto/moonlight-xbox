@@ -8,6 +8,14 @@
 
 namespace moonlight_xbox_dx
 {
+
+	typedef struct _Rect {
+		int x, y, w, h;
+	} RECT;
+
+	typedef struct _Frect {
+		float x, y, w, h;
+	} FRECT;
 	// This sample renderer instantiates a basic rendering pipeline.
 	class VideoRenderer
 	{
@@ -17,6 +25,8 @@ namespace moonlight_xbox_dx
 		void CreateWindowSizeDependentResources();
 		void ReleaseDeviceDependentResources();
 		void Update(DX::StepTimer const& timer);
+		void scaleSourceToDestinationSurface(RECT* src, RECT* dst);
+		void screenSpaceToNormalizedDeviceCoords(RECT* src, FRECT* dst, int viewportWidth, int viewportHeight);
 		bool Render();
 		ID3D11Texture2D* GenerateTexture();
 

@@ -101,7 +101,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
 			stateJson["hosts"].push_back(hostJson);
 		}
-		return FileIO::WriteTextAsync(file, Utils::StringFromStdString(stateJson.dump()));
+		auto jsonString = stateJson.dump();
+		return FileIO::WriteTextAsync(file, Utils::StringFromStdString(jsonString));
 		});
 }
 
