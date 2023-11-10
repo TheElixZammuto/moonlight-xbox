@@ -22,13 +22,62 @@ typedef struct _VERTEX
 	float tu, tv;
 } VERTEX, * PVERTEX;
 
+#define CSC_MATRIX_RAW_ELEMENT_COUNT 9
+#define CSC_MATRIX_PACKED_ELEMENT_COUNT 12
+
+static const float k_CscMatrix_Bt601Lim[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
+	1.1644f, 1.1644f, 1.1644f,
+	0.0f, -0.3917f, 2.0172f,
+	1.5960f, -0.8129f, 0.0f,
+};
+static const float k_CscMatrix_Bt601Full[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
+	1.0f, 1.0f, 1.0f,
+	0.0f, -0.3441f, 1.7720f,
+	1.4020f, -0.7141f, 0.0f,
+};
+static const float k_CscMatrix_Bt709Lim[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
+	1.1644f, 1.1644f, 1.1644f,
+	0.0f, -0.2132f, 2.1124f,
+	1.7927f, -0.5329f, 0.0f,
+};
+static const float k_CscMatrix_Bt709Full[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
+	1.0f, 1.0f, 1.0f,
+	0.0f, -0.1873f, 1.8556f,
+	1.5748f, -0.4681f, 0.0f,
+};
+static const float k_CscMatrix_Bt2020Lim[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
+	1.1644f, 1.1644f, 1.1644f,
+	0.0f, -0.1874f, 2.1418f,
+	1.6781f, -0.6505f, 0.0f,
+};
+static const float k_CscMatrix_Bt2020Full[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
+	1.0f, 1.0f, 1.0f,
+	0.0f, -0.1646f, 1.8814f,
+	1.4746f, -0.5714f, 0.0f,
+};
+
+#define OFFSETS_ELEMENT_COUNT 3
+
+static const float k_Offsets_Lim[OFFSETS_ELEMENT_COUNT] = { 16.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f };
+static const float k_Offsets_Full[OFFSETS_ELEMENT_COUNT] = { 0.0f, 128.0f / 255.0f, 128.0f / 255.0f };
+
+typedef struct _CSC_CONST_BUF
+{
+	// CscMatrix value from above but packed appropriately
+	float cscMatrix[CSC_MATRIX_PACKED_ELEMENT_COUNT];
+
+	// YUV offset values from above
+	float offsets[OFFSETS_ELEMENT_COUNT];
+
+	// Padding float to be a multiple of 16 bytes
+	float padding;
+} CSC_CONST_BUF, * PCSC_CONST_BUF;
+static_assert(sizeof(CSC_CONST_BUF) % 16 == 0, "Constant buffer sizes must be a multiple of 16");
+
 
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, MoonlightClient* mclient, StreamConfiguration^ sConfig) :
 	m_loadingComplete(false),
-	m_degreesPerSecond(45),
-	m_indexCount(0),
-	m_tracking(false),
 	m_deviceResources(deviceResources),
 	client(mclient),
 	configuration(sConfig)
@@ -101,14 +150,6 @@ bool VideoRenderer::Render()
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
 	m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
-	D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()), "Luminance SRV Creation");
-	D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation");
-	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
-	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
 
 	auto context = m_deviceResources->GetD3DDeviceContext();
 	UINT stride = sizeof(VERTEX);
@@ -127,9 +168,21 @@ bool VideoRenderer::Render()
 	context->IASetInputLayout(m_inputLayout.Get());
 	// Attach our vertex shader.
 	context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
+	D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()), "Luminance SRV Creation");
+	D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation");
+	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
+	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
+	this->bindColorConversion(frame);
+
 	context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
-	context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+
 	context->DrawIndexed(6, 0, 0);
+
 	Utils::stats._framesDecoded++;
 	UpdateStats(start);
 	return true;
@@ -170,19 +223,41 @@ void VideoRenderer::CreateDeviceDependentResources()
 		});
 
 	// After the pixel shader file is loaded, create the shader and constant buffer.
-	auto createPSTask = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_bt601lim_pixel.fxc").then([this](const std::vector<byte>& fileData) {
+	auto createPSTaskGen = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_genyuv_pixel.fxc").then([this](const std::vector<byte>& fileData) {
 		DX::ThrowIfFailed(
 			m_deviceResources->GetD3DDevice()->CreatePixelShader(
 				&fileData[0],
 				fileData.size(),
 				nullptr,
-				&m_pixelShader
+				&m_pixelShaderGeneric
+			)
+			, "Pixel Shader Creation");
+		});
+
+	auto createPSTaskBT601 = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_bt601lim_pixel.fxc").then([this](const std::vector<byte>& fileData) {
+		DX::ThrowIfFailed(
+			m_deviceResources->GetD3DDevice()->CreatePixelShader(
+				&fileData[0],
+				fileData.size(),
+				nullptr,
+				&m_pixelShaderBT601
+			)
+			, "Pixel Shader Creation");
+		});
+
+	auto createPSTaskBT2020 = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_bt2020lim_pixel.fxc").then([this](const std::vector<byte>& fileData) {
+		DX::ThrowIfFailed(
+			m_deviceResources->GetD3DDevice()->CreatePixelShader(
+				&fileData[0],
+				fileData.size(),
+				nullptr,
+				&m_pixelShaderBT2020
 			)
 			, "Pixel Shader Creation");
 		});
 
 	// Once both shaders are loaded, create the mesh.
-	auto createCubeTask = (createPSTask && createVSTask).then([this]() {
+	auto createCubeTask = (createVSTask && createPSTaskGen && createPSTaskBT601 && createPSTaskBT2020).then([this]() {
 		// Scale video to the window size while preserving aspect ratio
 		int m_DisplayWidth = 1920;
 		int m_DisplayHeight = 1080;
@@ -320,7 +395,9 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_loadingComplete = false;
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
-	m_pixelShader.Reset();
+	m_pixelShaderGeneric.Reset();
+	m_pixelShaderBT601.Reset();
+	m_pixelShaderBT2020.Reset();
 	m_constantBuffer.Reset();
 	m_vertexBuffer.Reset();
 	m_indexBuffer.Reset();
@@ -347,4 +424,100 @@ void VideoRenderer::screenSpaceToNormalizedDeviceCoords(RECT* src, FRECT* dst, i
 	dst->y = ((float)src->y / (viewportHeight / 2.0f)) - 1.0f;
 	dst->w = (float)src->w / (viewportWidth / 2.0f);
 	dst->h = (float)src->h / (viewportHeight / 2.0f);
+}
+
+void VideoRenderer::bindColorConversion(AVFrame* frame)
+{
+	bool fullRange = frame->color_range == AVCOL_RANGE_JPEG;
+	int colorspace = COLORSPACE_REC_601;
+	switch (frame->colorspace) {
+	case AVCOL_SPC_SMPTE170M:
+	case AVCOL_SPC_BT470BG:
+		colorspace = COLORSPACE_REC_601;
+		break;
+	case AVCOL_SPC_BT709:
+		colorspace = COLORSPACE_REC_709;
+		break;
+	case AVCOL_SPC_BT2020_NCL:
+	case AVCOL_SPC_BT2020_CL:
+		colorspace = COLORSPACE_REC_2020;
+		break;
+	}
+
+	// We have purpose-built shaders for the common Rec 601 (SDR) and Rec 2020 (HDR) cases
+	if (!fullRange && colorspace == COLORSPACE_REC_601) {
+		m_deviceResources->GetD3DDeviceContext()->PSSetShader(m_pixelShaderBT601.Get(), nullptr, 0);
+	}
+	else if (!fullRange && colorspace == COLORSPACE_REC_2020) {
+		m_deviceResources->GetD3DDeviceContext()->PSSetShader(m_pixelShaderBT2020.Get(), nullptr, 0);
+	}
+	else {
+		// We'll need to use the generic shader for this colorspace and color range combo
+		m_deviceResources->GetD3DDeviceContext()->PSSetShader(m_pixelShaderGeneric.Get(), nullptr, 0);
+
+		// If nothing has changed since last frame, we're done
+		if (colorspace == m_LastColorSpace && fullRange == m_LastFullRange) {
+			return;
+		}
+
+		char msg[4096];
+		sprintf_s(msg, "Falling back to generic video pixel shader for %d (%s range)", colorspace, fullRange ? "full" : "limited");
+		Utils::Log(msg);
+
+		D3D11_BUFFER_DESC constDesc = {};
+		constDesc.ByteWidth = sizeof(CSC_CONST_BUF);
+		constDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		constDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		constDesc.CPUAccessFlags = 0;
+		constDesc.MiscFlags = 0;
+
+		CSC_CONST_BUF constBuf = {};
+		const float* rawCscMatrix;
+		switch (colorspace) {
+		case COLORSPACE_REC_601:
+			rawCscMatrix = fullRange ? k_CscMatrix_Bt601Full : k_CscMatrix_Bt601Lim;
+			break;
+		case COLORSPACE_REC_709:
+			rawCscMatrix = fullRange ? k_CscMatrix_Bt709Full : k_CscMatrix_Bt709Lim;
+			break;
+		case COLORSPACE_REC_2020:
+			rawCscMatrix = fullRange ? k_CscMatrix_Bt2020Full : k_CscMatrix_Bt2020Lim;
+			break;
+		default:
+			return;
+		}
+
+		// We need to adjust our raw CSC matrix to be column-major and with float3 vectors
+		// padded with a float in between each of them to adhere to HLSL requirements.
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				constBuf.cscMatrix[i * 4 + j] = rawCscMatrix[j * 3 + i];
+			}
+		}
+
+		// No adjustments are needed to the float[3] array of offsets, so it can just
+		// be copied with memcpy().
+		memcpy(constBuf.offsets,
+			fullRange ? k_Offsets_Full : k_Offsets_Lim,
+			sizeof(constBuf.offsets));
+
+		D3D11_SUBRESOURCE_DATA constData = {};
+		constData.pSysMem = &constBuf;
+
+		ID3D11Buffer* constantBuffer;
+		HRESULT hr = m_deviceResources->GetD3DDevice()->CreateBuffer(&constDesc, &constData, &constantBuffer);
+		if (SUCCEEDED(hr)) {
+			m_deviceResources->GetD3DDeviceContext()->PSSetConstantBuffers(0, 1, &constantBuffer);
+			constantBuffer->Release();
+		}
+		else {
+			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				"ID3D11Device::CreateBuffer() failed: %x",
+				hr);*/
+			return;
+		}
+	}
+
+	m_LastColorSpace = colorspace;
+	m_LastFullRange = fullRange;
 }

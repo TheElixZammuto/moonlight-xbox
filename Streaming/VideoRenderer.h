@@ -28,6 +28,7 @@ namespace moonlight_xbox_dx
 		void scaleSourceToDestinationSurface(RECT* src, RECT* dst);
 		void screenSpaceToNormalizedDeviceCoords(RECT* src, FRECT* dst, int viewportWidth, int viewportHeight);
 		bool Render();
+		void bindColorConversion(AVFrame* frame);
 		ID3D11Texture2D* GenerateTexture();
 
 
@@ -40,19 +41,18 @@ namespace moonlight_xbox_dx
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_vertexBuffer;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_indexBuffer;
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>	m_vertexShader;
-		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShader;
+		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShaderBT601,m_pixelShaderBT2020,m_pixelShaderGeneric;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_constantBuffer;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>	samplerState;
 		D3D11_TEXTURE2D_DESC						renderTextureDesc;
 
 		// System resources for cube geometry.
 		ModelViewProjectionConstantBuffer	m_constantBufferData;
-		uint32	m_indexCount;
 
 		// Variables used with the rendering loop.
 		bool	m_loadingComplete;
-		float	m_degreesPerSecond;
-		bool	m_tracking;
+		bool	m_LastFullRange;
+		int		m_LastColorSpace;
 		MoonlightClient *client;
 		StreamConfiguration^ configuration;
 	};
