@@ -35,12 +35,7 @@ MoonlightSettings::MoonlightSettings()
 	item->Content = "Don't autoconnect";
 	item->DataContext = "";
 	HostSelector->Items->Append(item);
-	AvailableCompositionScale->Append("Normal");
-	AvailableCompositionScale->Append("4k");
-
-	if (state->CompositionScale != "Normal") {
-		CompositionScaleIndex = 1;
-	}
+	
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	auto iid = Utils::StringFromStdString(state->autostartInstance);
 	for (int i = 0; i < state->SavedHosts->Size;i++) {
@@ -83,12 +78,6 @@ void moonlight_xbox_dx::MoonlightSettings::HostSelector_SelectionChanged(Platfor
 	state->autostartInstance = s;
 
 }
-
-void moonlight_xbox_dx::MoonlightSettings::CompositionScaleSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
-{
-	state->CompositionScale = AvailableCompositionScale->GetAt(this->CompositionScaleSelector->SelectedIndex);
-}
-
 
 void moonlight_xbox_dx::MoonlightSettings::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
 {

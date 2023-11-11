@@ -12,7 +12,6 @@ namespace moonlight_xbox_dx {
 		int screenMarginW;
 		int screenMarginH;
 		int mouseSensitivity = 3;
-		Platform::String^ compositionScale;
 		Platform::String^ keyboardLayout;
 		bool firstTime;
 		bool alternateCombination;
@@ -62,18 +61,6 @@ namespace moonlight_xbox_dx {
 				this->screenMarginH = value;
 				OnPropertyChanged("ScreenMarginHeight");
 				OnPropertyChanged("ScreenMargin");
-			}
-		}
-
-		property Platform::String^ CompositionScale
-		{
-			Platform::String^ get()
-			{
-				return this->compositionScale;
-			};
-			void set(Platform::String^ value) {
-				this->compositionScale = value;
-				OnPropertyChanged("CompositionScale");
 			}
 		}
 

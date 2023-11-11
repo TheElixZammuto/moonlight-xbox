@@ -471,8 +471,11 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 	m_effectiveDpi = m_dpi;
 	int compositionScaleMultiplier = 1;
 
-	if (state->CompositionScale != "Normal") {
-		compositionScaleMultiplier = 2;
+	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+	// HDR Setup
+	if (hdi) {
+		auto mode = hdi->GetCurrentDisplayMode();
+		if (mode->ResolutionWidthInRawPixels > 1920)compositionScaleMultiplier = 2;
 	}
 
 	m_effectiveCompositionScaleX = m_compositionScaleX * compositionScaleMultiplier;

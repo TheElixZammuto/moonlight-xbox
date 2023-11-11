@@ -23,6 +23,7 @@ namespace moonlight_xbox_dx {
         int autostartID = -1;
         Platform::String^ videoCodec = "H.264";
         Platform::String^ audioConfig = "Stereo";
+        bool enableHDR = false;
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
@@ -191,6 +192,15 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->playAudioOnPC = value;
                 OnPropertyChanged("PlayAudioOnPC");
+            }
+        }
+
+        property bool EnableHDR
+        {
+            bool get() { return this->enableHDR; }
+            void set(bool value) {
+                this->enableHDR = value;
+                OnPropertyChanged("EnableHDR");
             }
         }
     };

@@ -31,8 +31,6 @@
             </Grid.RowDefinitions>
             <TextBlock Grid.Column="0" Grid.Row="0">Autostart Host:</TextBlock>
             <ComboBox Grid.Column="1" Grid.Row="0" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged"></ComboBox>
-            <TextBlock Grid.Column="0" Grid.Row="1">Resolution Scale:</TextBlock>
-            <ComboBox  x:Name="CompositionScaleSelector" SelectionChanged="CompositionScaleSelector_SelectionChanged" SelectedIndex="{x:Bind CompositionScaleIndex,Mode=TwoWay}" ItemsSource="{x:Bind AvailableCompositionScale}"  Grid.Row="1"  Grid.Column="1"></ComboBox>
             <TextBlock Grid.Column="0" Grid.Row="2">Screen Margin Height:</TextBlock>
             <Slider Grid.Row="2" Grid.Column="1" Value="{x:Bind State.ScreenMarginWidth}" x:DefaultBindMode="TwoWay" Minimum="0" Maximum="100" StepFrequency="1" />
             <TextBlock Grid.Column="0" Grid.Row="3">Screen Margin Width:</TextBlock>

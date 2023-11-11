@@ -68,6 +68,7 @@ void AppPage::Connect(int appId) {
 	config->audioConfig = host->AudioConfig;
 	config->videoCodec = host->VideoCodec;
 	config->playAudioOnPC = host->PlayAudioOnPC;
+	config->enableHDR = host->EnableHDR;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 	if (!result) {
 		printf("C");

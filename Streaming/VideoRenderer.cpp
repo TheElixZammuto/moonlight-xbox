@@ -469,7 +469,7 @@ void VideoRenderer::bindColorConversion(AVFrame* frame)
 		}
 
 		char msg[4096];
-		sprintf_s(msg, "Falling back to generic video pixel shader for %d (%s range)", colorspace, fullRange ? "full" : "limited");
+		sprintf_s(msg, "Falling back to generic video pixel shader for %d (%s range)\n", colorspace, fullRange ? "full" : "limited");
 		Utils::Log(msg);
 
 		D3D11_BUFFER_DESC constDesc = {};
