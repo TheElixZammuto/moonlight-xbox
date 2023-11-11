@@ -58,6 +58,10 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(message));
 		});
 
+	client->SetHDR = ([this](bool v) {
+		this->m_sceneRenderer->SetHDR(v);
+	});
+
 	m_timer.SetFixedTimeStep(false);
 }
 
@@ -376,6 +380,7 @@ void moonlight_xbox_dxMain::SetFlyoutOpened(bool value) {
 
 void moonlight_xbox_dxMain::Disconnect() {
 	moonlightClient->StopStreaming();
+	m_sceneRenderer->Stop();
 }
 
 void moonlight_xbox_dxMain::CloseApp() {

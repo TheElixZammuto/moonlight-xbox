@@ -148,6 +148,7 @@ bool VideoRenderer::Render()
 	box.front = 0;
 	box.back = 1;
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
+	renderTextureDesc.Format = ffmpegDesc.Format;
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
 	m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
 
@@ -171,9 +172,9 @@ bool VideoRenderer::Render()
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
-	D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8_UNORM);
+	D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, (renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R8_UNORM);
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()), "Luminance SRV Creation");
-	D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8_UNORM);
+	D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, (renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R8G8_UNORM);
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation");
 	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
 	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
@@ -258,9 +259,15 @@ void VideoRenderer::CreateDeviceDependentResources()
 
 	// Once both shaders are loaded, create the mesh.
 	auto createCubeTask = (createVSTask && createPSTaskGen && createPSTaskBT601 && createPSTaskBT2020).then([this]() {
+		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+		// HDR Setup
+		if (hdi) {
+			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
+			m_currentDisplayMode = m_lastDisplayMode;
+		}
 		// Scale video to the window size while preserving aspect ratio
-		int m_DisplayWidth = 1920;
-		int m_DisplayHeight = 1080;
+		int m_DisplayWidth = max(m_currentDisplayMode->ResolutionWidthInRawPixels,1920);
+		int m_DisplayHeight = max(m_currentDisplayMode->ResolutionHeightInRawPixels, 1080);
 		RECT src, dst;
 		src.x = src.y = 0;
 		src.w = this->configuration->width;
@@ -392,6 +399,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 
 void VideoRenderer::ReleaseDeviceDependentResources()
 {
+	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	m_loadingComplete = false;
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
@@ -520,4 +528,108 @@ void VideoRenderer::bindColorConversion(AVFrame* frame)
 
 	m_LastColorSpace = colorspace;
 	m_LastFullRange = fullRange;
+}
+
+void VideoRenderer::SetHDR(bool enabled)
+{
+	HRESULT hr;
+
+	// According to MSDN, we need to lock the context even if we're just using DXGI functions
+	// https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-render-multi-thread-intro
+	//lockContext(this);
+	if(FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.lock();
+
+	if (enabled) {
+		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+		// HDR Setup
+		if (hdi) {
+			auto modes = hdi->GetSupportedDisplayModes();
+			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
+			for (unsigned i = 0; i < modes->Size; i++)
+			{
+				auto mode = modes->GetAt(i);
+				//char msg[4096];
+				//sprintf_s(msg, "NEW VIDEO MODE\nW: %d - H: %d - Colorspace: %x - bitsize %d FPS: %f\n", mode->ResolutionWidthInRawPixels, mode->ResolutionHeightInRawPixels, mode->ColorSpace, mode->BitsPerPixel, mode->RefreshRate);
+				//Utils::Log(msg);
+				if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels && mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels && mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT2020 && mode->RefreshRate >= 59)
+				{
+					m_currentDisplayMode = mode;
+					hdi->RequestSetCurrentDisplayModeAsync(mode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084);
+					break;
+				}
+			}
+		}
+		DXGI_HDR_METADATA_HDR10 hdr10Metadata;
+		SS_HDR_METADATA sunshineHdrMetadata;
+
+		// Sunshine will have HDR metadata but GFE will not
+		if (!LiGetHdrMetadata(&sunshineHdrMetadata)) {
+			RtlZeroMemory(&sunshineHdrMetadata, sizeof(sunshineHdrMetadata));
+		}
+
+		hdr10Metadata.RedPrimary[0] = sunshineHdrMetadata.displayPrimaries[0].x;
+		hdr10Metadata.RedPrimary[1] = sunshineHdrMetadata.displayPrimaries[0].y;
+		hdr10Metadata.GreenPrimary[0] = sunshineHdrMetadata.displayPrimaries[1].x;
+		hdr10Metadata.GreenPrimary[1] = sunshineHdrMetadata.displayPrimaries[1].y;
+		hdr10Metadata.BluePrimary[0] = sunshineHdrMetadata.displayPrimaries[2].x;
+		hdr10Metadata.BluePrimary[1] = sunshineHdrMetadata.displayPrimaries[2].y;
+		hdr10Metadata.WhitePoint[0] = sunshineHdrMetadata.whitePoint.x;
+		hdr10Metadata.WhitePoint[1] = sunshineHdrMetadata.whitePoint.y;
+		hdr10Metadata.MaxMasteringLuminance = sunshineHdrMetadata.maxDisplayLuminance;
+		hdr10Metadata.MinMasteringLuminance = sunshineHdrMetadata.minDisplayLuminance;
+		hdr10Metadata.MaxContentLightLevel = sunshineHdrMetadata.maxContentLightLevel;
+		hdr10Metadata.MaxFrameAverageLightLevel = sunshineHdrMetadata.maxFrameAverageLightLevel;
+
+		hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10, sizeof(hdr10Metadata), &hdr10Metadata);
+		if (SUCCEEDED(hr)) {
+			Utils::Log("Set display HDR mode: enabled\n");
+		}
+		else {
+			Utils::Log("Failed to set HDR mode\n");
+			/*/SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				"Failed to enter HDR mode: %x",
+				hr);*/
+		}
+
+		// Switch to Rec 2020 PQ (SMPTE ST 2084) colorspace for HDR10 rendering
+		hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+		if (FAILED(hr)) {
+			Utils::Log("Failed to set Colorspace!");
+			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				"IDXGISwapChain::SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020) failed: %x",
+				hr);*/
+		}
+	}
+	else {
+		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+		// HDR Setup
+		if (hdi) {
+			hdi->RequestSetCurrentDisplayModeAsync(m_lastDisplayMode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::EotfSdr);
+			m_currentDisplayMode = m_lastDisplayMode;
+		}
+		// Restore default sRGB colorspace
+		hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
+		if (FAILED(hr)) {
+			Utils::Log("Failed to restore SDR Colorspace!\n");
+			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				"IDXGISwapChain::SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709) failed: %x",
+				hr);*/
+		}
+
+		hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_NONE, 0, nullptr);
+		if (SUCCEEDED(hr)) {
+			Utils::Log("HDR Disabled");
+		}
+		else {
+			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+				"Failed to exit HDR mode: %x",
+				hr);*/
+		}
+	}
+	if (FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.unlock();
+	//unlockContext(this);
+}
+
+void VideoRenderer::Stop() {
+	this->SetHDR(false);
 }

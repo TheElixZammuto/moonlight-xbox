@@ -20,6 +20,7 @@ void connection_started();
 void connection_status_update(int status);
 void connection_status_completed(int status);
 void connection_terminated(int status);
+void connection_set_hdr(bool value);
 void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 void connection_trigger_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
@@ -50,10 +51,12 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.fps = sConfig->FPS;
 	config.packetSize = 1024;
 	config.hevcBitratePercentageMultiplier = 75;
-	config.supportedVideoFormats = VIDEO_FORMAT_H264;
-	if (config.height == 2160 || sConfig->videoCodec == "HEVC (H.265)") {
+	config.supportedVideoFormats = VIDEO_FORMAT_H265_MAIN10;
+	config.colorSpace = COLORSPACE_REC_2020;
+	config.colorRange = COLOR_RANGE_FULL;
+	/*if (config.height == 2160 || sConfig->videoCodec == "HEVC (H.265)") {
 		config.supportedVideoFormats |= VIDEO_FORMAT_H265;
-	}
+	}*/
 	
 
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
@@ -90,6 +93,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.stageStarting = connection_status_update;
 	callbacks.stageFailed = stage_failed;
 	callbacks.stageComplete = connection_status_completed;
+	callbacks.setHdrMode = connection_set_hdr;
 	callbacks.rumble = connection_rumble;
 	//callbacks.rumbleTriggers = connection_trigger_rumble;
 	FFMpegDecoder::createDecoderInstance(res);
@@ -135,6 +139,12 @@ void connection_status_completed(int status) {
 	Utils::Log(message);
 	if (connectedInstance->OnStatusUpdate != nullptr) {
 		connectedInstance->OnStatusUpdate(status);
+	}
+}
+
+void connection_set_hdr(bool enable) {
+	if (connectedInstance->SetHDR != nullptr) {
+		connectedInstance->SetHDR(enable);
 	}
 
 }

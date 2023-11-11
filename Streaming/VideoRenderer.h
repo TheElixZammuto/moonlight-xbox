@@ -29,6 +29,8 @@ namespace moonlight_xbox_dx
 		void screenSpaceToNormalizedDeviceCoords(RECT* src, FRECT* dst, int viewportWidth, int viewportHeight);
 		bool Render();
 		void bindColorConversion(AVFrame* frame);
+		void SetHDR(bool enabled);
+		void Stop();
 		ID3D11Texture2D* GenerateTexture();
 
 
@@ -45,6 +47,8 @@ namespace moonlight_xbox_dx
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_constantBuffer;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>	samplerState;
 		D3D11_TEXTURE2D_DESC						renderTextureDesc;
+		Windows::Graphics::Display::Core::HdmiDisplayMode^ m_lastDisplayMode;
+		Windows::Graphics::Display::Core::HdmiDisplayMode^ m_currentDisplayMode;
 
 		// System resources for cube geometry.
 		ModelViewProjectionConstantBuffer	m_constantBufferData;

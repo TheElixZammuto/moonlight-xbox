@@ -37,11 +37,11 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Graceful Disconnection
 - Host configuration (for resolution and bitrate) and saved host history
 - Audio
+- 4K HDR
 
 ## What does NOT work
 - Hardware Mouse (UWP Limitations sadly)
-- 120FPS
-- HDR (Probably not possible with the Xbox UWP Platform)
+- 120FPS (Never tested, let me know if it works)
 - Everything else not listed above
 
 ## Building

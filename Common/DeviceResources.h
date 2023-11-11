@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <mutex>
+#include <dxgi1_6.h>
 namespace DX
 {
 	// Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
@@ -37,7 +38,7 @@ namespace DX
 		// D3D Accessors.
 		ID3D11Device3*				GetD3DDevice() const					{ return m_d3dDevice.Get(); }
 		ID3D11DeviceContext3*		GetD3DDeviceContext() const				{ return m_d3dContext.Get(); }
-		IDXGISwapChain3*			GetSwapChain() const					{ return m_swapChain.Get(); }
+		IDXGISwapChain4*			GetSwapChain() const					{ return m_swapChain.Get(); }
 		D3D_FEATURE_LEVEL			GetDeviceFeatureLevel() const			{ return m_d3dFeatureLevel; }
 		ID3D11RenderTargetView1*	GetBackBufferRenderTargetView() const	{ return m_d3dRenderTargetView.Get(); }
 		ID3D11DepthStencilView*		GetDepthStencilView() const				{ return m_d3dDepthStencilView.Get(); }
@@ -62,7 +63,7 @@ namespace DX
 		// Direct3D objects.
 		Microsoft::WRL::ComPtr<ID3D11Device3>			m_d3dDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext3>	m_d3dContext;
-		Microsoft::WRL::ComPtr<IDXGISwapChain3>			m_swapChain;
+		Microsoft::WRL::ComPtr<IDXGISwapChain4>			m_swapChain;
 
 		// Direct3D rendering objects. Required for 3D.
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>	m_d3dRenderTargetView;
