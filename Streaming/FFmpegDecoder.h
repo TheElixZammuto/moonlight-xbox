@@ -30,6 +30,8 @@ namespace moonlight_xbox_dx
 		std::recursive_mutex mutex;
 		bool shouldUnlock = false;
 		bool hackWait = false;
+		int videoFormat,width,height;
+
 	private:
 		int Decode(unsigned char* indata, int inlen);
 		AVPacket pkt;

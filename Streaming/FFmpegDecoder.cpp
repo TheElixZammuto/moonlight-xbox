@@ -28,6 +28,53 @@ namespace moonlight_xbox_dx {
 		ff->mutex.unlock();
 	}
 
+	enum AVPixelFormat ffGetFormat(AVCodecContext* context, const enum AVPixelFormat* pixFmts)
+	{
+		FFMpegDecoder* d = ((FFMpegDecoder*)context->opaque);
+		const enum AVPixelFormat* p;
+
+		for (p = pixFmts; *p != -1; p++) {
+			// Only match our hardware decoding codec or preferred SW pixel
+			// format (if not using hardware decoding). It's crucial
+			// to override the default get_format() which will try
+			// to gracefully fall back to software decode and break us.
+			if (*p == AV_PIX_FMT_D3D11) {
+				auto hw_frames_ctx = av_hwframe_ctx_alloc(context->hw_device_ctx);
+				if (!hw_frames_ctx) {
+					return AV_PIX_FMT_NONE;
+				}
+
+				AVHWFramesContext* framesContext = (AVHWFramesContext*)hw_frames_ctx->data;
+
+				// We require NV12 or P010 textures for our shader
+				framesContext->format = AV_PIX_FMT_D3D11;
+				framesContext->sw_format = (d->videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
+
+				framesContext->width = FFALIGN(d->width, 16);
+				framesContext->height = FFALIGN(d->height, 16);
+
+				// We can have up to 16 reference frames plus a working surface
+				framesContext->initial_pool_size = 17;
+
+				AVD3D11VAFramesContext* d3d11vaFramesContext = (AVD3D11VAFramesContext*)framesContext->hwctx;
+
+				d3d11vaFramesContext->texture = NULL;
+				d3d11vaFramesContext->BindFlags = D3D11_BIND_DECODER;
+
+				int err = av_hwframe_ctx_init(hw_frames_ctx);
+				if (err < 0) {
+					return AV_PIX_FMT_NONE;
+				}
+				context->hw_frames_ctx = av_buffer_ref(hw_frames_ctx);
+				return *p;
+			}
+		}
+
+
+
+		return AV_PIX_FMT_NONE;
+	}
+
 	void ffmpeg_log_callback(void* avcl, int	level, const char* fmt, va_list vl) {
 		//if (level > AV_LOG_INFO)return;
 		char message[2048];
@@ -37,6 +84,10 @@ namespace moonlight_xbox_dx {
 	}
 
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
+		this->videoFormat = videoFormat;
+		this->width = width;
+		this->height = height;
+
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
 		avcodec_register_all();
 #endif
@@ -64,7 +115,8 @@ namespace moonlight_xbox_dx {
 			Utils::Log("Couldn't allocate context");
 			return -1;
 		}
-
+		decoder_ctx->opaque = this;
+		
 		AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
 		device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
 		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
@@ -81,47 +133,15 @@ namespace moonlight_xbox_dx {
 			return err2;
 
 		}
-		auto hw_frames_ctx = av_hwframe_ctx_alloc(hw_device_ctx);
-		if (!hw_frames_ctx) {
-			return 1;
-		}
-
+		
+		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 		decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
 		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
-
-		AVHWFramesContext* framesContext = (AVHWFramesContext*)hw_frames_ctx->data;
-
-		// We require NV12 or P010 textures for our shader
-		framesContext->format = AV_PIX_FMT_D3D11;
-		framesContext->sw_format = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
-
-		framesContext->width = FFALIGN(width, 16);
-		framesContext->height = FFALIGN(height, 16);
-
-		// We can have up to 16 reference frames plus a working surface
-		framesContext->initial_pool_size = 2;
-
-		AVD3D11VAFramesContext* d3d11vaFramesContext = (AVD3D11VAFramesContext*)framesContext->hwctx;
-
-		d3d11vaFramesContext->texture = NULL;
-		d3d11vaFramesContext->BindFlags = D3D11_BIND_DECODER;
-
-		int err = av_hwframe_ctx_init(hw_frames_ctx);
-		if (err < 0) {
-			return -1;
-		}
-
-		auto a = d3d11vaFramesContext->texture_infos != nullptr;
-		if (a) {
-			Utils::Log("B");
-		}
-		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-		decoder_ctx->hw_frames_ctx = av_buffer_ref(hw_frames_ctx);
-
 		decoder_ctx->width = width;
 		decoder_ctx->height = height;
+		decoder_ctx->get_format = ffGetFormat;
 
-		err = avcodec_open2(decoder_ctx, decoder, NULL);
+		int err = avcodec_open2(decoder_ctx, decoder, NULL);
 		if (err < 0) {
 			char msg[2048];
 			sprintf(msg, "Failed to create FFMpeg Codec: %d\n", err);
@@ -300,4 +320,7 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.capabilities = CAPABILITY_PULL_RENDERER;
 		return decoder_callbacks_sdl;
 	}
+
+	
 }
+
