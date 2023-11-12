@@ -7,6 +7,7 @@
 #include "HostSettingsPage.xaml.h"
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
+#include <gamingdeviceinformation.h>
 using namespace Windows::UI::Core;
 
 using namespace moonlight_xbox_dx;
@@ -71,6 +72,15 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 	AutoStartSelector->SelectedIndex = CurrentAppIndex;
 	BitrateInput->Text = host->Bitrate.ToString();
+	GAMING_DEVICE_MODEL_INFORMATION info = {};
+	GetGamingDeviceModelInformation(&info);
+	//Old Xbox One can only use H264, remove from settings everything else
+	if (!(info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
+		CodecComboBox->IsEnabled = false;
+		CodecComboBox->SelectedIndex = 0;
+		EnableHDRCheckbox->IsChecked = false;
+		EnableHDRCheckbox->IsEnabled = false;
+	}
 }
 
 void moonlight_xbox_dx::HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

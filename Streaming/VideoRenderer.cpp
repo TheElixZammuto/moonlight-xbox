@@ -260,14 +260,17 @@ void VideoRenderer::CreateDeviceDependentResources()
 	// Once both shaders are loaded, create the mesh.
 	auto createCubeTask = (createVSTask && createPSTaskGen && createPSTaskBT601 && createPSTaskBT2020).then([this]() {
 		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+		auto w = CoreWindow::GetForCurrentThread();
+		int m_DisplayWidth = w->Bounds.Width;
+		int m_DisplayHeight = w->Bounds.Height;
 		// HDR Setup
 		if (hdi) {
 			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
 			m_currentDisplayMode = m_lastDisplayMode;
+			// Scale video to the window size while preserving aspect ratio
+			m_DisplayWidth = max(m_currentDisplayMode->ResolutionWidthInRawPixels, 1920);
+			m_DisplayHeight = max(m_currentDisplayMode->ResolutionHeightInRawPixels, 1080);
 		}
-		// Scale video to the window size while preserving aspect ratio
-		int m_DisplayWidth = max(m_currentDisplayMode->ResolutionWidthInRawPixels,1920);
-		int m_DisplayHeight = max(m_currentDisplayMode->ResolutionHeightInRawPixels, 1080);
 		RECT src, dst;
 		src.x = src.y = 0;
 		src.w = this->configuration->width;

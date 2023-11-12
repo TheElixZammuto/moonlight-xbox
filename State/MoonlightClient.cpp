@@ -10,6 +10,7 @@ extern "C" {
 #include <Streaming\AudioPlayer.h>
 #include <Utils.hpp>
 #include <State\StreamConfiguration.h>
+#include <gamingdeviceinformation.h>
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
@@ -52,12 +53,19 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.packetSize = 1024;
 	config.hevcBitratePercentageMultiplier = 75;
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
-	if (config.height == 2160 || sConfig->videoCodec == "HEVC (H.265)" || sConfig->enableHDR) {
-		config.supportedVideoFormats |= VIDEO_FORMAT_H265;
-		if(sConfig->enableHDR)config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
+	GAMING_DEVICE_MODEL_INFORMATION info = {};
+	GetGamingDeviceModelInformation(&info);
+	//Old Xbox One can only use H264
+	if (!(info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
+		if (config.height == 2160 || sConfig->videoCodec == "HEVC (H.265)" || sConfig->enableHDR) {
+			config.supportedVideoFormats |= VIDEO_FORMAT_H265;
+			if (sConfig->enableHDR) {
+				config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
+				config.colorSpace = COLORSPACE_REC_2020;
+				config.colorRange = COLOR_RANGE_FULL;
+			}
+		}
 	}
-	config.colorSpace = COLORSPACE_REC_2020;
-	config.colorRange = COLOR_RANGE_FULL;
 	/*if (config.height == 2160 || sConfig->videoCodec == "HEVC (H.265)") {
 		config.supportedVideoFormats |= VIDEO_FORMAT_H265;
 	}*/
