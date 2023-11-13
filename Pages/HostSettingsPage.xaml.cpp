@@ -37,11 +37,16 @@ HostSettingsPage::HostSettingsPage()
 void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr)return;
+	GAMING_DEVICE_MODEL_INFORMATION info = {};
+	GetGamingDeviceModelInformation(&info);
 	host = mhost;
 	AvailableResolutions->Append(ref new ScreenResolution(1280, 720));
 	AvailableResolutions->Append(ref new ScreenResolution(1920, 1080));
-	AvailableResolutions->Append(ref new ScreenResolution(2560, 1440));
-	AvailableResolutions->Append(ref new ScreenResolution(3840, 2160));
+	//No 4K for Old Xbox One
+	if (!(info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
+		AvailableResolutions->Append(ref new ScreenResolution(2560, 1440));
+		AvailableResolutions->Append(ref new ScreenResolution(3840, 2160));
+	}
 	AvailableFPS->Append(30);
 	AvailableFPS->Append(60);
 	AvailableFPS->Append(120);
@@ -50,6 +55,7 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	AvailableAudioConfigs->Append("Stereo");
 	AvailableAudioConfigs->Append("Surround 5.1");
 	AvailableAudioConfigs->Append("Surround 7.1");
+	CurrentResolutionIndex = 0;
 	for (int i = 0; i < AvailableResolutions->Size; i++) {
 		if (host->Resolution->Width == AvailableResolutions->GetAt(i)->Width &&
 			host->Resolution->Height == AvailableResolutions->GetAt(i)->Height
@@ -72,10 +78,8 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 	AutoStartSelector->SelectedIndex = CurrentAppIndex;
 	BitrateInput->Text = host->Bitrate.ToString();
-	GAMING_DEVICE_MODEL_INFORMATION info = {};
-	GetGamingDeviceModelInformation(&info);
 	//Old Xbox One can only use H264, remove from settings everything else
-	if (!(info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
+	if ((info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
 		CodecComboBox->IsEnabled = false;
 		CodecComboBox->SelectedIndex = 0;
 		EnableHDRCheckbox->IsChecked = false;
