@@ -13,7 +13,7 @@ The connection to the host is done manually by the user by inserting the IP addr
 
 In any case, the user MUST for the first time confirm the connection with the host by pairing using a shared PIN on both Moonlight and the Host.
 
-Moonlight UWP DOES NOT connect, store, process Personal Information to other servers, services, app or computers 
+Moonlight UWP DOES NOT connect, store, process or share Personal Information to other servers, services, app or computers 
 other than the ones the user manually inputted (in case of hosts outside the LAN) and the ones discovered on the user LAN.
 
 This policy only covers the client side of the stack (the Moonlight UWP App). You should also check the privacy policy of the Host Software you are using and,
