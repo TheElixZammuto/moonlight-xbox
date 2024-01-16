@@ -134,23 +134,33 @@ bool VideoRenderer::Render()
 		UpdateStats(start);
 		return false;
 	}
-	FFMpegDecoder::getInstance()->mutex.lock();
-	FFMpegDecoder::getInstance()->shouldUnlock = true;
-	ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
-	D3D11_TEXTURE2D_DESC ffmpegDesc;
-	ffmpegTexture->GetDesc(&ffmpegDesc);
-	int index = (int)(frame->data[1]);
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
 	D3D11_BOX box;
 	box.left = 0;
 	box.top = 0;
-	box.right = min(renderTextureDesc.Width, ffmpegDesc.Width);
-	box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
+	box.right = renderTextureDesc.Width;
+	box.bottom = renderTextureDesc.Height;
 	box.front = 0;
 	box.back = 1;
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
-	renderTextureDesc.Format = ffmpegDesc.Format;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
-	m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
+	if (frame->format != AV_PIX_FMT_D3D11) {
+		char msg[2048];
+		sprintf_s(msg, "Pixel format mismatch - got %d instead of D3D11!\n", frame->format);
+		Utils::Log(msg);
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
+	}
+	else {
+		FFMpegDecoder::getInstance()->mutex.lock();
+		FFMpegDecoder::getInstance()->shouldUnlock = true;
+		ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
+		D3D11_TEXTURE2D_DESC ffmpegDesc;
+		ffmpegTexture->GetDesc(&ffmpegDesc);
+		int index = (int)(frame->data[1]);
+		box.right = min(renderTextureDesc.Width, ffmpegDesc.Width);
+		box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
+		renderTextureDesc.Format = ffmpegDesc.Format;
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
+		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
+	}
 
 	auto context = m_deviceResources->GetD3DDeviceContext();
 	UINT stride = sizeof(VERTEX);
@@ -178,6 +188,7 @@ bool VideoRenderer::Render()
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation");
 	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
 	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
+	
 	this->bindColorConversion(frame);
 
 	context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
