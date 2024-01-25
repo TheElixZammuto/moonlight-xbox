@@ -51,7 +51,6 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.encryptionFlags = 0;
 	config.fps = sConfig->FPS;
 	config.packetSize = 1024;
-	config.hevcBitratePercentageMultiplier = 75;
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
 	GAMING_DEVICE_MODEL_INFORMATION info = {};
 	GetGamingDeviceModelInformation(&info);
