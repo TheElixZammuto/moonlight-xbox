@@ -111,7 +111,6 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			while (action->Status == AsyncStatus::Started)
 			{
 				ProcessInput();
-				usleep(2000);
 			}
 		});
 
@@ -321,6 +320,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 			moonlightClient->SendGamepadReading(i, reading);
 		}
 		previousReading[i] = reading;
+		usleep(2000);
 	}
 }
 
