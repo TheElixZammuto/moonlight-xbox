@@ -30,6 +30,7 @@ namespace moonlight_xbox_dx
 		virtual void OnDeviceRestored();
 		void Disconnect();
 		void CloseApp();
+		void ToggleRecording();
 	private:
 		void ProcessInput();
 		void Update();

@@ -81,6 +81,11 @@ namespace moonlight_xbox_dx {
 		vsprintf_s(message, fmt, vl);
 		OutputDebugStringA("[FFMPEG]");
 		OutputDebugStringA(message);
+		if (level <= AV_LOG_INFO) {
+			Utils::Log("[FFMPEG]");
+			Utils::Log(message);
+			Utils::Log("\n");
+		}
 	}
 
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
@@ -140,7 +145,10 @@ namespace moonlight_xbox_dx {
 		decoder_ctx->width = width;
 		decoder_ctx->height = height;
 		decoder_ctx->get_format = ffGetFormat;
-
+		decoder_ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
+		decoder_ctx->flags |= AV_CODEC_FLAG_OUTPUT_CORRUPT;
+		decoder_ctx->flags2 |= AV_CODEC_FLAG2_SHOW_ALL;
+		decoder_ctx->err_recognition = AV_EF_EXPLODE;
 		int err = avcodec_open2(decoder_ctx, decoder, NULL);
 		if (err < 0) {
 			char msg[2048];
@@ -219,15 +227,7 @@ namespace moonlight_xbox_dx {
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
 			return false;
 		}
-		PLENTRY entry = decodeUnit->bufferList;
-		uint32_t length = 0;
-		while (entry != NULL) {
-			memcpy(ffmpeg_buffer + length, entry->data, entry->length);
-			length += entry->length;
-			entry = entry->next;
-		}
-		int err;
-		err = Decode(ffmpeg_buffer, length);
+		int err = Decode(decodeUnit);
 		if (err < 0) {
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
 			return false;
@@ -236,11 +236,24 @@ namespace moonlight_xbox_dx {
 		return true;
 	}
 
-	int FFMpegDecoder::Decode(unsigned char* indata, int inlen) {
+	int FFMpegDecoder::Decode(PDECODE_UNIT decodeUnit) {
+		PLENTRY entry = decodeUnit->bufferList;
+		uint32_t length = 0;
+		while (entry != NULL) {
+			memcpy(ffmpeg_buffer + length, entry->data, entry->length);
+			length += entry->length;
+			entry = entry->next;
+		}
 		int err;
 
-		pkt.data = indata;
-		pkt.size = inlen;
+		pkt.data = ffmpeg_buffer;
+		pkt.size = length;
+		if (decodeUnit->frameType == FRAME_TYPE_IDR) {
+			pkt.flags = AV_PKT_FLAG_KEY;
+		}
+		else {
+			pkt.flags = 0;
+		}
 		int ts = GetTickCount64();
 		err = avcodec_send_packet(decoder_ctx, &pkt);
 		if (err < 0) {
@@ -317,7 +330,7 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.stop = stopCallback;
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
 		decoder_callbacks_sdl.submitDecodeUnit = NULL;
-		decoder_callbacks_sdl.capabilities = CAPABILITY_PULL_RENDERER;
+		decoder_callbacks_sdl.capabilities = CAPABILITY_PULL_RENDERER | CAPABILITY_REFERENCE_FRAME_INVALIDATION_AVC | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC;
 		return decoder_callbacks_sdl;
 	}
 

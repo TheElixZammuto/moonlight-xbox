@@ -32,8 +32,8 @@ namespace moonlight_xbox_dx
 		void SetHDR(bool enabled);
 		void Stop();
 		ID3D11Texture2D* GenerateTexture();
-
-
+		void ToggleRecording();
+		bool initComplete;
 	private:
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
@@ -46,9 +46,11 @@ namespace moonlight_xbox_dx
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShaderBT601,m_pixelShaderBT2020,m_pixelShaderGeneric;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_constantBuffer;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>	samplerState;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D>		m_videoTexture;
 		D3D11_TEXTURE2D_DESC						renderTextureDesc;
 		Windows::Graphics::Display::Core::HdmiDisplayMode^ m_lastDisplayMode;
 		Windows::Graphics::Display::Core::HdmiDisplayMode^ m_currentDisplayMode;
+		ID3D11ShaderResourceView* m_VideoTextureResourceViews[2];
 
 		// System resources for cube geometry.
 		ModelViewProjectionConstantBuffer	m_constantBufferData;

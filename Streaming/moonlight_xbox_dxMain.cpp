@@ -330,7 +330,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 bool moonlight_xbox_dxMain::Render()
 {
 	// Don't try to render anything before the first Update.
-	if (m_timer.GetFrameCount() == 0)
+	if (!m_sceneRenderer->initComplete)
 	{
 		return false;
 	}
@@ -343,11 +343,10 @@ bool moonlight_xbox_dxMain::Render()
 
 	// Reset render targets to the screen.
 	ID3D11RenderTargetView* const targets[1] = { m_deviceResources->GetBackBufferRenderTargetView() };
-	context->OMSetRenderTargets(1, targets, m_deviceResources->GetDepthStencilView());
 
 	// Clear the back buffer and depth stencil view.
 	context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::Black);
-	context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	context->OMSetRenderTargets(1, targets, nullptr);
 
 	bool shouldPresent = m_sceneRenderer->Render();
 	// Render the scene objects.
@@ -399,4 +398,19 @@ void moonlight_xbox_dxMain::OnKeyUp(unsigned short virtualKey, char modifiers)
 {
 	if (this == nullptr || moonlightClient == nullptr)return;
 	moonlightClient->KeyUp(virtualKey, modifiers);
+}
+
+void moonlight_xbox_dxMain::ToggleRecording() {
+	Utils::Log("Started Recording!\n");
+	Windows::Storage::Pickers::FileSavePicker ^picker = ref new Windows::Storage::Pickers::FileSavePicker();
+	picker->DefaultFileExtension = ".mp4";
+	picker->SuggestedFileName = "recording.mp4";
+	auto ext = ref new Platform::Collections::Vector<Platform::String^>();
+	ext->Append(".mp4");
+	picker->FileTypeChoices->Insert("Video", ext);
+
+	create_task(picker->PickSaveFileAsync()).then([this](Windows::Storage::StorageFile^ file)
+	{
+			Utils::Log(Utils::PlatformStringToStdString(file->Path).c_str());
+	});
 }

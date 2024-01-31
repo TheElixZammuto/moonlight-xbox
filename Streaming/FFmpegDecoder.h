@@ -33,7 +33,7 @@ namespace moonlight_xbox_dx
 		int videoFormat,width,height;
 
 	private:
-		int Decode(unsigned char* indata, int inlen);
+		int Decode(PDECODE_UNIT decodeUnit);
 		AVPacket pkt;
 		const AVCodec* decoder;
 		AVCodecContext* decoder_ctx;
@@ -45,5 +45,6 @@ namespace moonlight_xbox_dx
 		AVFrame** ready_frames;
 		int next_frame, current_frame;
 		std::shared_ptr<DX::DeviceResources> resources;
+		FILE* recordFile;
 	};
 }

@@ -119,8 +119,11 @@ bool VideoRenderer::Render()
 	// Loading is asynchronous. Only draw geometry after it's loaded.
 	if (!m_loadingComplete)
 	{
-		return true;
+		return false;
 	}
+	UINT stride = sizeof(VERTEX);
+	UINT offset = 0;
+	m_deviceResources->GetD3DDeviceContext()->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
 	//Create a rendering texture
 	LARGE_INTEGER start;
 	QueryPerformanceCounter(&start);
@@ -134,7 +137,6 @@ bool VideoRenderer::Render()
 		UpdateStats(start);
 		return false;
 	}
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
 	D3D11_BOX box;
 	box.left = 0;
 	box.top = 0;
@@ -146,54 +148,23 @@ bool VideoRenderer::Render()
 		char msg[2048];
 		sprintf_s(msg, "Pixel format mismatch - got %d instead of D3D11!\n", frame->format);
 		Utils::Log(msg);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
+		return true;
 	}
-	else {
-		FFMpegDecoder::getInstance()->mutex.lock();
-		FFMpegDecoder::getInstance()->shouldUnlock = true;
-		ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
-		D3D11_TEXTURE2D_DESC ffmpegDesc;
-		ffmpegTexture->GetDesc(&ffmpegDesc);
-		int index = (int)(frame->data[1]);
-		box.right = min(renderTextureDesc.Width, ffmpegDesc.Width);
-		box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
-		renderTextureDesc.Format = ffmpegDesc.Format;
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
-		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
-	}
+	FFMpegDecoder::getInstance()->mutex.lock();
+	FFMpegDecoder::getInstance()->shouldUnlock = true;
+	ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
+	D3D11_TEXTURE2D_DESC ffmpegDesc;
+	ffmpegTexture->GetDesc(&ffmpegDesc);
+	int index = (int)(frame->data[1]);
+	box.right = min(renderTextureDesc.Width, ffmpegDesc.Width);
+	box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
+	m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(m_videoTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
 
-	auto context = m_deviceResources->GetD3DDeviceContext();
-	UINT stride = sizeof(VERTEX);
-	UINT offset = 0;
-	context->IASetIndexBuffer(m_indexBuffer.Get(),
-		DXGI_FORMAT_R32_UINT,
-		0);
-	context->IASetVertexBuffers(
-		0,
-		1,
-		m_vertexBuffer.GetAddressOf(),
-		&stride,
-		&offset
-	);
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->IASetInputLayout(m_inputLayout.Get());
-	// Attach our vertex shader.
-	context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
-	D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, (renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R8_UNORM);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()), "Luminance SRV Creation");
-	D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, (renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R8G8_UNORM);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation");
-	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
-	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
-	
 	this->bindColorConversion(frame);
 
-	context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
+	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 2, m_VideoTextureResourceViews);
 
-	context->DrawIndexed(6, 0, 0);
+	m_deviceResources->GetD3DDeviceContext()->DrawIndexed(6, 0, 0);
 
 	Utils::stats._framesDecoded++;
 	UpdateStats(start);
@@ -205,6 +176,7 @@ bool VideoRenderer::Render()
 void VideoRenderer::CreateDeviceDependentResources()
 {
 	Utils::Log("Started with creation of DXView\n");
+	if (FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.lock();
 	// Load shaders asynchronously.
 	// After the vertex shader file is loaded, create the shader and input layout.
 	auto createVSTask = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_vertex.fxc").then([this](const std::vector<byte>& fileData) {
@@ -232,6 +204,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 				&m_inputLayout
 			)
 			, "Input Layout Creation");
+		
 		});
 
 	// After the pixel shader file is loaded, create the shader and constant buffer.
@@ -270,6 +243,43 @@ void VideoRenderer::CreateDeviceDependentResources()
 
 	// Once both shaders are loaded, create the mesh.
 	auto createCubeTask = (createVSTask && createPSTaskGen && createPSTaskBT601 && createPSTaskBT2020).then([this]() {
+
+		auto context = m_deviceResources->GetD3DDeviceContext();
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_deviceResources->GetD3DDeviceContext()->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+		m_deviceResources->GetD3DDeviceContext()->IASetInputLayout(m_inputLayout.Get());
+		UINT stride = sizeof(VERTEX);
+		UINT offset = 0;
+		//Index Buffer
+		const int indexes[] = { 0, 1, 2, 3, 2, 1 };
+		D3D11_BUFFER_DESC indexBufferDesc = {};
+		indexBufferDesc.ByteWidth = sizeof(indexes);
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = sizeof(int);
+
+		D3D11_SUBRESOURCE_DATA indexBufferData = {};
+		indexBufferData.pSysMem = indexes;
+		indexBufferData.SysMemPitch = sizeof(int);
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, m_indexBuffer.GetAddressOf()), "Index Buffer creation");
+		m_deviceResources->GetD3DDeviceContext()->IASetIndexBuffer(m_indexBuffer.Get(),
+			DXGI_FORMAT_R32_UINT,
+			0);
+		//Sampler Configuration
+		D3D11_SAMPLER_DESC samplerDesc;
+		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.MipLODBias = 0.0f;
+		samplerDesc.MaxAnisotropy = 1;
+		samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+		samplerDesc.MinLOD = 0.0f;
+		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf()), "Sampler Creation");
+		context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
 		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 		auto w = CoreWindow::GetForCurrentThread();
 		int m_DisplayWidth = w->Bounds.Width;
@@ -319,68 +329,29 @@ void VideoRenderer::CreateDeviceDependentResources()
 				&m_vertexBuffer
 			)
 			, "Vertex Buffer Creation");
+		
+		//Blend State
+		D3D11_BLEND_DESC blendDesc = {};
+		blendDesc.AlphaToCoverageEnable = FALSE;
+		blendDesc.IndependentBlendEnable = FALSE;
+		blendDesc.RenderTarget[0].BlendEnable = TRUE;
+		blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-		const int indexes[] = { 0, 1, 2, 3, 2, 1 };
-		D3D11_BUFFER_DESC indexBufferDesc = {};
-		indexBufferDesc.ByteWidth = sizeof(indexes);
-		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		indexBufferDesc.CPUAccessFlags = 0;
-		indexBufferDesc.MiscFlags = 0;
-		indexBufferDesc.StructureByteStride = sizeof(int);
+		ID3D11BlendState* blendState;
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBlendState(&blendDesc, &blendState),"Blend State");
+		context->OMSetBlendState(blendState, nullptr, 0xffffffff);
+		blendState->Release();
+		if (FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.unlock();
+	});
 
-		D3D11_SUBRESOURCE_DATA indexBufferData = {};
-		indexBufferData.pSysMem = indexes;
-		indexBufferData.SysMemPitch = sizeof(int);
-
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
-		});
-
-	D3D11_RASTERIZER_DESC rasterizerState;
-	ZeroMemory(&rasterizerState, sizeof(D3D11_RASTERIZER_DESC));
-
-	rasterizerState.AntialiasedLineEnable = false;
-	rasterizerState.CullMode = D3D11_CULL_NONE; // D3D11_CULL_FRONT or D3D11_CULL_NONE D3D11_CULL_BACK
-	rasterizerState.FillMode = D3D11_FILL_SOLID; // D3D11_FILL_SOLID  D3D11_FILL_WIREFRAME
-	rasterizerState.DepthBias = 0;
-	rasterizerState.DepthBiasClamp = 0.0f;
-	rasterizerState.DepthClipEnable = true;
-	rasterizerState.FrontCounterClockwise = false;
-	rasterizerState.MultisampleEnable = false;
-	rasterizerState.ScissorEnable = false;
-	rasterizerState.SlopeScaledDepthBias = 0.0f;
-	//rasterizerState.FillMode = D3D11_FILL_WIREFRAME;
-	ID3D11RasterizerState* m_pRasterState;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateRasterizerState(&rasterizerState, &m_pRasterState), "Rasterizer Creation");
-	m_deviceResources->GetD3DDeviceContext()->RSSetState(m_pRasterState);
-
-	D3D11_SAMPLER_DESC samplerDesc;
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.MipLODBias = 0.0f;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	samplerDesc.MinLOD = -FLT_MAX;
-	samplerDesc.MaxLOD = FLT_MAX;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf()), "Sampler Creation");
-	renderTextureDesc = { 0 };
-	int width = configuration->width;
-	int height = configuration->height;
-	renderTextureDesc.Width = width;
-	renderTextureDesc.Height = height;
-	renderTextureDesc.ArraySize = 1;
-	renderTextureDesc.Format = DXGI_FORMAT_NV12;
-	renderTextureDesc.Usage = D3D11_USAGE_DEFAULT;
-	renderTextureDesc.MipLevels = 1;
-	renderTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	renderTextureDesc.SampleDesc.Quality = 0;
-	renderTextureDesc.SampleDesc.Count = 1;
-	renderTextureDesc.CPUAccessFlags = 0;
-	renderTextureDesc.MiscFlags = 0;
-	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
-	createCubeTask.then([this, width, height]() {
+	createCubeTask.then([this]() {
+		initComplete = true;
 		int status = client->StartStreaming(m_deviceResources, configuration);
 		if (status != 0) {
 			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
@@ -406,6 +377,34 @@ void VideoRenderer::CreateDeviceDependentResources()
 			dialog->ShowAsync();
 			return;
 		}
+		//Render Texture
+		auto vd = FFMpegDecoder::getInstance();
+		HRESULT hr;
+
+		renderTextureDesc.Width = vd->width;
+		renderTextureDesc.Height = configuration->height;
+		renderTextureDesc.MipLevels = 1;
+		renderTextureDesc.ArraySize = 1;
+		renderTextureDesc.Format = (vd->videoFormat & VIDEO_FORMAT_MASK_10BIT) ? DXGI_FORMAT_P010 : DXGI_FORMAT_NV12;
+		renderTextureDesc.SampleDesc.Quality = 0;
+		renderTextureDesc.SampleDesc.Count = 1;
+		renderTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+		renderTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		renderTextureDesc.CPUAccessFlags = 0;
+		renderTextureDesc.MiscFlags = 0;
+
+		hr = m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, nullptr, &m_videoTexture);
+
+		//Shader Resource View
+		// Create luminance and chrominance SRVs for each plane of the texture
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Format = (vd->videoFormat & VIDEO_FORMAT_MASK_10BIT) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R8_UNORM;
+		hr = m_deviceResources->GetD3DDevice()->CreateShaderResourceView(m_videoTexture.Get(), &srvDesc, &m_VideoTextureResourceViews[0]);
+		srvDesc.Format = (vd->videoFormat & VIDEO_FORMAT_MASK_10BIT) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R8G8_UNORM;
+		hr = m_deviceResources->GetD3DDevice()->CreateShaderResourceView(m_videoTexture.Get(), &srvDesc, &m_VideoTextureResourceViews[1]);
 		m_loadingComplete = true;
 		Utils::Log("Loading Complete!\n");
 		});
@@ -551,7 +550,7 @@ void VideoRenderer::SetHDR(bool enabled)
 	// According to MSDN, we need to lock the context even if we're just using DXGI functions
 	// https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-render-multi-thread-intro
 	//lockContext(this);
-	if(FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.lock();
+	if (FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.lock();
 
 	if (enabled) {
 		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
