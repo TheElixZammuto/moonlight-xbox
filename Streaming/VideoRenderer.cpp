@@ -165,7 +165,7 @@ bool VideoRenderer::Render()
 	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 2, m_VideoTextureResourceViews);
 
 	m_deviceResources->GetD3DDeviceContext()->DrawIndexed(6, 0, 0);
-
+	m_deviceResources->GetD3DDeviceContext()->Flush();
 	Utils::stats._framesDecoded++;
 	UpdateStats(start);
 	return true;

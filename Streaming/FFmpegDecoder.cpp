@@ -54,7 +54,7 @@ namespace moonlight_xbox_dx {
 				framesContext->height = FFALIGN(d->height, 16);
 
 				// We can have up to 16 reference frames plus a working surface
-				framesContext->initial_pool_size = 17;
+				framesContext->initial_pool_size = 16;
 
 				AVD3D11VAFramesContext* d3d11vaFramesContext = (AVD3D11VAFramesContext*)framesContext->hwctx;
 
@@ -144,7 +144,7 @@ namespace moonlight_xbox_dx {
 		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
 		decoder_ctx->width = width;
 		decoder_ctx->height = height;
-		decoder_ctx->get_format = ffGetFormat;
+		//decoder_ctx->get_format = ffGetFormat;
 		decoder_ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
 		decoder_ctx->flags |= AV_CODEC_FLAG_OUTPUT_CORRUPT;
 		decoder_ctx->flags2 |= AV_CODEC_FLAG2_SHOW_ALL;
