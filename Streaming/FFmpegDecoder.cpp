@@ -39,33 +39,6 @@ namespace moonlight_xbox_dx {
 			// to override the default get_format() which will try
 			// to gracefully fall back to software decode and break us.
 			if (*p == AV_PIX_FMT_D3D11) {
-				auto hw_frames_ctx = av_hwframe_ctx_alloc(context->hw_device_ctx);
-				if (!hw_frames_ctx) {
-					return AV_PIX_FMT_NONE;
-				}
-
-				AVHWFramesContext* framesContext = (AVHWFramesContext*)hw_frames_ctx->data;
-
-				// We require NV12 or P010 textures for our shader
-				framesContext->format = AV_PIX_FMT_D3D11;
-				framesContext->sw_format = (d->videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
-
-				framesContext->width = FFALIGN(d->width, 16);
-				framesContext->height = FFALIGN(d->height, 16);
-
-				// We can have up to 16 reference frames plus a working surface
-				framesContext->initial_pool_size = 16;
-
-				AVD3D11VAFramesContext* d3d11vaFramesContext = (AVD3D11VAFramesContext*)framesContext->hwctx;
-
-				d3d11vaFramesContext->texture = NULL;
-				d3d11vaFramesContext->BindFlags = D3D11_BIND_DECODER;
-
-				int err = av_hwframe_ctx_init(hw_frames_ctx);
-				if (err < 0) {
-					return AV_PIX_FMT_NONE;
-				}
-				context->hw_frames_ctx = av_buffer_ref(hw_frames_ctx);
 				return *p;
 			}
 		}
@@ -144,11 +117,8 @@ namespace moonlight_xbox_dx {
 		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
 		decoder_ctx->width = width;
 		decoder_ctx->height = height;
-		//decoder_ctx->get_format = ffGetFormat;
-		decoder_ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
-		decoder_ctx->flags |= AV_CODEC_FLAG_OUTPUT_CORRUPT;
-		decoder_ctx->flags2 |= AV_CODEC_FLAG2_SHOW_ALL;
-		decoder_ctx->err_recognition = AV_EF_EXPLODE;
+		decoder_ctx->get_format = ffGetFormat;
+
 		int err = avcodec_open2(decoder_ctx, decoder, NULL);
 		if (err < 0) {
 			char msg[2048];
@@ -227,16 +197,6 @@ namespace moonlight_xbox_dx {
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
 			return false;
 		}
-		int err = Decode(decodeUnit);
-		if (err < 0) {
-			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
-			return false;
-		}
-		LiCompleteVideoFrame(frameHandle, DR_OK);
-		return true;
-	}
-
-	int FFMpegDecoder::Decode(PDECODE_UNIT decodeUnit) {
 		PLENTRY entry = decodeUnit->bufferList;
 		uint32_t length = 0;
 		while (entry != NULL) {
@@ -245,15 +205,20 @@ namespace moonlight_xbox_dx {
 			entry = entry->next;
 		}
 		int err;
+		err = Decode(ffmpeg_buffer, length);
+		if (err < 0) {
+			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
+			return false;
+		}
+		LiCompleteVideoFrame(frameHandle, DR_OK);
+		return true;
+	}
 
-		pkt.data = ffmpeg_buffer;
-		pkt.size = length;
-		if (decodeUnit->frameType == FRAME_TYPE_IDR) {
-			pkt.flags = AV_PKT_FLAG_KEY;
-		}
-		else {
-			pkt.flags = 0;
-		}
+	int FFMpegDecoder::Decode(unsigned char* indata, int inlen) {
+		int err;
+
+		pkt.data = indata;
+		pkt.size = inlen;
 		int ts = GetTickCount64();
 		err = avcodec_send_packet(decoder_ctx, &pkt);
 		if (err < 0) {
@@ -330,7 +295,7 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.stop = stopCallback;
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
 		decoder_callbacks_sdl.submitDecodeUnit = NULL;
-		decoder_callbacks_sdl.capabilities = CAPABILITY_PULL_RENDERER | CAPABILITY_REFERENCE_FRAME_INVALIDATION_AVC | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC;
+		decoder_callbacks_sdl.capabilities = CAPABILITY_PULL_RENDERER;
 		return decoder_callbacks_sdl;
 	}
 
