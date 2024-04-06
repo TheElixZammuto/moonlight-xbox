@@ -560,10 +560,7 @@ void VideoRenderer::SetHDR(bool enabled)
 			for (unsigned i = 0; i < modes->Size; i++)
 			{
 				auto mode = modes->GetAt(i);
-				//char msg[4096];
-				//sprintf_s(msg, "NEW VIDEO MODE\nW: %d - H: %d - Colorspace: %x - bitsize %d FPS: %f\n", mode->ResolutionWidthInRawPixels, mode->ResolutionHeightInRawPixels, mode->ColorSpace, mode->BitsPerPixel, mode->RefreshRate);
-				//Utils::Log(msg);
-				if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels && mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels && mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT2020 && mode->RefreshRate >= 59)
+				if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels && mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels && mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT2020 && mode->RefreshRate >= m_currentDisplayMode->RefreshRate)
 				{
 					m_currentDisplayMode = mode;
 					hdi->RequestSetCurrentDisplayModeAsync(mode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084);
@@ -639,7 +636,6 @@ void VideoRenderer::SetHDR(bool enabled)
 		}
 	}
 	if (FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.unlock();
-	//unlockContext(this);
 }
 
 void VideoRenderer::Stop() {
