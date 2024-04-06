@@ -26,9 +26,22 @@
                 <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
                     <MenuFlyoutItem x:Name="toggleMouseButton" Text="Enable Mouse Mode" Click="toggleMouseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                         <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE72D;" />
+                            <FontIcon Glyph="&#xE962;" />
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
+                    <MenuFlyoutSubItem Text="Other Actions">
+                        <MenuFlyoutItem x:Name="guideButtonShort" Text="Guide Button (short)" Click="guideButtonShort_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xe80f;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="guideButtonLong" Text="Guide Button (long)" Click="guideButtonLong_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xe80f;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyoutSubItem>
+                    <MenuFlyoutSeparator></MenuFlyoutSeparator>
                     <MenuFlyoutItem x:Name="toggleLogsButton" Text="Show Logs" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >
                         <MenuFlyoutItem.Icon>
                             <FontIcon Glyph="&#xF0B5;" />
@@ -39,6 +52,7 @@
                             <FontIcon Glyph="&#xEC48;" />
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
+                    <MenuFlyoutSeparator></MenuFlyoutSeparator>
                     <MenuFlyoutItem x:Name="disonnectButton" Text="Disconnect" Click="disonnectButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                         <MenuFlyoutItem.Icon>
                             <FontIcon Glyph="&#xE72D;" />

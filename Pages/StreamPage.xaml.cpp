@@ -206,3 +206,15 @@ void moonlight_xbox_dx::StreamPage::Keyboard_OnKeyUp(moonlight_xbox_dx::Keyboard
 {
 	this->m_main->OnKeyUp(e->VirtualKey, e->Modifiers);
 }
+
+
+void moonlight_xbox_dx::StreamPage::guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->m_main->SendGuideButton(500);
+}
+
+
+void moonlight_xbox_dx::StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->m_main->SendGuideButton(3000);
+}

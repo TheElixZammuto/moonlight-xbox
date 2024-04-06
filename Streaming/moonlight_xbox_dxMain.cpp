@@ -400,3 +400,12 @@ void moonlight_xbox_dxMain::OnKeyUp(unsigned short virtualKey, char modifiers)
 	if (this == nullptr || moonlightClient == nullptr)return;
 	moonlightClient->KeyUp(virtualKey, modifiers);
 }
+
+void moonlight_xbox_dxMain::SendGuideButton(int duration) {
+	concurrency::create_async([duration,this]() {
+		moonlightClient->SendGuide(0, true);
+		Sleep(duration);
+		moonlightClient->SendGuide(0, false);
+	});
+}
+
