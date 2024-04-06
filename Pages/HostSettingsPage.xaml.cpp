@@ -77,7 +77,6 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		}
 	}
 	AutoStartSelector->SelectedIndex = CurrentAppIndex;
-	BitrateInput->Text = host->Bitrate.ToString();
 	//Old Xbox One can only use H264, remove from settings everything else
 	if ((info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
 		CodecComboBox->IsEnabled = false;
@@ -108,13 +107,6 @@ void moonlight_xbox_dx::HostSettingsPage::ResolutionSelector_SelectionChanged(Pl
 {
 	host->Resolution = AvailableResolutions->GetAt(this->ResolutionSelector->SelectedIndex);
 }
-
-
-void moonlight_xbox_dx::HostSettingsPage::BitrateInput_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e)
-{
-	host->Bitrate = std::stoi(Utils::PlatformStringToStdString(this->BitrateInput->Text));
-}
-
 
 void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
