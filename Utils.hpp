@@ -9,6 +9,11 @@ namespace moonlight_xbox_dx {
 			int fps = 0;
 			double _accumulatedSeconds = 0;
 			int _framesDecoded = 0;
+			float outputW = 0;
+			float outputH = 0;
+			float compositionScaleX = 0;
+			float compositionScaleY = 0;
+			float compositionScaleMultiplier = 0;
 		};
 		
 		extern std::vector<std::wstring> logLines;

@@ -234,8 +234,8 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	float normalizedHeight = uwp_get_height();
 	m_d3dRenderTargetSize.Width = normalizedWidth;
 	m_d3dRenderTargetSize.Height = normalizedHeight;
-	moonlight_xbox_dx::Utils::outputW = m_d3dRenderTargetSize.Width;
-	moonlight_xbox_dx::Utils::outputH = m_d3dRenderTargetSize.Height;
+	moonlight_xbox_dx::Utils::stats.outputW = m_d3dRenderTargetSize.Width;
+	moonlight_xbox_dx::Utils::stats.outputH = m_d3dRenderTargetSize.Height;
 	if (m_swapChain != nullptr)
 	{
 		// If the swap chain already exists, resize it.
@@ -480,6 +480,9 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 
 	m_effectiveCompositionScaleX = m_compositionScaleX * compositionScaleMultiplier;
 	m_effectiveCompositionScaleY = m_compositionScaleY * compositionScaleMultiplier;
+	moonlight_xbox_dx::Utils::stats.compositionScaleX = m_compositionScaleX;
+	moonlight_xbox_dx::Utils::stats.compositionScaleY = m_compositionScaleY;
+	moonlight_xbox_dx::Utils::stats.compositionScaleMultiplier = compositionScaleMultiplier;
 }
 
 // This method is called when the XAML control is created (or re-created).
