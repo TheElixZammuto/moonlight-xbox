@@ -13,6 +13,20 @@
                 <SymbolIcon Symbol="Back" />
             </Button.Content>
         </Button>
+        <Border Margin="0,8,0,8">
+            <Border.Background>
+                <SolidColorBrush Color="{ThemeResource SystemListAccentMediumColor}"/>
+            </Border.Background>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Margin="8,8,4,8" VerticalAlignment="Center">
+                    <Run FontFamily="Segoe Fluent Icons" FontSize="32">&#xe946;</Run>
+                </TextBlock>
+                <TextBlock Margin="4,8,4,8" VerticalAlignment="Center">
+                    Looking to change Resolution, FPS or Bitrate? Use the settings button in the app grid to change the settings of your host
+                </TextBlock>
+            </StackPanel>
+            
+        </Border>
         <Grid RowSpacing="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition  Width="200"></ColumnDefinition>
