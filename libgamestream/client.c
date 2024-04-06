@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <curl/curl.h>
 #ifdef _WIN32
 #define PATH_MAX 4096
 #include "winrt.h"
@@ -188,11 +189,12 @@ static int load_serverinfo(PSERVER_DATA server, bool https) {
     https ? "https" : "http", server->serverInfo.address, https ? server->httpsPort : server->httpPort, unique_id, uuid_str);
 
   PHTTP_DATA data = http_create_data();
+  CURL* curl = get_curl_handle();
   if (data == NULL) {
     ret = GS_OUT_OF_MEMORY;
     goto cleanup;
   }
-  if (http_request(url, data) != GS_OK) {
+  if (http_request(curl, url, data) != GS_OK) {
     ret = GS_IO_ERROR;
     goto cleanup;
   }
@@ -278,6 +280,8 @@ static int load_serverinfo(PSERVER_DATA server, bool https) {
 
   if (httpsPortText != NULL)
     free(httpsPortText);
+  
+  http_cleanup(curl);
 
   return ret;
 }
@@ -425,9 +429,11 @@ int gs_unpair(PSERVER_DATA server) {
   uuid_generate_random(&uuid);
   uuid_unparse(&uuid, uuid_str);
   snprintf(url, sizeof(url), "http://%s:%u/unpair?uniqueid=%s&uuid=%s", server->serverInfo.address, server->httpPort, unique_id, uuid_str);
-  ret = http_request(url, data);
+  CURL* curl = get_curl_handle();
+  ret = http_request(curl, url, data);
 
   http_free_data(data);
+  http_cleanup(curl);
   return ret;
 }
 
@@ -452,9 +458,10 @@ int gs_pair(PSERVER_DATA server, char* pin) {
   uuid_unparse(&uuid, uuid_str);
   snprintf(url, sizeof(url), "http://%s:%u/pair?uniqueid=%s&uuid=%s&devicename=roth&updateState=1&phrase=getservercert&salt=%s&clientcert=%s", server->serverInfo.address, server->httpPort, unique_id, uuid_str, salt_hex, cert_hex);
   PHTTP_DATA data = http_create_data();
+  CURL *curl = get_curl_handle();
   if (data == NULL)
     return GS_OUT_OF_MEMORY;
-  else if ((ret = http_request(url, data)) != GS_OK)
+  else if ((ret = http_request(curl,url, data)) != GS_OK)
     goto cleanup;
 
   if ((ret = xml_status(data->memory, data->size) != GS_OK))
@@ -507,7 +514,7 @@ int gs_pair(PSERVER_DATA server, char* pin) {
   uuid_generate_random(&uuid);
   uuid_unparse(&uuid, uuid_str);
   snprintf(url, sizeof(url), "http://%s:%u/pair?uniqueid=%s&uuid=%s&devicename=roth&updateState=1&clientchallenge=%s", server->serverInfo.address, server->httpPort, unique_id, uuid_str, challenge_hex);
-  if ((ret = http_request(url, data)) != GS_OK)
+  if ((ret = http_request(curl, url, data)) != GS_OK)
     goto cleanup;
 
   free(result);
@@ -569,7 +576,7 @@ int gs_pair(PSERVER_DATA server, char* pin) {
   uuid_generate_random(&uuid);
   uuid_unparse(&uuid, uuid_str);
   snprintf(url, sizeof(url), "http://%s:%u/pair?uniqueid=%s&uuid=%s&devicename=roth&updateState=1&serverchallengeresp=%s", server->serverInfo.address, server->httpPort, unique_id, uuid_str, challenge_response_hex);
-  if ((ret = http_request(url, data)) != GS_OK)
+  if ((ret = http_request(curl, url, data)) != GS_OK)
     goto cleanup;
 
   free(result);
@@ -627,7 +634,7 @@ int gs_pair(PSERVER_DATA server, char* pin) {
   uuid_generate_random(&uuid);
   uuid_unparse(&uuid, uuid_str);
   snprintf(url, sizeof(url), "http://%s:%u/pair?uniqueid=%s&uuid=%s&devicename=roth&updateState=1&clientpairingsecret=%s", server->serverInfo.address, server->httpPort, unique_id, uuid_str, client_pairing_secret_hex);
-  if ((ret = http_request(url, data)) != GS_OK)
+  if ((ret = http_request(curl, url, data)) != GS_OK)
     goto cleanup;
 
   free(result);
@@ -646,7 +653,7 @@ int gs_pair(PSERVER_DATA server, char* pin) {
   uuid_generate_random(&uuid);
   uuid_unparse(&uuid, uuid_str);
   snprintf(url, sizeof(url), "https://%s:%u/pair?uniqueid=%s&uuid=%s&devicename=roth&updateState=1&phrase=pairchallenge", server->serverInfo.address, server->httpsPort, unique_id, uuid_str);
-  if ((ret = http_request(url, data)) != GS_OK)
+  if ((ret = http_request(curl, url, data)) != GS_OK)
     goto cleanup;
 
   free(result);
@@ -670,7 +677,7 @@ int gs_pair(PSERVER_DATA server, char* pin) {
 
   if (result != NULL)
     free(result);
-
+  http_cleanup(curl);
   http_free_data(data);
 
   // If we failed when attempting to pair with a game running, that's likely the issue.
@@ -695,13 +702,15 @@ int gs_applist(PSERVER_DATA server, PAPP_LIST *list) {
   uuid_generate_random(&uuid);
   uuid_unparse(&uuid, uuid_str);
   snprintf(url, sizeof(url), "https://%s:%u/applist?uniqueid=%s&uuid=%s", server->serverInfo.address, server->httpsPort, unique_id, uuid_str);
-  if (http_request(url, data) != GS_OK)
+  CURL* curl = get_curl_handle();
+  if (http_request(curl,url, data) != GS_OK)
     ret = GS_IO_ERROR;
   else if (xml_status(data->memory, data->size) == GS_ERROR)
     ret = GS_ERROR;
   else if (xml_applist(data->memory, data->size, list) != GS_OK)
     ret = GS_INVALID;
-
+  
+  http_cleanup(curl);
   http_free_data(data);
   return ret;
 }
@@ -752,8 +761,8 @@ int gs_start_app(PSERVER_DATA server, STREAM_CONFIGURATION *config, int appId, b
   snprintf(url, sizeof(url), "https://%s:%u/%s?uniqueid=%s&uuid=%s&appid=%d&mode=%dx%dx%d&additionalStates=1&sops=%d&rikey=%s&rikeyid=%d&localAudioPlayMode=%d&surroundAudioInfo=%d&remoteControllersBitmap=%d&gcmap=%d%s%s",
       server->serverInfo.address, server->httpsPort, server->currentGame ? "resume" : "launch", unique_id, uuid_str, appId, config->width, config->height, fps, sops, rikey_hex, rikeyid, localaudio, surround_info, gamepad_mask, gamepad_mask,
       (config->supportedVideoFormats & VIDEO_FORMAT_MASK_10BIT) ? "&hdrMode=1&clientHdrCapVersion=0&clientHdrCapSupportedFlagsInUint32=0&clientHdrCapMetaDataId=NV_STATIC_METADATA_TYPE_1&clientHdrCapDisplayData=0x0x0x0x0x0x0x0x0x0x0" : "", LiGetLaunchUrlQueryParameters());
-
-  if ((ret = http_request(url, data)) == GS_OK)
+  CURL* curl = get_curl_handle();
+  if ((ret = http_request(curl, url, data)) == GS_OK)
     server->currentGame = appId;
   else
     goto cleanup;
@@ -780,7 +789,8 @@ int gs_start_app(PSERVER_DATA server, STREAM_CONFIGURATION *config, int appId, b
   cleanup:
   if (result != NULL)
     free(result);
-
+  
+  http_cleanup(curl);
   http_free_data(data);
   return ret;
 }
@@ -798,7 +808,8 @@ int gs_quit_app(PSERVER_DATA server) {
   uuid_generate_random(&uuid);
   uuid_unparse(&uuid, uuid_str);
   snprintf(url, sizeof(url), "https://%s:%u/cancel?uniqueid=%s&uuid=%s", server->serverInfo.address, server->httpsPort, unique_id, uuid_str);
-  if ((ret = http_request(url, data)) != GS_OK)
+  CURL* curl = get_curl_handle();
+  if ((ret = http_request(curl, url, data)) != GS_OK)
     goto cleanup;
 
   if ((ret = xml_status(data->memory, data->size) != GS_OK))
@@ -816,6 +827,7 @@ int gs_quit_app(PSERVER_DATA server) {
     free(result);
 
   http_free_data(data);
+  http_cleanup(curl);
   return ret;
 }
 
@@ -846,12 +858,14 @@ int gs_appasset(PSERVER_DATA server, const char *keyDirectory, int appId) {
     char uniqueFilePath[PATH_MAX];
     snprintf(uniqueFilePath, PATH_MAX, "%s%d.png", keyDirectory, appId);
     FILE* fd = fopen(uniqueFilePath, "wb");
-    if ((ret = http_request_binary(url, fd)) != GS_OK)
+    CURL* curl = get_curl_handle();
+    if ((ret = http_request_binary(curl, url, fd)) != GS_OK)
         goto cleanup;
     fclose(fd);
 
 cleanup:
     if (result != NULL)
         free(result);
+    http_cleanup(curl);
     return ret;
 }

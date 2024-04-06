@@ -24,12 +24,12 @@
 #include <string.h>
 #include <curl/curl.h>
 
-static CURL *curl;
-
 static const char *pCertFile = "./client.pem";
 static const char *pKeyFile = "./key.pem";
 
 static bool debug;
+static struct curl_blob certBlob, keyBlob;
+
 
 static size_t _write_curl(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -53,11 +53,23 @@ static size_t _write_curl_binary(void* contents, size_t size, size_t nmemb, void
     return written;
 }
 
+CURL* get_curl_handle() {
+    CURL* curl = curl_easy_init();
+    if (!curl) return GS_FAILED;
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSLENGINE_DEFAULT, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, "PEM");
+    curl_easy_setopt(curl, CURLOPT_SSLCERT_BLOB, certBlob);
+    curl_easy_setopt(curl, CURLOPT_SSLKEYTYPE, "PEM");
+    curl_easy_setopt(curl, CURLOPT_SSLKEY_BLOB, keyBlob);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_SESSIONID_CACHE, 0L);
+    return curl;
+}
+
 int http_init(const char* keyDirectory, int logLevel) {
-  curl = curl_easy_init();
   debug = logLevel >= 2;
-  if (!curl)
-    return GS_FAILED;
 
   char certificateFilePath[4096];
   sprintf(certificateFilePath, "%s%s", keyDirectory, CERTIFICATE_FILE_NAME);
@@ -72,7 +84,6 @@ int http_init(const char* keyDirectory, int logLevel) {
   void* certificateBuffer = malloc(size);
   fseek(fp, 0, SEEK_SET);
   int a = fread(certificateBuffer, 1, size, fp);
-  struct curl_blob certBlob;
   certBlob.data = certificateBuffer;
   certBlob.len = size;
   certBlob.flags = CURL_BLOB_COPY;
@@ -83,23 +94,14 @@ int http_init(const char* keyDirectory, int logLevel) {
   void* keyBuffer = malloc(size);
   fseek(fp, 0, SEEK_SET);
   a = fread(keyBuffer, 1, size, fp);
-  struct curl_blob keyBlob;
   keyBlob.data = keyBuffer;
   keyBlob.len = size;
   keyBlob.flags = CURL_BLOB_COPY;
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-  curl_easy_setopt(curl, CURLOPT_SSLENGINE_DEFAULT, 1L);
-  curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE,"PEM");
-  a = curl_easy_setopt(curl, CURLOPT_SSLCERT_BLOB, certBlob);
-  curl_easy_setopt(curl, CURLOPT_SSLKEYTYPE, "PEM");
-  int b = curl_easy_setopt(curl, CURLOPT_SSLKEY_BLOB, keyBlob);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-  curl_easy_setopt(curl, CURLOPT_SSL_SESSIONID_CACHE, 0L);
+  
   return GS_OK;
 }
 
-int http_request(char* url, PHTTP_DATA data) {
+int http_request(CURL* curl, char* url, PHTTP_DATA data) {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
   curl_easy_setopt(curl, CURLOPT_URL, url);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _write_curl);
@@ -130,7 +132,7 @@ int http_request(char* url, PHTTP_DATA data) {
   return GS_OK;
 }
 
-int http_request_binary(char* url, FILE *data) {
+int http_request_binary(CURL *curl, char* url, FILE *data) {
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _write_curl_binary);
@@ -147,7 +149,7 @@ int http_request_binary(char* url, FILE *data) {
     return GS_OK;
 }
 
-void http_cleanup() {
+void http_cleanup(CURL *curl) {
   curl_easy_cleanup(curl);
 }
 
