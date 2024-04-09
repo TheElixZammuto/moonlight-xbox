@@ -11,6 +11,7 @@ namespace moonlight_xbox_dx {
         Platform::String^ instanceId;
         Platform::String^ lastHostname;
         Platform::String^ computerName;
+        Platform::String^ macAddress;
         bool paired;
         bool connected;
         bool loading = true;
@@ -201,6 +202,15 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->enableHDR = value;
                 OnPropertyChanged("EnableHDR");
+            }
+        }
+
+        property Platform::String^ MacAddress 
+        {
+            Platform::String^ get() { return this->macAddress; }
+            void set(Platform::String^ value) {
+                this->macAddress = value;
+                OnPropertyChanged("MacAddress");
             }
         }
     };

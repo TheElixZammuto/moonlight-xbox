@@ -360,6 +360,10 @@ Platform::String^ MoonlightClient::GetComputerName() {
 	return Utils::StringFromChars(serverData.serverName);
 }
 
+Platform::String^ MoonlightClient::GetMacAddress() {
+	return Utils::StringFromChars(serverData.macAddress);
+}
+
 void MoonlightClient::KeyDown(unsigned short v, char modifiers) {
 	LiSendKeyboardEvent2(v, KEY_ACTION_DOWN, modifiers, 0);
 }

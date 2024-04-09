@@ -240,6 +240,9 @@ static int load_serverinfo(PSERVER_DATA server, bool https) {
   if (xml_search(data->memory, data->size, "HttpsPort", &httpsPortText) != GS_OK)
     goto cleanup;
 
+  if (xml_search(data->memory, data->size, "mac", &server->macAddress) != GS_OK)
+      goto cleanup;
+
   if (xml_modelist(data->memory, data->size, &server->modes) != GS_OK)
     goto cleanup;
 
@@ -252,7 +255,7 @@ static int load_serverinfo(PSERVER_DATA server, bool https) {
   server->serverInfo.serverCodecModeSupport = serverCodecModeSupportText == NULL ? SCM_H264 : atoi(serverCodecModeSupportText);
   server->serverMajorVersion = atoi(server->serverInfo.serverInfoAppVersion);
   server->isNvidiaSoftware = strstr(stateText, "MJOLNIR") != NULL;
-
+ 
   server->httpsPort = atoi(httpsPortText);
   if (!server->httpsPort)
     server->httpsPort = 47984;
