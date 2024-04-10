@@ -134,6 +134,7 @@ moonlight_xbox_dx::ApplicationState^ moonlight_xbox_dx::GetApplicationState() {
 void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 {
 	// if (host == nullptr || host->Connected) return;
+
 	/*
 	if (host->MacAddress == nullptr || host->MacAddress == "00:00:00:00:00:00") {
 		Utils::Log("No recorded Mac address, the client and host must be connected at least once.\n");
@@ -154,50 +155,50 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 		return;
 	}
 	
-	int broadcast = 1;
-
-	struct sockaddr_in addr;
-
-	memset(&addr, 0, sizeof(struct sockaddr_in));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(9);
-	addr.sin_addr.s_addr = inet_addr(Utils::PlatformStringToStdString(host->LastHostname).data());
+	std::string hostIP = Utils::PlatformStringToStdString(host->LastHostname);
+	std::string broadcastIP = (hostIP.substr(0, hostIP.length() - 3) + "255");
+	const char* addresses[3] = { 
+		"255.255.255.255", 
+		hostIP.c_str(),
+		broadcastIP.c_str()
+	};
 
 	std::string macStr = Utils::PlatformStringToStdString(host->MacAddress);
-	std::string macHex;
+	std::string macHex(6, 0x00);
 	for (int i = 0; i < 6; i++) {
 		char dummy[3] = "00";
 		for (int j = 0; j < 2; j++) {
 			dummy[j] = macStr[j + (i * 3)];
 		}
 
-		int num = strtol(dummy, NULL, 16);
-		                                                                                
-		macHex += num;
+		macHex[i] = (char)strtol(dummy, NULL, 16);
 	}
 
-	/*
-	char data[102];
-	memset(data, 0xff, 6);
-
-	for (int i = 1; i < 17; i++) {
-		memcpy(data + (i * 6), macHex, 6);
-	}
-	*/
 	std::string data(6, 0xFF);
 	for (int i = 0; i < 16; ++i) {
 		data += macHex;
 	}
 
 	const int optval = 1;
-	setsockopt(s, SOL_SOCKET, SO_BROADCAST, (char*) & optval, sizeof(optval));
+	setsockopt(s, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(optval));
 
-	int status = sendto(s, data.c_str(), data.length(), 0, (struct sockaddr*)&addr, sizeof(addr));
-	if (status == SOCKET_ERROR)	{
-		Utils::Log("Error sending Wake-On-Lan packet.\n");
-	}
-	else {
-		Utils::Log("Wake-On-Lan packet sent.\n");
+	for (int i = 0; i < 3; i++) {
+		struct sockaddr_in addr;
+		memset(&addr, 0, sizeof(struct sockaddr_in));
+
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons(9);
+		addr.sin_addr.s_addr = inet_addr(addresses[i]);
+
+		bind(s, (struct sockaddr*)&addr, sizeof(addr));
+
+		int status = sendto(s, data.c_str(), data.length(), 0, (struct sockaddr*)&addr, sizeof(addr));
+		if (status == SOCKET_ERROR)	{
+			Utils::Log("Error sending Wake-On-Lan packet.\n");
+		}
+		else {
+			Utils::Log("Wake-On-Lan packet sent.\n");
+		}
 	}
 
 	closesocket(s);
