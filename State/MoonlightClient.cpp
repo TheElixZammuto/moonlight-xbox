@@ -360,7 +360,7 @@ Platform::String^ MoonlightClient::GetComputerName() {
 	return Utils::StringFromChars(serverData.serverName);
 }
 
-Platform::String^ MoonlightClient::GetMacAddress() {
+Platform::String^ MoonlightClient::GetServerMacAddress() {
 	return Utils::StringFromChars(serverData.macAddress);
 }
 
