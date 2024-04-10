@@ -14,12 +14,7 @@ namespace moonlight_xbox_dx {
 			this->InstanceId = client->GetInstanceID();
 			if (this->Connected) {
 				this->ComputerName = client->GetComputerName();
-
-				Platform::String^ macAddress = client->GetServerMacAddress();
-				if (macAddress != this->MacAddress) {
-					this->MacAddress = macAddress;
-					GetApplicationState()->UpdateFile();
-				}
+				this->MacAddress = client->GetServerMacAddress();
 			}
 		}
 		this->Loading = false;

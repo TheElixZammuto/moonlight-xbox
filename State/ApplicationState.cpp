@@ -96,6 +96,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["autoStartID"] = host->AutostartID;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
 			hostJson["enable_hdr"] = host->EnableHDR;
+			hostJson["macaddress"] = Utils::PlatformStringToStdString(host->MacAddress);
 			stateJson["hosts"].push_back(hostJson);
 		}
 		auto jsonString = stateJson.dump();
@@ -133,14 +134,12 @@ moonlight_xbox_dx::ApplicationState^ moonlight_xbox_dx::GetApplicationState() {
 
 void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 {
-	// if (host == nullptr || host->Connected) return;
+	if (host == nullptr || host->Connected) return;
 
-	/*
 	if (host->MacAddress == nullptr || host->MacAddress == "00:00:00:00:00:00") {
 		Utils::Log("No recorded Mac address, the client and host must be connected at least once.\n");
 		return;
 	}
-	*/
 
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
@@ -155,7 +154,7 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 		return;
 	}
 	
-	std::string hostIP = Utils::PlatformStringToStdString(host->LastHostname);
+	std::string hostIP = Utils::PlatformStringToStdString(host->LastHostname).substr(0, 14);
 	std::string broadcastIP = (hostIP.substr(0, hostIP.length() - 3) + "255");
 	const char* addresses[3] = { 
 		"255.255.255.255", 
@@ -174,7 +173,7 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 		macHex[i] = (char)strtol(dummy, NULL, 16);
 	}
 
-	std::string data(6, 0xFF);
+	std::string data(6, (char)0xFF);
 	for (int i = 0; i < 16; ++i) {
 		data += macHex;
 	}
@@ -192,7 +191,7 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 
 		bind(s, (struct sockaddr*)&addr, sizeof(addr));
 
-		int status = sendto(s, data.c_str(), data.length(), 0, (struct sockaddr*)&addr, sizeof(addr));
+		int status = sendto(s, data.c_str(), (int)data.length(), 0, (struct sockaddr*)&addr, sizeof(addr));
 		if (status == SOCKET_ERROR)	{
 			Utils::Log("Error sending Wake-On-Lan packet.\n");
 		}
