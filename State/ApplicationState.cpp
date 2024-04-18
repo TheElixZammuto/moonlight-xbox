@@ -143,7 +143,7 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-		Utils::Log("Websocket startup failed.\n");
+		Utils::Log("socket startup failed.\n");
 		return;
 	}
 
