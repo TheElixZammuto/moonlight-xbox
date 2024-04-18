@@ -149,7 +149,7 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 
 	SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (s == SOCKET_ERROR || s == INVALID_SOCKET) {
-		Utils::Log("Websocket creation failed.\n");
+		Utils::Log("socket creation failed.\n");
 		WSACleanup();
 		return;
 	}
