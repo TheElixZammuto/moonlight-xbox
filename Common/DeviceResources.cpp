@@ -469,7 +469,7 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 {
 	auto state = GetApplicationState();
 	m_effectiveDpi = m_dpi;
-	int compositionScaleMultiplier = 1;
+	double compositionScaleMultiplier = 1;
 
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	// HDR Setup
