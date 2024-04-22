@@ -475,7 +475,8 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 	// HDR Setup
 	if (hdi) {
 		auto mode = hdi->GetCurrentDisplayMode();
-		if (mode->ResolutionWidthInRawPixels > 1920)compositionScaleMultiplier = 2;
+		if (mode->ResolutionWidthInRawPixels > 2560)compositionScaleMultiplier = 2;
+		else if (mode->ResolutionWidthInRawPixels > 1920)compositionScaleMultiplier = 1.33333333;
 	}
 
 	m_effectiveCompositionScaleX = m_compositionScaleX * compositionScaleMultiplier;
