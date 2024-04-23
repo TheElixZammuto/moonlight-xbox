@@ -207,3 +207,9 @@ void moonlight_xbox_dx::HostSelectorPage::OnKeyDown(Platform::Object^ sender, Wi
 		CoreInputView::GetForCurrentView()->TryHide();
 	}
 }
+
+
+void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	State->WakeHost(currentHost);
+}
