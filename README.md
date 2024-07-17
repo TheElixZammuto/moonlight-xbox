@@ -55,9 +55,9 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 
 1. Clone this repository (`moonlight-xbox`) with submodules enabled!
 2. Install [VCPKG](https://vcpkg.io/en/index.html) and all dependencies:
-    1. Clone VCPKG (`git clone https://github.com/Microsoft/vcpkg.git`) into `moonlight-xbox/vcpkg`
+    1. Run `git submodule update --init --recursive`
     2. Run `vcpkg\bootstrap-vcpkg.bat`
-    4. Install dependencies: `.\vcpkg\vcpkg.exe install --triplet x64-uwp`
+    3. Install dependencies: `.\vcpkg\vcpkg.exe install --triplet x64-uwp`
 3. Run x64 Visual Studio Prompt (Tools → Command Line → Developer Command Prompt)
     1. Run `generate-thirdparty-projects.bat` to generate `moonlight-common-c` VS project
     2. Go to `libgamestream` and run `build-uwp.bat` to generate `libgamestream` VS project
