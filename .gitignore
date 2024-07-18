@@ -340,3 +340,7 @@ ASALocalRun/
 healthchecksdb
 /libgamestream/build
 vcpkg_installed
+
+# cmake build directories
+build/
+cmake-build-*/
