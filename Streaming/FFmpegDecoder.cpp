@@ -211,6 +211,12 @@ namespace moonlight_xbox_dx {
 		}
 		int err;
 
+
+		if (decodeUnit->frameType == FRAME_TYPE_IDR) {
+			framesSinceLastIDR = 0;
+			pkt.flags |= AV_PKT_FLAG_KEY;
+		}
+
 		err = Decode(ffmpeg_buffer, length);
 		if (err < 0) {
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
@@ -219,11 +225,14 @@ namespace moonlight_xbox_dx {
 
 		LiCompleteVideoFrame(frameHandle, DR_OK);
 
+		// Mitigate the issue where the video slowly gets more corrupt by periodically 
+		// requesting an IDR frame
+#ifdef MAX_DELAY_BETWEEN_IDR_FRAMES
 		if (framesSinceLastIDR++ >= MAX_DELAY_BETWEEN_IDR_FRAMES) {
-			// This mitigates the issue where the video slowly gets more corrupt
 			LiRequestIdrFrame();
 			framesSinceLastIDR = 0;
 		}
+#endif // #MAX_DELAY_BETWEEN_IDR_FRAMES
 
 		return true;
 	}
