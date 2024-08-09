@@ -276,7 +276,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
 		swapChainDesc.BufferCount = 5;							
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = 0;
+		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
