@@ -134,9 +134,9 @@ jobs:
     - name: Clean Certificate
       if: always()  # clean up, even if build fails
       run: |
-      if(test-path cert.pfx){
-        Remove-Item -path cert.pfx
-      }
+        if(test-path cert.pfx){
+          Remove-Item -path cert.pfx
+        }
       
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
