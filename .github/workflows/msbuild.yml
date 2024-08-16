@@ -1,74 +1,142 @@
+---
 name: MSBuild
 
-on: [push]
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
 
 env:
-  # Path to the solution file relative to the root of the project.
-  SOLUTION_FILE_PATH: .
-
-  # Configuration type to build.
-  # You can convert this to a build matrix if you need coverage of multiple configuration types.
-  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-  BUILD_CONFIGURATION: Release
+  SOLUTION_FILE_PATH: .  # Path to the solution file relative to the root of the project.
+  BUILD_CONFIGURATION: Release  # Configuration type to build.
 
 jobs:
   build:
     runs-on: windows-2022
-
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: 'recursive'
-      
+
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
+      uses: microsoft/setup-msbuild@v2
 
     - name: Restore VCPKG packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: Invoke-WebRequest -Uri "https://github.com/TheElixZammuto/moonlight-xbox/releases/download/1.10.0/vcpkg_installed.zip" -OutFile .\vcpkg_installed.zip
-    - name: Extract VCPKG packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: Expand-Archive .\vcpkg_installed.zip -DestinationPath .\
-    - name: Extract VCPKG packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: dir .\vcpkg_installed
-    - name: Complete install of folder
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      shell: pwsh
-      run: .\vcpkg\bootstrap-vcpkg.bat
-    #- name: Complete install of folder
-    #  working-directory: ${{env.GITHUB_WORKSPACE}}
-    #  shell: pwsh
-    #  run: .\vcpkg\vcpkg.exe install --triplet x64-uwp
-    - name: Build third party tools
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: .\generate-thirdparty-projects.bat
-    - name: Restore NuGet
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
-    - name: Load Certificate
       run: |
-        $encodedBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_FILE); 
-        Set-Content "cert.pfx" -Value $encodedBytes -AsByteStream;
-        Get-FileHash -Path "cert.pfx";
-      shell: pwsh
-      working-directory: ${{env.GITHUB_WORKSPACE}}
+        Invoke-WebRequest `
+          -Uri "https://github.com/TheElixZammuto/moonlight-xbox/releases/download/1.10.0/vcpkg_installed.zip" `
+          -OutFile .\vcpkg_installed.zip
+
+    - name: Extract VCPKG packages
+      run: Expand-Archive .\vcpkg_installed.zip -DestinationPath .\
+
+    - name: List VCPKG packages
+      run: dir .\vcpkg_installed
+
+    - name: Install VCPKG packages
+      run: .\vcpkg\bootstrap-vcpkg.bat
+
+    - name: Build third party tools
+      run: .\generate-thirdparty-projects.bat
+
+    - name: Restore NuGet
+      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
+
+    - name: Load Certificate (fork)
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      id: cert
+      if: >-
+        github.event_name == 'pull_request' &&
+        !startsWith(github.event.pull_request.head.repo.full_name, 'TheElixZammuto/')
+      run: |
+        # generate a self signed certificate in pfx format
+        
+        # https://learn.microsoft.com/en-us/windows/msix/package/create-certificate-package-signing#use-new-selfsignedcertificate-to-create-a-certificate
+        $cert = New-SelfSignedCertificate `
+          -Type Custom `
+          -Subject "CN=CE07B73A-712E-4E05-932B-D08CE2C8A87C" `
+          -KeyUsage DigitalSignature `
+          -FriendlyName "MoonlightUWP" `
+          -CertStoreLocation "Cert:\LocalMachine\My" `
+          -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+
+        # Use the GITHUB_TOKEN to create a password for the certificate
+        # The token expires when the workflow ends OR after a maximum of 24 hours
+        # GITHUB_TOKENS from forks have very limited permissions, which is basically read-only
+        $githubToken = $env:GH_TOKEN
+        $md5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
+        $hashBytes = $md5.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($githubToken))
+        $hash = [System.BitConverter]::ToString($hashBytes).Replace("-", "").ToLower()
+        $password = ConvertTo-SecureString -String $hash -Force -AsPlainText
+
+        # export the password for later use, decoded
+        $github_output = "password=$hash"
+        $github_output | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+        Export-PfxCertificate `
+          -Cert Cert:\LocalMachine\My\$($cert.Thumbprint) `
+          -FilePath cert.pfx `
+          -Password (ConvertTo-SecureString -String $hash -AsPlainText -Force)
+        Get-FileHash -Path "cert.pfx"
+
+        # # Add the certificate to the local machine store
+        # $cert_guid = [guid]::NewGuid()
+        # netsh http add sslcert `
+        #   ipport=0.0.0.0:443 `
+        #   certhash=$($cert.Thumbprint.ToString()) `
+        #   appid=$($cert_guid.ToString('B'))
+
+    - name: Load Certificate (local)
+      if: >-
+        (startsWith(github.event.pull_request.head.repo.full_name, 'TheElixZammuto/') &&
+            github.event_name == 'pull_request') ||
+        (startsWith(github.repository.full_name, 'TheElixZammuto/') &&
+            github.event_name == 'push')
       env:
         CERTIFICATE_FILE: ${{ secrets.CERTIFICATE_FILE }}
+      run: |
+        $encodedBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_FILE)
+        Set-Content "cert.pfx" -Value $encodedBytes -AsByteStream
+        Get-FileHash -Path "cert.pfx"
+
     - name: Build
-      working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:AppxBundle=Always /p:AppxPackageDir=output /p:PackageCertificateKeyFile=cert.pfx /p:UapAppxPackageBuildMode=SideLoadOnly ${{env.SOLUTION_FILE_PATH}}
-    - name: Load Certificate
+      run: |
+        # get the password from the output if this is a fork
+        $certPassword = "${{ steps.cert.outputs.password }}"
+
+        # if certPassword is not empty, use it
+        if ($certPassword -ne "") {
+          $certPasswordArg = "/p:PackageCertificatePassword=$certPassword"
+        }
+        else {
+          $certPasswordArg = ""
+        }
+
+        msbuild /m `
+          /p:Configuration=${{env.BUILD_CONFIGURATION}} `
+          /p:AppxBundle=Always `
+          /p:AppxPackageDir=output `
+          /p:PackageCertificateKeyFile=cert.pfx `
+          /p:UapAppxPackageBuildMode=SideLoadOnly `
+          $certPasswordArg `
+          ${{env.SOLUTION_FILE_PATH}}
+
+    - name: Clean Certificate
+      if: always()  # clean up, even if build fails
       run: Remove-Item -path cert.pfx
-      shell: pwsh
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v2
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
       with:
         name: moonlight-uwp
         path: |
