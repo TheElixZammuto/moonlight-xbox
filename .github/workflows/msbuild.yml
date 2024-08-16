@@ -98,7 +98,7 @@ jobs:
       if: >-
         (startsWith(github.event.pull_request.head.repo.full_name, 'TheElixZammuto/') &&
             github.event_name == 'pull_request') ||
-        (startsWith(github.repository.full_name, 'TheElixZammuto/') &&
+        (startsWith(github.repository, 'TheElixZammuto/') &&
             github.event_name == 'push')
       env:
         CERTIFICATE_FILE: ${{ secrets.CERTIFICATE_FILE }}
