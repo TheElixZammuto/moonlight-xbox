@@ -44,6 +44,7 @@ namespace moonlight_xbox_dx
 		AVFrame** dec_frames;
 		AVFrame** ready_frames;
 		int next_frame, current_frame;
+		int framesSinceLastIDR;
 		std::shared_ptr<DX::DeviceResources> resources;
 	};
 }

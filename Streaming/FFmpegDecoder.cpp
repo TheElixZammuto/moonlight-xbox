@@ -14,7 +14,9 @@ extern "C" {
 #include<libswscale/swscale.h>
 #include<libavutil/hwcontext_d3d11va.h>
 }
+
 #define DECODER_BUFFER_SIZE 1048576
+#define MAX_DELAY_BETWEEN_IDR_FRAMES 1000
 
 namespace moonlight_xbox_dx {
 
@@ -163,6 +165,9 @@ namespace moonlight_xbox_dx {
 			Utils::Log("Using hack for Xbox One Consoles");
 			hackWait = true;
 		}
+
+		framesSinceLastIDR = 0;
+
 		return 0;
 	}
 
@@ -205,12 +210,30 @@ namespace moonlight_xbox_dx {
 			entry = entry->next;
 		}
 		int err;
+
+
+		if (decodeUnit->frameType == FRAME_TYPE_IDR) {
+			framesSinceLastIDR = 0;
+			pkt.flags |= AV_PKT_FLAG_KEY;
+		}
+
 		err = Decode(ffmpeg_buffer, length);
 		if (err < 0) {
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
 			return false;
 		}
+
 		LiCompleteVideoFrame(frameHandle, DR_OK);
+
+		// Mitigate the issue where the video slowly gets more corrupt by periodically 
+		// requesting an IDR frame
+#ifdef MAX_DELAY_BETWEEN_IDR_FRAMES
+		if (framesSinceLastIDR++ >= MAX_DELAY_BETWEEN_IDR_FRAMES) {
+			LiRequestIdrFrame();
+			framesSinceLastIDR = 0;
+		}
+#endif // #MAX_DELAY_BETWEEN_IDR_FRAMES
+
 		return true;
 	}
 
@@ -301,4 +324,3 @@ namespace moonlight_xbox_dx {
 
 	
 }
-
