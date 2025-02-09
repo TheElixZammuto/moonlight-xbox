@@ -4,7 +4,8 @@
 #include <nlohmann/json.hpp>
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <WinSock2.h>
-
+#include <ws2tcpip.h>
+#include <sstream>
 
 using namespace Windows::Storage;
 Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
@@ -28,7 +29,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
 				if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
 				for (auto a : stateJson["hosts"]) {
-					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
+					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["ipAddress"].get<std::string>()), 
+					 										 Utils::StringFromStdString(a["port"].get<std::string>()));
 					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
 					if (a.contains("width") && a.contains("height")) {
 						h->Resolution = ref new ScreenResolution(a["width"], a["height"]);
@@ -49,12 +51,14 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 		});
 }
 
-bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
-	MoonlightHost^ host = ref new MoonlightHost(hostname);
+bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ ipAddress, Platform::String^ port) {
+	MoonlightHost^ host = ref new MoonlightHost(ipAddress, port);
 	host->UpdateStats();
 	if (!host->Connected)return false;
 	for (auto h : SavedHosts) {
 		if (host->InstanceId == h->InstanceId) {
+			h->IPAddress = host->IPAddress;
+			h->Port = host->Port;
 			h->LastHostname = host->LastHostname;
 			UpdateFile();
 			return true;
@@ -84,6 +88,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		stateJson["alternateCombination"] = that->AlternateCombination;
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
+			hostJson["ipAddress"] = Utils::PlatformStringToStdString(host->IPAddress);
+			hostJson["port"] = Utils::PlatformStringToStdString(host->Port);
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
 			hostJson["instance_id"] = Utils::PlatformStringToStdString(host->InstanceId);
 			hostJson["computername"] = Utils::PlatformStringToStdString(host->ComputerName);
@@ -136,26 +142,85 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 {
 	if (host == nullptr || host->Connected) return;
 
-	if (host->MacAddress == nullptr || host->MacAddress == "00:00:00:00:00:00") {
-		Utils::Log("No recorded Mac address, the client and host must be connected at least once.\n");
+	if (host->MacAddress == nullptr || host->MacAddress == "00:00:00:00:00:00" || host->NotPaired) {
+		Utils::Log("No recorded Mac address, the client and host must be paired.\n");
 		return;
 	}
 
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-		Utils::Log("socket startup failed.\n");
+		Utils::Log("Socket startup failed.\n");
 		return;
 	}
 
 	SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (s == SOCKET_ERROR || s == INVALID_SOCKET) {
-		Utils::Log("socket creation failed.\n");
+		Utils::Log("Socket creation failed.\n");
 		WSACleanup();
 		return;
 	}
 	
-	std::string hostIP = Utils::PlatformStringToStdString(host->LastHostname).substr(0, 14);
-	std::string broadcastIP = (hostIP.substr(0, hostIP.length() - 3) + "255");
+	std::string hostIP = Utils::PlatformStringToStdString(host->IPAddress);
+	if (hostIP.empty())
+	{
+		Utils::Log("No IPAddress was found with host.\n");
+		WSACleanup();
+		return;
+	}
+
+	if (inet_addr(hostIP.c_str()) == -1)
+	{
+		Utils::Log("Given IP Address is not Ipv4. Resolving...\n");
+		struct hostent* he = gethostbyname(hostIP.c_str());
+		hostIP = inet_ntoa(*(struct in_addr*)he->h_addr_list[0]);
+
+		if (inet_addr(hostIP.c_str()) == -1)
+		{
+			Utils::Log("IPAddress could not be resolved from host name.\n");
+			WSACleanup();
+			return;
+		}
+	}
+
+	// Get Subnet Mask
+	struct in_addr ip_addr;
+	if (inet_pton(AF_INET, hostIP.c_str(), &ip_addr) != 1) {
+		Utils::Log("The given IP address was invalid.\n");
+		WSACleanup();
+		return;
+	}
+
+	uint32_t hostIP_int = ntohl(ip_addr.s_addr);
+	uint32_t subnetMask;
+
+	if ((hostIP_int & 0xF0000000) == 0x00000000) { // Class A
+		subnetMask = 4278190080; // 255.0.0.0
+	}
+	else if ((hostIP_int & 0xE0000000) == 0x80000000) { // Class B
+		subnetMask = 4294901760; // 255.255.0.0
+	}
+	else if ((hostIP_int & 0xC0000000) == 0xC0000000) { // Class C
+		subnetMask = 4294967040; // 255.255.255.0
+	}
+	else {
+		Utils::Log("Could not determine subnet mask from IP address.\n");
+		WSACleanup();
+		return;
+	}
+	
+	// Get Broadcast Address
+	auto broadcastInt = hostIP_int | ( ~subnetMask);
+	
+	// BroadcastAddress to IP string
+	std::stringstream ss3;
+	for (int i = 3; i >= 0; --i) {
+		ss3 << ((broadcastInt >> (8 * i)) & 0xFF);
+		if (i > 0) {
+			ss3 << ".";
+		}
+	}
+	auto broadcastIP = ss3.str();
+
 	const char* addresses[3] = { 
 		"255.255.255.255", 
 		hostIP.c_str(),

@@ -56,14 +56,14 @@ void moonlight_xbox_dx::HostSelectorPage::NewHostButton_Click(Platform::Object^ 
 void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::ContentDialog^ sender, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^ args)
 {
 	sender->IsPrimaryButtonEnabled = false;
-	Platform::String^ hostname = dialogHostnameTextBox->Text;
+	Platform::String^ ipAddress = dialogHostnameTextBox->Text;
 	auto def = args->GetDeferral();
-	Concurrency::create_task([def, hostname, this, args, sender]() {
-		bool status = state->AddHost(hostname);
+	Concurrency::create_task([def, ipAddress, this, args, sender]() {
+		bool status = state->AddHost(ipAddress, "");
 		if (!status) {
-			Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([sender, this, hostname, def, args]() {
+			Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([sender, this, ipAddress, def, args]() {
 				args->Cancel = true;
-				sender->Content = L"Failed to Connect to " + hostname;
+				sender->Content = L"Failed to Connect to " + ipAddress;
 				def->Complete();
 				}));
 			return;
@@ -198,7 +198,7 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 			}
 			Sleep(5000);
 		}
-		});
+	});
 }
 
 void moonlight_xbox_dx::HostSelectorPage::OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)

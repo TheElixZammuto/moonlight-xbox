@@ -66,7 +66,6 @@ ip_address_to_string(char* buffer, size_t capacity, const struct sockaddr* addr,
 	return ipv4_address_to_string(buffer, capacity, (const struct sockaddr_in*)addr, addrlen);
 }
 
-
 // Callback handling parsing answers to queries sent
 static int
 query_callback(int sock, const struct sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
@@ -95,15 +94,14 @@ query_callback(int sock, const struct sockaddr* from, size_t addrlen, mdns_entry
 		
 	}
 	if (ports.count(key) && hostnames.count(key)) {
-		auto hostname = hostnames[key];
-		auto hostnamePlusPort = Utils::StringFromStdString(hostname) + ":" + ports[key];
-		GetApplicationState()->AddHost(hostnamePlusPort);
+		auto hostname = Utils::StringFromStdString(hostnames[key]);
+		auto port = ports[key];
+		GetApplicationState()->AddHost(hostname, port.ToString());
 		hostnames.erase(key);
 		ports.erase(key);
 	}
 	return 0;
 }
-
 
 void init_mdns() {
 	WSADATA wsaData;

@@ -17,7 +17,7 @@ namespace moonlight_xbox_dx {
 		bool alternateCombination;
 	internal:
 		Concurrency::task<void> Init();
-		bool AddHost(Platform::String^ hostname);
+		bool AddHost(Platform::String^ ipAddress, Platform::String^ port);
 		Concurrency::task<void> UpdateFile();
 		void RemoveHost(MoonlightHost^ host);
 		std::string autostartInstance = "";
