@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <WinSock2.h>
-#include <ws2tcpip.h>
+#include <WS2tcpip.h>
 #include <sstream>
 
 using namespace Windows::Storage;
@@ -168,10 +168,19 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 		return;
 	}
 
+	
 	if (inet_addr(hostIP.c_str()) == -1)
 	{
 		Utils::Log("Given IP Address is not Ipv4. Resolving...\n");
 		struct hostent* he = gethostbyname(hostIP.c_str());
+		
+		if (!he) {
+			Utils::Log("gethostbyname failed. Could not resolve the hostname.\n");
+			WSACleanup();
+			return;
+
+		}
+
 		hostIP = inet_ntoa(*(struct in_addr*)he->h_addr_list[0]);
 
 		if (inet_addr(hostIP.c_str()) == -1)
