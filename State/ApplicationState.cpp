@@ -144,12 +144,12 @@ bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 		throw std::runtime_error("The client and host must be paired.");
 	}
 
-	if (host->MacAddress == nullptr || host->MacAddress == "00:00:00:00:00:00") {
+	if (host->MacAddress == nullptr || host->MacAddress->IsEmpty() || host->MacAddress == "00:00:00:00:00:00") {
 		Utils::Log("No recorded Mac address.\n");
 		throw std::runtime_error("No recorded Mac address.");
 	}
 
-	std::string& macAddress = Utils::PlatformStringToStdString(host->MacAddress);
+	std::string macAddress = Utils::PlatformStringToStdString(host->MacAddress);
 	std::string etherAddr;
 
 	for (size_t i = 0; i < macAddress.length();) {
@@ -158,7 +158,7 @@ bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 
 		for (size_t j = 0; j < macAddress.substr(i, 2).length(); ++j) {
 			hex <<= 4;
-			std::string& s = macAddress.substr(i, 2);
+			std::string s = macAddress.substr(i, 2);
 			if (isdigit(s[j])) {
 				hex |= s[j] - '0';
 			}
@@ -206,6 +206,7 @@ bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 
 	if (sendto(descriptor, message.c_str(), message.length(), 0,
 		reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+		closesocket(descriptor);
 		return false;
 	}
 
