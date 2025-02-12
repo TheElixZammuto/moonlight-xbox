@@ -36,12 +36,11 @@ HostSelectorPage::HostSelectorPage()
 	InitializeComponent();
 }
 
-
-void moonlight_xbox_dx::HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	dialogHostnameTextBox = ref new TextBox();
 	dialogHostnameTextBox->AcceptsReturn = false;
-	dialogHostnameTextBox->KeyDown += ref new Windows::UI::Xaml::Input::KeyEventHandler(this, &moonlight_xbox_dx::HostSelectorPage::OnKeyDown);
+	dialogHostnameTextBox->KeyDown += ref new Windows::UI::Xaml::Input::KeyEventHandler(this, &HostSelectorPage::OnKeyDown);
 	ContentDialog^ dialog = ref new ContentDialog();
 	dialog->Content = dialogHostnameTextBox;
 	dialog->Title = L"Add new Host";
@@ -49,11 +48,10 @@ void moonlight_xbox_dx::HostSelectorPage::NewHostButton_Click(Platform::Object^ 
 	dialog->PrimaryButtonText = "Ok";
 	dialog->SecondaryButtonText = "Cancel";
 	dialog->ShowAsync();
-	dialog->PrimaryButtonClick += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Xaml::Controls::ContentDialog^, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^>(this, &moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick);
+	dialog->PrimaryButtonClick += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Xaml::Controls::ContentDialog^, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^>(this, &HostSelectorPage::OnNewHostDialogPrimaryClick);
 }
 
-
-void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::ContentDialog^ sender, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^ args)
+void HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::ContentDialog^ sender, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^ args)
 {
 	sender->IsPrimaryButtonEnabled = false;
 	Platform::String^ hostname = dialogHostnameTextBox->Text;
@@ -74,14 +72,13 @@ void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::U
 		});
 }
 
-
-void moonlight_xbox_dx::HostSelectorPage::GridView_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)
+void HostSelectorPage::GridView_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)
 {
 	MoonlightHost^ host = (MoonlightHost^)e->ClickedItem;
 	this->Connect(host);
 }
 
-void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
+void HostSelectorPage::StartPairing(MoonlightHost^ host) {
 	MoonlightClient* client = new MoonlightClient();
 	char ipAddressStr[2048];
 	wcstombs_s(NULL, ipAddressStr, host->LastHostname->Data(), 2047);
@@ -107,16 +104,15 @@ void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 				host->UpdateStats();
 			}
 		));
-		});
+	});
 }
 
-
-void moonlight_xbox_dx::HostSelectorPage::removeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSelectorPage::removeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	State->RemoveHost(currentHost);
 }
 
-void moonlight_xbox_dx::HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e)
+void HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e)
 {
 	//Thanks to https://stackoverflow.com/questions/62878368/uwp-gridview-listview-get-the-righttapped-item-supporting-both-mouse-and-xbox-co
 	FrameworkElement^ senderElement = (FrameworkElement^)e->OriginalSource;
@@ -134,17 +130,17 @@ void moonlight_xbox_dx::HostSelectorPage::HostsGrid_RightTapped(Platform::Object
 	this->ActionsFlyout->ShowAt(senderElement);
 }
 
-void moonlight_xbox_dx::HostSelectorPage::hostSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSelectorPage::hostSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), currentHost);
 }
 
-void moonlight_xbox_dx::HostSelectorPage::SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSelectorPage::SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
 }
 
-void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
+void HostSelectorPage::OnStateLoaded() {
 	if (GetApplicationState()->FirstTime) {
 		this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
 		return;
@@ -171,7 +167,7 @@ void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
 
 }
 
-void moonlight_xbox_dx::HostSelectorPage::Connect(MoonlightHost^ host) {
+void HostSelectorPage::Connect(MoonlightHost^ host) {
 	if (!host->Connected)return;
 	if (!host->Paired) {
 		StartPairing(host);
@@ -181,7 +177,6 @@ void moonlight_xbox_dx::HostSelectorPage::Connect(MoonlightHost^ host) {
 	continueFetch = false;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
 }
-
 
 void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
@@ -198,7 +193,7 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		});
 }
 
-void moonlight_xbox_dx::HostSelectorPage::OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
+void HostSelectorPage::OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
 {
 	if (e->Key == Windows::System::VirtualKey::Enter) {
 		CoreInputView::GetForCurrentView()->TryHide();

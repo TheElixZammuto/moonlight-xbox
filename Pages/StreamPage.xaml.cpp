@@ -30,8 +30,6 @@ StreamPage::StreamPage():
 	m_windowVisible(true),
 	m_coreInput(nullptr)
 {
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &StreamPage::OnBackRequested);
 	InitializeComponent();
 
 	DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
@@ -40,6 +38,9 @@ StreamPage::StreamPage():
 		ref new SizeChangedEventHandler(this, &StreamPage::OnSwapChainPanelSizeChanged);
 	m_deviceResources = std::make_shared<DX::DeviceResources>();
 	//Resize to make fullscreen on Xbox
+
+	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &StreamPage::OnLoaded);
+	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &StreamPage::OnUnloaded);
 }
 
 
@@ -60,8 +61,8 @@ void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::Routed
 {
 	try {
 		Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
-		keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyDown));
-		keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &moonlight_xbox_dx::StreamPage::OnKeyUp));
+		keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &StreamPage::OnKeyDown));
+		keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &StreamPage::OnKeyUp));
 		// At this point we have access to the device. 
 		// We can create the device-dependent resources.
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
@@ -109,27 +110,27 @@ void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::
 }
 
 
-void moonlight_xbox_dx::StreamPage::flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void StreamPage::flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout((FrameworkElement^)sender);
 	m_main->SetFlyoutOpened(true);
 }
 
 
-void moonlight_xbox_dx::StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e)
+void StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e)
 {
 	if(m_main != nullptr) m_main->SetFlyoutOpened(false);
 }
 
 
-void moonlight_xbox_dx::StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	m_main->mouseMode = !m_main->mouseMode;
 	this->toggleMouseButton->Text = m_main->mouseMode ? "Exit Mouse Mode" : "Toggle Mouse Mode";
 }
 
 
-void moonlight_xbox_dx::StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	Utils::showLogs = !Utils::showLogs;
 	this->toggleLogsButton->Text = Utils::showLogs ? "Hide Logs" : "Show Logs";
@@ -141,14 +142,14 @@ void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArg
 	if (configuration == nullptr)return;
 }
 
-void moonlight_xbox_dx::StreamPage::toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void StreamPage::toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	Utils::showStats = !Utils::showStats;
 	this->toggleStatsButton->Text = Utils::showStats ? "Hide Stats" : "Show Stats";
 }
 
 
-void moonlight_xbox_dx::StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
@@ -157,7 +158,7 @@ void moonlight_xbox_dx::StreamPage::disonnectButton_Click(Platform::Object^ send
 	this->Frame->GoBack();
 }
 
-void moonlight_xbox_dx::StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
+void StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
 {
 	//Ignore Gamepad input
 	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
@@ -171,7 +172,7 @@ void moonlight_xbox_dx::StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sen
 }
 
 
-void moonlight_xbox_dx::StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
+void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
 {
 	//Ignore Gamepad input
 	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
@@ -186,7 +187,7 @@ void moonlight_xbox_dx::StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sende
 }
 
 
-void moonlight_xbox_dx::StreamPage::disconnectAndCloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void StreamPage::disconnectAndCloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;	
@@ -196,25 +197,39 @@ void moonlight_xbox_dx::StreamPage::disconnectAndCloseButton_Click(Platform::Obj
 	this->Frame->GoBack();
 }
 
-void moonlight_xbox_dx::StreamPage::Keyboard_OnKeyDown(moonlight_xbox_dx::KeyboardControl^ sender, moonlight_xbox_dx::KeyEvent^ e)
+void StreamPage::Keyboard_OnKeyDown(KeyboardControl^ sender, KeyEvent^ e)
 {
 	this->m_main->OnKeyDown(e->VirtualKey, e->Modifiers);
 }
 
 
-void moonlight_xbox_dx::StreamPage::Keyboard_OnKeyUp(moonlight_xbox_dx::KeyboardControl^ sender, moonlight_xbox_dx::KeyEvent^ e)
+void StreamPage::Keyboard_OnKeyUp(KeyboardControl^ sender, KeyEvent^ e)
 {
 	this->m_main->OnKeyUp(e->VirtualKey, e->Modifiers);
 }
 
 
-void moonlight_xbox_dx::StreamPage::guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void StreamPage::guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->m_main->SendGuideButton(500);
 }
 
 
-void moonlight_xbox_dx::StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->m_main->SendGuideButton(3000);
+}
+
+
+void StreamPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &StreamPage::OnBackRequested);
+}
+
+
+void StreamPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested -= m_back_cookie;
 }
