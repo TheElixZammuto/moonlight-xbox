@@ -2,6 +2,8 @@
 #include "ApplicationState.h"
 #include <Utils.hpp>
 #include <nlohmann/json.hpp>
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#include <WinSock2.h>
 
 using namespace Windows::Storage;
 Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
@@ -38,6 +40,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
 					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
 					if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
+					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
 					else h->ComputerName = h->LastHostname;
 					this->SavedHosts->Append(h);
 				}
@@ -92,6 +95,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["autoStartID"] = host->AutostartID;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
 			hostJson["enable_hdr"] = host->EnableHDR;
+			hostJson["macaddress"] = Utils::PlatformStringToStdString(host->MacAddress);
 			stateJson["hosts"].push_back(hostJson);
 		}
 		auto jsonString = stateJson.dump();
@@ -125,4 +129,86 @@ moonlight_xbox_dx::ApplicationState^ __stateInstance;
 moonlight_xbox_dx::ApplicationState^ moonlight_xbox_dx::GetApplicationState() {
 	if (__stateInstance == nullptr)__stateInstance = ref new moonlight_xbox_dx::ApplicationState();
 	return __stateInstance;
+}
+
+bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
+{
+	if (host == nullptr || host->Connected)
+	{
+		Utils::Log("Host is already connected.\n");
+		throw std::runtime_error("Host is already connected.");
+	}
+
+	if (host->NotPaired) {
+		Utils::Log("The client and host must be paired.\n");
+		throw std::runtime_error("The client and host must be paired.");
+	}
+
+	if (host->MacAddress == nullptr || host->MacAddress == "00:00:00:00:00:00") {
+		Utils::Log("No recorded Mac address.\n");
+		throw std::runtime_error("No recorded Mac address.");
+	}
+
+	std::string& macAddress = Utils::PlatformStringToStdString(host->MacAddress);
+	std::string etherAddr;
+
+	for (size_t i = 0; i < macAddress.length();) {
+
+		unsigned hex{ 0 };
+
+		for (size_t j = 0; j < macAddress.substr(i, 2).length(); ++j) {
+			hex <<= 4;
+			std::string& s = macAddress.substr(i, 2);
+			if (isdigit(s[j])) {
+				hex |= s[j] - '0';
+			}
+			else if (s[j] >= 'a' && s[j] <= 'f') {
+				hex |= s[j] - 'a' + 10;
+			}
+			else if (s[j] >= 'A' && s[j] <= 'F') {
+				hex |= s[j] - 'A' + 10;
+			}
+			else {
+				throw std::runtime_error("Failed to parse hexadecimal " + s);
+			}
+		}
+
+		unsigned hex1 = hex;
+		i += 2;
+
+		etherAddr += static_cast<char>(hex1 & 0xFF);
+
+		if (macAddress[i] == ':')
+			++i;
+	}
+
+	if (etherAddr.length() != 6)
+		throw std::runtime_error(macAddress + " not a valid ether address");
+
+	int descriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (descriptor < 0)
+		throw std::runtime_error("Failed to open socket");
+
+	std::string message(6, 0xFF);
+	for (size_t i = 0; i < 16; ++i) {
+		message += etherAddr;
+	}
+
+	const int optval{ 1 };
+	if (setsockopt(descriptor, SOL_SOCKET, SO_BROADCAST, (char *) & optval, sizeof(optval)) < 0) {
+		throw std::runtime_error("Failed to set socket options");
+	}
+
+	sockaddr_in addr{};
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = 0xFFFFFFFF;
+	addr.sin_port = htons(60000);
+
+	if (sendto(descriptor, message.c_str(), message.length(), 0,
+		reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+		return false;
+	}
+
+	closesocket(descriptor);
+	return true;
 }

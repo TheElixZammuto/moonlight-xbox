@@ -23,6 +23,7 @@ namespace moonlight_xbox_dx {
 		std::string autostartInstance = "";
 		bool enableKeyboard = false;
 		bool shouldAutoConnect = false;
+		bool WakeHost(MoonlightHost^ host);
 		 
 	public:
 		//Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
