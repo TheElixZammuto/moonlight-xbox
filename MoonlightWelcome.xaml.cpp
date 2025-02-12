@@ -24,12 +24,13 @@ using namespace Windows::UI::Xaml::Navigation;
 MoonlightWelcome::MoonlightWelcome()
 {
 	InitializeComponent();
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightWelcome::OnBackRequested);
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
+
+	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightWelcome::OnLoaded);
+	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightWelcome::OnUnloaded);
 }
 
-void moonlight_xbox_dx::MoonlightWelcome::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
+void MoonlightWelcome::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
 {
 	// UWP on Xbox One triggers a back request whenever the B
 	// button is pressed which can result in the app being
@@ -44,29 +45,26 @@ void moonlight_xbox_dx::MoonlightWelcome::OnBackRequested(Platform::Object^ e, W
 		args->Handled = true;
 		return;
 	}
-
 }
 
-
-void moonlight_xbox_dx::MoonlightWelcome::GoForward(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void MoonlightWelcome::GoForward(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->FlipView->SelectedIndex = this->FlipView->SelectedIndex + 1;
 }
 
-void moonlight_xbox_dx::MoonlightWelcome::GoBack(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void MoonlightWelcome::GoBack(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->FlipView->SelectedIndex = this->FlipView->SelectedIndex - 1;
 }
 
-void moonlight_xbox_dx::MoonlightWelcome::CloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void MoonlightWelcome::CloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	GetApplicationState()->FirstTime = false;
 	GetApplicationState()->UpdateFile();
 	this->Frame->GoBack();
 }
 
-
-void moonlight_xbox_dx::MoonlightWelcome::Page_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
+void MoonlightWelcome::Page_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
 {
 	if (e->OriginalKey != Windows::System::VirtualKey::GamepadA)return;
 	if (this->FlipView->Items->Size == (this->FlipView->SelectedIndex + 1)) {
@@ -77,4 +75,16 @@ void moonlight_xbox_dx::MoonlightWelcome::Page_KeyDown(Platform::Object^ sender,
 	else {
 		this->FlipView->SelectedIndex = this->FlipView->SelectedIndex + 1;
 	}
+}
+
+void MoonlightWelcome::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightWelcome::OnBackRequested);
+}
+
+void MoonlightWelcome::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested -= m_back_token;
 }

@@ -26,11 +26,10 @@ using namespace Windows::UI::ViewManagement::Core;
 
 HostSettingsPage::HostSettingsPage()
 {
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
 	InitializeComponent();
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
-
+	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &HostSettingsPage::OnLoaded);
+	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &HostSettingsPage::OnUnloaded);
 }
 
 
@@ -86,13 +85,13 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 }
 
-void moonlight_xbox_dx::HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	GetApplicationState()->UpdateFile();
 	this->Frame->GoBack();
 }
 
-void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
+void HostSettingsPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
 {
 	// UWP on Xbox One triggers a back request whenever the B
 	// button is pressed which can result in the app being
@@ -103,12 +102,34 @@ void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, W
 
 }
 
-void moonlight_xbox_dx::HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void HostSettingsPage::StreamResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
-	host->Resolution = AvailableResolutions->GetAt(this->ResolutionSelector->SelectedIndex);
+	CurrentStreamResolutionIndex = this->StreamResolutionSelector->SelectedIndex;
+	host->StreamResolution = AvailableStreamResolutions->GetAt(CurrentStreamResolutionIndex);
 }
 
-void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void HostSettingsPage::DisplayResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	CurrentDisplayResolutionIndex = this->DisplayResolutionSelector->SelectedIndex;
+	host->HdmiDisplayMode = FilterMode();
+	HDRAvailable = IsHDRAvailable();
+	AvailableFPS = UpdateFPS();
+	OnPropertyChanged("CurrentFPSIndex");
+}
+
+void HostSettingsPage::FPSSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	CurrentFPSIndex = this->FPSComboBox->SelectedIndex >= 0 ? this->FPSComboBox->SelectedIndex : UpdateFPSIndex(AvailableFPS, host->HdmiDisplayMode->HdmiDisplayMode->RefreshRate);;
+	host->HdmiDisplayMode = FilterMode();
+	HDRAvailable = IsHDRAvailable();
+}
+
+void HostSettingsPage::EnableHDR_Checked(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	host->HdmiDisplayMode = FilterMode();
+}
+
+void HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	int index = AutoStartSelector->SelectedIndex - 1;
 	if (index >= 0 && host->Apps->Size > index) {
@@ -120,15 +141,167 @@ void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Pla
 }
 
 
-void moonlight_xbox_dx::HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
 }
 
-
-void moonlight_xbox_dx::HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
+void HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
 {
 	if (e->Key == Windows::System::VirtualKey::Enter) {
 		CoreInputView::GetForCurrentView()->TryHide();
 	}
+}
+<<<<<<< HEAD
+=======
+
+HdmiDisplayModeWrapper^ HostSettingsPage::FilterMode()
+{
+	HdmiDisplayModeWrapper^ mode;
+	bool hdrAvailable = false;
+	std::vector<std::string> hdrRefreshRates;
+
+	for (int i = 0; i < availableModes->Size; i++)
+	{
+		if (availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels == AvailableDisplayResolutions->GetAt(CurrentDisplayResolutionIndex)->Height
+			&& availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels == AvailableDisplayResolutions->GetAt(CurrentDisplayResolutionIndex)->Width
+			&& availableModes->GetAt(i)->HdmiDisplayMode->RefreshRate == AvailableFPS->GetAt(CurrentFPSIndex))
+		{
+			if (availableModes->GetAt(i)->IsHdr == host->EnableHDR)
+			{
+				mode = availableModes->GetAt(i);
+			}
+
+			if (availableModes->GetAt(i)->IsHdr)
+			{
+				hdrAvailable = true;
+			}
+		}
+
+		if (availableModes->GetAt(i)->IsHdr)
+		{
+			hdrRefreshRates.push_back(Utils::PlatformStringToStdString(availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels + "x" + availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels +
+				"@" + availableModes->GetAt(i)->HdmiDisplayMode->RefreshRate + "hz"));
+		}
+	}
+	
+	if (!mode)
+	{
+		mode = availableModes->GetAt(0);
+	}
+
+	std::string hdrWarning = "";
+	if (mode->HdmiDisplayMode->ResolutionWidthInRawPixels >= 3840 
+		&& mode->HdmiDisplayMode->RefreshRate >= 119
+		&& mode->IsHdr)
+	{
+		hdrWarning = "Warning: HDR at 4k@120hz has been known to be unstable.";
+	}
+	else if (!hdrAvailable)
+	{
+		std::string refreshRateString = "";
+		for (int i = 0; i < hdrRefreshRates.size(); i++)
+		{
+			if (i > 0 && hdrRefreshRates.size() > 2)
+			{
+				refreshRateString += ", ";
+			}
+
+			if (i == hdrRefreshRates.size() - 1)
+			{
+				refreshRateString += "and ";
+			}
+
+			refreshRateString += hdrRefreshRates[i];
+		}
+
+		hdrWarning = "HDR is currently available at: " + refreshRateString;
+
+		if (hdrRefreshRates.empty())
+		{
+			hdrWarning = "HDR is currently not available on this device";
+		}
+	}
+	else
+	{
+		hdrWarning = "";
+	}
+	
+	HDRWarning->Text = Utils::StringFromStdString(hdrWarning);
+
+	return mode;
+}
+
+Platform::Collections::Vector<double>^ HostSettingsPage::UpdateFPS()
+{
+	auto availableFPS = ref new Platform::Collections::Vector<double>();
+	auto selectedResolution = AvailableDisplayResolutions->GetAt(currentDisplayResolutionIndex);
+	int width = selectedResolution->Width;
+	int height = selectedResolution->Height;
+
+	for (int i = 0; i < availableModes->Size; i++)
+	{
+		auto availableMode = availableModes->GetAt(i)->HdmiDisplayMode;
+		if (selectedResolution->Width == availableMode->ResolutionWidthInRawPixels
+			&& selectedResolution->Height == availableMode->ResolutionHeightInRawPixels)
+		{
+			bool contains = false;
+			for (int j = 0; j < availableFPS->Size; j++)
+			{
+				if (availableFPS->GetAt(j) == availableMode->RefreshRate)
+				{
+					contains = true;
+				}
+			}
+
+			if (!contains)
+			{
+				auto res = availableMode->RefreshRate;
+				availableFPS->Append(availableMode->RefreshRate);
+			}
+		}
+	}
+
+	return availableFPS;
+}
+
+bool HostSettingsPage::IsHDRAvailable()
+{
+	bool isAvailable = false;
+	for (int i = 0; i < availableModes->Size; i++)
+	{
+		if (availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels == AvailableDisplayResolutions->GetAt(currentDisplayResolutionIndex)->Width
+			&& availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels == AvailableDisplayResolutions->GetAt(currentDisplayResolutionIndex)->Height
+			&& availableModes->GetAt(i)->HdmiDisplayMode->RefreshRate == AvailableFPS->GetAt(currentFPSIndex)
+			&& availableModes->GetAt(i)->IsHdr)
+		{
+			isAvailable = true;
+		}
+	}
+
+	if (!isAvailable)
+	{
+		host->EnableHDR = false;
+	}
+
+	return isAvailable;
+}
+
+void HostSettingsPage::OnPropertyChanged(Platform::String^ propertyName)
+{
+	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, propertyName]() {
+		PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+		}));
+}
+
+void HostSettingsPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
+}
+
+void HostSettingsPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested -= m_back_cookie;
 }
