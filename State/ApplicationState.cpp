@@ -95,7 +95,13 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["autoStartID"] = host->AutostartID;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
 			hostJson["enable_hdr"] = host->EnableHDR;
-			hostJson["macaddress"] = Utils::PlatformStringToStdString(host->MacAddress);
+
+			std::string macAddr = Utils::PlatformStringToStdString(host->MacAddress);
+			if (macAddr != "00:00:00:00:00:00" && macAddr != "")
+			{
+				hostJson["macaddress"] = macAddr;
+			}
+
 			stateJson["hosts"].push_back(hostJson);
 		}
 		auto jsonString = stateJson.dump();
@@ -151,39 +157,23 @@ bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 
 	std::string macAddress = Utils::PlatformStringToStdString(host->MacAddress);
 	std::string etherAddr;
+	std::string cleanMac;
 
-	for (size_t i = 0; i < macAddress.length();) {
-
-		unsigned hex{ 0 };
-
-		for (size_t j = 0; j < macAddress.substr(i, 2).length(); ++j) {
-			hex <<= 4;
-			std::string s = macAddress.substr(i, 2);
-			if (isdigit(s[j])) {
-				hex |= s[j] - '0';
-			}
-			else if (s[j] >= 'a' && s[j] <= 'f') {
-				hex |= s[j] - 'a' + 10;
-			}
-			else if (s[j] >= 'A' && s[j] <= 'F') {
-				hex |= s[j] - 'A' + 10;
-			}
-			else {
-				throw std::runtime_error("Failed to parse hexadecimal " + s);
-			}
-		}
-
-		unsigned hex1 = hex;
-		i += 2;
-
-		etherAddr += static_cast<char>(hex1 & 0xFF);
-
-		if (macAddress[i] == ':')
-			++i;
+	for (char c : macAddress) {
+		if (isxdigit(c)) cleanMac += c;
+	}
+	
+	if (cleanMac.length() != 12) {
+		throw std::runtime_error(macAddress + " is not a valid ether address");
+	}
+	
+	for (size_t i = 0; i < 12; i += 2) {
+		char byte = static_cast<char>(std::stoi(cleanMac.substr(i, 2), nullptr, 16));
+		etherAddr += byte;
 	}
 
 	if (etherAddr.length() != 6)
-		throw std::runtime_error(macAddress + " not a valid ether address");
+		throw std::runtime_error(macAddress + " is not a valid ether address");
 
 	int descriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (descriptor < 0)
