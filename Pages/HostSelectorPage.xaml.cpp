@@ -6,6 +6,7 @@
 #include "pch.h"
 #include "HostSelectorPage.xaml.h"
 #include "AppPage.xaml.h"
+#include "AddHost.xaml.h"
 #include <State\MoonlightClient.h>
 #include "HostSettingsPage.xaml.h"
 #include "Utils.hpp"
@@ -36,45 +37,11 @@ HostSelectorPage::HostSelectorPage()
 	InitializeComponent();
 }
 
-
 void moonlight_xbox_dx::HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	dialogHostnameTextBox = ref new TextBox();
-	dialogHostnameTextBox->AcceptsReturn = false;
-	dialogHostnameTextBox->KeyDown += ref new Windows::UI::Xaml::Input::KeyEventHandler(this, &moonlight_xbox_dx::HostSelectorPage::OnKeyDown);
-	ContentDialog^ dialog = ref new ContentDialog();
-	dialog->Content = dialogHostnameTextBox;
-	dialog->Title = L"Add new Host";
-	dialog->IsSecondaryButtonEnabled = true;
-	dialog->PrimaryButtonText = "Ok";
-	dialog->SecondaryButtonText = "Cancel";
-	dialog->ShowAsync();
-	dialog->PrimaryButtonClick += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Xaml::Controls::ContentDialog^, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^>(this, &moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick);
+	ContentDialog^ addHost = ref new moonlight_xbox_dx::AddHost();
+	addHost->ShowAsync();
 }
-
-
-void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::ContentDialog^ sender, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^ args)
-{
-	sender->IsPrimaryButtonEnabled = false;
-	Platform::String^ ipAddress = dialogHostnameTextBox->Text;
-	auto def = args->GetDeferral();
-	Concurrency::create_task([def, ipAddress, this, args, sender]() {
-		bool status = state->AddHost(ipAddress, "");
-		if (!status) {
-			Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([sender, this, ipAddress, def, args]() {
-				args->Cancel = true;
-				sender->Content = L"Failed to Connect to " + ipAddress;
-				def->Complete();
-				}));
-			return;
-		}
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([def]() {
-			def->Complete();
-			}));
-		});
-}
-
-
 void moonlight_xbox_dx::HostSelectorPage::GridView_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)
 {
 	MoonlightHost^ host = (MoonlightHost^)e->ClickedItem;
@@ -84,7 +51,7 @@ void moonlight_xbox_dx::HostSelectorPage::GridView_ItemClick(Platform::Object^ s
 void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 	MoonlightClient* client = new MoonlightClient();
 	char ipAddressStr[2048];
-	wcstombs_s(NULL, ipAddressStr, host->LastHostname->Data(), 2047);
+	wcstombs_s(NULL, ipAddressStr, host->Hostname->Data(), 2047);
 	int status = client->Connect(ipAddressStr);
 	if (status != 0)return;
 	char* pin = client->GeneratePIN();
@@ -109,8 +76,6 @@ void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 		));
 		});
 }
-
-
 
 void moonlight_xbox_dx::HostSelectorPage::removeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
@@ -211,5 +176,26 @@ void moonlight_xbox_dx::HostSelectorPage::OnKeyDown(Platform::Object^ sender, Wi
 
 void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	State->WakeHost(currentHost);
+	if (currentHost == nullptr) {
+		return;
+	}
+
+	try {
+		bool success = State->WakeHost(currentHost);
+		
+		ContentDialog ^ dialog = ref new ContentDialog();
+		dialog->Title = success ? "Wake Host" : "Wake Host Failed";
+		dialog->Content = success
+			 ? "Wake-on-LAN packet sent successfully to " + currentHost->ComputerName
+			 : "Failed to send Wake-on-LAN packet.\n\nPlease check if Wake-on-LAN is enabled on the host.";
+		dialog->PrimaryButtonText = "OK";
+		dialog->ShowAsync();
+	}
+	catch (std::exception ex) {
+		ContentDialog ^ dialog = ref new ContentDialog();
+		dialog->Title = "Wake Host Error";
+		dialog->Content = "An error occurred while trying to wake the host:\n\n" + Utils::StringFromChars((char*)ex.what());
+		dialog->PrimaryButtonText = "OK";
+		dialog->ShowAsync();
+	}
 }

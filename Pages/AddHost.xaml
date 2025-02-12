@@ -1,0 +1,23 @@
+﻿<ContentDialog
+    x:Class="moonlight_xbox_dx.AddHost"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Add Host"
+    PrimaryButtonText="Add"
+    SecondaryButtonText="Cancel"
+    PrimaryButtonClick="OnNewHostDialogPrimaryClick"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <StackPanel>
+        <TextBox Header="Host" x:Name="dialogIPAddressTextBox" PlaceholderText="Host"
+                 HorizontalAlignment="Stretch"/>
+
+        <TextBox Header="Port" x:Name="dialogPortTextBox" PlaceholderText="Port (Optional)"
+                 Margin="0,15,0,10" HorizontalAlignment="Stretch"
+                 InputScope="Number"/>
+    </StackPanel>
+</ContentDialog>

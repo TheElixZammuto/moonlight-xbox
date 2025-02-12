@@ -9,7 +9,7 @@ namespace moonlight_xbox_dx {
     {
     private:
         Platform::String^ instanceId;
-        Platform::String^ lastHostname;
+        Platform::String^ hostname;
         Platform::String^ ipAddress;
         Platform::String^ port;
         Platform::String^ computerName;
@@ -35,7 +35,7 @@ namespace moonlight_xbox_dx {
         MoonlightHost(Platform::String ^ipAddress, Platform::String ^port) {
             this->ipAddress = ipAddress;
             this->port = port;
-            lastHostname = ipAddress + ":" + port;
+            this->hostname = port->IsEmpty() ? ipAddress : ipAddress + ":" + port;
             resolution = ref new ScreenResolution(1280, 720);
             loading = true;
         }
@@ -67,12 +67,12 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("Port");
             }
         }
-        property Platform::String^ LastHostname
+        property Platform::String^ Hostname
         {
-            Platform::String^ get() { return this->lastHostname; }
-            void set(Platform::String^ value) {
-                this->lastHostname = value;
-                OnPropertyChanged("LastHostname");
+            Platform::String^ get() { return this->hostname; }
+            void set(Platform::String ^ value) { 
+                this->hostname = value;
+                OnPropertyChanged("Hostname");
             }
         }
 

@@ -59,7 +59,7 @@ void moonlight_xbox_dx::AppPage::AppsGrid_ItemClick(Platform::Object^ sender, Wi
 
 void AppPage::Connect(int appId) {
 	StreamConfiguration^ config = ref new StreamConfiguration();
-	config->hostname = host->LastHostname;
+	config->hostname = host->Hostname;
 	config->appID = appId;
 	config->width = host->Resolution->Width;
 	config->height = host->Resolution->Height;
@@ -94,7 +94,7 @@ void moonlight_xbox_dx::AppPage::closeAppButton_Click(Platform::Object^ sender, 
 {
 	auto client = new MoonlightClient();
 	char ipAddressStr[2048];
-	wcstombs_s(NULL, ipAddressStr, Host->LastHostname->Data(), 2047);
+	wcstombs_s(NULL, ipAddressStr, Host->Hostname->Data(), 2047);
 	int status = client->Connect(ipAddressStr);
 	if (status == 0)client->StopApp();
 	host->UpdateStats();

@@ -17,7 +17,7 @@
             </Button>
             <StackPanel Margin="16 0 0 0">
                 <TextBlock Text="{x:Bind Host.ComputerName}"></TextBlock>
-                <TextBlock Text="{x:Bind Host.LastHostname}"></TextBlock>
+                <TextBlock Text="{x:Bind Host.Hostname}"></TextBlock>
             </StackPanel>
         </StackPanel>
         <Grid RowSpacing="8">

@@ -41,7 +41,7 @@ MoonlightSettings::MoonlightSettings()
 	for (int i = 0; i < state->SavedHosts->Size;i++) {
 		auto host = state->SavedHosts->GetAt(i);
 		auto item = ref new ComboBoxItem();
-		item->Content = host->LastHostname;
+		item->Content = host->Hostname;
 		item->DataContext = host->InstanceId;
 		HostSelector->Items->Append(item);
 		if (host->InstanceId->Equals(iid)) {

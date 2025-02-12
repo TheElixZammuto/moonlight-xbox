@@ -23,7 +23,8 @@ namespace moonlight_xbox_dx {
 		std::string autostartInstance = "";
 		bool enableKeyboard = false;
 		bool shouldAutoConnect = false;
-		void WakeHost(MoonlightHost^ host);
+		bool WakeHost(MoonlightHost^ host);
+		std::pair<std::string, int> split_ip_port(const std::string& address);
 		 
 	public:
 		//Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/

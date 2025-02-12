@@ -29,8 +29,24 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
 				if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
 				for (auto a : stateJson["hosts"]) {
-					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["ipAddress"].get<std::string>()), 
-					 										 Utils::StringFromStdString(a["port"].get<std::string>()));
+					
+					std::string jsonIPAddress;
+					std::string jsonPort;
+					
+					if (a.contains("lastHostName") && !a.contains("ipAddress")) {
+						std::pair<std::string, int> parseResult = split_ip_port(a["lastHostName"]);
+						jsonIPAddress = parseResult.first;
+						jsonPort = parseResult.second;
+					}
+					else
+					{
+						jsonIPAddress = a["ipAddress"].get<std::string>();
+						jsonPort = a.contains("port") ? a["port"].get<std::string>() : "";
+					}
+
+					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(jsonIPAddress), 
+					 										 Utils::StringFromStdString(jsonPort));
+
 					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
 					if (a.contains("width") && a.contains("height")) {
 						h->Resolution = ref new ScreenResolution(a["width"], a["height"]);
@@ -44,7 +60,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
 					if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
 					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
-					else h->ComputerName = h->LastHostname;
+					else h->ComputerName = h->Hostname;
 					this->SavedHosts->Append(h);
 				}
 			}
@@ -59,7 +75,6 @@ bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ ipAddress, P
 		if (host->InstanceId == h->InstanceId) {
 			h->IPAddress = host->IPAddress;
 			h->Port = host->Port;
-			h->LastHostname = host->LastHostname;
 			UpdateFile();
 			return true;
 		}
@@ -90,7 +105,6 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			nlohmann::json hostJson;
 			hostJson["ipAddress"] = Utils::PlatformStringToStdString(host->IPAddress);
 			hostJson["port"] = Utils::PlatformStringToStdString(host->Port);
-			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
 			hostJson["instance_id"] = Utils::PlatformStringToStdString(host->InstanceId);
 			hostJson["computername"] = Utils::PlatformStringToStdString(host->ComputerName);
 			hostJson["width"] = host->Resolution->Width;
@@ -138,26 +152,32 @@ moonlight_xbox_dx::ApplicationState^ moonlight_xbox_dx::GetApplicationState() {
 	return __stateInstance;
 }
 
-void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
+bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 {
-	if (host == nullptr || host->Connected) return;
+	/*
+	if (host == nullptr || host->Connected)
+	{
+		Utils::Log("Host is already connected.\n");
+		throw std::runtime_error("Host is already connected.");
+	}
+	*/
 
-	if (host->MacAddress == nullptr || host->MacAddress == "00:00:00:00:00:00" || host->NotPaired) {
-		Utils::Log("No recorded Mac address, the client and host must be paired.\n");
-		return;
+	if (host->NotPaired) {
+		Utils::Log("The client and host must be paired.\n");
+		throw std::runtime_error("The client and host must be paired.");
 	}
 
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
 		Utils::Log("Socket startup failed.\n");
-		return;
+		throw std::runtime_error("Socket startup failed.\n");
 	}
 
 	SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (s == SOCKET_ERROR || s == INVALID_SOCKET) {
 		Utils::Log("Socket creation failed.\n");
 		WSACleanup();
-		return;
+		throw std::runtime_error("Socket creation failed.\n");
 	}
 	
 	std::string hostIP = Utils::PlatformStringToStdString(host->IPAddress);
@@ -165,9 +185,8 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 	{
 		Utils::Log("No IPAddress was found with host.\n");
 		WSACleanup();
-		return;
+		throw std::runtime_error("No IPAddress was found with host.\n");
 	}
-
 	
 	if (inet_addr(hostIP.c_str()) == -1)
 	{
@@ -177,7 +196,7 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 		if (!he) {
 			Utils::Log("gethostbyname failed. Could not resolve the hostname.\n");
 			WSACleanup();
-			return;
+			throw std::runtime_error("gethostbyname failed. Could not resolve the hostname.\n");
 
 		}
 
@@ -187,7 +206,7 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 		{
 			Utils::Log("IPAddress could not be resolved from host name.\n");
 			WSACleanup();
-			return;
+			throw std::runtime_error("IPAddress could not be resolved from host name.\n");
 		}
 	}
 
@@ -196,7 +215,7 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 	if (inet_pton(AF_INET, hostIP.c_str(), &ip_addr) != 1) {
 		Utils::Log("The given IP address was invalid.\n");
 		WSACleanup();
-		return;
+		throw std::runtime_error("The given IP address was invalid.\n");
 	}
 
 	uint32_t hostIP_int = ntohl(ip_addr.s_addr);
@@ -214,7 +233,7 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 	else {
 		Utils::Log("Could not determine subnet mask from IP address.\n");
 		WSACleanup();
-		return;
+		throw std::runtime_error("Could not determine subnet mask from IP address.");
 	}
 	
 	// Get Broadcast Address
@@ -255,6 +274,8 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 	const int optval = 1;
 	setsockopt(s, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(optval));
 
+	bool result = false;
+
 	for (int i = 0; i < 3; i++) {
 		struct sockaddr_in addr;
 		memset(&addr, 0, sizeof(struct sockaddr_in));
@@ -271,9 +292,35 @@ void moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 		}
 		else {
 			Utils::Log("Wake-On-Lan packet sent.\n");
+			result = true;
 		}
 	}
 
 	closesocket(s);
 	WSACleanup();
+
+	return result;
+}
+
+std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::split_ip_port(const std::string& address)
+{
+	std::stringstream ss(address);
+	std::string ip_address;
+	std::string port_str;
+
+	if (std::getline(ss, ip_address, ':') && std::getline(ss, port_str)) {
+		try {
+			int port = std::stoi(port_str);
+			return { ip_address, port };
+		}
+		catch (const std::invalid_argument& e) {
+			throw std::invalid_argument("Invalid port number format");
+		}
+		catch (const std::out_of_range& e) {
+			throw std::out_of_range("Port number out of range");
+		}
+	}
+	else {
+		throw std::invalid_argument("Invalid address format");
+	}
 }
