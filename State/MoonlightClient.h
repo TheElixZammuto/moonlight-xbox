@@ -38,6 +38,7 @@ namespace moonlight_xbox_dx {
 		void SendGuide(int controllerNumber, bool v);
 		Platform::String^ GetInstanceID();
 		Platform::String^ GetComputerName();
+		Platform::String^ GetServerAddress();
 		Platform::String^ GetServerMacAddress();
 		std::function<void(int)> OnStatusUpdate;
 		std::function<void()> OnCompleted;
