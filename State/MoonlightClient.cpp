@@ -361,10 +361,16 @@ Platform::String^ MoonlightClient::GetComputerName() {
 }
 
 Platform::String^ MoonlightClient::GetServerAddress() {
+	if (!serverData.serverInfo.address) {
+		return nullptr;
+	}
 	return Utils::StringFromChars((char*)serverData.serverInfo.address);
 }
 
 Platform::String^ MoonlightClient::GetServerMacAddress() {
+	if (!serverData.macAddress) {
+		return nullptr;
+	}
 	return Utils::StringFromChars(serverData.macAddress);
 }
 

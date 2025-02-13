@@ -32,7 +32,7 @@ namespace moonlight_xbox_dx {
 		bool Send_Payload(int descriptor, std::string payload, std::string address, int port);
 		std::string Get_Broadcast_IP(std::string ipAddress);
 		std::pair<std::string, int> Split_IP_Port(const std::string& address);
-		void Throw_Error(char* message);
+		void Throw_Error(std::string message);
 
 		 
 	public:

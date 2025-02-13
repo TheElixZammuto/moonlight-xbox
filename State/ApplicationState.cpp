@@ -351,8 +351,9 @@ std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::Split_IP_Port(c
 	}
 }
 
-void moonlight_xbox_dx::ApplicationState::Throw_Error(char* message)
+void moonlight_xbox_dx::ApplicationState::Throw_Error(std::string message)
 {
-	Utils::Log(strcat(message, "\n"));
+	std::string msg = std::string() + message + "\n";
+	Utils::Log(msg.c_str());
 	throw std::runtime_error(message);
 }
