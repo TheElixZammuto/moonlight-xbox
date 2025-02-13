@@ -557,15 +557,54 @@ void VideoRenderer::SetHDR(bool enabled)
 		if (hdi) {
 			auto modes = hdi->GetSupportedDisplayModes();
 			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
+
+			Platform::String^ supportedResolutions = "Supported HDR Resolutions:\n";
+			Windows::Graphics::Display::Core::HdmiDisplayMode^ hdrMode;
+
 			for (unsigned i = 0; i < modes->Size; i++)
 			{
 				auto mode = modes->GetAt(i);
-				if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels && mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels && mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT2020 && mode->RefreshRate >= m_currentDisplayMode->RefreshRate)
+				if (mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT2020)
 				{
-					m_currentDisplayMode = mode;
-					hdi->RequestSetCurrentDisplayModeAsync(mode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084);
-					break;
+					supportedResolutions += mode->ResolutionWidthInRawPixels + "x" + mode->ResolutionHeightInRawPixels + " @ " + mode->RefreshRate + "hz " + mode->BitsPerPixel + "bit\n";
+ 					
+					if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels 
+						&& mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels 
+						&& mode->RefreshRate == m_currentDisplayMode->RefreshRate)
+					{
+						if (!hdrMode)
+						{
+							hdrMode = mode;
+							continue;
+						}
+						
+						if (mode->BitsPerPixel > hdrMode->BitsPerPixel)
+						{
+							hdrMode = mode;
+						}
+					}
 				}
+			}
+
+			if (hdrMode)
+			{
+				m_currentDisplayMode = hdrMode;
+				hdi->RequestSetCurrentDisplayModeAsync(hdrMode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084);
+
+				Platform::String^ hdrSet = "HDR Set:\n " + hdrMode->ResolutionWidthInRawPixels + "x" + hdrMode->ResolutionHeightInRawPixels + " @ " + hdrMode->RefreshRate + "hz " + hdrMode->BitsPerPixel + "bit\n";
+				std::string hdrSetStd = Utils::PlatformStringToStdString(hdrSet);
+				Utils::Log(hdrSetStd.c_str());
+			}
+			else 
+			{
+				Utils::Log("No HDR mode found with current resolution and frame rate.\n");
+
+				std::string supportedResolutionsStd = Utils::PlatformStringToStdString(supportedResolutions);
+				Utils::Log(supportedResolutionsStd.c_str());
+
+				Platform::String^ currentResolution = "Current Resolution:\n" + m_currentDisplayMode->ResolutionWidthInRawPixels + "x" + m_currentDisplayMode->ResolutionHeightInRawPixels + " @ " + m_currentDisplayMode->RefreshRate + "hz " + m_currentDisplayMode->BitsPerPixel + "bit\n";
+				std::string currentResolutionStd = Utils::PlatformStringToStdString(currentResolution);
+				Utils::Log(currentResolutionStd.c_str());
 			}
 		}
 		DXGI_HDR_METADATA_HDR10 hdr10Metadata;
@@ -627,7 +666,7 @@ void VideoRenderer::SetHDR(bool enabled)
 
 		hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_NONE, 0, nullptr);
 		if (SUCCEEDED(hr)) {
-			Utils::Log("HDR Disabled");
+			Utils::Log("HDR Disabled\n");
 		}
 		else {
 			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
