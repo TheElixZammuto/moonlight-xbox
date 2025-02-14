@@ -12,7 +12,11 @@ namespace moonlight_xbox_dx {
 			this->Paired = client->IsPaired();
 			this->CurrentlyRunningAppId = client->GetRunningAppID();
 			this->InstanceId = client->GetInstanceID();
-			if (this->Connected) this->ComputerName = client->GetComputerName();
+			if (this->Connected) {
+				this->ComputerName = client->GetComputerName();
+				this->ServerAddress = client->GetServerAddress();
+				this->MacAddress = client->GetServerMacAddress();
+			}
 		}
 		this->Loading = false;
 	}

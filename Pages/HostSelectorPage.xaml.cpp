@@ -111,12 +111,10 @@ void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 }
 
 
-
 void moonlight_xbox_dx::HostSelectorPage::removeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	State->RemoveHost(currentHost);
 }
-
 
 void moonlight_xbox_dx::HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e)
 {
@@ -140,7 +138,6 @@ void moonlight_xbox_dx::HostSelectorPage::hostSettingsButton_Click(Platform::Obj
 {
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), currentHost);
 }
-
 
 void moonlight_xbox_dx::HostSelectorPage::SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
@@ -205,5 +202,31 @@ void moonlight_xbox_dx::HostSelectorPage::OnKeyDown(Platform::Object^ sender, Wi
 {
 	if (e->Key == Windows::System::VirtualKey::Enter) {
 		CoreInputView::GetForCurrentView()->TryHide();
+	}
+}
+
+void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	if (currentHost == nullptr) {
+		return;
+	}
+
+	try {
+		bool success = State->WakeHost(currentHost);
+
+		ContentDialog^ dialog = ref new ContentDialog();
+		dialog->Title = success ? "Wake Host" : "Wake Host Failed";
+		dialog->Content = success
+			? "Wake-on-LAN packet sent successfully to " + currentHost->ComputerName
+			: "Failed to send Wake-on-LAN packet.\n\nPlease check if Wake-on-LAN is enabled on the host.";
+		dialog->PrimaryButtonText = "OK";
+		dialog->ShowAsync();
+	}
+	catch (std::exception ex) {
+		ContentDialog^ dialog = ref new ContentDialog();
+		dialog->Title = "Wake Host Error";
+		dialog->Content = "An error occurred while trying to wake the host:\n\n" + Utils::StringFromChars((char*)ex.what());
+		dialog->PrimaryButtonText = "OK";
+		dialog->ShowAsync();
 	}
 }

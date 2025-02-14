@@ -240,6 +240,9 @@ static int load_serverinfo(PSERVER_DATA server, bool https) {
   if (xml_search(data->memory, data->size, "HttpsPort", &httpsPortText) != GS_OK)
     goto cleanup;
 
+  if (xml_search(data->memory, data->size, "mac", &server->macAddress) != GS_OK)
+      goto cleanup;
+
   if (xml_modelist(data->memory, data->size, &server->modes) != GS_OK)
     goto cleanup;
 

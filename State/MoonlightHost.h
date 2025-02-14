@@ -11,6 +11,8 @@ namespace moonlight_xbox_dx {
         Platform::String^ instanceId;
         Platform::String^ lastHostname;
         Platform::String^ computerName;
+        Platform::String^ serverAddress;
+        Platform::String^ macAddress;
         bool paired;
         bool connected;
         bool loading = true;
@@ -61,6 +63,24 @@ namespace moonlight_xbox_dx {
             void set(Platform::String^ value) {
                 this->computerName = value;
                 OnPropertyChanged("ComputerName");
+            }
+        }
+
+        property Platform::String^ ServerAddress
+        {
+            Platform::String^ get() { return this->serverAddress; }
+            void set(Platform::String^ value) {
+                this->serverAddress = value;
+                OnPropertyChanged("ServerAddress");
+            }
+        }
+
+        property Platform::String^ MacAddress
+        {
+            Platform::String^ get() { return this->macAddress; }
+            void set(Platform::String^ value) {
+                this->macAddress = value;
+                OnPropertyChanged("MacAddress");
             }
         }
 

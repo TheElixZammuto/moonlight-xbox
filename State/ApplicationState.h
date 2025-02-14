@@ -23,6 +23,17 @@ namespace moonlight_xbox_dx {
 		std::string autostartInstance = "";
 		bool enableKeyboard = false;
 		bool shouldAutoConnect = false;
+
+		bool WakeHost(MoonlightHost^ host);
+		void Validate_WoL(MoonlightHost^ host);
+		std::string WoL_Payload(std::string macAddress);
+		std::vector<std::string> Build_Unique_Addresses(MoonlightHost^ host);
+		int Open_Socket();
+		bool Send_Payload(int descriptor, std::string payload, std::string address, int port);
+		std::string Get_Broadcast_IP(std::string ipAddress);
+		std::pair<std::string, int> Split_IP_Port(const std::string& address);
+		void Throw_Error(std::string message);
+
 		 
 	public:
 		//Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
