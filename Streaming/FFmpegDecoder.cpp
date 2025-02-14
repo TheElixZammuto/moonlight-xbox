@@ -295,7 +295,7 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.stop = stopCallback;
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
 		decoder_callbacks_sdl.submitDecodeUnit = NULL;
-		decoder_callbacks_sdl.capabilities = CAPABILITY_PULL_RENDERER;
+		decoder_callbacks_sdl.capabilities = CAPABILITY_PULL_RENDERER | CAPABILITY_INTRA_REFRESH;
 		return decoder_callbacks_sdl;
 	}
 
