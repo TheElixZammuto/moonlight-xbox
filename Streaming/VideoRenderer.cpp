@@ -553,7 +553,31 @@ void VideoRenderer::SetHDR(bool enabled)
 
 	if (enabled) {
 		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+
+		auto mode = client->GetDisplayMode();
+		Windows::Graphics::Display::Core::HdmiDisplayHdrOption hdrOption;
+		if (mode->IsDolbyVisionLowLatencySupported)
+		{
+			hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::DolbyVisionLowLatency;
+		}
+		else if (mode->Is2086MetadataSupported)
+		{
+			hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084;
+		}
+		else 
+		{
+			hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::EotfSdr;
+		}
+
+		auto msg = "Set: " + mode->ResolutionWidthInRawPixels + "x" + mode->ResolutionHeightInRawPixels + " @ " + mode->RefreshRate + "hz " + mode->BitsPerPixel + "bit\n";
+		Utils::Log(Utils::PlatformStringToStdString(msg).c_str());
+
+		hdi->RequestSetCurrentDisplayModeAsync(mode, hdrOption);
+
 		// HDR Setup
+
+
+		/*
 		if (hdi) {
 			auto modes = hdi->GetSupportedDisplayModes();
 			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
@@ -607,6 +631,7 @@ void VideoRenderer::SetHDR(bool enabled)
 				Utils::Log(currentResolutionStd.c_str());
 			}
 		}
+		*/
 		DXGI_HDR_METADATA_HDR10 hdr10Metadata;
 		SS_HDR_METADATA sunshineHdrMetadata;
 

@@ -23,7 +23,7 @@ namespace moonlight_xbox_dx {
 
 	int MoonlightHost::Connect()
 	{
-		client = new MoonlightClient();
+		client = new MoonlightClient(this->resolution);
 		Platform::String^ ipAddress = this->lastHostname;
 		char ipAddressStr[2048];
 		wcstombs_s(NULL, ipAddressStr, ipAddress->Data(), 2047);

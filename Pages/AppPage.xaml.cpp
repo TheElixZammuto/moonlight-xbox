@@ -61,14 +61,14 @@ void AppPage::Connect(int appId) {
 	StreamConfiguration^ config = ref new StreamConfiguration();
 	config->hostname = host->LastHostname;
 	config->appID = appId;
-	config->width = host->Resolution->Width;
-	config->height = host->Resolution->Height;
+	config->width = host->Resolution->ResolutionWidthInRawPixels;
+	config->height = host->Resolution->ResolutionHeightInRawPixels;
 	config->bitrate = host->Bitrate;
-	config->FPS = host->FPS;
+	config->FPS = host->Resolution->RefreshRate;
 	config->audioConfig = host->AudioConfig;
 	config->videoCodec = host->VideoCodec;
 	config->playAudioOnPC = host->PlayAudioOnPC;
-	config->enableHDR = host->EnableHDR;
+	config->enableHDR = true;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 	if (!result) {
 		printf("C");

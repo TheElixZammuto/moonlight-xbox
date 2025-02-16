@@ -18,15 +18,18 @@ namespace moonlight_xbox_dx
 	{
 	private:
 		MoonlightHost^ host;
-		Windows::Foundation::Collections::IVector<ScreenResolution^>^ availableResolutions;
-		Windows::Foundation::Collections::IVector<int>^ availableFps;
-		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
+		Windows::Foundation::Collections::IVector<Windows::Graphics::Display::Core::HdmiDisplayMode^>^ availableResolutions;
+		// Windows::Foundation::Collections::IVector<ScreenResolution^>^ availableResolutions;
+		// Windows::Foundation::Collections::IVector<int>^ availableFps;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableVideoCodecs;
+		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
 		int currentResolutionIndex = 0;
 		int currentAppIndex = 0;
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	public:
+		Platform::String^ IsHDR(bool hdr);
+
 		HostSettingsPage();
 		property MoonlightHost^ Host {
 			MoonlightHost^ get() {
@@ -35,6 +38,17 @@ namespace moonlight_xbox_dx
 		}
 		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
 		
+		property Windows::Foundation::Collections::IVector<Windows::Graphics::Display::Core::HdmiDisplayMode ^>^ AvailableResolutions {
+			Windows::Foundation::Collections::IVector<Windows::Graphics::Display::Core::HdmiDisplayMode ^>^ get() {
+				if (this->availableResolutions == nullptr)
+				{
+					this->availableResolutions = ref new Platform::Collections::Vector<Windows::Graphics::Display::Core::HdmiDisplayMode ^>();
+				}
+				return this->availableResolutions;
+			}
+		}
+
+		/*
 		property Windows::Foundation::Collections::IVector<ScreenResolution^>^ AvailableResolutions {
 			Windows::Foundation::Collections::IVector<ScreenResolution^>^ get() {
 				if (this->availableResolutions == nullptr)
@@ -44,7 +58,9 @@ namespace moonlight_xbox_dx
 				return this->availableResolutions;
 			}
 		}
+		*/
 
+		/*
 		property Windows::Foundation::Collections::IVector<int>^ AvailableFPS {
 			Windows::Foundation::Collections::IVector<int>^ get() {
 				if (this->availableFps == nullptr)
@@ -52,6 +68,17 @@ namespace moonlight_xbox_dx
 					this->availableFps = ref new Platform::Collections::Vector<int>();
 				}
 				return this->availableFps;
+			}
+		}
+		*/
+
+		property Windows::Foundation::Collections::IVector<Platform::String^>^ AvailableVideoCodecs {
+			Windows::Foundation::Collections::IVector<Platform::String^>^ get() {
+				if (this->availableVideoCodecs == nullptr)
+				{
+					this->availableVideoCodecs = ref new Platform::Collections::Vector<Platform::String^>();
+				}
+				return this->availableVideoCodecs;
 			}
 		}
 
@@ -64,17 +91,6 @@ namespace moonlight_xbox_dx
 				return this->availableAudioConfigs;
 			}
 		}
-
-		property Windows::Foundation::Collections::IVector<Platform::String^>^ AvailableVideoCodecs {
-			Windows::Foundation::Collections::IVector<Platform::String^>^ get() {
-				if (this->availableVideoCodecs == nullptr)
-				{
-					this->availableVideoCodecs = ref new Platform::Collections::Vector<Platform::String^>();
-				}
-				return this->availableVideoCodecs;
-			}
-		}
-
 
 		property int CurrentResolutionIndex
 		{

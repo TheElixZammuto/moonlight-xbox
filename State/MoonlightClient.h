@@ -15,6 +15,7 @@ namespace moonlight_xbox_dx {
 	{
 	public:
 		MoonlightClient();
+		MoonlightClient(Windows::Graphics::Display::Core::HdmiDisplayMode^ hdmiDisplayMode);
 		int StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration ^config);
 		int Connect(const char* hostname);
 		bool IsPaired();
@@ -40,6 +41,7 @@ namespace moonlight_xbox_dx {
 		Platform::String^ GetComputerName();
 		Platform::String^ GetServerAddress();
 		Platform::String^ GetServerMacAddress();
+		Windows::Graphics::Display::Core::HdmiDisplayMode^ GetDisplayMode();
 		std::function<void(int)> OnStatusUpdate;
 		std::function<void()> OnCompleted;
 		std::function<void(bool)> SetHDR;

@@ -20,7 +20,7 @@ namespace moonlight_xbox_dx {
         MoonlightClient* client;
         int currentlyRunningAppId;
         int bitrate = 8000;
-        ScreenResolution^ resolution;
+        Windows::Graphics::Display::Core::HdmiDisplayMode^ resolution;
         int fps = 60;
         int autostartID = -1;
         Platform::String^ videoCodec = "H.264";
@@ -33,7 +33,7 @@ namespace moonlight_xbox_dx {
         void OnPropertyChanged(Platform::String^ propertyName);
         MoonlightHost(Platform::String ^host) {
             lastHostname = host;
-            resolution = ref new ScreenResolution(1280, 720);
+            // resolution = ref new Windows::Graphics::Display::Core::HdmiDisplayMode();
             loading = true;
         }
         void UpdateStats();
@@ -148,10 +148,10 @@ namespace moonlight_xbox_dx {
             }
         }
 
-        property ScreenResolution^ Resolution
+        property Windows::Graphics::Display::Core::HdmiDisplayMode^ Resolution
         {
-            ScreenResolution^ get() { return this->resolution; }
-            void set(ScreenResolution^ value) {
+            Windows::Graphics::Display::Core::HdmiDisplayMode^ get() { return this->resolution; }
+            void set(Windows::Graphics::Display::Core::HdmiDisplayMode^ value) {
                 this->resolution = value;
                 OnPropertyChanged("ScreenResolution");
             }
