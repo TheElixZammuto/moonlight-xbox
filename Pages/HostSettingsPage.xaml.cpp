@@ -7,10 +7,7 @@
 #include "HostSettingsPage.xaml.h"
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
-#include <iostream>
 #include <vector>
-#include <ranges>
-#include <algorithm>
 #include <gamingdeviceinformation.h>
 using namespace Windows::UI::Core;
 using namespace Windows::Graphics::Display::Core;
@@ -37,12 +34,7 @@ HostSettingsPage::HostSettingsPage()
 
 }
 
-Platform::String^ moonlight_xbox_dx::HostSettingsPage::IsHDR(bool hdr)
-{
-	return hdr ? "HDR" : "SDR";
-}
-
-bool sortModes(HdmiDisplayMode^ a, HdmiDisplayMode^ b) {
+bool SortModes(HdmiDisplayMode^ a, HdmiDisplayMode^ b) {
 	if (a->ResolutionHeightInRawPixels != b->ResolutionHeightInRawPixels) { return a->ResolutionHeightInRawPixels < b->ResolutionHeightInRawPixels; }
 	else if (a->ResolutionWidthInRawPixels != b->ResolutionWidthInRawPixels) { return a->ResolutionWidthInRawPixels < b->ResolutionWidthInRawPixels; }
 	else if (a->RefreshRate!= b->RefreshRate) { return a->RefreshRate < b->RefreshRate;	}
@@ -59,41 +51,35 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 
 	HdmiDisplayInformation^ hdi = HdmiDisplayInformation::GetForCurrentView();
 	auto modes = to_vector(hdi->GetSupportedDisplayModes());
-	std::sort(modes.begin(), modes.end(), sortModes);
+	std::sort(modes.begin(), modes.end(), SortModes);
 
 	for (int i = 0; i < modes.size(); i++)
 	{
-		AvailableResolutions->Append(modes[i]);
+		AvailableResolutions->Append(ref new HdmiDisplayModeWrapper(modes[i]));
 	}
 
-	/*
-	AvailableResolutions->Append(ref new ScreenResolution(1280, 720));
-	AvailableResolutions->Append(ref new ScreenResolution(1920, 1080));
-	//No 4K for Old Xbox One
-	if (!(info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
-		AvailableResolutions->Append(ref new ScreenResolution(2560, 1440));
-		AvailableResolutions->Append(ref new ScreenResolution(3840, 2160));
-	}
-	AvailableFPS->Append(30);
-	AvailableFPS->Append(60);
-	AvailableFPS->Append(120);
-	*/
 	AvailableVideoCodecs->Append("H.264");
 	AvailableVideoCodecs->Append("HEVC (H.265)");
+	
 	AvailableAudioConfigs->Append("Stereo");
 	AvailableAudioConfigs->Append("Surround 5.1");
 	AvailableAudioConfigs->Append("Surround 7.1");
+
 	// TODO: Fix Current
-	/*
 	CurrentResolutionIndex = 0;
-	for (int i = 0; i < AvailableResolutions->Size; i++) {
-		if (host->Resolution->Width == AvailableResolutions->GetAt(i)->ResolutionWidthInRawPixels &&
-			host->Resolution->Height == AvailableResolutions->GetAt(i)->ResolutionWidthInRawPixels) {
-			CurrentResolutionIndex = i;
-			break;
+	if (AvailableResolutions->Size > 0 && host->Resolution != nullptr)
+	{
+		for (int i = 0; i < AvailableResolutions->Size; i++) {
+			if (host->Resolution->ResolutionWidthInRawPixels == AvailableResolutions->GetAt(i)->DisplayMode->ResolutionWidthInRawPixels &&
+				host->Resolution->ResolutionWidthInRawPixels == AvailableResolutions->GetAt(i)->DisplayMode->ResolutionWidthInRawPixels &&
+				host->Resolution->RefreshRate == AvailableResolutions->GetAt(i)->DisplayMode->RefreshRate &&
+				host->Resolution->ColorSpace == AvailableResolutions->GetAt(i)->DisplayMode->ColorSpace) {
+				CurrentResolutionIndex = i;
+				break;
+			}
 		}
 	}
-	*/
+
 	CurrentAppIndex = 0;
 	auto item = ref new ComboBoxItem();
 	item->Content = L"No App";
@@ -111,8 +97,6 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	if ((info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
 		CodecComboBox->IsEnabled = false;
 		CodecComboBox->SelectedIndex = 0;
-		// EnableHDRCheckbox->IsChecked = false;
-		// EnableHDRCheckbox->IsEnabled = false;
 	}
 }
 
@@ -135,7 +119,7 @@ void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, W
 
 void moonlight_xbox_dx::HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
-	host->Resolution = AvailableResolutions->GetAt(this->ResolutionSelector->SelectedIndex);
+	host->Resolution = AvailableResolutions->GetAt(this->ResolutionSelector->SelectedIndex)->DisplayMode;
 }
 
 void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)

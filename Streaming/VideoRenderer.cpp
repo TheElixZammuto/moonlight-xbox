@@ -551,87 +551,36 @@ void VideoRenderer::SetHDR(bool enabled)
 	//lockContext(this);
 	if(FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.lock();
 
+	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+
 	if (enabled) {
-		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+		if (hdi)
+		{
+			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
+		}
 
 		auto mode = client->GetDisplayMode();
-		Windows::Graphics::Display::Core::HdmiDisplayHdrOption hdrOption;
+		Windows::Graphics::Display::Core::HdmiDisplayHdrOption hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::EotfSdr;
+	
+		// Dolby Vision
 		if (mode->IsDolbyVisionLowLatencySupported)
 		{
 			hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::DolbyVisionLowLatency;
 		}
+		// HDR10
 		else if (mode->Is2086MetadataSupported)
 		{
 			hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084;
 		}
-		else 
-		{
-			hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::EotfSdr;
-		}
 
-		auto msg = "Set: " + mode->ResolutionWidthInRawPixels + "x" + mode->ResolutionHeightInRawPixels + " @ " + mode->RefreshRate + "hz " + mode->BitsPerPixel + "bit\n";
+		auto msg = "Set HDR: " + mode->ResolutionWidthInRawPixels + "x" + mode->ResolutionHeightInRawPixels 
+					+ " @ " + mode->RefreshRate + "hz " 
+					+ mode->BitsPerPixel + "bit " 
+					+ mode->ColorSpace.ToString() + "\n";
 		Utils::Log(Utils::PlatformStringToStdString(msg).c_str());
-
+	
 		hdi->RequestSetCurrentDisplayModeAsync(mode, hdrOption);
 
-		// HDR Setup
-
-
-		/*
-		if (hdi) {
-			auto modes = hdi->GetSupportedDisplayModes();
-			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
-
-			Platform::String^ supportedResolutions = "Supported HDR Resolutions:\n";
-			Windows::Graphics::Display::Core::HdmiDisplayMode^ hdrMode;
-
-			for (unsigned i = 0; i < modes->Size; i++)
-			{
-				auto mode = modes->GetAt(i);
-				if (mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT2020)
-				{
-					supportedResolutions += mode->ResolutionWidthInRawPixels + "x" + mode->ResolutionHeightInRawPixels + " @ " + mode->RefreshRate + "hz " + mode->BitsPerPixel + "bit\n";
- 					
-					if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels 
-						&& mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels 
-						&& mode->RefreshRate == m_currentDisplayMode->RefreshRate)
-					{
-						if (!hdrMode)
-						{
-							hdrMode = mode;
-							continue;
-						}
-						
-						if (mode->BitsPerPixel > hdrMode->BitsPerPixel)
-						{
-							hdrMode = mode;
-						}
-					}
-				}
-			}
-
-			if (hdrMode)
-			{
-				m_currentDisplayMode = hdrMode;
-				hdi->RequestSetCurrentDisplayModeAsync(hdrMode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084);
-
-				Platform::String^ hdrSet = "HDR Set:\n " + hdrMode->ResolutionWidthInRawPixels + "x" + hdrMode->ResolutionHeightInRawPixels + " @ " + hdrMode->RefreshRate + "hz " + hdrMode->BitsPerPixel + "bit\n";
-				std::string hdrSetStd = Utils::PlatformStringToStdString(hdrSet);
-				Utils::Log(hdrSetStd.c_str());
-			}
-			else 
-			{
-				Utils::Log("No HDR mode found with current resolution and frame rate.\n");
-
-				std::string supportedResolutionsStd = Utils::PlatformStringToStdString(supportedResolutions);
-				Utils::Log(supportedResolutionsStd.c_str());
-
-				Platform::String^ currentResolution = "Current Resolution:\n" + m_currentDisplayMode->ResolutionWidthInRawPixels + "x" + m_currentDisplayMode->ResolutionHeightInRawPixels + " @ " + m_currentDisplayMode->RefreshRate + "hz " + m_currentDisplayMode->BitsPerPixel + "bit\n";
-				std::string currentResolutionStd = Utils::PlatformStringToStdString(currentResolution);
-				Utils::Log(currentResolutionStd.c_str());
-			}
-		}
-		*/
 		DXGI_HDR_METADATA_HDR10 hdr10Metadata;
 		SS_HDR_METADATA sunshineHdrMetadata;
 
@@ -664,8 +613,15 @@ void VideoRenderer::SetHDR(bool enabled)
 				hr);*/
 		}
 
-		// Switch to Rec 2020 PQ (SMPTE ST 2084) colorspace for HDR10 rendering
-		hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+		if (mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT709)
+		{
+			hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
+		}
+		else
+		{
+			hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+		}
+		
 		if (FAILED(hr)) {
 			Utils::Log("Failed to set Colorspace!");
 			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
@@ -680,6 +636,7 @@ void VideoRenderer::SetHDR(bool enabled)
 			hdi->RequestSetCurrentDisplayModeAsync(m_lastDisplayMode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::EotfSdr);
 			m_currentDisplayMode = m_lastDisplayMode;
 		}
+
 		// Restore default sRGB colorspace
 		hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
 		if (FAILED(hr)) {

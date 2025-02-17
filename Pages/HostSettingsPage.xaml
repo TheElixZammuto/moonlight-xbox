@@ -5,7 +5,6 @@
     xmlns:local="using:moonlight_xbox_dx"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:wgdc="using:Windows.Graphics.Display.Core"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
@@ -40,11 +39,9 @@
             <TextBlock Grid.Row="0" Grid.Column="0">Resolution</TextBlock>
             <ComboBox x:Name="ResolutionSelector" SelectionChanged="ResolutionSelector_SelectionChanged" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind AvailableResolutions}" Width="200">
                 <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="wgdc:HdmiDisplayMode">
+                    <DataTemplate x:DataType="local:HdmiDisplayModeWrapper">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="0" Padding="0">
-                                <Run Text="{x:Bind ResolutionWidthInRawPixels}"></Run>x<Run Text="{x:Bind ResolutionHeightInRawPixels}"></Run>@<Run Text="{x:Bind RefreshRate}"></Run>hz (HDR:<Run Text="{x:Bind Is2086MetadataSupported}"></Run> <Run Text="{x:Bind BitsPerPixel}"></Run>bit | <Run Text="{x:Bind ColorSpace}"></Run>)
-                            </TextBlock>
+                            <TextBlock Margin="0" Padding="0" Text="{x:Bind FormattedString}"></TextBlock>
                         </StackPanel>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>

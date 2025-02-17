@@ -23,7 +23,7 @@ namespace moonlight_xbox_dx {
 		std::string autostartInstance = "";
 		bool enableKeyboard = false;
 		bool shouldAutoConnect = false;
-
+		Windows::Graphics::Display::Core::HdmiDisplayMode^ ResolveResolution(int Height, int Width, Platform::String^ ColorSpace, int BitsPerPixel, double RefreshRate);
 		bool WakeHost(MoonlightHost^ host);
 		void Validate_WoL(MoonlightHost^ host);
 		std::string WoL_Payload(std::string macAddress);

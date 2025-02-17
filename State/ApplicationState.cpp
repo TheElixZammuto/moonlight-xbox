@@ -34,7 +34,11 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
 					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
 					if (a.contains("width") && a.contains("height")) {
-						// h->Resolution = ref new ScreenResolution(a["width"], a["height"]);
+						h->Resolution = ResolveResolution(a["height"].get<int>(),
+														  a["width"].get<int>(),
+														  Utils::StringFromStdString(a["colorSpace"].get<std::string>()),
+														  a["bitsPerPixel"].get<int>(),
+														  a["fps"].get<double>());
 					}
 					if (a.contains("bitrate"))h->Bitrate = a["bitrate"];
 					if (a.contains("fps"))h->FPS = a["fps"];
@@ -43,7 +47,6 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
 					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
 					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
-					if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
 					if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());
 					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
 					else h->ComputerName = h->LastHostname;
@@ -91,15 +94,19 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
 			hostJson["instance_id"] = Utils::PlatformStringToStdString(host->InstanceId);
 			hostJson["computername"] = Utils::PlatformStringToStdString(host->ComputerName);
-			// hostJson["width"] = host->Resolution->Width;
-			// hostJson["height"] = host->Resolution->Height;
+			if (host->Resolution != nullptr)
+			{
+				hostJson["height"] = host->Resolution->ResolutionHeightInRawPixels;
+				hostJson["width"] = host->Resolution->ResolutionWidthInRawPixels;
+				hostJson["fps"] = host->Resolution->RefreshRate;
+				hostJson["colorSpace"] = Utils::PlatformStringToStdString(host->Resolution->ColorSpace.ToString());
+				hostJson["bitsPerPixel"] = host->Resolution->BitsPerPixel;
+			}
 			hostJson["bitrate"] = host->Bitrate;
-			hostJson["fps"] = host->FPS;
 			hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
 			hostJson["videoCodec"] = Utils::PlatformStringToStdString(host->VideoCodec);
 			hostJson["autoStartID"] = host->AutostartID;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
-			hostJson["enable_hdr"] = host->EnableHDR;
 			hostJson["serverAddress"] = Utils::PlatformStringToStdString(host->ServerAddress);
 
 			std::string macAddr = Utils::PlatformStringToStdString(host->MacAddress);
@@ -141,6 +148,44 @@ moonlight_xbox_dx::ApplicationState^ __stateInstance;
 moonlight_xbox_dx::ApplicationState^ moonlight_xbox_dx::GetApplicationState() {
 	if (__stateInstance == nullptr)__stateInstance = ref new moonlight_xbox_dx::ApplicationState();
 	return __stateInstance;
+}
+
+Windows::Graphics::Display::Core::HdmiDisplayMode^ moonlight_xbox_dx::ApplicationState::ResolveResolution(int Height, int Width, Platform::String^ ColorSpace, int BitsPerPixel, double RefreshRate)
+{
+	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+	auto modes = to_vector(hdi->GetSupportedDisplayModes());
+
+	if (Height == 0 && Width == 0 && ColorSpace->IsEmpty() && BitsPerPixel == 0)
+	{
+		return modes[0];
+	}
+
+	for (int i = 0; i < modes.size(); i++)
+	{
+		if (ColorSpace->IsEmpty() || BitsPerPixel == 0)
+		{
+			if (modes[i]->ResolutionHeightInRawPixels == Height &&
+				modes[i]->ResolutionWidthInRawPixels == Width)
+			{
+				return modes[i];
+				break;
+			}
+		}
+		else
+		{
+			if (modes[i]->ResolutionHeightInRawPixels == Height &&
+				modes[i]->ResolutionWidthInRawPixels == Width &&
+				modes[i]->ColorSpace.ToString() == ColorSpace &&
+				modes[i]->BitsPerPixel == BitsPerPixel &&
+				modes[i]->RefreshRate == RefreshRate)
+			{
+				return modes[i];
+				break;
+			}
+		}
+	}
+
+	return modes[0];
 }
 
 bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
