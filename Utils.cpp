@@ -1,7 +1,14 @@
 #pragma once
 #include "pch.h"
 #include "Utils.hpp"
-#define LOG_LINES 64
+
+#include <locale>
+#include <codecvt>
+#include <string>
+#include <string_view>
+#include <array>
+
+constexpr auto LOG_LINES = 64;
 
 namespace moonlight_xbox_dx {
 	namespace Utils {
@@ -14,31 +21,33 @@ namespace moonlight_xbox_dx {
 		Platform::String^ StringPrintf(const char* fmt, ...) {
 			va_list list;
 			va_start(list, fmt);
-			char message[2048];
-			vsprintf_s(message, 2047, fmt, list);
-			std::string s_str = std::string(message);
-			std::wstring wid_str = std::wstring(s_str.begin(), s_str.end());
-			const wchar_t* w_char = wid_str.c_str();
-			Platform::String^ p_string = ref new Platform::String(w_char);
-			return p_string;
+			std::array<char, 2048> message{};
+			vsprintf_s(message.data(), message.size() - 1, fmt, list);
+			va_end(list);
+
+			return ref new Platform::String(NarrowToWideString(std::string_view(message.data())).c_str());
 		}
 
-		void Log(const char* fmt) {
+		void Log(const std::string_view& msg) {
 			try {
-				if (fmt == nullptr || fmt == NULL)return;
-				int len = strlen(fmt) + 1;
-				wchar_t* stringBuf = (wchar_t*)malloc(sizeof(wchar_t) * len);
-				if (stringBuf == NULL)return;
-				mbstowcs(stringBuf, fmt, len);
-				std::wstring string(stringBuf);
-				logMutex.lock();
-				if (logLines.size() == LOG_LINES)logLines.erase(logLines.begin());
-				logLines.push_back(string);
-				logMutex.unlock();
-				OutputDebugStringA(fmt);
+				std::wstring string = NarrowToWideString(msg);
+				{
+					std::unique_lock<std::mutex> lk(logMutex);
+					if (logLines.size() == LOG_LINES) {
+						logLines.erase(logLines.begin());
+					}
+					logLines.push_back(string);
+				}
+				OutputDebugString(string.c_str());
 			}
-			catch (...){
+			catch (...) {
 
+			}
+		}
+
+		void Log(const char* msg) {
+			if (msg) {
+				Log(std::string_view(msg));
 			}
 		}
 
@@ -46,30 +55,30 @@ namespace moonlight_xbox_dx {
 			return logLines;
 		}
 
-		//https://stackoverflow.com/a/20707518
-		Platform::String^ StringFromChars(char* chars)
+		Platform::String^ StringFromChars(const char* chars)
 		{
-			int wchars_num = MultiByteToWideChar(CP_UTF8, 0, chars, -1, NULL, 0);
-			wchar_t* wstr = new wchar_t[wchars_num];
-			MultiByteToWideChar(CP_UTF8, 0, chars, -1, wstr, wchars_num);
-			Platform::String^ str = ref new Platform::String(wstr);
-			delete[] wstr;
-			return str;
+			if (chars == nullptr) {
+				return nullptr;
+			}
+			return ref new Platform::String(NarrowToWideString(std::string_view(chars)).c_str());
 		}
 
-		//https://stackoverflow.com/a/43628199
 		Platform::String^ StringFromStdString(std::string input) {
-			std::wstring w_str = std::wstring(input.begin(), input.end());
-			const wchar_t* w_chars = w_str.c_str();
-			return (ref new Platform::String(w_chars));
+			return ref new Platform::String(NarrowToWideString(input).c_str());
 		}
 
-		//https://stackoverflow.com/a/35905753
 		std::string PlatformStringToStdString(Platform::String ^input) {
-			std::wstring fooW(input->Begin());
-			std::string fooA(fooW.begin(), fooW.end());
-			return fooA;
+			return WideToNarrowString(std::wstring(input->Begin()));
+		}
+
+		std::string WideToNarrowString(const std::wstring_view& str) {
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			return converter.to_bytes(str.data(), str.data() + str.size());
+		}
+
+		std::wstring NarrowToWideString(const std::string_view& str) {
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			return converter.from_bytes(str.data(), str.data() + str.size());
 		}
 	}
-
 }
