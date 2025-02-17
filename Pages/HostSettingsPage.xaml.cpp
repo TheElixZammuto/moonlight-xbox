@@ -69,7 +69,7 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	if (AvailableResolutions->Size > 0 && host->Resolution != nullptr)
 	{
 		for (int i = 0; i < AvailableResolutions->Size; i++) {
-			if (host->Resolution->ResolutionWidthInRawPixels == AvailableResolutions->GetAt(i)->DisplayMode->ResolutionWidthInRawPixels &&
+			if (host->Resolution->ResolutionHeightInRawPixels == AvailableResolutions->GetAt(i)->DisplayMode->ResolutionHeightInRawPixels &&
 				host->Resolution->ResolutionWidthInRawPixels == AvailableResolutions->GetAt(i)->DisplayMode->ResolutionWidthInRawPixels &&
 				host->Resolution->RefreshRate == AvailableResolutions->GetAt(i)->DisplayMode->RefreshRate &&
 				host->Resolution->ColorSpace == AvailableResolutions->GetAt(i)->DisplayMode->ColorSpace) {
