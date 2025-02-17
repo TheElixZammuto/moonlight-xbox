@@ -11,11 +11,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gamestream", "libgamestream
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "enet", "third_party\moonlight-common-c\build\enet\enet.vcxproj", "{EB652DC7-DBEF-32DC-BC17-A6962D47A920}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0B90CBA1-F024-4F1C-9A4C-2DBCF6D0792F}"
-	ProjectSection(SolutionItems) = preProject
-		AsyncHelpers.cpp = AsyncHelpers.cpp
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
