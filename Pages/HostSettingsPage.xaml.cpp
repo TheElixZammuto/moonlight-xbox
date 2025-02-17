@@ -65,7 +65,6 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	AvailableAudioConfigs->Append("Surround 5.1");
 	AvailableAudioConfigs->Append("Surround 7.1");
 
-	// TODO: Fix Current
 	CurrentResolutionIndex = 0;
 	if (AvailableResolutions->Size > 0 && host->Resolution != nullptr)
 	{

@@ -44,18 +44,6 @@ namespace moonlight_xbox_dx
 				return this->availableResolutions;
 			}
 		}
-		
-		/*
-		property Windows::Foundation::Collections::IVector<Windows::Graphics::Display::Core::HdmiDisplayMode ^>^ AvailableResolutions {
-			Windows::Foundation::Collections::IVector<Windows::Graphics::Display::Core::HdmiDisplayMode ^>^ get() {
-				if (this->availableResolutions == nullptr)
-				{
-					this->availableResolutions = ref new Platform::Collections::Vector<Windows::Graphics::Display::Core::HdmiDisplayMode ^>();
-				}
-				return this->availableResolutions;
-			}
-		}
-		*/
 
 		property Windows::Foundation::Collections::IVector<Platform::String^>^ AvailableVideoCodecs {
 			Windows::Foundation::Collections::IVector<Platform::String^>^ get() {
