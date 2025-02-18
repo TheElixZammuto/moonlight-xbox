@@ -559,49 +559,49 @@ void VideoRenderer::SetHDR(bool enabled)
 			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
 		}
 
-		auto mode = client->GetDisplayMode();
+		auto requestedMode = client->GetDisplayMode();
 		Windows::Graphics::Display::Core::HdmiDisplayHdrOption hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::EotfSdr;
 	
 		// Dolby Vision
-		if (mode->IsDolbyVisionLowLatencySupported)
+		if (requestedMode->IsDolbyVisionLowLatencySupported)
 		{
 			hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::DolbyVisionLowLatency;
 		}
 		// HDR10
-		else if (mode->Is2086MetadataSupported)
+		else if (requestedMode->Is2086MetadataSupported)
 		{
 			hdrOption = Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084;
 		}
 
-		auto msg = "Set HDR: " + mode->ResolutionWidthInRawPixels + "x" + mode->ResolutionHeightInRawPixels 
-					+ " @ " + mode->RefreshRate + "hz " 
-					+ mode->BitsPerPixel + "bit " 
-					+ mode->ColorSpace.ToString() + "\n";
+		auto msg = "Set HDR: " + requestedMode->ResolutionWidthInRawPixels + "x" + requestedMode->ResolutionHeightInRawPixels 
+					+ " @ " + requestedMode->RefreshRate + "hz " 
+					+ requestedMode->BitsPerPixel + "bit " 
+					+ requestedMode->ColorSpace.ToString() + "\n";
 		Utils::Log(Utils::PlatformStringToStdString(msg).c_str());
-	
-		hdi->RequestSetCurrentDisplayModeAsync(mode, hdrOption);
 
 		DXGI_HDR_METADATA_HDR10 hdr10Metadata;
 		SS_HDR_METADATA sunshineHdrMetadata;
+		Windows::Graphics::Display::Core::HdmiDisplayHdr2086Metadata hdrMetadata;
 
 		// Sunshine will have HDR metadata but GFE will not
 		if (!LiGetHdrMetadata(&sunshineHdrMetadata)) {
 			RtlZeroMemory(&sunshineHdrMetadata, sizeof(sunshineHdrMetadata));
 		}
 
-		hdr10Metadata.RedPrimary[0] = sunshineHdrMetadata.displayPrimaries[0].x;
-		hdr10Metadata.RedPrimary[1] = sunshineHdrMetadata.displayPrimaries[0].y;
-		hdr10Metadata.GreenPrimary[0] = sunshineHdrMetadata.displayPrimaries[1].x;
-		hdr10Metadata.GreenPrimary[1] = sunshineHdrMetadata.displayPrimaries[1].y;
-		hdr10Metadata.BluePrimary[0] = sunshineHdrMetadata.displayPrimaries[2].x;
-		hdr10Metadata.BluePrimary[1] = sunshineHdrMetadata.displayPrimaries[2].y;
-		hdr10Metadata.WhitePoint[0] = sunshineHdrMetadata.whitePoint.x;
-		hdr10Metadata.WhitePoint[1] = sunshineHdrMetadata.whitePoint.y;
-		hdr10Metadata.MaxMasteringLuminance = sunshineHdrMetadata.maxDisplayLuminance;
-		hdr10Metadata.MinMasteringLuminance = sunshineHdrMetadata.minDisplayLuminance;
-		hdr10Metadata.MaxContentLightLevel = sunshineHdrMetadata.maxContentLightLevel;
-		hdr10Metadata.MaxFrameAverageLightLevel = sunshineHdrMetadata.maxFrameAverageLightLevel;
+		hdr10Metadata.RedPrimary[0] = hdrMetadata.RedPrimaryX = sunshineHdrMetadata.displayPrimaries[0].x;
+		hdr10Metadata.RedPrimary[1] = hdrMetadata.RedPrimaryY = sunshineHdrMetadata.displayPrimaries[0].y;
+		hdr10Metadata.GreenPrimary[0] = hdrMetadata.GreenPrimaryX = sunshineHdrMetadata.displayPrimaries[1].x;
+		hdr10Metadata.GreenPrimary[1] = hdrMetadata.GreenPrimaryY = sunshineHdrMetadata.displayPrimaries[1].y;
+		hdr10Metadata.BluePrimary[0] = hdrMetadata.BluePrimaryX = sunshineHdrMetadata.displayPrimaries[2].x;
+		hdr10Metadata.BluePrimary[1] = hdrMetadata.BluePrimaryY = sunshineHdrMetadata.displayPrimaries[2].y;
+		hdr10Metadata.WhitePoint[0] = hdrMetadata.WhitePointX = sunshineHdrMetadata.whitePoint.x;
+		hdr10Metadata.WhitePoint[1] = hdrMetadata.WhitePointY = sunshineHdrMetadata.whitePoint.y;
+		hdr10Metadata.MaxMasteringLuminance = hdrMetadata.MaxMasteringLuminance = sunshineHdrMetadata.maxDisplayLuminance;
+		hdr10Metadata.MinMasteringLuminance = hdrMetadata.MinMasteringLuminance = sunshineHdrMetadata.minDisplayLuminance;
+		hdr10Metadata.MaxContentLightLevel = hdrMetadata.MaxContentLightLevel = sunshineHdrMetadata.maxContentLightLevel;
+		hdr10Metadata.MaxFrameAverageLightLevel = hdrMetadata.MaxFrameAverageLightLevel = sunshineHdrMetadata.maxFrameAverageLightLevel;
 
+		hdi->RequestSetCurrentDisplayModeAsync(requestedMode, hdrOption, hdrMetadata);
 		hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10, sizeof(hdr10Metadata), &hdr10Metadata);
 		if (SUCCEEDED(hr)) {
 			Utils::Log("Set display HDR mode: enabled\n");
@@ -613,7 +613,7 @@ void VideoRenderer::SetHDR(bool enabled)
 				hr);*/
 		}
 
-		if (mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT709)
+		if (requestedMode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT709)
 		{
 			hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
 		}
@@ -633,8 +633,7 @@ void VideoRenderer::SetHDR(bool enabled)
 		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 		// HDR Setup
 		if (hdi) {
-			hdi->RequestSetCurrentDisplayModeAsync(m_lastDisplayMode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::EotfSdr);
-			m_currentDisplayMode = m_lastDisplayMode;
+			hdi->SetDefaultDisplayModeAsync();
 		}
 
 		// Restore default sRGB colorspace
