@@ -49,7 +49,8 @@ namespace moonlight_xbox_dx {
 	}
 
 	void ffmpeg_log_callback(void* avcl, int	level, const char* fmt, va_list vl) {
-		//if (level > AV_LOG_INFO)return;
+		if (level > AV_LOG_INFO) return;
+
 		char message[2048];
 		vsprintf_s(message, fmt, vl);
 		OutputDebugStringA("[FFMPEG]");
@@ -69,7 +70,7 @@ namespace moonlight_xbox_dx {
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
 		avcodec_register_all();
 #endif
-		av_log_set_level(AV_LOG_VERBOSE);
+		av_log_set_level(AV_LOG_INFO);
 		av_log_set_callback(&ffmpeg_log_callback);
 #pragma warning(suppress : 4996)
 		av_init_packet(&pkt);
@@ -175,13 +176,22 @@ namespace moonlight_xbox_dx {
 	}
 
 	void FFMpegDecoder::Cleanup() {
-		for (int i = 0; i < dec_frames_cnt; i++) {
-			av_frame_free(&dec_frames[i]);
+		if (dec_frames != NULL) {
+			for (int i = 0; i < dec_frames_cnt; i++) {
+				av_frame_free(&dec_frames[i]);
+			}
+			free(dec_frames);
 		}
-		free(dec_frames);
-		free(ffmpeg_buffer);
 		avcodec_close(decoder_ctx);
 		avcodec_free_context(&decoder_ctx);
+		if (ffmpeg_buffer != NULL) {
+			free(ffmpeg_buffer);
+			ffmpeg_buffer = NULL;
+		}
+		if (ready_frames != NULL) {
+			free(ready_frames);
+			ready_frames = NULL;
+		}
 		Utils::Log("Decoding Clean\n");
 	}
 

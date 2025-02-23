@@ -15,6 +15,7 @@ namespace moonlight_xbox_dx
 	public:
 		moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, StreamPage^ streamPage, MoonlightClient* client, StreamConfiguration^ configuration);
 		~moonlight_xbox_dxMain();
+		void CreateDeviceDependentResources();
 		void CreateWindowSizeDependentResources();
 		void TrackingUpdate(float positionX) { m_pointerLocationX = positionX; }
 		void StartRenderLoop();
@@ -35,6 +36,7 @@ namespace moonlight_xbox_dx
 		void ProcessInput();
 		void Update();
 		bool Render();
+		void Clear();
 
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
@@ -42,7 +44,7 @@ namespace moonlight_xbox_dx
 		// TODO: Replace with your own content renderers.
 		// TODO: Replace with your own content renderers.
 		std::unique_ptr<VideoRenderer> m_sceneRenderer;
-		std::unique_ptr<LogRenderer> m_fpsTextRenderer;
+		std::unique_ptr<LogRenderer>   m_fpsTextRenderer;
 		std::unique_ptr<StatsRenderer> m_statsTextRenderer;
 
 		Windows::Foundation::IAsyncAction^ m_renderLoopWorker;

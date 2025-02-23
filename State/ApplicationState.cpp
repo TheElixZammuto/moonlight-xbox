@@ -79,9 +79,9 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		nlohmann::json stateJson;
 		stateJson["hosts"] = nlohmann::json::array();
 		stateJson["autostartInstance"] = that->autostartInstance;
-		stateJson["marginWidth"] = max(0, min(that->ScreenMarginWidth, 250));
-		stateJson["marginHeight"] = max(0, min(that->ScreenMarginHeight, 250));
-		stateJson["mouseSensitivity"] = max(1, min(that->MouseSensitivity, 16));
+		stateJson["marginWidth"] = std::max(0, std::min(that->ScreenMarginWidth, 250));
+		stateJson["marginHeight"] = std::max(0, std::min(that->ScreenMarginHeight, 250));
+		stateJson["mouseSensitivity"] = std::max(1, std::min(that->MouseSensitivity, 16));
 		stateJson["firstTime"] = that->FirstTime;
 		stateJson["enableKeyboard"] = that->EnableKeyboard;
 		stateJson["keyboardLayout"] = Utils::PlatformStringToStdString(that->KeyboardLayout);

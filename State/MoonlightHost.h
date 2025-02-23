@@ -3,7 +3,7 @@
 #include "State\MoonlightClient.h"
 #include "State\ScreenResolution.h"
 namespace moonlight_xbox_dx {
-    
+
     [Windows::UI::Xaml::Data::Bindable]
     public ref class MoonlightHost sealed : Windows::UI::Xaml::Data::INotifyPropertyChanged
     {
@@ -19,7 +19,7 @@ namespace moonlight_xbox_dx {
         bool playAudioOnPC = false;
         MoonlightClient* client;
         int currentlyRunningAppId;
-        int bitrate = 8000;
+        int bitrate = 20000;
         ScreenResolution^ resolution;
         int fps = 60;
         int autostartID = -1;
@@ -33,7 +33,7 @@ namespace moonlight_xbox_dx {
         void OnPropertyChanged(Platform::String^ propertyName);
         MoonlightHost(Platform::String ^host) {
             lastHostname = host;
-            resolution = ref new ScreenResolution(1280, 720);
+            resolution = ref new ScreenResolution(1920, 1080);
             loading = true;
         }
         void UpdateStats();
@@ -137,7 +137,7 @@ namespace moonlight_xbox_dx {
                 this->currentlyRunningAppId = value;
                 OnPropertyChanged("CurrentlyRunningAppId");
             }
-        } 
+        }
 
         property int AutostartID
         {

@@ -2,8 +2,8 @@
 #include "MoonlightClient.h"
 
 extern "C" {
-#include<Limelight.h>
-#include<libgamestream/client.h>
+#include <Limelight.h>
+#include <libgamestream/client.h>
 #include <libgamestream/errors.h>
 }
 #include "Streaming\FFMpegDecoder.h"
@@ -11,9 +11,12 @@ extern "C" {
 #include <Utils.hpp>
 #include <State\StreamConfiguration.h>
 #include <gamingdeviceinformation.h>
+#include <atomic>
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
+using namespace Windows::Graphics::Display;
+using namespace Windows::Graphics::Display::Core;
 
 
 void log_message(const char* fmt, ...);
@@ -26,16 +29,181 @@ void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 void connection_trigger_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
+void logDisplayMode(const char *str, HdmiDisplayMode^ mode) {
+	if (mode == nullptr) return;
+
+	char modeStr[256];
+	snprintf(modeStr, sizeof(modeStr), "%s: [%s] %ux%u @ %.2fhz, %u bpp, colorspace %s, pixel encoding %s\n",
+		str,
+		mode->IsSmpte2084Supported ? "HDR" : "SDR",
+		mode->ResolutionWidthInRawPixels, mode->ResolutionHeightInRawPixels,
+		mode->RefreshRate,
+		mode->BitsPerPixel,
+		mode->ColorSpace == HdmiDisplayColorSpace::RgbLimited ? "RgbLimited"
+			: mode->ColorSpace == HdmiDisplayColorSpace::RgbFull ? "RgbFull"
+			: mode->ColorSpace == HdmiDisplayColorSpace::BT709 ? "BT709"
+			: mode->ColorSpace == HdmiDisplayColorSpace::BT2020 ? "BT2020"
+			: "Unknown",
+		mode->PixelEncoding == HdmiDisplayPixelEncoding::Rgb444 ? "Rgb444"
+			: mode->PixelEncoding == HdmiDisplayPixelEncoding::Ycc444 ? "Ycc444"
+			: mode->PixelEncoding == HdmiDisplayPixelEncoding::Ycc422 ? "Ycc422"
+			: mode->PixelEncoding == HdmiDisplayPixelEncoding::Ycc420 ? "Ycc420"
+			: "Unknown");
+	Utils::Log(modeStr);
+}
+
+// Based on CWIN32Util::ToggleWindowsHDR from xbmc
+// switches to the HDR or SDR version of the current display mode, per the enabled argument
+// Returns false if the requested state was not set for some reason.
+bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshineHdrMetadata) {
+	HdmiDisplayInformation^ hdmi = HdmiDisplayInformation::GetForCurrentView();
+	if (!hdmi) {
+		return false;
+	}
+
+	bool resendCurrentMode = false;
+	HdmiDisplayMode^ current = hdmi->GetCurrentDisplayMode();
+	logDisplayMode("SetDisplayHDR(): current display mode", current);
+
+	if (current->IsSmpte2084Supported) {
+		// HDR is enabled
+		isHDR = true;
+		if (enabled) {
+			Utils::Log("SetDisplayHDR(true): display is already in HDR mode\n");
+			resendCurrentMode = true;
+		}
+	}
+	else {
+		// HDR is disabled
+		isHDR = false;
+		if (!enabled) {
+			Utils::Log("SetDisplayHDR(false): display is already in SDR mode\n");
+			return true;
+		}
+	}
+
+	// this method is only run on Series S/X, so we can bail out if the system is not set to 4K
+	if (current->ResolutionWidthInRawPixels < 3840) {
+		Utils::Log("Warning: HDR may be unavailable when Xbox is not set to 4K resolution\n");
+		//return false;
+	}
+
+	// convert the HDR metadata format to HdmiDisplayHdr2086Metadata
+	HdmiDisplayHdr2086Metadata hdrMetadata;
+	hdrMetadata.RedPrimaryX = sunshineHdrMetadata.displayPrimaries[0].x;
+	hdrMetadata.RedPrimaryY = sunshineHdrMetadata.displayPrimaries[0].y;
+	hdrMetadata.GreenPrimaryX = sunshineHdrMetadata.displayPrimaries[1].x;
+	hdrMetadata.GreenPrimaryY = sunshineHdrMetadata.displayPrimaries[1].y;
+	hdrMetadata.BluePrimaryX = sunshineHdrMetadata.displayPrimaries[2].x;
+	hdrMetadata.BluePrimaryY = sunshineHdrMetadata.displayPrimaries[2].y;
+	hdrMetadata.WhitePointX = sunshineHdrMetadata.whitePoint.x;
+	hdrMetadata.WhitePointY = sunshineHdrMetadata.whitePoint.y;
+	hdrMetadata.MaxMasteringLuminance = sunshineHdrMetadata.maxDisplayLuminance;
+	hdrMetadata.MinMasteringLuminance = sunshineHdrMetadata.minDisplayLuminance;
+	hdrMetadata.MaxContentLightLevel = sunshineHdrMetadata.maxContentLightLevel;
+	hdrMetadata.MaxFrameAverageLightLevel = sunshineHdrMetadata.maxFrameAverageLightLevel;
+
+	// log all available modes
+	Utils::Log("Supported display modes:\n");
+	for (auto mode : hdmi->GetSupportedDisplayModes()) {
+		logDisplayMode(" ", mode);
+	}
+
+	// Choose new mode that is the same as current except for HDR status
+	HdmiDisplayMode^ newMode = {};
+	for (auto mode : hdmi->GetSupportedDisplayModes()) {
+		if (mode->IsSmpte2084Supported != current->IsSmpte2084Supported &&
+			mode->ResolutionHeightInRawPixels == current->ResolutionHeightInRawPixels &&
+			mode->ResolutionWidthInRawPixels == current->ResolutionWidthInRawPixels &&
+			mode->StereoEnabled == false &&
+			std::fabs(mode->RefreshRate - current->RefreshRate) <= 0.00001)
+		{
+			newMode = mode;
+			break;
+		}
+	}
+
+	// A non-HDR display viewing an HDR stream will error out here with no mode found
+	if (newMode == nullptr) {
+		Utils::Log("SetDisplayHDR(): HDR is unavailable, no suitable display mode found\n");
+		return false;
+	}
+
+	// we might resend the current mode with new HDR metadata
+	if (resendCurrentMode) {
+		newMode = current;
+	}
+
+	HdmiDisplayHdrOption hdrOption = HdmiDisplayHdrOption::None;
+	if (enabled) {
+		logDisplayMode("SetDisplayHDR(true): switching to HDR mode", newMode);
+		Utils::Logf("Sending HDR10 metadata: Min/MaxLuminance %.0f / %u\n",
+			hdrMetadata.MinMasteringLuminance / 10000.0, hdrMetadata.MaxMasteringLuminance);
+		hdrOption = HdmiDisplayHdrOption::Eotf2084;
+	}
+	else {
+		logDisplayMode("SetDisplayHDR(false): switching to SDR mode", newMode);
+		hdrOption = HdmiDisplayHdrOption::None;
+	}
+
+	// Change the display mode
+	auto modeChange = Concurrency::create_task(
+		hdmi->RequestSetCurrentDisplayModeAsync(newMode, hdrOption, hdrMetadata)
+	);
+
+	// wait for async bool result of display mode change
+	if (modeChange.get()) {
+		// Check the current display mode to verify
+		current = hdmi->GetCurrentDisplayMode();
+		logDisplayMode("SetDisplayHDR(): successfully changed to", current);
+
+		if (enabled && current->IsSmpte2084Supported) {
+			isHDR = true;
+			return true;
+		}
+		else if (!enabled && !current->IsSmpte2084Supported) {
+			isHDR = false;
+			return true;
+		}
+	}
+	else {
+		Utils::Log("SetDisplayHDR(): Error switching display mode.\n");
+	}
+
+	return false;
+}
+
 MoonlightClient* connectedInstance;
 
 MoonlightClient::MoonlightClient() {
+	HdmiDisplayInformation^ hdmi = HdmiDisplayInformation::GetForCurrentView();
+	if (hdmi) {
+		HdmiDisplayMode^ current = hdmi->GetCurrentDisplayMode();
+		if (current->IsSmpte2084Supported) {
+			isHDR = true;
+		}
+		if (current->ColorSpace == HdmiDisplayColorSpace::RgbFull) {
+			// RgbFull is the SDR mode used when Xbox is set to "PC RGB" in Video Fidelity -> Color space
+			isRGBFull = true;
+		}
+	}
+}
 
+MoonlightClient::~MoonlightClient() {
+	if (hostname != NULL) {
+		free(hostname);
+		hostname = NULL;
+	}
 }
 
 void MoonlightClient::StopApp() {
 	gs_quit_app(&serverData);
 }
 int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration^ sConfig) {
+	GAMING_DEVICE_MODEL_INFORMATION info = {};
+	GetGamingDeviceModelInformation(&info);
+	bool isXboxOne = (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE);
+
 	//Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
 	std::wstring fooW(sConfig->hostname->Begin());
 	std::string fooA(fooW.begin(), fooW.end());
@@ -47,28 +215,18 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.height = sConfig->height;
 	config.bitrate = sConfig->bitrate;
 	config.clientRefreshRateX100 = sConfig->FPS * 100;
-	config.colorRange = COLOR_RANGE_LIMITED;  //TODO Make me configurable
+	// XXX I am not yet sure if this is the source of clipping issues
+	config.colorRange = this->isRGBFull ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
+	// config.colorRange = COLOR_RANGE_LIMITED;
+	config.colorSpace = COLORSPACE_REC_601;
 	config.encryptionFlags = 0;
 	config.fps = sConfig->FPS;
 	config.packetSize = 1024;
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
-	GAMING_DEVICE_MODEL_INFORMATION info = {};
-	GetGamingDeviceModelInformation(&info);
-	//Old Xbox One can only use H264
-	if (!(info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
-		if (config.height == 2160 || sConfig->videoCodec == "HEVC (H.265)" || sConfig->enableHDR) {
-			config.supportedVideoFormats |= VIDEO_FORMAT_H265;
-			if (sConfig->enableHDR) {
-				config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
-				config.colorSpace = COLORSPACE_REC_2020;
-				config.colorRange = COLOR_RANGE_FULL;
-			}
-		}
-	}
-	/*if (config.height == 2160 || sConfig->videoCodec == "HEVC (H.265)") {
+	if (!isXboxOne) {
 		config.supportedVideoFormats |= VIDEO_FORMAT_H265;
-	}*/
-	
+		config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
+	}
 
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
 	if (sConfig->audioConfig == "Surround 5.1") {
@@ -84,7 +242,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	Utils::Log(message);
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	//Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
-	this->SetGamepadCount(max(1, gamepads->Size));
+	this->SetGamepadCount(std::max((UINT)1, gamepads->Size));
 	int a = gs_start_app(&serverData, &config, sConfig->appID, false, sConfig->playAudioOnPC, activeGamepadMask);
 	if (a != 0) {
 		char message[2048];
@@ -213,16 +371,26 @@ int MoonlightClient::Connect(const char* hostname) {
 		port = atoi(portStr);
 		*strchr(this->hostname, ':') = '\0';
 	}
+
 	Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
 	folderString = folderString->Concat(folderString, "\\");
 	char folder[2048];
 	wcstombs_s(NULL, folder, folderString->Data(), 2047);
+
 	int status = 0;
 	status = gs_init(&serverData, this->hostname, port, folder, 3, true);
-	char msg[4096];
-	sprintf(msg, "Got status %d from gs_init\n", status);
-	Utils::Log(msg);
+	if (status != 0) {
+		Utils::Logf("Got status %d from gs_init(%s)\n", status, hostname);
+	}
 	return status;
+}
+
+bool MoonlightClient::IsHDR() {
+	return isHDR;
+}
+
+bool MoonlightClient::IsRGBFull() {
+	return isRGBFull;
 }
 
 bool MoonlightClient::IsPaired() {
@@ -285,7 +453,7 @@ std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 	Concurrency::create_task([folder, folderString, values, this]() {
 		for (auto a : values) {
 			auto imgPath = folderString->Concat(folderString, a->Id + ".png");
-		https://stackoverflow.com/a/6218957
+			// https://stackoverflow.com/a/6218957
 			DWORD dwAttrib = GetFileAttributes(imgPath->Data());
 			if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
 				gs_appasset(&serverData, folder, a->Id);

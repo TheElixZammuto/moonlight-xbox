@@ -19,7 +19,7 @@ using namespace Platform;
 namespace ScreenRotation
 {
 	// 0-degree Z-rotation
-	static const XMFLOAT4X4 Rotation0( 
+	static const XMFLOAT4X4 Rotation0(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
@@ -43,7 +43,7 @@ namespace ScreenRotation
 		);
 
 	// 270-degree Z-rotation
-	static const XMFLOAT4X4 Rotation270( 
+	static const XMFLOAT4X4 Rotation270(
 		0.0f, -1.0f, 0.0f, 0.0f,
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
@@ -52,9 +52,10 @@ namespace ScreenRotation
 };
 
 // Constructor for DeviceResources.
-DX::DeviceResources::DeviceResources() : 
+DX::DeviceResources::DeviceResources() :
+	m_backBufferFormat(DXGI_FORMAT_R10G10B10A2_UNORM), // 10-bit for HDR
 	m_screenViewport(),
-	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_9_1),
+	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_10_0),
 	m_d3dRenderTargetSize(),
 	m_outputSize(),
 	m_logicalSize(),
@@ -113,7 +114,7 @@ void DX::DeviceResources::CreateDeviceIndependentResources()
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
-void DX::DeviceResources::CreateDeviceResources() 
+void DX::DeviceResources::CreateDeviceResources()
 {
 	// This flag adds support for surfaces with a different color channel ordering
 	// than the API default. It is required for compatibility with Direct2D.
@@ -131,7 +132,7 @@ void DX::DeviceResources::CreateDeviceResources()
 	// Note the ordering should be preserved.
 	// Don't forget to declare your application's minimum required feature level in its
 	// description.  All applications are assumed to support 9.1 unless otherwise stated.
-	D3D_FEATURE_LEVEL featureLevels[] = 
+	D3D_FEATURE_LEVEL featureLevels[] =
 	{
 		D3D_FEATURE_LEVEL_12_1,
 		D3D_FEATURE_LEVEL_12_0,
@@ -164,7 +165,7 @@ void DX::DeviceResources::CreateDeviceResources()
 	if (FAILED(hr))
 	{
 		// If the initialization fails, fall back to the WARP device.
-		// For more information on WARP, see: 
+		// For more information on WARP, see:
 		// https://go.microsoft.com/fwlink/?LinkId=286690
 		DX::ThrowIfFailed(
 			D3D11CreateDevice(
@@ -210,7 +211,7 @@ void DX::DeviceResources::CreateDeviceResources()
 }
 
 // These resources need to be recreated every time the window size is changed.
-void DX::DeviceResources::CreateWindowSizeDependentResources() 
+void DX::DeviceResources::CreateWindowSizeDependentResources()
 {
 	// Clear the previous window size specific context.
 	ID3D11RenderTargetView* nullViews[] = {nullptr};
@@ -236,6 +237,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	m_d3dRenderTargetSize.Height = normalizedHeight;
 	moonlight_xbox_dx::Utils::stats.outputW = m_d3dRenderTargetSize.Width;
 	moonlight_xbox_dx::Utils::stats.outputH = m_d3dRenderTargetSize.Height;
+
 	if (m_swapChain != nullptr)
 	{
 		// If the swap chain already exists, resize it.
@@ -243,8 +245,8 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			2, // Double-buffered swap chain.
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
-			DXGI_FORMAT_B8G8R8A8_UNORM,
-			0
+			m_backBufferFormat,
+			DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
 			);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
@@ -252,7 +254,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			// If the device was removed for any reason, a new device and swap chain will need to be created.
 			HandleDeviceLost();
 
-			// Everything is set up now. Do not continue execution of this method. HandleDeviceLost will reenter this method 
+			// Everything is set up now. Do not continue execution of this method. HandleDeviceLost will reenter this method
 			// and correctly set up the new device.
 			return;
 		}
@@ -268,13 +270,13 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 
 		swapChainDesc.Width = lround(m_d3dRenderTargetSize.Width);		// Match the size of the window.
 		swapChainDesc.Height = lround(m_d3dRenderTargetSize.Height);
-		swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;				// This is the most common swap chain format.
+		swapChainDesc.Format = m_backBufferFormat;
 		swapChainDesc.Stereo = false;
 		swapChainDesc.SampleDesc.Count = 1;								// Don't use multi-sampling.
 		swapChainDesc.SampleDesc.Quality = 0;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
-		swapChainDesc.BufferCount = 5;							
+		swapChainDesc.BufferCount = 5;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
@@ -341,21 +343,21 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		break;
 
 	case DXGI_MODE_ROTATION_ROTATE90:
-		m_orientationTransform2D = 
+		m_orientationTransform2D =
 			Matrix3x2F::Rotation(90.0f) *
 			Matrix3x2F::Translation(m_logicalSize.Height, 0.0f);
 		m_orientationTransform3D = ScreenRotation::Rotation270;
 		break;
 
 	case DXGI_MODE_ROTATION_ROTATE180:
-		m_orientationTransform2D = 
+		m_orientationTransform2D =
 			Matrix3x2F::Rotation(180.0f) *
 			Matrix3x2F::Translation(m_logicalSize.Width, m_logicalSize.Height);
 		m_orientationTransform3D = ScreenRotation::Rotation180;
 		break;
 
 	case DXGI_MODE_ROTATION_ROTATE270:
-		m_orientationTransform2D = 
+		m_orientationTransform2D =
 			Matrix3x2F::Rotation(270.0f) *
 			Matrix3x2F::Translation(0.0f, m_logicalSize.Width);
 		m_orientationTransform3D = ScreenRotation::Rotation90;
@@ -398,7 +400,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 
 	// Create a depth stencil view for use with 3D rendering if needed.
 	CD3D11_TEXTURE2D_DESC1 depthStencilDesc(
-		DXGI_FORMAT_D24_UNORM_S8_UINT, 
+		DXGI_FORMAT_D24_UNORM_S8_UINT,
 		lround(m_d3dRenderTargetSize.Width),
 		lround(m_d3dRenderTargetSize.Height),
 		1, // This depth stencil view has only one texture.
@@ -434,34 +436,34 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 
 	m_d3dContext->RSSetViewports(1, &m_screenViewport);
 
-	// Create a Direct2D target bitmap associated with the
-	// swap chain back buffer and set it as the current target.
-	D2D1_BITMAP_PROPERTIES1 bitmapProperties = 
-		D2D1::BitmapProperties1(
-			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-			m_dpi,
-			m_dpi
-			);
+	// // Create a Direct2D target bitmap associated with the
+	// // swap chain back buffer and set it as the current target.
+	// D2D1_BITMAP_PROPERTIES1 bitmapProperties =
+	// 	D2D1::BitmapProperties1(
+	// 		D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+	// 		D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+	// 		m_dpi,
+	// 		m_dpi
+	// 		);
 
-	ComPtr<IDXGISurface2> dxgiBackBuffer;
-	DX::ThrowIfFailed(
-		m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer))
-		);
+	// ComPtr<IDXGISurface2> dxgiBackBuffer;
+	// DX::ThrowIfFailed(
+	// 	m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer))
+	// 	);
 
-	DX::ThrowIfFailed(
-		m_d2dContext->CreateBitmapFromDxgiSurface(
-			dxgiBackBuffer.Get(),
-			&bitmapProperties,
-			&m_d2dTargetBitmap
-			)
-		);
+	// DX::ThrowIfFailed(
+	// 	m_d2dContext->CreateBitmapFromDxgiSurface(
+	// 		dxgiBackBuffer.Get(),
+	// 		&bitmapProperties,
+	// 		&m_d2dTargetBitmap
+	// 		)
+	// 	);
 
-	m_d2dContext->SetTarget(m_d2dTargetBitmap.Get());
-	m_d2dContext->SetDpi(m_effectiveDpi, m_effectiveDpi);
+	// m_d2dContext->SetTarget(m_d2dTargetBitmap.Get());
+	// m_d2dContext->SetDpi(m_effectiveDpi, m_effectiveDpi);
 
-	// Grayscale text anti-aliasing is recommended for all Microsoft Store apps.
-	m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+	// // Grayscale text anti-aliasing is recommended for all Microsoft Store apps.
+	// m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 }
 
 // Determine the dimensions of the render target and whether it will be scaled down.
@@ -493,6 +495,7 @@ void DX::DeviceResources::SetSwapChainPanel(SwapChainPanel^ panel)
 
 	m_swapChainPanel = panel;
 	m_logicalSize = Windows::Foundation::Size(static_cast<float>(panel->ActualWidth), static_cast<float>(panel->ActualHeight));
+
 	m_nativeOrientation = currentDisplayInformation->NativeOrientation;
 	m_currentOrientation = currentDisplayInformation->CurrentOrientation;
 	m_compositionScaleX = panel->CompositionScaleX;
@@ -624,7 +627,7 @@ void DX::DeviceResources::RegisterDeviceNotify(DX::IDeviceNotify* deviceNotify)
 	m_deviceNotify = deviceNotify;
 }
 
-// Call this method when the app suspends. It provides a hint to the driver that the app 
+// Call this method when the app suspends. It provides a hint to the driver that the app
 // is entering an idle state and that temporary buffers can be reclaimed for use by other apps.
 void DX::DeviceResources::Trim()
 {
@@ -635,13 +638,13 @@ void DX::DeviceResources::Trim()
 }
 
 // Present the contents of the swap chain to the screen.
-void DX::DeviceResources::Present() 
+void DX::DeviceResources::Present()
 {
 	// The first argument instructs DXGI to block until VSync, putting the application
 	// to sleep until the next VSync. This ensures we don't waste any cycles rendering
 	// frames that will never be displayed to the screen.
 	DXGI_PRESENT_PARAMETERS parameters = { 0 };
-	HRESULT hr = m_swapChain->Present1(0, 0, &parameters);
+	HRESULT hr = m_swapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING, &parameters);
 
 	// Discard the contents of the render target.
 	// This is a valid operation only when the existing contents will be entirely
@@ -651,7 +654,7 @@ void DX::DeviceResources::Present()
 	// Discard the contents of the depth stencil.
 	m_d3dContext->DiscardView1(m_d3dDepthStencilView.Get(), nullptr, 0);
 
-	// If the device was removed either by a disconnection or a driver upgrade, we 
+	// If the device was removed either by a disconnection or a driver upgrade, we
 	// must recreate all device resources.
 	if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
 	{
@@ -736,7 +739,7 @@ int DX::DeviceResources::uwp_get_height()
 		const Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 		if (hdi)
 			//720p on HDMI = 1080p on UWP Window - We should handle this
-			return max(1080,Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionHeightInRawPixels);
+			return std::max((UINT)1080, Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionHeightInRawPixels);
 	}
 	const LONG32 resolution_scale = static_cast<LONG32>(Windows::Graphics::Display::DisplayInformation::GetForCurrentView()->ResolutionScale);
 	auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;
@@ -750,7 +753,7 @@ int DX::DeviceResources::uwp_get_width()
 		const Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 		if (hdi)
 			//720p on HDMI = 1080p on UWP Window - We should handle this
-			return max(1920,Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionWidthInRawPixels);
+			return std::max((UINT)1920, Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->ResolutionWidthInRawPixels);
 	}
 	const LONG32 resolution_scale = static_cast<LONG32>(Windows::Graphics::Display::DisplayInformation::GetForCurrentView()->ResolutionScale);
 	auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;

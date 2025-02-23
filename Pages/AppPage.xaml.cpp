@@ -69,6 +69,9 @@ void AppPage::Connect(int appId) {
 	config->videoCodec = host->VideoCodec;
 	config->playAudioOnPC = host->PlayAudioOnPC;
 	config->enableHDR = host->EnableHDR;
+	if (config->enableHDR) {
+		host->VideoCodec = "HEVC (H.265)";
+	}
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 	if (!result) {
 		printf("C");

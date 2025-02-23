@@ -7,6 +7,7 @@ using namespace Windows::Gaming::Input;
 
 
 using namespace moonlight_xbox_dx;
+using namespace DirectX;
 using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 using namespace Concurrency;
@@ -40,9 +41,9 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	m_sceneRenderer = std::unique_ptr<VideoRenderer>(new VideoRenderer(m_deviceResources, moonlightClient, configuration));
 
-	m_fpsTextRenderer = std::unique_ptr<LogRenderer>(new LogRenderer(m_deviceResources));
+	//m_fpsTextRenderer = std::unique_ptr<LogRenderer>(new LogRenderer(m_deviceResources));
 
-	m_statsTextRenderer = std::unique_ptr<StatsRenderer>(new StatsRenderer(m_deviceResources));
+	//m_statsTextRenderer = std::unique_ptr<StatsRenderer>(new StatsRenderer(m_deviceResources));
 	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
 	client->OnStatusUpdate = ([streamPage](int status) {
@@ -71,10 +72,13 @@ moonlight_xbox_dxMain::~moonlight_xbox_dxMain()
 	m_deviceResources->RegisterDeviceNotify(nullptr);
 }
 
+void moonlight_xbox_dxMain::CreateDeviceDependentResources()
+{
+}
+
 // Updates application state when the window size changes (e.g. device orientation change)
 void moonlight_xbox_dxMain::CreateWindowSizeDependentResources()
 {
-	// TODO: Replace this with the size-dependent initialization of your app's content.
 	m_sceneRenderer->CreateWindowSizeDependentResources();
 }
 
@@ -132,8 +136,8 @@ void moonlight_xbox_dxMain::Update()
 	m_timer.Tick([&]()
 		{
 			m_sceneRenderer->Update(m_timer);
-			m_fpsTextRenderer->Update(m_timer);
-			m_statsTextRenderer->Update(m_timer);
+			// m_fpsTextRenderer->Update(m_timer);
+			// m_statsTextRenderer->Update(m_timer);
 		});
 }
 
@@ -335,42 +339,55 @@ bool moonlight_xbox_dxMain::Render()
 		return false;
 	}
 
+	Clear();
+
 	auto context = m_deviceResources->GetD3DDeviceContext();
 
-	// Reset the viewport to target the whole screen.
-	auto viewport = m_deviceResources->GetScreenViewport();
-	context->RSSetViewports(1, &viewport);
-
-	// Reset render targets to the screen.
-	ID3D11RenderTargetView* const targets[1] = { m_deviceResources->GetBackBufferRenderTargetView() };
-	context->OMSetRenderTargets(1, targets, m_deviceResources->GetDepthStencilView());
-
-	// Clear the back buffer and depth stencil view.
-	context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::Black);
-	context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-	bool shouldPresent = m_sceneRenderer->Render();
 	// Render the scene objects.
-	m_fpsTextRenderer->Render();
-	m_statsTextRenderer->Render();
+	bool shouldPresent = m_sceneRenderer->Render();
+	// m_fpsTextRenderer->Render();
+	// m_statsTextRenderer->Render();
 
 	return shouldPresent;
 }
+
+// Helper method to clear the back buffers.
+void moonlight_xbox_dxMain::Clear()
+{
+	auto context = m_deviceResources->GetD3DDeviceContext();
+
+	// Clear the views.
+	// ID3D11RenderTargetView* renderTarget[] = { m_hdrScene->GetRenderTargetView() }; // use DXTK tone mapping
+	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() }; // don't use DXTK tone mapping
+	auto depthStencil = m_deviceResources->GetDepthStencilView();
+
+	// XMVECTORF32 color;
+	// color.v = XMColorSRGBToRGB(Colors::Black);
+	context->ClearRenderTargetView(renderTarget[0], Colors::Black);
+	context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	context->OMSetRenderTargets(1, renderTarget, depthStencil);
+
+	// Set the viewport.
+	const auto viewport = m_deviceResources->GetScreenViewport();
+	context->RSSetViewports(1, &viewport);
+ }
 
 // Notifies renderers that device resources need to be released.
 void moonlight_xbox_dxMain::OnDeviceLost()
 {
 	m_sceneRenderer->ReleaseDeviceDependentResources();
-	m_fpsTextRenderer->ReleaseDeviceDependentResources();
-	m_statsTextRenderer->ReleaseDeviceDependentResources();
+	// m_fpsTextRenderer->ReleaseDeviceDependentResources();
+	// m_statsTextRenderer->ReleaseDeviceDependentResources();
 }
 
 // Notifies renderers that device resources may now be recreated.
 void moonlight_xbox_dxMain::OnDeviceRestored()
 {
 	m_sceneRenderer->CreateDeviceDependentResources();
-	m_fpsTextRenderer->CreateDeviceDependentResources();
-	m_statsTextRenderer->CreateDeviceDependentResources();
+	// m_fpsTextRenderer->CreateDeviceDependentResources();
+	// m_statsTextRenderer->CreateDeviceDependentResources();
+
+	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
 }
 
