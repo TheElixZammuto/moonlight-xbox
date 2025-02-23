@@ -27,9 +27,14 @@ void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMo
 void connection_trigger_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
 MoonlightClient* connectedInstance;
+HdmiDisplayModeWrapper^ displayMode;
 
 MoonlightClient::MoonlightClient() {
 
+}
+
+MoonlightClient::MoonlightClient(HdmiDisplayModeWrapper^ hdmiDisplayMode) {
+	displayMode = hdmiDisplayMode;
 }
 
 void MoonlightClient::StopApp() {
@@ -372,6 +377,13 @@ Platform::String^ MoonlightClient::GetServerMacAddress() {
 		return nullptr;
 	}
 	return Utils::StringFromChars(serverData.macAddress);
+}
+
+HdmiDisplayModeWrapper^ MoonlightClient::GetDisplayMode() {
+	if (!displayMode) {
+		return nullptr;
+	}
+	return displayMode;
 }
 
 void MoonlightClient::KeyDown(unsigned short v, char modifiers) {

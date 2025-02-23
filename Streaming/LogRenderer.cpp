@@ -61,7 +61,7 @@ void LogRenderer::Update(DX::StepTimer const& timer)
 }
 
 // Renders a frame to the screen.
-void LogRenderer::Render()
+void LogRenderer::Render(FLOAT width, FLOAT height)
 {
 	ComPtr<IDWriteTextLayout> textLayout;
 	DX::ThrowIfFailed(
@@ -88,10 +88,18 @@ void LogRenderer::Render()
 	context->SaveDrawingState(m_stateBlock.Get());
 	context->BeginDraw();
 
+	Windows::Foundation::Size screen;
+	screen.Width = (logicalSize.Width / 1920) * width;
+	screen.Height = (logicalSize.Height / 1080) * height;
+
+	Windows::Foundation::Size margin;
+	margin.Width = 30;
+	margin.Height = 10;
+
 	// Position on the bottom right corner
 	D2D1::Matrix3x2F screenTranslation = D2D1::Matrix3x2F::Translation(
-		logicalSize.Width - m_textMetrics.layoutWidth,
-		logicalSize.Height - m_textMetrics.height
+		screen.Width - m_textMetrics.layoutWidth - margin.Width,
+		screen.Height - m_textMetrics.height - margin.Height
 		);
 
 	context->SetTransform(screenTranslation * m_deviceResources->GetOrientationTransform2D());

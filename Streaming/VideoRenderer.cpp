@@ -4,6 +4,7 @@
 #include "..\Common\DirectXHelper.h"
 #include <Streaming\FFMpegDecoder.h>
 #include <Utils.hpp>
+#include <system_error>
 
 extern "C" {
 #include "libgamestream/client.h"
@@ -15,6 +16,7 @@ extern "C" {
 using namespace moonlight_xbox_dx;
 using namespace DirectX;
 using namespace Windows::Foundation;
+using namespace Windows::Graphics::Display::Core;
 
 typedef struct _VERTEX
 {
@@ -104,10 +106,16 @@ void UpdateStats(LARGE_INTEGER start) {
 	//Update stats
 	double ms = (end.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
 	Utils::stats._accumulatedSeconds += ms;
+	double endMs = (start.QuadPart - Utils::stats._timeAtEnd.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
+	Utils::stats._accumulatedSecondsEnd += endMs;
+	Utils::stats._timeAtEnd = end;
 	if (Utils::stats._accumulatedSeconds >= 1000) {
 		Utils::stats.fps = Utils::stats._framesDecoded;
 		Utils::stats.averageRenderingTime = Utils::stats._accumulatedSeconds / ((double)Utils::stats._framesDecoded);
+		Utils::stats.averageNetworkTime = Utils::stats._accumulatedSecondsEnd / ((double)Utils::stats._framesDecoded);
+		Utils::stats.averageTotalTime = Utils::stats.averageRenderingTime + Utils::stats.averageNetworkTime;
 		Utils::stats._accumulatedSeconds = 0;
+		Utils::stats._accumulatedSecondsEnd = 0;
 		Utils::stats._framesDecoded = 0;
 	}
 }
@@ -268,7 +276,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 
 	// Once both shaders are loaded, create the mesh.
 	auto createCubeTask = (createVSTask && createPSTaskGen && createPSTaskBT601 && createPSTaskBT2020).then([this]() {
-		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+		HdmiDisplayInformation^ hdi = HdmiDisplayInformation::GetForCurrentView();
 		auto w = CoreWindow::GetForCurrentThread();
 		int m_DisplayWidth = w->Bounds.Width;
 		int m_DisplayHeight = w->Bounds.Height;
@@ -411,7 +419,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 
 void VideoRenderer::ReleaseDeviceDependentResources()
 {
-	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+	HdmiDisplayInformation^ hdi = HdmiDisplayInformation::GetForCurrentView();
 	m_loadingComplete = false;
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
@@ -551,127 +559,93 @@ void VideoRenderer::SetHDR(bool enabled)
 	//lockContext(this);
 	if(FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.lock();
 
+	HdmiDisplayInformation^ hdi = HdmiDisplayInformation::GetForCurrentView();
 	if (enabled) {
-		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
-		// HDR Setup
-		if (hdi) {
-			auto modes = hdi->GetSupportedDisplayModes();
-			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
-
-			Platform::String^ supportedResolutions = "Supported HDR Resolutions:\n";
-			Windows::Graphics::Display::Core::HdmiDisplayMode^ hdrMode;
-
-			for (unsigned i = 0; i < modes->Size; i++)
-			{
-				auto mode = modes->GetAt(i);
-				if (mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT2020)
-				{
-					supportedResolutions += mode->ResolutionWidthInRawPixels + "x" + mode->ResolutionHeightInRawPixels + " @ " + mode->RefreshRate + "hz " + mode->BitsPerPixel + "bit\n";
- 					
-					if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels 
-						&& mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels 
-						&& mode->RefreshRate == m_currentDisplayMode->RefreshRate)
-					{
-						if (!hdrMode)
-						{
-							hdrMode = mode;
-							continue;
-						}
-						
-						if (mode->BitsPerPixel > hdrMode->BitsPerPixel)
-						{
-							hdrMode = mode;
-						}
-					}
-				}
-			}
-
-			if (hdrMode)
-			{
-				m_currentDisplayMode = hdrMode;
-				hdi->RequestSetCurrentDisplayModeAsync(hdrMode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084);
-
-				Platform::String^ hdrSet = "HDR Set:\n " + hdrMode->ResolutionWidthInRawPixels + "x" + hdrMode->ResolutionHeightInRawPixels + " @ " + hdrMode->RefreshRate + "hz " + hdrMode->BitsPerPixel + "bit\n";
-				std::string hdrSetStd = Utils::PlatformStringToStdString(hdrSet);
-				Utils::Log(hdrSetStd.c_str());
-			}
-			else 
-			{
-				Utils::Log("No HDR mode found with current resolution and frame rate.\n");
-
-				std::string supportedResolutionsStd = Utils::PlatformStringToStdString(supportedResolutions);
-				Utils::Log(supportedResolutionsStd.c_str());
-
-				Platform::String^ currentResolution = "Current Resolution:\n" + m_currentDisplayMode->ResolutionWidthInRawPixels + "x" + m_currentDisplayMode->ResolutionHeightInRawPixels + " @ " + m_currentDisplayMode->RefreshRate + "hz " + m_currentDisplayMode->BitsPerPixel + "bit\n";
-				std::string currentResolutionStd = Utils::PlatformStringToStdString(currentResolution);
-				Utils::Log(currentResolutionStd.c_str());
-			}
+		auto requestedModeWrapper = client->GetDisplayMode();
+		if (!requestedModeWrapper->IsHdr)
+		{
+			Utils::Log("Set display mode is not HDR compatible.");
+			return;
 		}
+		
+		if (hdi)
+		{
+			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
+		}
+
+		auto requestedMode = requestedModeWrapper->HdmiDisplayMode;
+		if (!requestedMode)
+		{
+			Utils::Log("No display mode was set.");
+			return;
+		}
+
+		auto msg = "Set HDR: " + requestedMode->ResolutionWidthInRawPixels + "x" + requestedMode->ResolutionHeightInRawPixels 
+					+ " @ " + requestedMode->RefreshRate + "hz " 
+					+ (requestedMode->BitsPerPixel / 3) + "bit " 
+					+ requestedMode->ColorSpace.ToString() + " "
+					+ requestedMode->PixelEncoding.ToString() + "\n";
+		Utils::Log(Utils::PlatformStringToStdString(msg).c_str());
+
 		DXGI_HDR_METADATA_HDR10 hdr10Metadata;
 		SS_HDR_METADATA sunshineHdrMetadata;
+		HdmiDisplayHdr2086Metadata hdrMetadata;
 
 		// Sunshine will have HDR metadata but GFE will not
 		if (!LiGetHdrMetadata(&sunshineHdrMetadata)) {
 			RtlZeroMemory(&sunshineHdrMetadata, sizeof(sunshineHdrMetadata));
 		}
 
-		hdr10Metadata.RedPrimary[0] = sunshineHdrMetadata.displayPrimaries[0].x;
-		hdr10Metadata.RedPrimary[1] = sunshineHdrMetadata.displayPrimaries[0].y;
-		hdr10Metadata.GreenPrimary[0] = sunshineHdrMetadata.displayPrimaries[1].x;
-		hdr10Metadata.GreenPrimary[1] = sunshineHdrMetadata.displayPrimaries[1].y;
-		hdr10Metadata.BluePrimary[0] = sunshineHdrMetadata.displayPrimaries[2].x;
-		hdr10Metadata.BluePrimary[1] = sunshineHdrMetadata.displayPrimaries[2].y;
-		hdr10Metadata.WhitePoint[0] = sunshineHdrMetadata.whitePoint.x;
-		hdr10Metadata.WhitePoint[1] = sunshineHdrMetadata.whitePoint.y;
-		hdr10Metadata.MaxMasteringLuminance = sunshineHdrMetadata.maxDisplayLuminance;
-		hdr10Metadata.MinMasteringLuminance = sunshineHdrMetadata.minDisplayLuminance;
-		hdr10Metadata.MaxContentLightLevel = sunshineHdrMetadata.maxContentLightLevel;
-		hdr10Metadata.MaxFrameAverageLightLevel = sunshineHdrMetadata.maxFrameAverageLightLevel;
+		hdr10Metadata.RedPrimary[0] = hdrMetadata.RedPrimaryX = sunshineHdrMetadata.displayPrimaries[0].x;
+		hdr10Metadata.RedPrimary[1] = hdrMetadata.RedPrimaryY = sunshineHdrMetadata.displayPrimaries[0].y;
+		hdr10Metadata.GreenPrimary[0] = hdrMetadata.GreenPrimaryX = sunshineHdrMetadata.displayPrimaries[1].x;
+		hdr10Metadata.GreenPrimary[1] = hdrMetadata.GreenPrimaryY = sunshineHdrMetadata.displayPrimaries[1].y;
+		hdr10Metadata.BluePrimary[0] = hdrMetadata.BluePrimaryX = sunshineHdrMetadata.displayPrimaries[2].x;
+		hdr10Metadata.BluePrimary[1] = hdrMetadata.BluePrimaryY = sunshineHdrMetadata.displayPrimaries[2].y;
+		hdr10Metadata.WhitePoint[0] = hdrMetadata.WhitePointX = sunshineHdrMetadata.whitePoint.x;
+		hdr10Metadata.WhitePoint[1] = hdrMetadata.WhitePointY = sunshineHdrMetadata.whitePoint.y;
+		hdr10Metadata.MaxMasteringLuminance = hdrMetadata.MaxMasteringLuminance = sunshineHdrMetadata.maxDisplayLuminance;
+		hdr10Metadata.MinMasteringLuminance = hdrMetadata.MinMasteringLuminance = sunshineHdrMetadata.minDisplayLuminance;
+		hdr10Metadata.MaxContentLightLevel = hdrMetadata.MaxContentLightLevel = sunshineHdrMetadata.maxContentLightLevel;
+		hdr10Metadata.MaxFrameAverageLightLevel = hdrMetadata.MaxFrameAverageLightLevel = sunshineHdrMetadata.maxFrameAverageLightLevel;
 
+		hdi->RequestSetCurrentDisplayModeAsync(requestedMode, HdmiDisplayHdrOption::Eotf2084, hdrMetadata);
+		
 		hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10, sizeof(hdr10Metadata), &hdr10Metadata);
 		if (SUCCEEDED(hr)) {
 			Utils::Log("Set display HDR mode: enabled\n");
 		}
 		else {
-			Utils::Log("Failed to set HDR mode\n");
-			/*/SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				"Failed to enter HDR mode: %x",
-				hr);*/
+			hr = MAKE_DXGI_HRESULT(hr);
+			std::string message = std::system_category().message(hr);
+			Utils::Log(("Failed to set HDR mode: " + message + "\n").c_str());
 		}
 
-		// Switch to Rec 2020 PQ (SMPTE ST 2084) colorspace for HDR10 rendering
 		hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
-		if (FAILED(hr)) {
-			Utils::Log("Failed to set Colorspace!");
-			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				"IDXGISwapChain::SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020) failed: %x",
-				hr);*/
+		if (!SUCCEEDED(hr)) {
+			std::string message = std::system_category().message(hr);
+			Utils::Log(("Failed to set Colorspace: " + message + " \n").c_str());
 		}
+
 	}
 	else {
-		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
-		// HDR Setup
 		if (hdi) {
-			hdi->RequestSetCurrentDisplayModeAsync(m_lastDisplayMode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::EotfSdr);
-			m_currentDisplayMode = m_lastDisplayMode;
+			hdi->SetDefaultDisplayModeAsync();
 		}
+
 		// Restore default sRGB colorspace
 		hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
 		if (FAILED(hr)) {
-			Utils::Log("Failed to restore SDR Colorspace!\n");
-			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				"IDXGISwapChain::SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709) failed: %x",
-				hr);*/
+			std::string message = std::system_category().message(hr);
+			Utils::Log(("Failed to restore SDR Colorspace: " + message + "\n").c_str());
 		}
-
 		hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_NONE, 0, nullptr);
 		if (SUCCEEDED(hr)) {
 			Utils::Log("HDR Disabled\n");
 		}
 		else {
-			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				"Failed to exit HDR mode: %x",
-				hr);*/
+			std::string message = std::system_category().message(hr);
+			Utils::Log(("Failed to disable HDR: " + message + " \n").c_str());
 		}
 	}
 	if (FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.unlock();

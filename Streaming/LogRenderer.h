@@ -14,7 +14,7 @@ namespace moonlight_xbox_dx
 		void CreateDeviceDependentResources();
 		void ReleaseDeviceDependentResources();
 		void Update(DX::StepTimer const& timer);
-		void Render();
+		void Render(FLOAT width, FLOAT height);
 
 	private:
 		// Cached pointer to device resources.

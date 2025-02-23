@@ -16,6 +16,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 6. Choose from the list below the application you want to run
 7. ???
 8. Profit!
+
 ### For Dev Mode
 **Looking for the Standard Dev Mode Builds? Can be found here:** [Link](https://github.com/TheElixZammuto/moonlight-xbox/releases)
 **Looking for the Bleeding Edge Builds? Can be found here:** [Link](https://github.com/TheElixZammuto/moonlight-xbox/actions)
@@ -38,10 +39,10 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Host configuration (for resolution and bitrate) and saved host history
 - Audio
 - HDR
+- Wake-on-Lan
 
 ## What does NOT work
 - Hardware Mouse (UWP Limitations sadly)
-- 120FPS (Never tested, let me know if it works)
 - Everything else not listed above
 
 ## Building
@@ -60,5 +61,4 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
     3. Install dependencies: `.\vcpkg\vcpkg.exe install --triplet x64-uwp`
 3. Run x64 Visual Studio Prompt (Tools → Command Line → Developer Command Prompt)
     1. Run `generate-thirdparty-projects.bat` to generate `moonlight-common-c` VS project
-    2. Go to `libgamestream` and run `build-uwp.bat` to generate `libgamestream` VS project
 4. After all the actions above, you finally can open and build solution.
