@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ApplicationState.h"
+#include "State/HdmiDisplayModeWrapper.h"
 #include <Utils.hpp>
 #include <nlohmann/json.hpp>
 
@@ -34,12 +35,13 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
 					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
 					if (a.contains("width") && a.contains("height")) {
-						h->Resolution = ResolveResolution(a["height"].get<int>(),
-														  a["width"].get<int>(),
-														  Utils::StringFromStdString(a["colorSpace"].get<std::string>()),
-														  a["bitsPerPixel"].get<int>(),
-														  a["fps"].get<double>());
+						h->HdmiDisplayMode = ref new HdmiDisplayModeWrapper(ResolveResolution(a["height"].get<int>(),
+																							  a["width"].get<int>(),
+																							  Utils::StringFromStdString(a["colorSpace"].get<std::string>()),
+																							  a["bitsPerPixel"].get<int>(),
+																							  a["fps"].get<double>()));
 					}
+					if (a.contains("enableHDR"))h->EnableHDR = a["enableHDR"].get<bool>();
 					if (a.contains("bitrate"))h->Bitrate = a["bitrate"];
 					if (a.contains("fps"))h->FPS = a["fps"];
 					if (a.contains("audioConfig"))h->AudioConfig = Utils::StringFromStdString(a["audioConfig"].get<std::string>());
@@ -94,14 +96,15 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
 			hostJson["instance_id"] = Utils::PlatformStringToStdString(host->InstanceId);
 			hostJson["computername"] = Utils::PlatformStringToStdString(host->ComputerName);
-			if (host->Resolution != nullptr)
+			if (host->HdmiDisplayMode != nullptr)
 			{
-				hostJson["height"] = host->Resolution->ResolutionHeightInRawPixels;
-				hostJson["width"] = host->Resolution->ResolutionWidthInRawPixels;
-				hostJson["fps"] = host->Resolution->RefreshRate;
-				hostJson["colorSpace"] = Utils::PlatformStringToStdString(host->Resolution->ColorSpace.ToString());
-				hostJson["bitsPerPixel"] = host->Resolution->BitsPerPixel;
+				hostJson["height"] = host->HdmiDisplayMode->HdmiDisplayMode->ResolutionHeightInRawPixels;
+				hostJson["width"] = host->HdmiDisplayMode->HdmiDisplayMode->ResolutionWidthInRawPixels;
+				hostJson["fps"] = host->HdmiDisplayMode->HdmiDisplayMode->RefreshRate;
+				hostJson["colorSpace"] = Utils::PlatformStringToStdString(host->HdmiDisplayMode->HdmiDisplayMode->ColorSpace.ToString());
+				hostJson["bitsPerPixel"] = host->HdmiDisplayMode->HdmiDisplayMode->BitsPerPixel;
 			}
+			hostJson["enableHDR"] = host->EnableHDR;
 			hostJson["bitrate"] = host->Bitrate;
 			hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
 			hostJson["videoCodec"] = Utils::PlatformStringToStdString(host->VideoCodec);
@@ -152,7 +155,7 @@ moonlight_xbox_dx::ApplicationState^ moonlight_xbox_dx::GetApplicationState() {
 
 Windows::Graphics::Display::Core::HdmiDisplayMode^ moonlight_xbox_dx::ApplicationState::ResolveResolution(int Height, int Width, Platform::String^ ColorSpace, int BitsPerPixel, double RefreshRate)
 {
-	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+	auto hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	auto modes = to_vector(hdi->GetSupportedDisplayModes());
 
 	if (Height == 0 && Width == 0 && ColorSpace->IsEmpty() && BitsPerPixel == 0)
@@ -168,7 +171,6 @@ Windows::Graphics::Display::Core::HdmiDisplayMode^ moonlight_xbox_dx::Applicatio
 				modes[i]->ResolutionWidthInRawPixels == Width)
 			{
 				return modes[i];
-				break;
 			}
 		}
 		else
@@ -180,7 +182,6 @@ Windows::Graphics::Display::Core::HdmiDisplayMode^ moonlight_xbox_dx::Applicatio
 				modes[i]->RefreshRate == RefreshRate)
 			{
 				return modes[i];
-				break;
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 #pragma once
 #include "State\MoonlightHost.h"
+#include "State\HdmiDisplayModeWrapper.h"
 #include <ppltasks.h>
 
 namespace moonlight_xbox_dx {

@@ -11,5 +11,4 @@ namespace moonlight_xbox_dx {
 			PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 			}));
 	}
-
 }

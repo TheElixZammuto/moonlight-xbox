@@ -351,7 +351,7 @@ bool moonlight_xbox_dxMain::Render()
 
 	bool shouldPresent = m_sceneRenderer->Render();
 	// Render the scene objects.
-	m_fpsTextRenderer->Render();
+	m_fpsTextRenderer->Render(viewport.Width, viewport.Height);
 	m_statsTextRenderer->Render();
 
 	return shouldPresent;
@@ -386,7 +386,6 @@ void moonlight_xbox_dxMain::Disconnect() {
 void moonlight_xbox_dxMain::CloseApp() {
 	moonlightClient->StopApp();
 }
-
 
 void moonlight_xbox_dxMain::OnKeyDown(unsigned short virtualKey, char modifiers)
 {

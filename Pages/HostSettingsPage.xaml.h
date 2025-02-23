@@ -8,6 +8,7 @@
 #include "Pages\HostSettingsPage.g.h"
 #include "State\ScreenResolution.h"
 #include "State\HdmiDisplayModeWrapper.h"
+#include <algorithm>
 
 namespace moonlight_xbox_dx
 {
@@ -15,18 +16,25 @@ namespace moonlight_xbox_dx
 	/// An empty page that can be used on its own or navigated to within a Frame.
 	/// </summary>
 	[Windows::Foundation::Metadata::WebHostHidden]
-	public ref class HostSettingsPage sealed
+	[Windows::UI::Xaml::Data::Bindable]
+	public ref class HostSettingsPage sealed : Windows::UI::Xaml::Data::INotifyPropertyChanged
 	{
 	private:
 		MoonlightHost^ host;
-		Windows::Foundation::Collections::IVector<HdmiDisplayModeWrapper^>^ availableResolutions;
+		Windows::Foundation::Collections::IVector<HdmiDisplayModeWrapper^>^ availableModes;
+		Windows::Foundation::Collections::IVector<double>^ availableFPS;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableVideoCodecs;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
+		bool hdrAvailable;
 		int currentResolutionIndex = 0;
+		int currentFPSIndex = 0;
 		int currentAppIndex = 0;
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	public:
+		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
+		void OnPropertyChanged(Platform::String^ propertyName);
+
 		HostSettingsPage();
 		property MoonlightHost^ Host {
 			MoonlightHost^ get() {
@@ -35,13 +43,47 @@ namespace moonlight_xbox_dx
 		}
 		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
 		
-		property Windows::Foundation::Collections::IVector<HdmiDisplayModeWrapper ^>^ AvailableResolutions {
+		property Windows::Foundation::Collections::IVector<HdmiDisplayModeWrapper ^>^ AvailableModes {
 			Windows::Foundation::Collections::IVector<HdmiDisplayModeWrapper ^>^ get() {
-				if (this->availableResolutions == nullptr)
+				if (this->availableModes == nullptr)
 				{
-					this->availableResolutions = ref new Platform::Collections::Vector<HdmiDisplayModeWrapper ^>();
+					this->availableModes = ref new Platform::Collections::Vector<HdmiDisplayModeWrapper ^>();
 				}
-				return this->availableResolutions;
+				return this->availableModes;
+			}
+		}
+
+		property Windows::Foundation::Collections::IVector<ScreenResolution^>^ AvailableResolutions {
+			Windows::Foundation::Collections::IVector<ScreenResolution^>^ get() {
+				auto availableResolutions = ref new Platform::Collections::Vector<ScreenResolution^>();
+				for (int i = 0; i < availableModes->Size; i++)
+				{
+					bool contains = false;
+					for (int j = 0; j < availableResolutions->Size; j++)
+					{
+						if (availableResolutions->GetAt(j)->Width == availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels
+							&& availableResolutions->GetAt(j)->Height == availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels)
+						{
+							contains = true;
+						}
+					}
+
+					if (!contains)
+					{
+						availableResolutions->Append(ref new ScreenResolution(availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels,
+																			  availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels));
+					}
+				}
+
+				return availableResolutions;
+			}
+		}
+
+		property Windows::Foundation::Collections::IVector<double>^ AvailableFPS {
+			Windows::Foundation::Collections::IVector<double>^ get() { return this->availableFPS; }
+			void set(Windows::Foundation::Collections::IVector<double>^ value) {
+				this->availableFPS = value;
+				OnPropertyChanged("AvailableFPS");
 			}
 		}
 
@@ -73,6 +115,15 @@ namespace moonlight_xbox_dx
 			}
 		}
 
+		property int CurrentFPSIndex
+		{
+			int get() { return this->currentFPSIndex; }
+			void set(int value) {
+				this->currentFPSIndex = value;
+				OnPropertyChanged("CurrentFPSIndex");
+			}
+		}
+
 		property int CurrentAppIndex
 		{
 			int get() { return this->currentAppIndex; }
@@ -81,12 +132,25 @@ namespace moonlight_xbox_dx
 			}
 		}
 
+		property bool HDRAvailable
+		{
+			bool get() { return this->hdrAvailable; }
+			void set(bool value) {
+				this->hdrAvailable = value;
+				OnPropertyChanged("HDRAvailable");
+			}
+		}
+
 	private:
 		void backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void FPSSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void EnableHDR_Checked(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
-		std::string FormatMode(Windows::Graphics::Display::Core::HdmiDisplayMode mode);
+		HdmiDisplayModeWrapper^ FilterMode();
+		Platform::Collections::Vector<double>^ UpdateFPS();
+		bool IsHDRAvailable();
 	};
 }

@@ -23,7 +23,7 @@ namespace moonlight_xbox_dx {
 
 	int MoonlightHost::Connect()
 	{
-		client = new MoonlightClient(this->resolution);
+		client = new MoonlightClient(this->hdmiDisplayMode);
 		Platform::String^ ipAddress = this->lastHostname;
 		char ipAddressStr[2048];
 		wcstombs_s(NULL, ipAddressStr, ipAddress->Data(), 2047);
@@ -41,12 +41,10 @@ namespace moonlight_xbox_dx {
 		}));
 	}
 
-
 	void MoonlightHost::Unpair()
 	{
 		client->Unpair();
 	}
-
 	
 	void MoonlightHost::OnPropertyChanged(Platform::String^ propertyName)
 	{

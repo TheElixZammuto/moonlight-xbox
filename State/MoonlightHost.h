@@ -1,7 +1,7 @@
 #pragma once
 #include "pch.h"
 #include "State\MoonlightClient.h"
-#include "State\ScreenResolution.h"
+#include "State\HdmiDisplayModeWrapper.h"
 namespace moonlight_xbox_dx {
     
     [Windows::UI::Xaml::Data::Bindable]
@@ -20,7 +20,7 @@ namespace moonlight_xbox_dx {
         MoonlightClient* client;
         int currentlyRunningAppId;
         int bitrate = 8000;
-        Windows::Graphics::Display::Core::HdmiDisplayMode^ resolution;
+        HdmiDisplayModeWrapper^ hdmiDisplayMode;
         int fps = 60;
         int autostartID = -1;
         Platform::String^ videoCodec = "H.264";
@@ -148,12 +148,12 @@ namespace moonlight_xbox_dx {
             }
         }
 
-        property Windows::Graphics::Display::Core::HdmiDisplayMode^ Resolution
+        property HdmiDisplayModeWrapper^ HdmiDisplayMode
         {
-            Windows::Graphics::Display::Core::HdmiDisplayMode^ get() { return this->resolution; }
-            void set(Windows::Graphics::Display::Core::HdmiDisplayMode^ value) {
-                this->resolution = value;
-                OnPropertyChanged("ScreenResolution");
+            HdmiDisplayModeWrapper^ get() { return this->hdmiDisplayMode; }
+            void set(HdmiDisplayModeWrapper^ value) {
+                this->hdmiDisplayMode = value;
+                OnPropertyChanged("HdmiDisplayMode");
             }
         }
 

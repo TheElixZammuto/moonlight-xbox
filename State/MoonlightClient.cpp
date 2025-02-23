@@ -27,13 +27,13 @@ void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMo
 void connection_trigger_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
 MoonlightClient* connectedInstance;
-Windows::Graphics::Display::Core::HdmiDisplayMode^ displayMode;
+HdmiDisplayModeWrapper^ displayMode;
 
 MoonlightClient::MoonlightClient() {
 
 }
 
-MoonlightClient::MoonlightClient(Windows::Graphics::Display::Core::HdmiDisplayMode^ hdmiDisplayMode) {
+MoonlightClient::MoonlightClient(HdmiDisplayModeWrapper^ hdmiDisplayMode) {
 	displayMode = hdmiDisplayMode;
 }
 
@@ -379,7 +379,7 @@ Platform::String^ MoonlightClient::GetServerMacAddress() {
 	return Utils::StringFromChars(serverData.macAddress);
 }
 
-Windows::Graphics::Display::Core::HdmiDisplayMode^ MoonlightClient::GetDisplayMode() {
+HdmiDisplayModeWrapper^ MoonlightClient::GetDisplayMode() {
 	if (!displayMode) {
 		return nullptr;
 	}
