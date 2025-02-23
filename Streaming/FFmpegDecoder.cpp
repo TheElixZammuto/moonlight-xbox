@@ -94,7 +94,7 @@ namespace moonlight_xbox_dx {
 			return -1;
 		}
 		decoder_ctx->opaque = this;
-		
+
 		AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
 		device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
 		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
@@ -111,7 +111,7 @@ namespace moonlight_xbox_dx {
 			return err2;
 
 		}
-		
+
 		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 		decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
 		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
@@ -219,7 +219,7 @@ namespace moonlight_xbox_dx {
 
 		pkt.data = indata;
 		pkt.size = inlen;
-		int ts = GetTickCount64();
+		decodeStartTime = GetTickCount64();
 		err = avcodec_send_packet(decoder_ctx, &pkt);
 		if (err < 0) {
 
@@ -241,6 +241,7 @@ namespace moonlight_xbox_dx {
 			return nullptr;
 		}
 		if (err == 0) {
+			Utils::stats.totalDecodeMs += (GetTickCount64() - decodeStartTime);
 			//Smooth stream but keep queue small
 			if (LiGetPendingVideoFrames() > 1)return nullptr;
 			//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!
@@ -299,6 +300,6 @@ namespace moonlight_xbox_dx {
 		return decoder_callbacks_sdl;
 	}
 
-	
+
 }
 

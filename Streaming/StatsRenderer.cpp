@@ -53,6 +53,7 @@ void StatsRenderer::Update(DX::StepTimer const& timer)
 		Windows::ApplicationModel::Package^ package = Windows::ApplicationModel::Package::Current;
 		m_text += L"App Version: " + std::to_wstring(package->Id->Version.Major) + L"." + std::to_wstring(package->Id->Version.Minor) + L"." + std::to_wstring(package->Id->Version.Build) + L"." + std::to_wstring(package->Id->Version.Revision) + L"\n";
 		m_text += L"Window Size: " + std::to_wstring(Utils::stats.outputW) + L" x " + std::to_wstring(Utils::stats.outputH) + L"\n";
+		m_text += L"AVG Decode time: " + std::to_wstring(Utils::stats.averageDecodeTime) + L"ms \n";
 		m_text += L"AVG Rendering time: " + std::to_wstring(Utils::stats.averageRenderingTime) + L"ms \n";
 		m_text += L"Queue Size: " + std::to_wstring(Utils::stats.queueSize) + L"\n";
 		m_text += L"Composition Scale: " + std::to_wstring(Utils::stats.compositionScaleX) + L" - " + std::to_wstring(Utils::stats.compositionScaleX) + L" - " + std::to_wstring(Utils::stats.compositionScaleMultiplier) + L"\n";

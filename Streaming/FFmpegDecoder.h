@@ -45,5 +45,6 @@ namespace moonlight_xbox_dx
 		AVFrame** ready_frames;
 		int next_frame, current_frame;
 		std::shared_ptr<DX::DeviceResources> resources;
+		uint64_t decodeStartTime;
 	};
 }

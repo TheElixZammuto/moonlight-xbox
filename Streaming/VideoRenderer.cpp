@@ -106,9 +106,11 @@ void UpdateStats(LARGE_INTEGER start) {
 	Utils::stats._accumulatedSeconds += ms;
 	if (Utils::stats._accumulatedSeconds >= 1000) {
 		Utils::stats.fps = Utils::stats._framesDecoded;
+		Utils::stats.averageDecodeTime = (double)Utils::stats.totalDecodeMs / ((double)Utils::stats._framesDecoded);
 		Utils::stats.averageRenderingTime = Utils::stats._accumulatedSeconds / ((double)Utils::stats._framesDecoded);
 		Utils::stats._accumulatedSeconds = 0;
 		Utils::stats._framesDecoded = 0;
+		Utils::stats.totalDecodeMs = 0;
 	}
 }
 
@@ -188,7 +190,7 @@ bool VideoRenderer::Render()
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation");
 	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
 	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
-	
+
 	this->bindColorConversion(frame);
 
 	m_deviceResources->GetD3DDeviceContext()->DrawIndexed(6, 0, 0);
@@ -567,9 +569,9 @@ void VideoRenderer::SetHDR(bool enabled)
 				if (mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT2020)
 				{
 					supportedResolutions += mode->ResolutionWidthInRawPixels + "x" + mode->ResolutionHeightInRawPixels + " @ " + mode->RefreshRate + "hz " + mode->BitsPerPixel + "bit\n";
- 					
-					if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels 
-						&& mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels 
+
+					if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels
+						&& mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels
 						&& mode->RefreshRate == m_currentDisplayMode->RefreshRate)
 					{
 						if (!hdrMode)
@@ -577,7 +579,7 @@ void VideoRenderer::SetHDR(bool enabled)
 							hdrMode = mode;
 							continue;
 						}
-						
+
 						if (mode->BitsPerPixel > hdrMode->BitsPerPixel)
 						{
 							hdrMode = mode;
@@ -595,7 +597,7 @@ void VideoRenderer::SetHDR(bool enabled)
 				std::string hdrSetStd = Utils::PlatformStringToStdString(hdrSet);
 				Utils::Log(hdrSetStd.c_str());
 			}
-			else 
+			else
 			{
 				Utils::Log("No HDR mode found with current resolution and frame rate.\n");
 
