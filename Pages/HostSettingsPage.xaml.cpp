@@ -191,6 +191,8 @@ HdmiDisplayModeWrapper^ moonlight_xbox_dx::HostSettingsPage::FilterMode()
 {
 	HdmiDisplayModeWrapper^ mode;
 	bool hdrAvailable = false;
+	std::vector<std::string> hdrRefreshRates;
+
 	for (int i = 0; i < availableModes->Size; i++)
 	{
 		if (availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels == AvailableResolutions->GetAt(CurrentResolutionIndex)->Height
@@ -207,6 +209,12 @@ HdmiDisplayModeWrapper^ moonlight_xbox_dx::HostSettingsPage::FilterMode()
 				hdrAvailable = true;
 			}
 		}
+
+		if (availableModes->GetAt(i)->IsHdr)
+		{
+			hdrRefreshRates.push_back(Utils::PlatformStringToStdString(availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels + "x" + availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels +
+				"@" + availableModes->GetAt(i)->HdmiDisplayMode->RefreshRate + "hz"));
+		}
 	}
 	
 	if (!mode)
@@ -214,25 +222,44 @@ HdmiDisplayModeWrapper^ moonlight_xbox_dx::HostSettingsPage::FilterMode()
 		mode = availableModes->GetAt(0);
 	}
 
-	if (!hdrAvailable)
-	{
-		HDRWarning->Visibility = Windows::UI::Xaml::Visibility::Visible;
-	}
-	else
-	{
-		HDRWarning->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-	}
-
+	std::string hdrWarning = "";
 	if (mode->HdmiDisplayMode->ResolutionWidthInRawPixels >= 3840 
 		&& mode->HdmiDisplayMode->RefreshRate >= 119
 		&& mode->IsHdr)
 	{
-		FourKHDRWarning->Visibility = Windows::UI::Xaml::Visibility::Visible;
+		hdrWarning = "Warning: HDR at 4k@120hz has been known to be unstable.";
 	}
-	else 
+	else if (!hdrAvailable)
 	{
-		FourKHDRWarning->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+		std::string refreshRateString = "";
+		for (int i = 0; i < hdrRefreshRates.size(); i++)
+		{
+			if (i > 0 && hdrRefreshRates.size() > 2)
+			{
+				refreshRateString += ", ";
+			}
+
+			if (i == hdrRefreshRates.size() - 1)
+			{
+				refreshRateString += "and ";
+			}
+
+			refreshRateString += hdrRefreshRates[i];
+		}
+
+		hdrWarning = "HDR is currently available at: " + refreshRateString;
+
+		if (hdrRefreshRates.empty())
+		{
+			hdrWarning = "HDR is currently not available on this device";
+		}
 	}
+	else
+	{
+		hdrWarning = "";
+	}
+	
+	HDRWarning->Text = Utils::StringFromStdString(hdrWarning);
 
 	return mode;
 }

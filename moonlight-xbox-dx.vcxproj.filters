@@ -62,6 +62,9 @@
     <ClCompile Include="State\ScreenResolution.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="State\HdmiDisplayModeWrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="State\MoonlightApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -128,6 +131,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="State\ScreenResolution.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="State\HdmiDisplayModeWrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="State\MoonlightApp.h">

@@ -38,7 +38,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Graceful Disconnection
 - Host configuration (for resolution and bitrate) and saved host history
 - Audio
-- HDR
+- HDR _(4k@120 HDR is currently unstable)__
 - Wake-on-Lan
 
 ## What does NOT work
@@ -62,3 +62,4 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 3. Run x64 Visual Studio Prompt (Tools → Command Line → Developer Command Prompt)
     1. Run `generate-thirdparty-projects.bat` to generate `moonlight-common-c` VS project
 4. After all the actions above, you finally can open and build solution.
+    1. Right-click the `moonlight-xbox-dx` project, select `Publish`, then select `Create App Packages...` to build your .msixbundle and dependencies.
