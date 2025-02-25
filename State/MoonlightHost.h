@@ -151,14 +151,6 @@ namespace moonlight_xbox_dx {
         {
             HdmiDisplayModeWrapper^ get() { return this->hdmiDisplayMode; }
             void set(HdmiDisplayModeWrapper^ value) {
-                if (hdmiDisplayMode == nullptr)
-                {
-                    HdmiDisplayInformation^ hdi = HdmiDisplayInformation::GetForCurrentView();
-                    if (hdi)
-                    {
-                        this->hdmiDisplayMode = ref new HdmiDisplayModeWrapper(hdi->GetCurrentDisplayMode());
-                    }
-                }
                 this->hdmiDisplayMode = value;
                 OnPropertyChanged("HdmiDisplayMode");
             }
