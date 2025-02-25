@@ -370,7 +370,8 @@ void VideoRenderer::CreateDeviceDependentResources()
 	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	samplerDesc.MinLOD = -FLT_MAX;
 	samplerDesc.MaxLOD = FLT_MAX;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, samplerState.GetAddressOf()), "Sampler Creation");
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, &samplerState), "Sampler Creation");
+	m_deviceResources->GetD3DDeviceContext()->PSSetSamplers(0, 1, samplerState.GetAddressOf());
 	renderTextureDesc = { 0 };
 	int width = configuration->width;
 	int height = configuration->height;
