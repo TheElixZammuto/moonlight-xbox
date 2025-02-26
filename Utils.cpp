@@ -19,11 +19,23 @@ namespace moonlight_xbox_dx {
 		std::mutex logMutex;
 
 		Platform::String^ StringPrintf(const char* fmt, ...) {
-			va_list list;
-			va_start(list, fmt);
-			std::array<char, 2048> message{};
-			vsprintf_s(message.data(), message.size() - 1, fmt, list);
-			va_end(list);
+			va_list args;
+			va_start(args, fmt);
+
+			va_list args_copy;
+			va_copy(args_copy, args);
+			auto size = vsnprintf_s(nullptr, 0, 0, fmt, args_copy);
+			va_end(args_copy);
+
+			if (size < 0) {
+				va_end(args);
+				return nullptr;
+			}
+
+			// Needs space for NUL char
+			std::vector<char> message(size + 1, 0);
+			vsnprintf_s(message.data(), message.size(), message.size(), fmt, args);
+			va_end(args);
 
 			return ref new Platform::String(NarrowToWideString(std::string_view(message.data())).c_str());
 		}
