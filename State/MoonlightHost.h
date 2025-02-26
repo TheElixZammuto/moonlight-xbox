@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "State\MoonlightClient.h"
 #include "State\HdmiDisplayModeWrapper.h"
+#include "State\ScreenResolution.h"
 namespace moonlight_xbox_dx {
     
     [Windows::UI::Xaml::Data::Bindable]
@@ -21,6 +22,7 @@ namespace moonlight_xbox_dx {
         int currentlyRunningAppId;
         int bitrate = 8000;
         HdmiDisplayModeWrapper^ hdmiDisplayMode;
+        ScreenResolution^ streamResolution;
         int fps = 60;
         int autostartID = -1;
         Platform::String^ videoCodec = "H.264";
@@ -33,6 +35,7 @@ namespace moonlight_xbox_dx {
         void OnPropertyChanged(Platform::String^ propertyName);
         MoonlightHost(Platform::String ^host) {
             lastHostname = host;
+            streamResolution = ref new ScreenResolution(1280, 720);
             loading = true;
         }
         void UpdateStats();
@@ -153,6 +156,15 @@ namespace moonlight_xbox_dx {
             void set(HdmiDisplayModeWrapper^ value) {
                 this->hdmiDisplayMode = value;
                 OnPropertyChanged("HdmiDisplayMode");
+            }
+        }
+
+        property ScreenResolution^ StreamResolution
+        {
+            ScreenResolution^ get() { return this->streamResolution; }
+            void set(ScreenResolution^ value) {
+                this->streamResolution = value;
+                OnPropertyChanged("StreamResolution");
             }
         }
 

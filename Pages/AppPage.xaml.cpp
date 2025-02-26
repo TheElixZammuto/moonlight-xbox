@@ -61,8 +61,8 @@ void AppPage::Connect(int appId) {
 	StreamConfiguration^ config = ref new StreamConfiguration();
 	config->hostname = host->LastHostname;
 	config->appID = appId;
-	config->width = host->HdmiDisplayMode->HdmiDisplayMode->ResolutionWidthInRawPixels;
-	config->height = host->HdmiDisplayMode->HdmiDisplayMode->ResolutionHeightInRawPixels;
+	config->width = host->StreamResolution->Width;
+	config->height = host->StreamResolution->Height;
 	config->bitrate = host->Bitrate;
 	config->FPS = host->HdmiDisplayMode->HdmiDisplayMode->RefreshRate;
 	config->audioConfig = host->AudioConfig;

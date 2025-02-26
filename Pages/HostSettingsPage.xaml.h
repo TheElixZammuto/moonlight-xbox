@@ -22,11 +22,13 @@ namespace moonlight_xbox_dx
 	private:
 		MoonlightHost^ host;
 		Windows::Foundation::Collections::IVector<HdmiDisplayModeWrapper^>^ availableModes;
+		Windows::Foundation::Collections::IVector<ScreenResolution^>^ availableStreamResolutions;
 		Windows::Foundation::Collections::IVector<double>^ availableFPS;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableVideoCodecs;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
 		bool hdrAvailable;
-		int currentResolutionIndex = 0;
+		int currentStreamResolutionIndex = 0;
+		int currentDisplayResolutionIndex = 0;
 		int currentFPSIndex = 0;
 		int currentAppIndex = 0;
 	protected:
@@ -53,16 +55,26 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-		property Windows::Foundation::Collections::IVector<ScreenResolution^>^ AvailableResolutions {
+		property Windows::Foundation::Collections::IVector<ScreenResolution^>^ AvailableStreamResolutions {
 			Windows::Foundation::Collections::IVector<ScreenResolution^>^ get() {
-				auto availableResolutions = ref new Platform::Collections::Vector<ScreenResolution^>();
+				if (this->availableStreamResolutions == nullptr)
+				{
+					this->availableStreamResolutions = ref new Platform::Collections::Vector<ScreenResolution^>();
+				}
+				return this->availableStreamResolutions;
+			}
+		}
+
+		property Windows::Foundation::Collections::IVector<ScreenResolution^>^ AvailableDisplayResolutions {
+			Windows::Foundation::Collections::IVector<ScreenResolution^>^ get() {
+				auto availableTVResolutions = ref new Platform::Collections::Vector<ScreenResolution^>();
 				for (int i = 0; i < availableModes->Size; i++)
 				{
 					bool contains = false;
-					for (int j = 0; j < availableResolutions->Size; j++)
+					for (int j = 0; j < availableTVResolutions->Size; j++)
 					{
-						if (availableResolutions->GetAt(j)->Width == availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels
-							&& availableResolutions->GetAt(j)->Height == availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels)
+						if (availableTVResolutions->GetAt(j)->Width == availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels
+							&& availableTVResolutions->GetAt(j)->Height == availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels)
 						{
 							contains = true;
 						}
@@ -70,12 +82,12 @@ namespace moonlight_xbox_dx
 
 					if (!contains)
 					{
-						availableResolutions->Append(ref new ScreenResolution(availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels,
+						availableTVResolutions->Append(ref new ScreenResolution(availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels,
 																			  availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels));
 					}
 				}
 
-				return availableResolutions;
+				return availableTVResolutions;
 			}
 		}
 
@@ -107,11 +119,19 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-		property int CurrentResolutionIndex
+		property int CurrentDisplayResolutionIndex
 		{
-			int get() { return this->currentResolutionIndex; }
+			int get() { return this->currentDisplayResolutionIndex; }
 			void set(int value) {
-				this->currentResolutionIndex = value;
+				this->currentDisplayResolutionIndex = value;
+			}
+		}
+
+		property int CurrentStreamResolutionIndex
+		{
+			int get() { return this->currentStreamResolutionIndex; }
+			void set(int value) {
+				this->currentStreamResolutionIndex = value;
 			}
 		}
 
@@ -143,7 +163,8 @@ namespace moonlight_xbox_dx
 
 	private:
 		void backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-		void ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void StreamResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void DisplayResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void FPSSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void EnableHDR_Checked(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);

@@ -73,6 +73,11 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		}
 	}
 
+	AvailableStreamResolutions->Append(ref new ScreenResolution(1280, 720));
+	AvailableStreamResolutions->Append(ref new ScreenResolution(1920, 1080));
+	AvailableStreamResolutions->Append(ref new ScreenResolution(2560, 1440));
+	AvailableStreamResolutions->Append(ref new ScreenResolution(3840, 2160));
+
 	AvailableVideoCodecs->Append("H.264");
 	AvailableVideoCodecs->Append("HEVC (H.265)");
 	
@@ -80,13 +85,22 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	AvailableAudioConfigs->Append("Surround 5.1");
 	AvailableAudioConfigs->Append("Surround 7.1");
 
-	CurrentResolutionIndex = 0;
+	CurrentStreamResolutionIndex = 0;
+	for (int i = 0; i < AvailableStreamResolutions->Size; i++) {
+		if (host->StreamResolution->Width == AvailableStreamResolutions->GetAt(i)->Width &&
+			host->StreamResolution->Height == AvailableStreamResolutions->GetAt(i)->Height) {
+			CurrentStreamResolutionIndex = i;
+			break;
+		}
+	}
+
+	CurrentDisplayResolutionIndex = 0;
 	if (AvailableModes->Size > 0 && host->HdmiDisplayMode != nullptr)
 	{
-		for (int i = 0; i < AvailableResolutions->Size; i++) {
-			if (AvailableResolutions->GetAt(i)->Height == host->HdmiDisplayMode->HdmiDisplayMode->ResolutionHeightInRawPixels
-				&& AvailableResolutions->GetAt(i)->Width == host->HdmiDisplayMode->HdmiDisplayMode->ResolutionWidthInRawPixels) {
-				CurrentResolutionIndex = i;
+		for (int i = 0; i < AvailableDisplayResolutions->Size; i++) {
+			if (AvailableDisplayResolutions->GetAt(i)->Height == host->HdmiDisplayMode->HdmiDisplayMode->ResolutionHeightInRawPixels
+				&& AvailableDisplayResolutions->GetAt(i)->Width == host->HdmiDisplayMode->HdmiDisplayMode->ResolutionWidthInRawPixels) {
+				CurrentDisplayResolutionIndex = i;
 				break;
 			}
 		}
@@ -143,9 +157,15 @@ void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, W
 	args->Handled = true;
 }
 
-void moonlight_xbox_dx::HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void moonlight_xbox_dx::HostSettingsPage::StreamResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
-	CurrentResolutionIndex = this->ResolutionSelector->SelectedIndex;
+	CurrentStreamResolutionIndex = this->StreamResolutionSelector->SelectedIndex;
+	host->StreamResolution = AvailableStreamResolutions->GetAt(CurrentStreamResolutionIndex);
+}
+
+void moonlight_xbox_dx::HostSettingsPage::DisplayResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	CurrentDisplayResolutionIndex = this->DisplayResolutionSelector->SelectedIndex;
 	host->HdmiDisplayMode = FilterMode();
 	HDRAvailable = IsHDRAvailable();
 	AvailableFPS = UpdateFPS();
@@ -195,8 +215,8 @@ HdmiDisplayModeWrapper^ moonlight_xbox_dx::HostSettingsPage::FilterMode()
 
 	for (int i = 0; i < availableModes->Size; i++)
 	{
-		if (availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels == AvailableResolutions->GetAt(CurrentResolutionIndex)->Height
-			&& availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels == AvailableResolutions->GetAt(CurrentResolutionIndex)->Width
+		if (availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels == AvailableDisplayResolutions->GetAt(CurrentDisplayResolutionIndex)->Height
+			&& availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels == AvailableDisplayResolutions->GetAt(CurrentDisplayResolutionIndex)->Width
 			&& availableModes->GetAt(i)->HdmiDisplayMode->RefreshRate == AvailableFPS->GetAt(CurrentFPSIndex))
 		{
 			if (availableModes->GetAt(i)->IsHdr == host->EnableHDR)
@@ -267,7 +287,7 @@ HdmiDisplayModeWrapper^ moonlight_xbox_dx::HostSettingsPage::FilterMode()
 Platform::Collections::Vector<double>^ moonlight_xbox_dx::HostSettingsPage::UpdateFPS()
 {
 	auto availableFPS = ref new Platform::Collections::Vector<double>();
-	auto selectedResolution = AvailableResolutions->GetAt(currentResolutionIndex);
+	auto selectedResolution = AvailableDisplayResolutions->GetAt(currentDisplayResolutionIndex);
 	int width = selectedResolution->Width;
 	int height = selectedResolution->Height;
 
@@ -302,8 +322,8 @@ bool moonlight_xbox_dx::HostSettingsPage::IsHDRAvailable()
 	bool isAvailable = false;
 	for (int i = 0; i < availableModes->Size; i++)
 	{
-		if (availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels == AvailableResolutions->GetAt(currentResolutionIndex)->Width
-			&& availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels == AvailableResolutions->GetAt(currentResolutionIndex)->Height
+		if (availableModes->GetAt(i)->HdmiDisplayMode->ResolutionWidthInRawPixels == AvailableDisplayResolutions->GetAt(currentDisplayResolutionIndex)->Width
+			&& availableModes->GetAt(i)->HdmiDisplayMode->ResolutionHeightInRawPixels == AvailableDisplayResolutions->GetAt(currentDisplayResolutionIndex)->Height
 			&& availableModes->GetAt(i)->HdmiDisplayMode->RefreshRate == AvailableFPS->GetAt(currentFPSIndex)
 			&& availableModes->GetAt(i)->IsHdr)
 		{

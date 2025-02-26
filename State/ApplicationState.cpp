@@ -34,12 +34,15 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
 					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
-					if (a.contains("width") && a.contains("height")) {
-						h->HdmiDisplayMode = ref new HdmiDisplayModeWrapper(ResolveResolution(a["height"].get<int>(),
-																							  a["width"].get<int>(),
+					if (a.contains("displayHeight") && a.contains("displayWidth")) {
+						h->HdmiDisplayMode = ref new HdmiDisplayModeWrapper(ResolveResolution(a["displayHeight"].get<int>(),
+																							  a["displayWidth"].get<int>(),
 																							  Utils::StringFromStdString(a["colorSpace"].get<std::string>()),
 																							  a["bitsPerPixel"].get<int>(),
 																							  a["fps"].get<double>()));
+					}
+					if (a.contains("width") && a.contains("height")) {
+						h->StreamResolution = ref new ScreenResolution(a["width"], a["height"]);
 					}
 					if (a.contains("enableHDR"))h->EnableHDR = a["enableHDR"].get<bool>();
 					if (a.contains("bitrate"))h->Bitrate = a["bitrate"];
@@ -98,12 +101,14 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["computername"] = Utils::PlatformStringToStdString(host->ComputerName);
 			if (host->HdmiDisplayMode != nullptr)
 			{
-				hostJson["height"] = host->HdmiDisplayMode->HdmiDisplayMode->ResolutionHeightInRawPixels;
-				hostJson["width"] = host->HdmiDisplayMode->HdmiDisplayMode->ResolutionWidthInRawPixels;
+				hostJson["displayHeight"] = host->HdmiDisplayMode->HdmiDisplayMode->ResolutionHeightInRawPixels;
+				hostJson["displayWidth"] = host->HdmiDisplayMode->HdmiDisplayMode->ResolutionWidthInRawPixels;
 				hostJson["fps"] = host->HdmiDisplayMode->HdmiDisplayMode->RefreshRate;
 				hostJson["colorSpace"] = Utils::PlatformStringToStdString(host->HdmiDisplayMode->HdmiDisplayMode->ColorSpace.ToString());
 				hostJson["bitsPerPixel"] = host->HdmiDisplayMode->HdmiDisplayMode->BitsPerPixel;
 			}
+			hostJson["height"] = host->StreamResolution->Height;
+			hostJson["width"] = host->StreamResolution->Width;
 			hostJson["enableHDR"] = host->EnableHDR;
 			hostJson["bitrate"] = host->Bitrate;
 			hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
