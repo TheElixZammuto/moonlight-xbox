@@ -314,6 +314,7 @@
       <DependentUpon>KeyboardControl.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Keyboard\KeyboardCommon.h" />
+    <ClInclude Include="State\HdmiDisplayModeWrapper.h" />
     <ClInclude Include="State\MoonlightClient.h" />
     <ClInclude Include="State\StreamConfiguration.h" />
     <ClInclude Include="Common\DeviceResources.h" />
@@ -361,6 +362,7 @@
     <ClCompile Include="MoonlightWelcome.xaml.cpp">
       <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="State\HdmiDisplayModeWrapper.cpp" />
     <ClCompile Include="State\MoonlightClient.cpp" />
     <ClCompile Include="State\StreamConfiguration.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />

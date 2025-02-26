@@ -53,9 +53,12 @@ void StatsRenderer::Update(DX::StepTimer const& timer)
 		Windows::ApplicationModel::Package^ package = Windows::ApplicationModel::Package::Current;
 		m_text += L"App Version: " + std::to_wstring(package->Id->Version.Major) + L"." + std::to_wstring(package->Id->Version.Minor) + L"." + std::to_wstring(package->Id->Version.Build) + L"." + std::to_wstring(package->Id->Version.Revision) + L"\n";
 		m_text += L"Window Size: " + std::to_wstring(Utils::stats.outputW) + L" x " + std::to_wstring(Utils::stats.outputH) + L"\n";
-		m_text += L"AVG Rendering time: " + std::to_wstring(Utils::stats.averageRenderingTime) + L"ms \n";
+		m_text += L"Composition Scale: " + std::to_wstring(Utils::stats.compositionScaleX) + L" - " + std::to_wstring(Utils::stats.compositionScaleY) + L" - " + std::to_wstring(Utils::stats.compositionScaleMultiplier) + L"\n";
+		m_text += L"AVG FPS: " + std::to_wstring(Utils::stats.fps) + L"fps\n";
+		m_text += L"AVG Rendering Time: " + std::to_wstring(Utils::stats.averageRenderingTime) + L"ms \n";
+		m_text += L"AVG Network Time: " + std::to_wstring(Utils::stats.averageNetworkTime) + L"ms\n";
+		m_text += L"AVG Total Time: " + std::to_wstring(Utils::stats.averageTotalTime) + L"ms \n";
 		m_text += L"Queue Size: " + std::to_wstring(Utils::stats.queueSize) + L"\n";
-		m_text += L"Composition Scale: " + std::to_wstring(Utils::stats.compositionScaleX) + L" - " + std::to_wstring(Utils::stats.compositionScaleX) + L" - " + std::to_wstring(Utils::stats.compositionScaleMultiplier) + L"\n";
 	}
 }
 
@@ -88,8 +91,15 @@ void StatsRenderer::Render()
 	context->SaveDrawingState(m_stateBlock.Get());
 	context->BeginDraw();
 
+	Windows::Foundation::Size margin;
+	margin.Width = 20;
+	margin.Height = 10;
+
 	// Position on the top left corner
-	D2D1::Matrix3x2F screenTranslation = D2D1::Matrix3x2F::Translation(0,0);
+	D2D1::Matrix3x2F screenTranslation = D2D1::Matrix3x2F::Translation(
+		margin.Width,
+		margin.Height
+	);
 
 	context->SetTransform(screenTranslation * m_deviceResources->GetOrientationTransform2D());
 

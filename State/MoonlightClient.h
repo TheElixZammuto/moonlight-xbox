@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "Common/DeviceResources.h"
 #include <State/StreamConfiguration.h>
+#include <State/HdmiDisplayModeWrapper.h>
 #include "State\MoonlightApp.h"
 extern "C" {
 	#include <libavcodec/avcodec.h>
@@ -15,6 +16,7 @@ namespace moonlight_xbox_dx {
 	{
 	public:
 		MoonlightClient();
+		MoonlightClient(HdmiDisplayModeWrapper^ hdmiDisplayMode);
 		int StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration ^config);
 		int Connect(const char* hostname);
 		bool IsPaired();
@@ -40,6 +42,7 @@ namespace moonlight_xbox_dx {
 		Platform::String^ GetComputerName();
 		Platform::String^ GetServerAddress();
 		Platform::String^ GetServerMacAddress();
+		HdmiDisplayModeWrapper^ GetDisplayMode();
 		std::function<void(int)> OnStatusUpdate;
 		std::function<void()> OnCompleted;
 		std::function<void(bool)> SetHDR;
