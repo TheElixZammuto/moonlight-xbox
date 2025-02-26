@@ -2,11 +2,9 @@
 #include "pch.h"
 #include "Utils.hpp"
 
-#include <locale>
-#include <codecvt>
 #include <string>
 #include <string_view>
-#include <array>
+#include <vector>
 
 constexpr auto LOG_LINES = 64;
 
@@ -84,13 +82,43 @@ namespace moonlight_xbox_dx {
 		}
 
 		std::string WideToNarrowString(const std::wstring_view& str) {
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-			return converter.to_bytes(str.data(), str.data() + str.size());
+			auto bufferSize = WideCharToMultiByte(CP_UTF8,
+				0,
+				str.data(),
+				str.length(),
+				nullptr,
+				0, nullptr, nullptr);
+
+			std::string result;
+			result.resize(bufferSize);
+			WideCharToMultiByte(CP_UTF8,
+				0,
+				str.data(),
+				str.length(),
+				result.data(),
+				result.size(), nullptr, nullptr);
+
+			return result;
 		}
 
 		std::wstring NarrowToWideString(const std::string_view& str) {
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-			return converter.from_bytes(str.data(), str.data() + str.size());
+			auto bufferSize = MultiByteToWideChar(CP_UTF8,
+				0,
+				str.data(),
+				str.length(),
+				nullptr,
+				0);
+
+			std::wstring result;
+			result.resize(bufferSize);
+			MultiByteToWideChar(CP_UTF8,
+				0,
+				str.data(),
+				str.length(),
+				result.data(),
+				result.size());
+
+			return result;
 		}
 	}
 }
