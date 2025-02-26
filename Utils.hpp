@@ -30,12 +30,13 @@ namespace moonlight_xbox_dx {
 		
 		Platform::String^ StringPrintf(const char* fmt, ...);
 
-		void Log(const char* fmt);
+		void Log(const char* msg);
+		void Log(const std::string_view& msg);
 
 		std::vector<std::wstring> GetLogLines();
-		Platform::String^ StringFromChars(char* chars);
+		Platform::String^ StringFromChars(const char* chars);
 		Platform::String^ StringFromStdString(std::string st);
 		std::string PlatformStringToStdString(Platform::String^ input);
-
-	}
+		std::string WideToNarrowString(const std::wstring_view& str);
+		std::wstring NarrowToWideString(const std::string_view& str);	}
 }
