@@ -22,7 +22,7 @@ namespace moonlight_xbox_dx {
 
 			va_list args_copy;
 			va_copy(args_copy, args);
-			auto size = vsnprintf_s(nullptr, 0, 0, fmt, args_copy);
+			auto size = vsnprintf(nullptr, 0, fmt, args_copy);
 			va_end(args_copy);
 
 			if (size < 0) {
