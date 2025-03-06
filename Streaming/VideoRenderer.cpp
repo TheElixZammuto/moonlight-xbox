@@ -560,8 +560,8 @@ void VideoRenderer::SetHDR(bool enabled)
 	if(FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.lock();
 
 	HdmiDisplayInformation^ hdi = HdmiDisplayInformation::GetForCurrentView();
+	auto requestedModeWrapper = client->GetDisplayMode();
 	if (enabled) {
-		auto requestedModeWrapper = client->GetDisplayMode();
 		if (!requestedModeWrapper->IsHdr)
 		{
 			Utils::Log("Set display mode is not HDR compatible.");
@@ -630,7 +630,31 @@ void VideoRenderer::SetHDR(bool enabled)
 	}
 	else {
 		if (hdi) {
-			hdi->SetDefaultDisplayModeAsync();
+			auto requestedMode = requestedModeWrapper->HdmiDisplayMode;
+			if (!requestedMode)
+			{
+				hdi->SetDefaultDisplayModeAsync();
+			}
+			else {
+
+				if (!requestedModeWrapper->IsSdr)
+				{
+					auto modes = hdi->GetSupportedDisplayModes();
+					for (int i = 0; i< modes->Size; i++)
+					{
+						auto currentMode = ref new HdmiDisplayModeWrapper(modes->GetAt(i));
+						if (currentMode->IsSdr
+							&& currentMode->HdmiDisplayMode->ResolutionWidthInRawPixels == requestedMode->ResolutionWidthInRawPixels
+							&& currentMode->HdmiDisplayMode->ResolutionHeightInRawPixels == requestedMode->ResolutionHeightInRawPixels
+							&& currentMode->HdmiDisplayMode->RefreshRate == requestedMode->RefreshRate)
+						{
+							requestedMode = currentMode->HdmiDisplayMode;
+						}
+					}
+				}
+
+				hdi->RequestSetCurrentDisplayModeAsync(requestedMode, HdmiDisplayHdrOption::None);
+			}
 		}
 
 		// Restore default sRGB colorspace
@@ -652,5 +676,27 @@ void VideoRenderer::SetHDR(bool enabled)
 }
 
 void VideoRenderer::Stop() {
-	this->SetHDR(false);
+	if (FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.lock();
+
+	HdmiDisplayInformation^ hdi = HdmiDisplayInformation::GetForCurrentView();
+	if (hdi) {
+		hdi->SetDefaultDisplayModeAsync();
+	}
+
+	// Restore default sRGB colorspace
+	HRESULT hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
+	if (FAILED(hr)) {
+		std::string message = std::system_category().message(hr);
+		Utils::Log(("Failed to restore SDR Colorspace: " + message + "\n").c_str());
+	}
+	hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_NONE, 0, nullptr);
+	if (SUCCEEDED(hr)) {
+		Utils::Log("HDR Disabled\n");
+	}
+	else {
+		std::string message = std::system_category().message(hr);
+		Utils::Log(("Failed to disable HDR: " + message + " \n").c_str());
+	}
+
+	if (FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.unlock();
 }

@@ -34,19 +34,32 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
 					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
+					
+					double fps = a.contains("fps") ? a["fps"].get<double>() : 30;
+					
+					// Resolve DisplayResolution
 					if (a.contains("displayHeight") && a.contains("displayWidth")) {
 						h->HdmiDisplayMode = ref new HdmiDisplayModeWrapper(ResolveResolution(a["displayHeight"].get<int>(),
 																							  a["displayWidth"].get<int>(),
 																							  Utils::StringFromStdString(a["colorSpace"].get<std::string>()),
 																							  a["bitsPerPixel"].get<int>(),
-																							  a["fps"].get<double>()));
+																							  fps));
 					}
+					else if (a.contains("width") && a.contains("height"))
+					{
+						h->HdmiDisplayMode = ref new HdmiDisplayModeWrapper(ResolveResolution(a["height"].get<int>(), a["width"].get<int>(), nullptr, 0, fps));
+					}
+					else {
+						h->HdmiDisplayMode = ref new HdmiDisplayModeWrapper(ResolveResolution(0,0,nullptr,0,fps));
+					}
+
+					//Resolve StreamResolution
 					if (a.contains("width") && a.contains("height")) {
 						h->StreamResolution = ref new ScreenResolution(a["width"], a["height"]);
 					}
+
 					if (a.contains("enableHDR"))h->EnableHDR = a["enableHDR"].get<bool>();
 					if (a.contains("bitrate"))h->Bitrate = a["bitrate"];
-					if (a.contains("fps"))h->FPS = a["fps"];
 					if (a.contains("audioConfig"))h->AudioConfig = Utils::StringFromStdString(a["audioConfig"].get<std::string>());
 					if (a.contains("videoCodec"))h->VideoCodec = Utils::StringFromStdString(a["videoCodec"].get<std::string>());
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
@@ -163,7 +176,7 @@ Windows::Graphics::Display::Core::HdmiDisplayMode^ moonlight_xbox_dx::Applicatio
 	auto hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	auto modes = to_vector(hdi->GetSupportedDisplayModes());
 
-	if (Height == 0 && Width == 0 && ColorSpace->IsEmpty() && BitsPerPixel == 0)
+	if (Height == 0 && Width == 0)
 	{
 		return modes[0];
 	}
