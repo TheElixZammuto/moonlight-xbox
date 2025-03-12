@@ -38,6 +38,7 @@ namespace DX
 		ID3D11Device3*				GetD3DDevice() const					{ return m_d3dDevice.Get(); }
 		ID3D11DeviceContext3*		GetD3DDeviceContext() const				{ return m_d3dContext.Get(); }
 		IDXGISwapChain4*			GetSwapChain() const					{ return m_swapChain.Get(); }
+		auto                        GetDXGIFactory() const noexcept         { return m_dxgiFactory.Get(); }
 		D3D_FEATURE_LEVEL			GetDeviceFeatureLevel() const			{ return m_d3dFeatureLevel; }
 		ID3D11RenderTargetView1*	GetBackBufferRenderTargetView() const	{ return m_d3dRenderTargetView.Get(); }
 		ID3D11DepthStencilView*		GetDepthStencilView() const				{ return m_d3dDepthStencilView.Get(); }
@@ -61,6 +62,7 @@ namespace DX
 		DXGI_MODE_ROTATION ComputeDisplayRotation();
 
 		// Direct3D objects.
+		Microsoft::WRL::ComPtr<IDXGIFactory2>           m_dxgiFactory;
 		Microsoft::WRL::ComPtr<ID3D11Device3>			m_d3dDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext3>	m_d3dContext;
 		Microsoft::WRL::ComPtr<IDXGISwapChain4>			m_swapChain;
@@ -93,6 +95,7 @@ namespace DX
 		float											m_dpi;
 		float											m_compositionScaleX;
 		float											m_compositionScaleY;
+		DWORD                                           m_dxgiFactoryFlags;
 
 		// Variables that take into account whether the app supports high resolution screens or not.
 		float											m_effectiveDpi;
@@ -107,5 +110,6 @@ namespace DX
 		IDeviceNotify* m_deviceNotify;
 
 		DXGI_FORMAT                                     m_backBufferFormat;
+		bool                                            m_enableVRR;
 	};
 }

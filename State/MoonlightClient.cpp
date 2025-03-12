@@ -33,9 +33,9 @@ void logDisplayMode(const char *str, HdmiDisplayMode^ mode) {
 	if (mode == nullptr) return;
 
 	char modeStr[256];
-	snprintf(modeStr, sizeof(modeStr), "%s: [%s] %ux%u @ %.2fhz, %u bpp, colorspace %s, pixel encoding %s\n",
+	snprintf(modeStr, sizeof(modeStr), "%s: %s %ux%u @ %.2fhz, %u bpp, colorspace %s, pixel encoding %s\n",
 		str,
-		mode->IsSmpte2084Supported ? "HDR" : "SDR",
+		mode->IsSmpte2084Supported ? "HDR" : "   ",
 		mode->ResolutionWidthInRawPixels, mode->ResolutionHeightInRawPixels,
 		mode->RefreshRate,
 		mode->BitsPerPixel,

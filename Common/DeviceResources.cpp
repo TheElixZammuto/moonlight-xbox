@@ -57,6 +57,8 @@ DX::DeviceResources::DeviceResources() :
 	m_screenViewport(),
 	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_10_0),
 	m_d3dRenderTargetSize(),
+	m_dxgiFactoryFlags(0),
+	m_enableVRR(true), // will be disabled if not supported
 	m_outputSize(),
 	m_logicalSize(),
 	m_nativeOrientation(DisplayOrientations::None),
@@ -127,6 +129,49 @@ void DX::DeviceResources::CreateDeviceResources()
 		creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
 	}
 #endif
+
+#if defined(_DEBUG)
+	{
+		ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
+		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf()))))
+		{
+			m_dxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+
+			dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
+			dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
+
+			DXGI_INFO_QUEUE_MESSAGE_ID hide[] =
+			{
+				80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
+			};
+			DXGI_INFO_QUEUE_FILTER filter = {};
+			filter.DenyList.NumIDs = static_cast<UINT>(std::size(hide));
+			filter.DenyList.pIDList = hide;
+			dxgiInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter);
+		}
+	}
+#endif
+
+	DX::ThrowIfFailed(CreateDXGIFactory2(m_dxgiFactoryFlags, IID_PPV_ARGS(m_dxgiFactory.ReleaseAndGetAddressOf())));
+
+	// Determines whether tearing support is available for fullscreen borderless windows.
+	if (m_enableVRR) {
+		BOOL allowTearing = FALSE;
+
+		ComPtr<IDXGIFactory5> factory5;
+		HRESULT hr = m_dxgiFactory.As(&factory5);
+		if (SUCCEEDED(hr)) {
+			hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
+		}
+
+		if (FAILED(hr) || !allowTearing) {
+			m_enableVRR = false;
+			Utils::Log("Warning: A Variable Refresh Rate display not detected, vsync will be used instead\n");
+		}
+		else {
+			Utils::Log("Variable Refresh Rate display detected\n");
+		}
+	}
 
 	// This array defines the set of DirectX hardware feature levels this app will support.
 	// Note the ordering should be preserved.
@@ -246,7 +291,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
-			DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+			(m_enableVRR) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
 			);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
@@ -278,7 +323,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
 		swapChainDesc.BufferCount = 5;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+		swapChainDesc.Flags = (m_enableVRR) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -640,11 +685,17 @@ void DX::DeviceResources::Trim()
 // Present the contents of the swap chain to the screen.
 void DX::DeviceResources::Present()
 {
-	// The first argument instructs DXGI to block until VSync, putting the application
-	// to sleep until the next VSync. This ensures we don't waste any cycles rendering
-	// frames that will never be displayed to the screen.
-	DXGI_PRESENT_PARAMETERS parameters = { 0 };
-	HRESULT hr = m_swapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING, &parameters);
+	HRESULT hr = E_FAIL;
+	if (m_enableVRR) {
+		// Recommended to always use tearing if supported when using a sync interval of 0.
+		hr = m_swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	}
+	else {
+		// The first argument instructs DXGI to block until VSync, putting the application
+		// to sleep until the next VSync. This ensures we don't waste any cycles rendering
+		// frames that will never be displayed to the screen.
+		hr = m_swapChain->Present(1, 0);
+	}
 
 	// Discard the contents of the render target.
 	// This is a valid operation only when the existing contents will be entirely
@@ -658,10 +709,15 @@ void DX::DeviceResources::Present()
 	// must recreate all device resources.
 	if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
 	{
+#ifdef _DEBUG
+		char buff[64] = {};
+		sprintf_s(buff, "Device Lost on Present: Reason code 0x%08X\n",
+			static_cast<unsigned int>((hr == DXGI_ERROR_DEVICE_REMOVED) ? m_d3dDevice->GetDeviceRemovedReason() : hr));
+		OutputDebugStringA(buff);
+#endif
 		HandleDeviceLost();
 	}
-	else
-	{
+	else {
 		DX::ThrowIfFailed(hr);
 	}
 	if(moonlight_xbox_dx::FFMpegDecoder::getInstance() != nullptr && moonlight_xbox_dx::FFMpegDecoder::getInstance()->shouldUnlock)
