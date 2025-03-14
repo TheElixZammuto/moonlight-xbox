@@ -136,7 +136,7 @@
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <AppxPackageDir>C:\Progetti\moonlight-xbox-dx\AppPackages\moonlight-xbox-dx\</AppxPackageDir>
-    <PackageCertificateThumbprint>760367B381EF6C36E6FC673B097F64C835208F54</PackageCertificateThumbprint>
+	<PackageCertificateKeyFile>moonlight-xbox-dx_TemporaryKey.pfx</PackageCertificateKeyFile>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
