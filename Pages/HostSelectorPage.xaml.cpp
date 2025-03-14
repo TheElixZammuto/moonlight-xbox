@@ -78,6 +78,12 @@ void moonlight_xbox_dx::HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::U
 void moonlight_xbox_dx::HostSelectorPage::GridView_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)
 {
 	MoonlightHost^ host = (MoonlightHost^)e->ClickedItem;
+
+	if (!host->Connected && host->Paired)
+	{
+		this->ActionsFlyout->ShowAt((FrameworkElement^)e->OriginalSource);
+	}
+
 	this->Connect(host);
 }
 
