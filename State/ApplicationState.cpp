@@ -185,11 +185,11 @@ void moonlight_xbox_dx::ApplicationState::Validate_WoL(MoonlightHost^ host)
 	}
 
 	if (!host->ServerAddress) {
-		Throw_Error("No recorded address was found");
+		Throw_Error("No recorded address was found. Connect to host to resolve.");
 	}
 
 	if (host->MacAddress == nullptr || host->MacAddress->IsEmpty() || host->MacAddress == "00:00:00:00:00:00") {
-		Throw_Error("No recorded Mac address.");
+		Throw_Error("No recorded Mac address. Connect to host to resolve.");
 	}
 
 	return;
@@ -249,7 +249,7 @@ std::vector<std::string> moonlight_xbox_dx::ApplicationState::Build_Unique_Addre
 
 	if (host->LastHostname)
 	{
-		auto hostnameSplit = Split_IP_Port(Utils::PlatformStringToStdString(host->LastHostname));
+		auto hostnameSplit = Split_IP_Address(Utils::PlatformStringToStdString(host->LastHostname), ':');
 		std::string hostIp = hostnameSplit.first;
 		addresses.push_back(hostIp);
 	}
@@ -257,7 +257,10 @@ std::vector<std::string> moonlight_xbox_dx::ApplicationState::Build_Unique_Addre
 	if (inet_addr(Utils::PlatformStringToStdString(host->ServerAddress).c_str()) != -1)
 	{
 		std::string broadcastIP = Get_Broadcast_IP(Utils::PlatformStringToStdString(host->ServerAddress));
-		addresses.push_back(broadcastIP);
+		if (broadcastIP != "")
+		{
+			addresses.push_back(broadcastIP);
+		}
 	}
 
 	sort(addresses.begin(), addresses.end());
@@ -291,16 +294,29 @@ bool moonlight_xbox_dx::ApplicationState::Send_Payload(int descriptor, std::stri
 
 std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ipAddress)
 {
-	// Get Subnet Mask
+	uint32_t subnetMask;
+	uint32_t ipAddress_int;
 	struct in_addr ip_addr;
-	if (inet_pton(AF_INET, ipAddress.c_str(), &ip_addr) != 1) {
-		WSACleanup();
-		Throw_Error("The given IP address was invalid.");
+
+	auto splitIP = Split_IP_Address(ipAddress, '/');
+	if (inet_pton(AF_INET, splitIP.first.c_str(), &ip_addr) != 1) {
+		throw std::invalid_argument("The given IP address was invalid.\n");
 	}
 
-	uint32_t ipAddress_int = ntohl(ip_addr.s_addr);
-	uint32_t subnetMask;
+	if (splitIP.second > 0)
+	{
+		struct sockaddr_in sa;
+		inet_pton(AF_INET, splitIP.first.c_str(), &(sa.sin_addr));
+		ipAddress_int = sa.sin_addr.s_addr;
+		uint32_t mask = htonl(~((1 << (32 - splitIP.second)) - 1));
+		uint32_t ip_num = ipAddress_int | ~mask;
+		sa.sin_addr.s_addr = ip_num;
+		char ip_stra[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(sa.sin_addr), ip_stra, INET_ADDRSTRLEN);
+		return std::string(ip_stra);
+	}
 
+	ipAddress_int = ntohl(ip_addr.s_addr);
 	if ((ipAddress_int & 0xF0000000) == 0x00000000) { // Class A
 		subnetMask = 4278190080; // 255.0.0.0
 	}
@@ -313,7 +329,7 @@ std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ip
 	else {
 		Utils::Log("Could not determine subnet mask from IP address.\n");
 		WSACleanup();
-		throw std::runtime_error("Could not determine subnet mask from IP address.");
+		return "";
 	}
 
 	auto broadcastInt = ipAddress_int | (~subnetMask);
@@ -325,16 +341,18 @@ std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ip
 			ss3 << ".";
 		}
 	}
+
 	return ss3.str();
 }
 
-std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::Split_IP_Port(const std::string& address)
+std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::Split_IP_Address(const std::string& address, char deliminator)
 {
 	std::stringstream ss(address);
 	std::string ip_address;
 	std::string port_str;
 
-	if (std::getline(ss, ip_address, ':') && std::getline(ss, port_str)) {
+	if (std::getline(ss, ip_address, deliminator) && std::getline(ss, port_str)) {
+
 		try {
 			int port = std::stoi(port_str);
 			return { ip_address, port };
@@ -347,7 +365,7 @@ std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::Split_IP_Port(c
 		}
 	}
 	else {
-		throw std::invalid_argument("Invalid address format");
+		return { address, 0 };
 	}
 }
 
