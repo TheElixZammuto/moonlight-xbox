@@ -268,7 +268,7 @@ HdmiDisplayModeWrapper^ HostSettingsPage::FilterMode()
 			refreshRateString += hdrRefreshRates[i];
 		}
 
-		hdrWarning = "HDR is currently available at: " + refreshRateString;
+		hdrWarning = "HDR is currently available at display resolution: " + refreshRateString;
 
 		if (hdrRefreshRates.empty())
 		{

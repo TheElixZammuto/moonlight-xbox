@@ -38,7 +38,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Graceful Disconnection
 - Host configuration (for resolution and bitrate) and saved host history
 - Audio
-- HDR _(4k@120 HDR is currently unstable)__
+- HDR _(4k@120 HDR is currently unstable)_
 - Wake-on-Lan
 
 ## What does NOT work

@@ -23,7 +23,7 @@ namespace moonlight_xbox_dx {
         int bitrate = 8000;
         HdmiDisplayModeWrapper^ hdmiDisplayMode;
         ScreenResolution^ streamResolution;
-        int fps = 60;
+        int fps = 30;
         int autostartID = -1;
         Platform::String^ videoCodec = "H.264";
         Platform::String^ audioConfig = "Stereo";
@@ -152,7 +152,33 @@ namespace moonlight_xbox_dx {
 
         property HdmiDisplayModeWrapper^ HdmiDisplayMode
         {
-            HdmiDisplayModeWrapper^ get() { return this->hdmiDisplayMode; }
+            HdmiDisplayModeWrapper^ get() {
+                if (this->hdmiDisplayMode == nullptr)
+                {
+                    auto hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+                    if (hdi)
+                    {
+                        auto modes = to_vector(hdi->GetSupportedDisplayModes());
+                        
+                        auto mode = modes[0];
+                        if (this->StreamResolution != nullptr)
+                        {
+                            for (int i = 0; i < modes.size(); i++)
+                            {
+                                if (modes[i]->ResolutionWidthInRawPixels == this->StreamResolution->Width
+                                    && modes[i]->ResolutionHeightInRawPixels == this->StreamResolution->Height)
+                                {
+                                    mode = modes[i];
+                                    break;
+                                }
+                            }
+                        }
+
+                        this->hdmiDisplayMode = ref new HdmiDisplayModeWrapper(mode);
+                    }
+                }
+                return this->hdmiDisplayMode; 
+            }
             void set(HdmiDisplayModeWrapper^ value) {
                 this->hdmiDisplayMode = value;
                 OnPropertyChanged("HdmiDisplayMode");
@@ -174,16 +200,6 @@ namespace moonlight_xbox_dx {
             void set(int value) {
                 this->bitrate = value;
                 OnPropertyChanged("Bitrate");
-            }
-        }
-
-        property int FPS
-        {
-            int get() { return this->fps; }
-            void set(int value) {
-                if (fps == value)return;
-                this->fps = value;
-                OnPropertyChanged("FPS");
             }
         }
 
