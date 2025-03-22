@@ -19,6 +19,7 @@ namespace moonlight_xbox_dx
 	private:
 		MoonlightHost^ host;
 		MoonlightApp^ currentApp;
+		Windows::Foundation::EventRegistrationToken m_back_cookie;
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
  		void Connect(int app);
@@ -37,5 +38,7 @@ namespace moonlight_xbox_dx
 		void closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void settingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }

@@ -29,8 +29,6 @@ MoonlightSettings::MoonlightSettings()
 {
 	InitializeComponent();
 	state = GetApplicationState();
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightSettings::OnBackRequested);
 	auto item = ref new ComboBoxItem();
 	item->Content = "Don't autoconnect";
 	item->DataContext = "";
@@ -60,17 +58,17 @@ MoonlightSettings::MoonlightSettings()
 		}
 		k++;
 	}
+	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightSettings::OnLoaded);
+	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightSettings::OnUnloaded);
 }
 
-
-void moonlight_xbox_dx::MoonlightSettings::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void MoonlightSettings::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	GetApplicationState()->UpdateFile();
 	this->Frame->GoBack();
 }
 
-
-void moonlight_xbox_dx::MoonlightSettings::HostSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void MoonlightSettings::HostSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	ComboBoxItem^ item = (ComboBoxItem^)this->HostSelector->SelectedItem;
 
@@ -79,7 +77,7 @@ void moonlight_xbox_dx::MoonlightSettings::HostSelector_SelectionChanged(Platfor
 
 }
 
-void moonlight_xbox_dx::MoonlightSettings::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
+void MoonlightSettings::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
 {
 	// UWP on Xbox One triggers a back request whenever the B
 	// button is pressed which can result in the app being
@@ -90,16 +88,28 @@ void moonlight_xbox_dx::MoonlightSettings::OnBackRequested(Platform::Object^ e, 
 
 }
 
-void moonlight_xbox_dx::MoonlightSettings::WelcomeButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void MoonlightSettings::WelcomeButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
 }
 
-
-void moonlight_xbox_dx::MoonlightSettings::LayoutSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void MoonlightSettings::LayoutSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	ComboBoxItem^ item = (ComboBoxItem^)this->KeyboardLayoutSelector->SelectedItem;
 
 	auto s = item->DataContext->ToString();
 	state->KeyboardLayout = s;
+}
+
+void MoonlightSettings::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightSettings::OnBackRequested);
+}
+
+
+void MoonlightSettings::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested -= m_back_cookie;
 }

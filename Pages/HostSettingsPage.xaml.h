@@ -31,6 +31,7 @@ namespace moonlight_xbox_dx
 		int currentDisplayResolutionIndex = 0;
 		int currentFPSIndex = 0;
 		int currentAppIndex = 0;
+		Windows::Foundation::EventRegistrationToken m_back_cookie;
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	public:
@@ -173,5 +174,7 @@ namespace moonlight_xbox_dx
 		HdmiDisplayModeWrapper^ FilterMode();
 		Platform::Collections::Vector<double>^ UpdateFPS();
 		bool IsHDRAvailable();
+		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }

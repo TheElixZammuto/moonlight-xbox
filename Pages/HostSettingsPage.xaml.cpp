@@ -27,10 +27,11 @@ using namespace Windows::UI::ViewManagement::Core;
 
 HostSettingsPage::HostSettingsPage()
 {
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
 	InitializeComponent();
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
+
+	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &HostSettingsPage::OnLoaded);
+	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &HostSettingsPage::OnUnloaded);
 }
 
 static bool SortModes(HdmiDisplayMode^ a, HdmiDisplayMode^ b) {
@@ -141,13 +142,13 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 }
 
-void moonlight_xbox_dx::HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	GetApplicationState()->UpdateFile();
 	this->Frame->GoBack();
 }
 
-void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
+void HostSettingsPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
 {
 	// UWP on Xbox One triggers a back request whenever the B
 	// button is pressed which can result in the app being
@@ -157,13 +158,13 @@ void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, W
 	args->Handled = true;
 }
 
-void moonlight_xbox_dx::HostSettingsPage::StreamResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void HostSettingsPage::StreamResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	CurrentStreamResolutionIndex = this->StreamResolutionSelector->SelectedIndex;
 	host->StreamResolution = AvailableStreamResolutions->GetAt(CurrentStreamResolutionIndex);
 }
 
-void moonlight_xbox_dx::HostSettingsPage::DisplayResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void HostSettingsPage::DisplayResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	CurrentDisplayResolutionIndex = this->DisplayResolutionSelector->SelectedIndex;
 	host->HdmiDisplayMode = FilterMode();
@@ -172,19 +173,19 @@ void moonlight_xbox_dx::HostSettingsPage::DisplayResolutionSelector_SelectionCha
 	OnPropertyChanged("CurrentFPSIndex");
 }
 
-void moonlight_xbox_dx::HostSettingsPage::FPSSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void HostSettingsPage::FPSSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	CurrentFPSIndex = this->FPSComboBox->SelectedIndex >= 0 ? this->FPSComboBox->SelectedIndex : UpdateFPSIndex(AvailableFPS, host->HdmiDisplayMode->HdmiDisplayMode->RefreshRate);;
 	host->HdmiDisplayMode = FilterMode();
 	HDRAvailable = IsHDRAvailable();
 }
 
-void moonlight_xbox_dx::HostSettingsPage::EnableHDR_Checked(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void HostSettingsPage::EnableHDR_Checked(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	host->HdmiDisplayMode = FilterMode();
 }
 
-void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	int index = AutoStartSelector->SelectedIndex - 1;
 	if (index >= 0 && host->Apps->Size > index) {
@@ -195,19 +196,19 @@ void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Pla
 	}
 }
 
-void moonlight_xbox_dx::HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
 }
 
-void moonlight_xbox_dx::HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
+void HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
 {
 	if (e->Key == Windows::System::VirtualKey::Enter) {
 		CoreInputView::GetForCurrentView()->TryHide();
 	}
 }
 
-HdmiDisplayModeWrapper^ moonlight_xbox_dx::HostSettingsPage::FilterMode()
+HdmiDisplayModeWrapper^ HostSettingsPage::FilterMode()
 {
 	HdmiDisplayModeWrapper^ mode;
 	bool hdrAvailable = false;
@@ -284,7 +285,7 @@ HdmiDisplayModeWrapper^ moonlight_xbox_dx::HostSettingsPage::FilterMode()
 	return mode;
 }
 
-Platform::Collections::Vector<double>^ moonlight_xbox_dx::HostSettingsPage::UpdateFPS()
+Platform::Collections::Vector<double>^ HostSettingsPage::UpdateFPS()
 {
 	auto availableFPS = ref new Platform::Collections::Vector<double>();
 	auto selectedResolution = AvailableDisplayResolutions->GetAt(currentDisplayResolutionIndex);
@@ -317,7 +318,7 @@ Platform::Collections::Vector<double>^ moonlight_xbox_dx::HostSettingsPage::Upda
 	return availableFPS;
 }
 
-bool moonlight_xbox_dx::HostSettingsPage::IsHDRAvailable()
+bool HostSettingsPage::IsHDRAvailable()
 {
 	bool isAvailable = false;
 	for (int i = 0; i < availableModes->Size; i++)
@@ -339,9 +340,21 @@ bool moonlight_xbox_dx::HostSettingsPage::IsHDRAvailable()
 	return isAvailable;
 }
 
-void moonlight_xbox_dx::HostSettingsPage::OnPropertyChanged(Platform::String^ propertyName)
+void HostSettingsPage::OnPropertyChanged(Platform::String^ propertyName)
 {
 	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, propertyName]() {
 		PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 		}));
+}
+
+void HostSettingsPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
+}
+
+void HostSettingsPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested -= m_back_cookie;
 }
