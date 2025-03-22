@@ -564,7 +564,7 @@ void VideoRenderer::SetHDR(bool enabled)
 	if (enabled) {
 		if (!requestedModeWrapper->IsHdr)
 		{
-			Utils::Log("Set display mode is not HDR compatible.");
+			Utils::Log("Set display mode is not HDR compatible.\n");
 			return;
 		}
 		
@@ -576,16 +576,9 @@ void VideoRenderer::SetHDR(bool enabled)
 		auto requestedMode = requestedModeWrapper->HdmiDisplayMode;
 		if (!requestedMode)
 		{
-			Utils::Log("No display mode was set.");
+			Utils::Log("No display mode was set.\n");
 			return;
 		}
-
-		auto msg = "Set HDR: " + requestedMode->ResolutionWidthInRawPixels + "x" + requestedMode->ResolutionHeightInRawPixels 
-					+ " @ " + requestedMode->RefreshRate + "hz " 
-					+ (requestedMode->BitsPerPixel / 3) + "bit " 
-					+ requestedMode->ColorSpace.ToString() + " "
-					+ requestedMode->PixelEncoding.ToString() + "\n";
-		Utils::Log(Utils::PlatformStringToStdString(msg).c_str());
 
 		DXGI_HDR_METADATA_HDR10 hdr10Metadata;
 		SS_HDR_METADATA sunshineHdrMetadata;
@@ -609,16 +602,31 @@ void VideoRenderer::SetHDR(bool enabled)
 		hdr10Metadata.MaxContentLightLevel = hdrMetadata.MaxContentLightLevel = sunshineHdrMetadata.maxContentLightLevel;
 		hdr10Metadata.MaxFrameAverageLightLevel = hdrMetadata.MaxFrameAverageLightLevel = sunshineHdrMetadata.maxFrameAverageLightLevel;
 
-		hdi->RequestSetCurrentDisplayModeAsync(requestedMode, HdmiDisplayHdrOption::Eotf2084, hdrMetadata);
+		auto modeChange = Concurrency::create_task(
+			hdi->RequestSetCurrentDisplayModeAsync(requestedMode, HdmiDisplayHdrOption::Eotf2084, hdrMetadata)
+		);
+
+		if (modeChange.get()) {
+			auto msg = "Set HDR mode: " + requestedMode->ResolutionWidthInRawPixels + "x" + requestedMode->ResolutionHeightInRawPixels
+				+ " @ " + requestedMode->RefreshRate + "hz "
+				+ (requestedMode->BitsPerPixel / 3) + "bit "
+				+ requestedMode->ColorSpace.ToString() + " "
+				+ requestedMode->PixelEncoding.ToString() + "\n";
+			Utils::Log(Utils::PlatformStringToStdString(msg).c_str());
+		}
+		else 
+		{
+			Utils::Log("Failed to set HDR mode\n");
+		}
 		
 		hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10, sizeof(hdr10Metadata), &hdr10Metadata);
 		if (SUCCEEDED(hr)) {
-			Utils::Log("Set display HDR mode: enabled\n");
+			Utils::Log("Set display HDR metadata: enabled\n");
 		}
 		else {
 			hr = MAKE_DXGI_HRESULT(hr);
 			std::string message = std::system_category().message(hr);
-			Utils::Log(("Failed to set HDR mode: " + message + "\n").c_str());
+			Utils::Log(("Failed to set HDR metadata: " + message + "\n").c_str());
 		}
 
 		hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
@@ -634,6 +642,7 @@ void VideoRenderer::SetHDR(bool enabled)
 			if (!requestedMode)
 			{
 				hdi->SetDefaultDisplayModeAsync();
+				Utils::Log("SDR mode set\n");
 			}
 			else {
 
@@ -652,8 +661,17 @@ void VideoRenderer::SetHDR(bool enabled)
 						}
 					}
 				}
+				auto modeChange = Concurrency::create_task(
+					hdi->RequestSetCurrentDisplayModeAsync(requestedMode, HdmiDisplayHdrOption::None)
+				);
 
-				hdi->RequestSetCurrentDisplayModeAsync(requestedMode, HdmiDisplayHdrOption::None);
+				if (modeChange.get()) {
+					Utils::Log("SDR mode set\n");
+				}
+				else
+				{
+					Utils::Log("Failed to set SDR mode\n");
+				}
 			}
 		}
 
