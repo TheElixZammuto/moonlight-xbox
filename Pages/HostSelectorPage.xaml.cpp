@@ -75,6 +75,12 @@ void HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::
 void HostSelectorPage::GridView_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)
 {
 	MoonlightHost^ host = (MoonlightHost^)e->ClickedItem;
+
+	if (!host->Connected && host->Paired)
+	{
+		this->ActionsFlyout->ShowAt((FrameworkElement^)e->OriginalSource);
+	}
+
 	this->Connect(host);
 }
 
