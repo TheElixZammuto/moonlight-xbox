@@ -8,6 +8,8 @@
 #include "Pages\HostSelectorPage.g.h"
 #include "State\ApplicationState.h"
 
+#include <atomic>
+
 using namespace Windows::UI::Core;
 namespace moonlight_xbox_dx
 {
@@ -40,7 +42,7 @@ namespace moonlight_xbox_dx
 		MoonlightHost^ currentHost;
 		void hostSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-		bool continueFetch = false;
+		std::atomic<bool> continueFetch;
 		void OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
 		void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
