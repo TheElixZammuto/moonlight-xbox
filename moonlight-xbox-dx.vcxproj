@@ -151,6 +151,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
@@ -166,6 +167,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -181,6 +183,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -196,6 +199,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -211,6 +215,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -226,11 +231,12 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>$(ProjectDir)/libgamestream/build/$(Configuration)/gamestream.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib;d3d11.lib;dxgi.lib;dxguid.lib;windowscodecs.lib;dwrite.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)/libgamestream/build/$(Configuration)/gamestream.lib;$(ProjectDir)/third_party/DirectXTK/Bin/Windows10_2022/x64/$(Configuration)/DirectXTK.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib;d3d11.lib;dxgi.lib;dxguid.lib;windowscodecs.lib;dwrite.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg_installed\x64-uwp\lib;$(VCInstallDir)\lib\store\amd64;$(VCInstallDir)\lib\amd64;$(ProjectDir)third_party\moonlight-common-c\build\$(Configuration)\</AdditionalLibraryDirectories>
     </Link>
     <ClCompile>
@@ -241,6 +247,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
@@ -248,7 +255,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>$(ProjectDir)/libgamestream/build/$(Configuration)/gamestream.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib;d3d11.lib;dxgi.lib;windowscodecs.lib;dwrite.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)/libgamestream/build/$(Configuration)/gamestream.lib;$(ProjectDir)/third_party/DirectXTK/Bin/Windows10_2022/x64/$(Configuration)/DirectXTK.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib;d3d11.lib;dxgi.lib;windowscodecs.lib;dwrite.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg_installed\x64-uwp\lib;$(VCInstallDir)\lib\store\amd64;$(VCInstallDir)\lib\amd64;$(ProjectDir)third_party\moonlight-common-c\build\$(Configuration)\</AdditionalLibraryDirectories>
     </Link>
     <ClCompile>
@@ -259,6 +266,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -366,7 +374,89 @@
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Common\TextConsole.cpp" />
-    <ClCompile Include="Keyboard/*.cpp" />
+    <ClCompile Include="Keyboard\kbda1.cpp" />
+    <ClCompile Include="Keyboard\kbda2.cpp" />
+    <ClCompile Include="Keyboard\kbda3.cpp" />
+    <ClCompile Include="Keyboard\kbdal.cpp" />
+    <ClCompile Include="Keyboard\kbdarme.cpp" />
+    <ClCompile Include="Keyboard\kbdarmw.cpp" />
+    <ClCompile Include="Keyboard\kbdaze.cpp" />
+    <ClCompile Include="Keyboard\kbdazel.cpp" />
+    <ClCompile Include="Keyboard\kbdbe.cpp" />
+    <ClCompile Include="Keyboard\kbdbga.cpp" />
+    <ClCompile Include="Keyboard\kbdbgt.cpp" />
+    <ClCompile Include="Keyboard\kbdblr.cpp" />
+    <ClCompile Include="Keyboard\kbdbr.cpp" />
+    <ClCompile Include="Keyboard\kbdbu.cpp" />
+    <ClCompile Include="Keyboard\kbdbur.cpp" />
+    <ClCompile Include="Keyboard\kbdcan.cpp" />
+    <ClCompile Include="Keyboard\kbdcr.cpp" />
+    <ClCompile Include="Keyboard\kbdcz.cpp" />
+    <ClCompile Include="Keyboard\kbdcz1.cpp" />
+    <ClCompile Include="Keyboard\kbdda.cpp" />
+    <ClCompile Include="Keyboard\kbddv.cpp" />
+    <ClCompile Include="Keyboard\kbdeo.cpp" />
+    <ClCompile Include="Keyboard\kbdest.cpp" />
+    <ClCompile Include="Keyboard\kbdfc.cpp" />
+    <ClCompile Include="Keyboard\kbdfi.cpp" />
+    <ClCompile Include="Keyboard\kbdfr.cpp" />
+    <ClCompile Include="Keyboard\kbdgeo.cpp" />
+    <ClCompile Include="Keyboard\kbdgerg.cpp" />
+    <ClCompile Include="Keyboard\kbdgneo.cpp" />
+    <ClCompile Include="Keyboard\kbdgr.cpp" />
+    <ClCompile Include="Keyboard\kbdgr1.cpp" />
+    <ClCompile Include="Keyboard\kbdhe.cpp" />
+    <ClCompile Include="Keyboard\kbdheb.cpp" />
+    <ClCompile Include="Keyboard\kbdhu.cpp" />
+    <ClCompile Include="Keyboard\kbdic.cpp" />
+    <ClCompile Include="Keyboard\kbdinasa.cpp" />
+    <ClCompile Include="Keyboard\kbdinben.cpp" />
+    <ClCompile Include="Keyboard\kbdindev.cpp" />
+    <ClCompile Include="Keyboard\kbdinguj.cpp" />
+    <ClCompile Include="Keyboard\kbdinmal.cpp" />
+    <ClCompile Include="Keyboard\kbdir.cpp" />
+    <ClCompile Include="Keyboard\kbdit.cpp" />
+    <ClCompile Include="Keyboard\kbdjpn.cpp" />
+    <ClCompile Include="Keyboard\kbdkaz.cpp" />
+    <ClCompile Include="Keyboard\kbdkor.cpp" />
+    <ClCompile Include="Keyboard\kbdla.cpp" />
+    <ClCompile Include="Keyboard\kbdlt1.cpp" />
+    <ClCompile Include="Keyboard\kbdlv.cpp" />
+    <ClCompile Include="Keyboard\kbdmac.cpp" />
+    <ClCompile Include="Keyboard\kbdne.cpp" />
+    <ClCompile Include="Keyboard\kbdno.cpp" />
+    <ClCompile Include="Keyboard\kbdpl.cpp" />
+    <ClCompile Include="Keyboard\kbdpl1.cpp" />
+    <ClCompile Include="Keyboard\kbdpo.cpp" />
+    <ClCompile Include="Keyboard\kbdro.cpp" />
+    <ClCompile Include="Keyboard\kbdrost.cpp" />
+    <ClCompile Include="Keyboard\kbdru.cpp" />
+    <ClCompile Include="Keyboard\kbdru1.cpp" />
+    <ClCompile Include="Keyboard\kbdsf.cpp" />
+    <ClCompile Include="Keyboard\kbdsg.cpp" />
+    <ClCompile Include="Keyboard\kbdsl.cpp" />
+    <ClCompile Include="Keyboard\kbdsl1.cpp" />
+    <ClCompile Include="Keyboard\kbdsp.cpp" />
+    <ClCompile Include="Keyboard\kbdsw.cpp" />
+    <ClCompile Include="Keyboard\kbdtat.cpp" />
+    <ClCompile Include="Keyboard\kbdth0.cpp" />
+    <ClCompile Include="Keyboard\kbdth1.cpp" />
+    <ClCompile Include="Keyboard\kbdth2.cpp" />
+    <ClCompile Include="Keyboard\kbdth3.cpp" />
+    <ClCompile Include="Keyboard\kbdtuf.cpp" />
+    <ClCompile Include="Keyboard\kbdtuq.cpp" />
+    <ClCompile Include="Keyboard\kbduk.cpp" />
+    <ClCompile Include="Keyboard\kbdur.cpp" />
+    <ClCompile Include="Keyboard\kbdurs.cpp" />
+    <ClCompile Include="Keyboard\kbdus.cpp" />
+    <ClCompile Include="Keyboard\kbdusa.cpp" />
+    <ClCompile Include="Keyboard\kbdusl.cpp" />
+    <ClCompile Include="Keyboard\kbdusr.cpp" />
+    <ClCompile Include="Keyboard\kbdusx.cpp" />
+    <ClCompile Include="Keyboard\kbduzb.cpp" />
+    <ClCompile Include="Keyboard\kbdvntc.cpp" />
+    <ClCompile Include="Keyboard\kbdycc.cpp" />
+    <ClCompile Include="Keyboard\kbdycl.cpp" />
     <ClCompile Include="KeyboardCommon.cpp" />
     <ClCompile Include="KeyboardControl.xaml.cpp">
       <DependentUpon>KeyboardControl.xaml</DependentUpon>
@@ -445,8 +535,26 @@
     <None Include="Assets\disconnected.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="Assets\Font\ModeSeven-24.spritefont" />
-    <None Include="Assets\Font\ModeSeven-36.spritefont" />
+    <None Include="Assets\Font\ModeSeven-24.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </None>
+    <None Include="Assets\Font\ModeSeven-36.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </None>
     <None Include="Assets\gamepad.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>

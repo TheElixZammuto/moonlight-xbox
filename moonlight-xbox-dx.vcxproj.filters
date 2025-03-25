@@ -89,10 +89,256 @@
     <ClCompile Include="Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Keyboard/kbd*.cpp">
-      <Filter>KeyboardLayouts</Filter>
-    </ClCompile>
     <ClCompile Include="KeyboardCommon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\TextConsole.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbda2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbda3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdarme.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdarmw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdaze.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdazel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbga.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbgt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdblr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbur.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdcan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdcr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdcz.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdcz1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdda.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbddv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdeo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdfc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdfi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdfr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgeo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgerg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgneo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgr1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdhe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdheb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdhu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdinasa.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdinben.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdindev.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdinguj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdinmal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdir.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdjpn.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdkaz.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdkor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdla.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdlt1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdlv.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdmac.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdne.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdno.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdpl1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdpo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdrost.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdru.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdru1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsl1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdtat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdth0.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdth1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdth2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdth3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdtuf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdtuq.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbduk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdur.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdurs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdus.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdusa.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdusl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdusr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdusx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbduzb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdvntc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdycc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdycl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -155,6 +401,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Keyboard\KeyboardCommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\TextConsole.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -320,228 +569,6 @@
     <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
       <Filter>DLLs</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\desktop.svg">
@@ -563,6 +590,23 @@
     <None Include="packages.config" />
     <None Include="README.md" />
     <None Include="Package.StoreAssociation.xml" />
+    <None Include="Assets\qrSunshine.svg">
+      <Filter>Assets</Filter>
+    </None>
+    <None Include="Assets\qrSupport.svg">
+      <Filter>Assets</Filter>
+    </None>
+    <None Include="Assets\Shader\d3d11_bt2020lim_pixel.fxc" />
+    <None Include="Assets\Shader\d3d11_bt601lim_pixel.fxc" />
+    <None Include="Assets\Shader\d3d11_genyuv_pixel.fxc" />
+    <None Include="Assets\Shader\d3d11_overlay_pixel.fxc" />
+    <None Include="Assets\Shader\d3d11_vertex.fxc" />
+    <None Include="Assets\Font\ModeSeven-24.spritefont">
+      <Filter>Assets</Filter>
+    </None>
+    <None Include="Assets\Font\ModeSeven-36.spritefont">
+      <Filter>Assets</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Page Include="Pages\AppPage.xaml" />
@@ -571,5 +615,6 @@
     <Page Include="Pages\MoonlightSettings.xaml" />
     <Page Include="Pages\StreamPage.xaml" />
     <Page Include="KeyboardControl.xaml" />
+    <Page Include="MoonlightWelcome.xaml" />
   </ItemGroup>
 </Project>
