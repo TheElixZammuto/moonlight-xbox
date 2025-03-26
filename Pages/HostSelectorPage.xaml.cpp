@@ -104,7 +104,7 @@ void moonlight_xbox_dx::HostSelectorPage::StartPairing(MoonlightHost^ host) {
 				else {
 					//dialog->Content = Utils::StringFromStdString(std::string(gs_error));
 				}
-				host->UpdateStats();
+				host->UpdateHostInfo();
 			}
 		));
 		});
@@ -151,7 +151,7 @@ void moonlight_xbox_dx::HostSelectorPage::OnStateLoaded() {
 	}
 	Concurrency::create_task([]() {
 		for (auto a : GetApplicationState()->SavedHosts) {
-			a->UpdateStats();
+			a->UpdateHostInfo();
 		}
 		}).then([this]() {
 			if (GetApplicationState()->autostartInstance.size() > 0) {
@@ -191,7 +191,7 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		while (continueFetch.load()) {
 			query_mdns();
 			for (auto a : GetApplicationState()->SavedHosts) {
-				a->UpdateStats();
+				a->UpdateHostInfo();
 			}
 			Sleep(5000);
 		}

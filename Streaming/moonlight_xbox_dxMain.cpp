@@ -39,11 +39,15 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
-	m_sceneRenderer = std::unique_ptr<VideoRenderer>(new VideoRenderer(m_deviceResources, moonlightClient, configuration));
+	m_sceneRenderer = std::make_unique<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
 
-	//m_fpsTextRenderer = std::unique_ptr<LogRenderer>(new LogRenderer(m_deviceResources));
+	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
 
-	//m_statsTextRenderer = std::unique_ptr<StatsRenderer>(new StatsRenderer(m_deviceResources));
+	// Setup stats object. DeviceResources keeps a reference so that various components such as FFMpegDecoder can get to it
+	m_stats = std::make_shared<Stats>();
+	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
+	m_deviceResources->SetStats(m_stats);
+
 	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
 	client->OnStatusUpdate = ([streamPage](int status) {
@@ -80,6 +84,8 @@ void moonlight_xbox_dxMain::CreateDeviceDependentResources()
 void moonlight_xbox_dxMain::CreateWindowSizeDependentResources()
 {
 	m_sceneRenderer->CreateWindowSizeDependentResources();
+	m_LogRenderer->CreateWindowSizeDependentResources();
+	m_statsTextRenderer->CreateWindowSizeDependentResources();
 }
 
 void moonlight_xbox_dxMain::StartRenderLoop()
@@ -97,12 +103,15 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			while (action->Status == AsyncStatus::Started)
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
-				int t1 = GetTickCount64();
+				double renderStartTime = m_timer.GetTotalSeconds();
+
 				Update();
 				if (Render())
 				{
 					m_deviceResources->Present();
 				}
+
+				m_stats->SubmitRenderMs((m_timer.GetTotalSeconds() - renderStartTime) * 1000.0);
 			}
 		});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
@@ -136,12 +145,12 @@ void moonlight_xbox_dxMain::Update()
 	m_timer.Tick([&]()
 		{
 			m_sceneRenderer->Update(m_timer);
-			// m_fpsTextRenderer->Update(m_timer);
-			// m_statsTextRenderer->Update(m_timer);
+			m_LogRenderer->Update(m_timer);
+			m_statsTextRenderer->Update(m_timer);
 		});
 }
 
-bool isPressed(Windows::Gaming::Input::GamepadButtons b, Windows::Gaming::Input::GamepadButtons x) {
+inline bool isPressed(Windows::Gaming::Input::GamepadButtons b, Windows::Gaming::Input::GamepadButtons x) {
 	return (b & x) == x;
 }
 
@@ -345,8 +354,8 @@ bool moonlight_xbox_dxMain::Render()
 
 	// Render the scene objects.
 	bool shouldPresent = m_sceneRenderer->Render();
-	// m_fpsTextRenderer->Render();
-	// m_statsTextRenderer->Render();
+	m_LogRenderer->Render();
+	m_statsTextRenderer->Render();
 
 	return shouldPresent;
 }
@@ -376,16 +385,16 @@ void moonlight_xbox_dxMain::Clear()
 void moonlight_xbox_dxMain::OnDeviceLost()
 {
 	m_sceneRenderer->ReleaseDeviceDependentResources();
-	// m_fpsTextRenderer->ReleaseDeviceDependentResources();
-	// m_statsTextRenderer->ReleaseDeviceDependentResources();
+	m_LogRenderer->ReleaseDeviceDependentResources();
+	m_statsTextRenderer->ReleaseDeviceDependentResources();
 }
 
 // Notifies renderers that device resources may now be recreated.
 void moonlight_xbox_dxMain::OnDeviceRestored()
 {
 	m_sceneRenderer->CreateDeviceDependentResources();
-	// m_fpsTextRenderer->CreateDeviceDependentResources();
-	// m_statsTextRenderer->CreateDeviceDependentResources();
+	m_LogRenderer->CreateDeviceDependentResources();
+	m_statsTextRenderer->CreateDeviceDependentResources();
 
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
@@ -426,3 +435,10 @@ void moonlight_xbox_dxMain::SendGuideButton(int duration) {
 	});
 }
 
+void moonlight_xbox_dxMain::SetShowLogs(bool showLogs) {
+	m_LogRenderer->SetVisible(showLogs);
+}
+
+void moonlight_xbox_dxMain::SetShowStats(bool showStats) {
+	m_statsTextRenderer->SetVisible(showStats);
+}

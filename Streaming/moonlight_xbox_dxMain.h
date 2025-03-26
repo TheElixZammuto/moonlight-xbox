@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "Common\StepTimer.h"
-#include "Common\DeviceResources.h"
 #include "Streaming\VideoRenderer.h"
 #include "Streaming\LogRenderer.h"
 #include "Streaming\StatsRenderer.h"
@@ -32,6 +31,8 @@ namespace moonlight_xbox_dx
 		void Disconnect();
 		void CloseApp();
 		void SendGuideButton(int duration);
+		void SetShowLogs(bool showLogs);
+		void SetShowStats(bool showStats);
 	private:
 		void ProcessInput();
 		void Update();
@@ -41,11 +42,11 @@ namespace moonlight_xbox_dx
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
-		// TODO: Replace with your own content renderers.
-		// TODO: Replace with your own content renderers.
 		std::unique_ptr<VideoRenderer> m_sceneRenderer;
-		std::unique_ptr<LogRenderer>   m_fpsTextRenderer;
+		std::unique_ptr<LogRenderer>   m_LogRenderer;
 		std::unique_ptr<StatsRenderer> m_statsTextRenderer;
+
+		std::shared_ptr<Stats>         m_stats;
 
 		Windows::Foundation::IAsyncAction^ m_renderLoopWorker;
 		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;

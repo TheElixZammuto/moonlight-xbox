@@ -40,6 +40,11 @@
                                 <FontIcon Glyph="&#xe80f;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="toggleHDR_WinAltB" Text="Toggle Host's HDR (Win-Alt-B)" Click="toggleHDR_WinAltB_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xe706;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
                     </MenuFlyoutSubItem>
                     <MenuFlyoutSeparator></MenuFlyoutSeparator>
                     <MenuFlyoutItem x:Name="toggleLogsButton" Text="Show Logs" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >

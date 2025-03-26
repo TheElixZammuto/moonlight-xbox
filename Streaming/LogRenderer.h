@@ -1,31 +1,27 @@
 ﻿#pragma once
 
 #include <string>
-#include "..\Common\DeviceResources.h"
 #include "..\Common\StepTimer.h"
+#include "..\Common\TextConsole.h"
 
 namespace moonlight_xbox_dx
 {
-	// Renders the current FPS value in the bottom right corner of the screen using Direct2D and DirectWrite.
 	class LogRenderer
 	{
 	public:
 		LogRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources);
 		void CreateDeviceDependentResources();
+		void CreateWindowSizeDependentResources();
 		void ReleaseDeviceDependentResources();
 		void Update(DX::StepTimer const& timer);
 		void Render();
+		void SetVisible(bool visible);
 
 	private:
-		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
-
-		// Resources related to text rendering.
-		std::wstring                                    m_text;
-		DWRITE_TEXT_METRICS	                            m_textMetrics;
-		Microsoft::WRL::ComPtr<ID2D1SolidColorBrush>    m_whiteBrush;
-		Microsoft::WRL::ComPtr<ID2D1DrawingStateBlock1> m_stateBlock;
-		Microsoft::WRL::ComPtr<IDWriteTextLayout3>      m_textLayout;
-		Microsoft::WRL::ComPtr<IDWriteTextFormat2>      m_textFormat;
+		std::unique_ptr<DX::TextConsole>     m_console;
+		bool                                 m_visible;
+		uint32_t                             m_displayWidth;
+		uint32_t                             m_displayHeight;
 	};
 }

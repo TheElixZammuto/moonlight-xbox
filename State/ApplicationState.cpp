@@ -55,7 +55,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 
 bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
 	MoonlightHost^ host = ref new MoonlightHost(hostname);
-	host->UpdateStats();
+	host->UpdateHostInfo();
 	if (!host->Connected)return false;
 	for (auto h : SavedHosts) {
 		if (host->InstanceId == h->InstanceId) {

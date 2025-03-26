@@ -44,12 +44,12 @@ App::App()
 /// <param name="e">Details about the launch request and process.</param>
 void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEventArgs^ e)
 {
-#if _DEBUG
-	if (IsDebuggerPresent())
-	{
-		DebugSettings->EnableFrameRateCounter = true;
-	}
-#endif
+// #if _DEBUG
+// 	if (IsDebuggerPresent())
+// 	{
+// 		DebugSettings->EnableFrameRateCounter = true;
+// 	}
+// #endif
 	moonlight_xbox_dx::Utils::Log("Hello from Moonlight!\n");
 	auto rootFrame = dynamic_cast<Frame^>(Window::Current->Content);
 

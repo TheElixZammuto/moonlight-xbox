@@ -1,127 +1,77 @@
 #include "pch.h"
 #include "StatsRenderer.h"
+#include "FFMpegDecoder.h"
 #include "Utils.hpp"
 
-#include "Common/DirectXHelper.h"
-#include <State\MoonlightClient.h>
-
+using namespace DirectX;
 using namespace moonlight_xbox_dx;
 using namespace Microsoft::WRL;
+using namespace Windows::UI::Core;
 
-// Initializes D2D resources used for text rendering.
-StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
-	m_text(L""),
-	m_deviceResources(deviceResources)
+StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, const std::shared_ptr<Stats>& stats) :
+	m_console(nullptr),
+	m_deviceResources(deviceResources),
+	m_visible(false),
+	m_stats(stats)
 {
-	ZeroMemory(&m_textMetrics, sizeof(DWRITE_TEXT_METRICS));
-
-	// Create device independent resources
-	ComPtr<IDWriteTextFormat> textFormat;
-	DX::ThrowIfFailed(
-		m_deviceResources->GetDWriteFactory()->CreateTextFormat(
-			L"Segoe UI",
-			nullptr,
-			DWRITE_FONT_WEIGHT_LIGHT,
-			DWRITE_FONT_STYLE_NORMAL,
-			DWRITE_FONT_STRETCH_NORMAL,
-			14.0f,
-			L"en-US",
-			&textFormat
-		)
-	);
-
-	DX::ThrowIfFailed(
-		textFormat.As(&m_textFormat)
-	);
-
-	DX::ThrowIfFailed(
-		m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR)
-	);
-
-	DX::ThrowIfFailed(
-		m_deviceResources->GetD2DFactory()->CreateDrawingStateBlock(&m_stateBlock)
-	);
+	m_console = std::make_unique<DX::TextConsole>();
+	m_console->SetForegroundColor(Colors::Yellow);
+	//m_console->SetDebugOutput(true);
 
 	CreateDeviceDependentResources();
 }
 
-// Updates the text to be displayed.
 void StatsRenderer::Update(DX::StepTimer const& timer)
 {
-	m_text = L"";
-	if (Utils::showStats) {
-		Windows::ApplicationModel::Package^ package = Windows::ApplicationModel::Package::Current;
-		m_text += L"App Version: " + std::to_wstring(package->Id->Version.Major) + L"." + std::to_wstring(package->Id->Version.Minor) + L"." + std::to_wstring(package->Id->Version.Build) + L"." + std::to_wstring(package->Id->Version.Revision) + L"\n";
-		m_text += L"Window Size: " + std::to_wstring(Utils::stats.outputW) + L" x " + std::to_wstring(Utils::stats.outputH) + L"\n";
-		m_text += L"AVG Decode time: " + std::to_wstring(Utils::stats.averageDecodeTime) + L"ms \n";
-		m_text += L"AVG Rendering time: " + std::to_wstring(Utils::stats.averageRenderingTime) + L"ms \n";
-		m_text += L"Queue Size: " + std::to_wstring(Utils::stats.queueSize) + L"\n";
-		m_text += L"Composition Scale: " + std::to_wstring(Utils::stats.compositionScaleX) + L" - " + std::to_wstring(Utils::stats.compositionScaleX) + L" - " + std::to_wstring(Utils::stats.compositionScaleMultiplier) + L"\n";
+	// We let the Stats class always process even if not visible. Most of the time
+	// it will simply accumulate stats during its 1-second window period. Each second,
+	// when it determines the user-visible text should be updated, it will update outputStr and return true.
+
+	char outputStr[1024]; // char is used so we can share more of the formatting code with moonlight-qt
+	wchar_t wideStr[2048];
+
+	if (m_stats->ShouldUpdateDisplay(timer, m_visible, outputStr, sizeof(outputStr))) {
+		size_t numChars = mbstowcs(wideStr, outputStr, 1024);
+		if (numChars != -1) {
+			m_console->Clear();
+			m_console->Write(wideStr);
+		}
 	}
 }
 
 // Renders a frame to the screen.
 void StatsRenderer::Render()
 {
-	ComPtr<IDWriteTextLayout> textLayout;
-	DX::ThrowIfFailed(
-		m_deviceResources->GetDWriteFactory()->CreateTextLayout(
-			m_text.c_str(),
-			(uint32)m_text.length(),
-			m_textFormat.Get(),
-			500.0f, // Max width of the input text.
-			16.0f * 64.0f, // Max height of the input text.
-			&textLayout
-		)
-	);
-
-	DX::ThrowIfFailed(
-		textLayout.As(&m_textLayout)
-	);
-
-	DX::ThrowIfFailed(
-		m_textLayout->GetMetrics(&m_textMetrics)
-	);
-
-	ID2D1DeviceContext* context = m_deviceResources->GetD2DDeviceContext();
-	Windows::Foundation::Size logicalSize = m_deviceResources->GetLogicalSize();
-
-	context->SaveDrawingState(m_stateBlock.Get());
-	context->BeginDraw();
-
-	// Position on the top left corner
-	D2D1::Matrix3x2F screenTranslation = D2D1::Matrix3x2F::Translation(0,0);
-
-	context->SetTransform(screenTranslation * m_deviceResources->GetOrientationTransform2D());
-
-	DX::ThrowIfFailed(
-		m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING)
-	);
-
-	context->DrawTextLayout(
-		D2D1::Point2F(0.f, 0.f),
-		m_textLayout.Get(),
-		m_whiteBrush.Get()
-	);
-
-	// Ignore D2DERR_RECREATE_TARGET here. This error indicates that the device
-	// is lost. It will be handled during the next call to Present.
-	HRESULT hr = context->EndDraw();
-	if (hr != D2DERR_RECREATE_TARGET)
-	{
-		DX::ThrowIfFailed(hr);
+	if (m_visible) {
+		m_console->Render();
 	}
-
-	context->RestoreDrawingState(m_stateBlock.Get());
 }
 
 void StatsRenderer::CreateDeviceDependentResources()
 {
-	DX::ThrowIfFailed(
-		m_deviceResources->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Yellow), &m_whiteBrush)
-	);
+	m_deviceResources->GetUWPPixelDimensions(&m_displayWidth, &m_displayHeight);
+
+	const wchar_t* font = L"Assets\\Font\\ModeSeven-24.spritefont"; // sized for 4K
+	if (m_displayHeight <= 1440) {
+		font = L"Assets\\Font\\ModeSeven-12.spritefont"; // for 1080p & 1440p
+	}
+
+	m_console->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), font);
 }
+
+void StatsRenderer::CreateWindowSizeDependentResources()
+{
+	// The size of our text area (left, top, right, bottom)
+	RECT size = {20, 0, m_displayWidth * 0.5, m_displayHeight * 0.2};
+
+	m_console->SetWindow(size);
+}
+
 void StatsRenderer::ReleaseDeviceDependentResources()
 {
-	m_whiteBrush.Reset();
+	m_console->ReleaseDevice();
+}
+
+void StatsRenderer::SetVisible(bool visible) {
+	m_visible = visible;
 }

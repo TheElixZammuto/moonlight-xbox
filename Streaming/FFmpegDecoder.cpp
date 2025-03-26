@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "FFMpegDecoder.h"
-#include "Common/DeviceResources.h"
+#include "StatsRenderer.h"
+
 #include <Common\DirectXHelper.h>
 #include <d3d11_1.h>
 #include "Utils.hpp"
@@ -11,8 +12,9 @@ extern "C" {
 #include "Limelight.h"
 #include <third_party\h264bitstream\h264_stream.h>
 #include <libavcodec/avcodec.h>
-#include<libswscale/swscale.h>
-#include<libavutil/hwcontext_d3d11va.h>
+#include <libswscale/swscale.h>
+#include <libavutil/hwcontext_d3d11va.h>
+#include <libavutil/time.h>
 }
 #define DECODER_BUFFER_SIZE 1048576
 
@@ -66,6 +68,7 @@ namespace moonlight_xbox_dx {
 		this->videoFormat = videoFormat;
 		this->width = width;
 		this->height = height;
+
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
 		avcodec_register_all();
@@ -201,7 +204,6 @@ namespace moonlight_xbox_dx {
 		bool status = LiWaitForNextVideoFrame(&frameHandle, &decodeUnit);
 		if (status == false)return false;
 		int n = LiGetPendingVideoFrames();
-		Utils::stats.queueSize = n;
 		if (decodeUnit->fullLength > DECODER_BUFFER_SIZE) {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
@@ -214,6 +216,14 @@ namespace moonlight_xbox_dx {
 			length += entry->length;
 			entry = entry->next;
 		}
+
+		// track stats for a variety of things we can track at the same time
+		this->resources->GetStats()->SubmitVideoBytesAndReassemblyTime(
+			length,
+			(uint32_t)(decodeUnit->enqueueTimeMs - decodeUnit->receiveTimeMs),
+			decodeUnit->frameHostProcessingLatency,
+			decodeUnit->frameNumber);
+
 		int err;
 		err = Decode(ffmpeg_buffer, length);
 		if (err < 0) {
@@ -229,7 +239,7 @@ namespace moonlight_xbox_dx {
 
 		pkt.data = indata;
 		pkt.size = inlen;
-		decodeStartTime = GetTickCount64();
+		decodeStartTime = av_gettime_relative();
 		err = avcodec_send_packet(decoder_ctx, &pkt);
 		if (err < 0) {
 
@@ -251,7 +261,7 @@ namespace moonlight_xbox_dx {
 			return nullptr;
 		}
 		if (err == 0) {
-			Utils::stats.totalDecodeMs += (GetTickCount64() - decodeStartTime);
+			this->resources->GetStats()->SubmitDecodeMs((double)(av_gettime_relative() - decodeStartTime) / 1000.0);
 			//Smooth stream but keep queue small
 			if (LiGetPendingVideoFrames() > 1)return nullptr;
 			//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!

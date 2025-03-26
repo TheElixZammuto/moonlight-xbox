@@ -99,23 +99,6 @@ void VideoRenderer::Update(DX::StepTimer const& timer)
 
 }
 
-void UpdateStats(LARGE_INTEGER start) {
-	LARGE_INTEGER end, frequency;
-	QueryPerformanceCounter(&end);
-	QueryPerformanceFrequency(&frequency);
-	//Update stats
-	double ms = (end.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
-	Utils::stats._accumulatedSeconds += ms;
-	if (Utils::stats._accumulatedSeconds >= 1000) {
-		Utils::stats.fps = Utils::stats._framesDecoded;
-		Utils::stats.averageDecodeTime = (double)Utils::stats.totalDecodeMs / ((double)Utils::stats._framesDecoded);
-		Utils::stats.averageRenderingTime = Utils::stats._accumulatedSeconds / ((double)Utils::stats._framesDecoded);
-		Utils::stats._accumulatedSeconds = 0;
-		Utils::stats._framesDecoded = 0;
-		Utils::stats.totalDecodeMs = 0;
-	}
-}
-
 bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
 bool VideoRenderer::Render()
@@ -130,12 +113,10 @@ bool VideoRenderer::Render()
 	QueryPerformanceCounter(&start);
 	FFMpegDecoder::getInstance()->shouldUnlock = false;
 	if (!FFMpegDecoder::getInstance()->SubmitDU()) {
-		UpdateStats(start);
 		return false;
 	}
 	AVFrame* frame = FFMpegDecoder::getInstance()->GetFrame();
 	if (frame == nullptr) {
-		UpdateStats(start);
 		return false;
 	}
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
@@ -215,25 +196,11 @@ bool VideoRenderer::Render()
 
         if (frame->color_trc == AVCOL_TRC_SMPTE2084) {
             // Switch to Rec 2020 PQ (SMPTE ST 2084) colorspace for HDR10 rendering
-			switch (m_deviceResources->GetBackBufferFormat()) {
-			case DXGI_FORMAT_R16G16B16A16_FLOAT:
-				colorspace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
-				break;
-			case DXGI_FORMAT_R10G10B10A2_UNORM:
-			default:
-				colorspace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
-			}
+			colorspace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
         }
         else {
             // Restore default sRGB colorspace
-			switch (m_deviceResources->GetBackBufferFormat()) {
-			case DXGI_FORMAT_R16G16B16A16_FLOAT:
-				colorspace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
-				break;
-			case DXGI_FORMAT_R10G10B10A2_UNORM:
-			default:
-				colorspace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-			}
+			colorspace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
         }
 
 		UINT colorSpaceSupport = 0;
@@ -242,13 +209,15 @@ bool VideoRenderer::Render()
 			&& (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
 		{
 			DX::ThrowIfFailed(m_deviceResources->GetSwapChain()->SetColorSpace1(colorspace));
+			Utils::Logf("Colorspace changed to %s\n",
+				colorspace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
+				? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
+				: "DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709");
 		}
 
         m_LastColorTrc = frame->color_trc;
     }
 
-	Utils::stats._framesDecoded++;
-	UpdateStats(start);
 	return true;
 }
 

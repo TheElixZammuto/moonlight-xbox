@@ -135,6 +135,7 @@ void moonlight_xbox_dx::StreamPage::toggleLogsButton_Click(Platform::Object^ sen
 {
 	Utils::showLogs = !Utils::showLogs;
 	this->toggleLogsButton->Text = Utils::showLogs ? "Hide Logs" : "Show Logs";
+	m_main->SetShowLogs(Utils::showLogs);
 }
 
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
@@ -147,6 +148,7 @@ void moonlight_xbox_dx::StreamPage::toggleStatsButton_Click(Platform::Object^ se
 {
 	Utils::showStats = !Utils::showStats;
 	this->toggleStatsButton->Text = Utils::showStats ? "Hide Stats" : "Show Stats";
+	m_main->SetShowStats(Utils::showStats);
 }
 
 

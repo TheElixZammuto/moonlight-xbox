@@ -23,7 +23,7 @@ namespace moonlight_xbox_dx {
         ScreenResolution^ resolution;
         int fps = 60;
         int autostartID = -1;
-        Platform::String^ videoCodec = "H.264";
+        Platform::String^ videoCodec = "H.265";
         Platform::String^ audioConfig = "Stereo";
         bool enableHDR = false;
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
@@ -36,7 +36,7 @@ namespace moonlight_xbox_dx {
             resolution = ref new ScreenResolution(1920, 1080);
             loading = true;
         }
-        void UpdateStats();
+        void UpdateHostInfo();
         int Connect();
         void Unpair();
         void UpdateApps();

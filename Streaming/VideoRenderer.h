@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Common\DeviceResources.h"
 #include "ShaderStructures.h"
 #include "Common\StepTimer.h"
 #include "State\MoonlightClient.h"

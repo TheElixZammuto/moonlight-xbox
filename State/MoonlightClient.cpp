@@ -67,7 +67,7 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 
 	if (current->IsSmpte2084Supported) {
 		// HDR is enabled
-		isHDR = true;
+		m_isHDR = true;
 		if (enabled) {
 			Utils::Log("SetDisplayHDR(true): display is already in HDR mode\n");
 			resendCurrentMode = true;
@@ -75,7 +75,7 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 	}
 	else {
 		// HDR is disabled
-		isHDR = false;
+		m_isHDR = false;
 		if (!enabled) {
 			Utils::Log("SetDisplayHDR(false): display is already in SDR mode\n");
 			return true;
@@ -89,7 +89,7 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 	}
 
 	// convert the HDR metadata format to HdmiDisplayHdr2086Metadata
-	HdmiDisplayHdr2086Metadata hdrMetadata;
+	HdmiDisplayHdr2086Metadata hdrMetadata = {};
 	hdrMetadata.RedPrimaryX = sunshineHdrMetadata.displayPrimaries[0].x;
 	hdrMetadata.RedPrimaryY = sunshineHdrMetadata.displayPrimaries[0].y;
 	hdrMetadata.GreenPrimaryX = sunshineHdrMetadata.displayPrimaries[1].x;
@@ -154,15 +154,16 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 	// wait for async bool result of display mode change
 	if (modeChange.get()) {
 		// Check the current display mode to verify
+		// XXX sometimes this lies and the TV is in another mode :(
 		current = hdmi->GetCurrentDisplayMode();
 		logDisplayMode("SetDisplayHDR(): successfully changed to", current);
 
 		if (enabled && current->IsSmpte2084Supported) {
-			isHDR = true;
+			m_isHDR = true;
 			return true;
 		}
 		else if (!enabled && !current->IsSmpte2084Supported) {
-			isHDR = false;
+			m_isHDR = false;
 			return true;
 		}
 	}
@@ -175,16 +176,19 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 
 MoonlightClient* connectedInstance;
 
-MoonlightClient::MoonlightClient() {
+MoonlightClient::MoonlightClient() :
+	m_isHDR(false),
+	m_isRGBFull(false)
+{
 	HdmiDisplayInformation^ hdmi = HdmiDisplayInformation::GetForCurrentView();
 	if (hdmi) {
 		HdmiDisplayMode^ current = hdmi->GetCurrentDisplayMode();
 		if (current->IsSmpte2084Supported) {
-			isHDR = true;
+			m_isHDR = true;
 		}
 		if (current->ColorSpace == HdmiDisplayColorSpace::RgbFull) {
 			// RgbFull is the SDR mode used when Xbox is set to "PC RGB" in Video Fidelity -> Color space
-			isRGBFull = true;
+			m_isRGBFull = true;
 		}
 	}
 }
@@ -215,9 +219,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.height = sConfig->height;
 	config.bitrate = sConfig->bitrate;
 	config.clientRefreshRateX100 = sConfig->FPS * 100;
-	// XXX I am not yet sure if this is the source of clipping issues
-	config.colorRange = this->isRGBFull ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
-	// config.colorRange = COLOR_RANGE_LIMITED;
+	config.colorRange = this->IsRGBFull() ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
 	config.colorSpace = COLORSPACE_REC_601;
 	config.encryptionFlags = 0;
 	config.fps = sConfig->FPS;
@@ -379,18 +381,15 @@ int MoonlightClient::Connect(const char* hostname) {
 
 	int status = 0;
 	status = gs_init(&serverData, this->hostname, port, folder, 3, true);
-	if (status != 0) {
-		Utils::Logf("Got status %d from gs_init(%s)\n", status, hostname);
-	}
 	return status;
 }
 
 bool MoonlightClient::IsHDR() {
-	return isHDR;
+	return m_isHDR;
 }
 
 bool MoonlightClient::IsRGBFull() {
-	return isRGBFull;
+	return m_isRGBFull;
 }
 
 bool MoonlightClient::IsPaired() {

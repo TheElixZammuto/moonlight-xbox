@@ -1,8 +1,10 @@
 #pragma once
+
 #include "pch.h"
-#include "Common/DeviceResources.h"
+#include "../Common/DeviceResources.h"
 #include <State/StreamConfiguration.h>
 #include "State\MoonlightApp.h"
+
 extern "C" {
 	#include <libavcodec/avcodec.h>
 	#include <Limelight.h>
@@ -10,6 +12,7 @@ extern "C" {
 }
 
 typedef void(*MoonlightErrorCallback)(const char *msg);
+
 namespace moonlight_xbox_dx {
 	class MoonlightClient
 	{
@@ -55,7 +58,7 @@ namespace moonlight_xbox_dx {
 		int port = 0;
 		bool useSoftwareEncoder = false;
 		int activeGamepadMask = 0;
-		bool isHDR = false;
-		bool isRGBFull = false;
+		bool m_isHDR;
+		bool m_isRGBFull;
 	};
 }

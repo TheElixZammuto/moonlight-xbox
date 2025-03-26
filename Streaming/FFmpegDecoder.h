@@ -1,15 +1,17 @@
 #pragma once
 
-#include "Common/DeviceResources.h"
-#include<queue>
+#include <queue>
+#include "../Common/StepTimer.h"
 
 extern "C" {
-#include <Limelight.h>
-#include <libavcodec/avcodec.h>
-#include<libswscale/swscale.h>
-#include<libavutil/hwcontext_d3d11va.h>
+	#include <Limelight.h>
+	#include <libavcodec/avcodec.h>
+	#include <libswscale/swscale.h>
+	#include <libavutil/hwcontext_d3d11va.h>
 }
+
 #define MAX_BUFFER 1024 * 1024
+
 namespace moonlight_xbox_dx
 {
 
@@ -45,6 +47,6 @@ namespace moonlight_xbox_dx
 		AVFrame** ready_frames;
 		int next_frame, current_frame;
 		std::shared_ptr<DX::DeviceResources> resources;
-		uint64_t decodeStartTime;
+		int64_t decodeStartTime;
 	};
 }

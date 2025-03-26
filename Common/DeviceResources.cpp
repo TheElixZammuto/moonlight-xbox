@@ -2,6 +2,7 @@
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
 #include <windows.ui.xaml.media.dxinterop.h>
+#include <winrt/Windows.UI.Core.h>
 #include <Pages/StreamPage.xaml.h>
 #include <Streaming/FFmpegDecoder.h>
 
@@ -67,7 +68,8 @@ DX::DeviceResources::DeviceResources() :
 	m_effectiveDpi(-1.0f),
 	m_compositionScaleX(1.0f),
 	m_compositionScaleY(1.0f),
-	m_deviceNotify(nullptr)
+	m_deviceNotify(nullptr),
+	m_stats(nullptr)
 {
 	CreateDeviceIndependentResources();
 	CreateDeviceResources();
@@ -76,43 +78,6 @@ DX::DeviceResources::DeviceResources() :
 // Configures resources that don't depend on the Direct3D device.
 void DX::DeviceResources::CreateDeviceIndependentResources()
 {
-	// Initialize Direct2D resources.
-	D2D1_FACTORY_OPTIONS options;
-	ZeroMemory(&options, sizeof(D2D1_FACTORY_OPTIONS));
-
-#if defined(_DEBUG)
-	// If the project is in a debug build, enable Direct2D debugging via SDK Layers.
-	options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
-#endif
-
-	// Initialize the Direct2D Factory.
-	DX::ThrowIfFailed(
-		D2D1CreateFactory(
-			D2D1_FACTORY_TYPE_SINGLE_THREADED,
-			__uuidof(ID2D1Factory3),
-			&options,
-			&m_d2dFactory
-			)
-		);
-
-	// Initialize the DirectWrite Factory.
-	DX::ThrowIfFailed(
-		DWriteCreateFactory(
-			DWRITE_FACTORY_TYPE_SHARED,
-			__uuidof(IDWriteFactory3),
-			&m_dwriteFactory
-			)
-		);
-
-	// Initialize the Windows Imaging Component (WIC) Factory.
-	DX::ThrowIfFailed(
-		CoCreateInstance(
-			CLSID_WICImagingFactory2,
-			nullptr,
-			CLSCTX_INPROC_SERVER,
-			IID_PPV_ARGS(&m_wicFactory)
-			)
-		);
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
@@ -236,23 +201,6 @@ void DX::DeviceResources::CreateDeviceResources()
 	DX::ThrowIfFailed(
 		context.As(&m_d3dContext)
 		);
-
-	// Create the Direct2D device object and a corresponding context.
-	ComPtr<IDXGIDevice3> dxgiDevice;
-	DX::ThrowIfFailed(
-		m_d3dDevice.As(&dxgiDevice)
-		);
-
-	DX::ThrowIfFailed(
-		m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice)
-		);
-
-	DX::ThrowIfFailed(
-		m_d2dDevice->CreateDeviceContext(
-			D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
-			&m_d2dContext
-			)
-		);
 }
 
 // These resources need to be recreated every time the window size is changed.
@@ -262,8 +210,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	ID3D11RenderTargetView* nullViews[] = {nullptr};
 	m_d3dContext->OMSetRenderTargets(ARRAYSIZE(nullViews), nullViews, nullptr);
 	m_d3dRenderTargetView = nullptr;
-	m_d2dContext->SetTarget(nullptr);
-	m_d2dTargetBitmap = nullptr;
 	m_d3dDepthStencilView = nullptr;
 	m_d3dContext->Flush1(D3D11_CONTEXT_TYPE_ALL, nullptr);
 
@@ -280,8 +226,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	float normalizedHeight = uwp_get_height();
 	m_d3dRenderTargetSize.Width = normalizedWidth;
 	m_d3dRenderTargetSize.Height = normalizedHeight;
-	moonlight_xbox_dx::Utils::stats.outputW = m_d3dRenderTargetSize.Width;
-	moonlight_xbox_dx::Utils::stats.outputH = m_d3dRenderTargetSize.Height;
 
 	if (m_swapChain != nullptr)
 	{
@@ -321,7 +265,8 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.SampleDesc.Quality = 0;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
-		swapChainDesc.BufferCount = 5;
+		// swapChainDesc.BufferCount = 5;
+		swapChainDesc.BufferCount = 2; // XXX do we really need 5?
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.Flags = (m_enableVRR) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
@@ -351,12 +296,44 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 				&swapChainDesc,
 				nullptr,
 				&swapChain
-				)
-			);
+			)
+		);
+
+		// XXX This seems like the better type of swap chain with fullscreen support
+		// TODO: review https://github.com/ahmed605/imgui-uwp/blob/master/examples/example_uwp_directx11/main.cpp
+		// DX::ThrowIfFailed(
+		// 	dxgiFactory->CreateSwapChainForCoreWindow(
+		// 		m_d3dDevice.Get(),
+		// 		// reinterpret_cast<::IUnknown*>(winrt::get_abi(CoreWindow::GetForCurrentThread())), // compiles and crashes
+		// 		// reinterpret_cast<IUnknown*>(CoreWindow::GetForCurrentThread()), // this also compiles and crashes
+		//      winrt::get_unknown(CoreWindow::GetForCurrentThread()),
+		// 		&swapChainDesc,
+		// 		nullptr,
+		// 		&swapChain
+		// 	)
+		// );
 
 		DX::ThrowIfFailed(
 			swapChain.As(&m_swapChain)
-			);
+		);
+
+		// XXX I think because of CreateSwapChainForComposition we don't run in fullscreen,
+		// and thus VRR does not work. CreateSwapChainForCoreWindow is possibly the solution
+		// but I ran into issues with passing the CoreWindow
+		{
+			BOOL isFullscreen = FALSE;
+			HRESULT hr = swapChain->GetFullscreenState(&isFullscreen, NULL);
+			if (FAILED(hr) || !isFullscreen) {
+				Utils::Log("SwapChain is NOT running in fullscreen mode\n");
+			}
+			else {
+				Utils::Log("SwapChain is fullscreen\n");
+			}
+		}
+
+		// Ensure that DXGI does not queue more than one frame at a time. This both reduces latency and
+		// ensures that the application will only render after each VSync, minimizing power consumption.
+		DX::ThrowIfFailed(dxgiDevice->SetMaximumFrameLatency(1));
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread
@@ -480,35 +457,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		);
 
 	m_d3dContext->RSSetViewports(1, &m_screenViewport);
-
-	// // Create a Direct2D target bitmap associated with the
-	// // swap chain back buffer and set it as the current target.
-	// D2D1_BITMAP_PROPERTIES1 bitmapProperties =
-	// 	D2D1::BitmapProperties1(
-	// 		D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-	// 		D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-	// 		m_dpi,
-	// 		m_dpi
-	// 		);
-
-	// ComPtr<IDXGISurface2> dxgiBackBuffer;
-	// DX::ThrowIfFailed(
-	// 	m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer))
-	// 	);
-
-	// DX::ThrowIfFailed(
-	// 	m_d2dContext->CreateBitmapFromDxgiSurface(
-	// 		dxgiBackBuffer.Get(),
-	// 		&bitmapProperties,
-	// 		&m_d2dTargetBitmap
-	// 		)
-	// 	);
-
-	// m_d2dContext->SetTarget(m_d2dTargetBitmap.Get());
-	// m_d2dContext->SetDpi(m_effectiveDpi, m_effectiveDpi);
-
-	// // Grayscale text anti-aliasing is recommended for all Microsoft Store apps.
-	// m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 }
 
 // Determine the dimensions of the render target and whether it will be scaled down.
@@ -519,7 +467,6 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 	double compositionScaleMultiplier = 1;
 
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
-	// HDR Setup
 	if (hdi) {
 		auto mode = hdi->GetCurrentDisplayMode();
 		if (mode->ResolutionWidthInRawPixels > 2560)compositionScaleMultiplier = 2;
@@ -528,9 +475,6 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 
 	m_effectiveCompositionScaleX = m_compositionScaleX * compositionScaleMultiplier;
 	m_effectiveCompositionScaleY = m_compositionScaleY * compositionScaleMultiplier;
-	moonlight_xbox_dx::Utils::stats.compositionScaleX = m_compositionScaleX;
-	moonlight_xbox_dx::Utils::stats.compositionScaleY = m_compositionScaleY;
-	moonlight_xbox_dx::Utils::stats.compositionScaleMultiplier = compositionScaleMultiplier;
 }
 
 // This method is called when the XAML control is created (or re-created).
@@ -545,8 +489,6 @@ void DX::DeviceResources::SetSwapChainPanel(SwapChainPanel^ panel)
 	m_currentOrientation = currentDisplayInformation->CurrentOrientation;
 	m_compositionScaleX = panel->CompositionScaleX;
 	m_compositionScaleY = panel->CompositionScaleY;
-	m_dpi = currentDisplayInformation->LogicalDpi;
-	m_d2dContext->SetDpi(m_dpi, m_dpi);
 
 	CreateWindowSizeDependentResources();
 }
@@ -566,8 +508,6 @@ void DX::DeviceResources::SetDpi(float dpi)
 {
 	if (dpi != m_dpi)
 	{
-		m_dpi = dpi;
-		m_d2dContext->SetDpi(m_dpi, m_dpi);
 		CreateWindowSizeDependentResources();
 	}
 }
@@ -657,7 +597,6 @@ void DX::DeviceResources::HandleDeviceLost()
 	}
 
 	CreateDeviceResources();
-	m_d2dContext->SetDpi(m_dpi, m_dpi);
 	CreateWindowSizeDependentResources();
 
 	if (m_deviceNotify != nullptr)
@@ -720,8 +659,11 @@ void DX::DeviceResources::Present()
 	else {
 		DX::ThrowIfFailed(hr);
 	}
-	if(moonlight_xbox_dx::FFMpegDecoder::getInstance() != nullptr && moonlight_xbox_dx::FFMpegDecoder::getInstance()->shouldUnlock)
-		moonlight_xbox_dx::FFMpegDecoder::getInstance()->mutex.unlock();
+
+	auto ffmpeg = moonlight_xbox_dx::FFMpegDecoder::getInstance();
+	if (ffmpeg != nullptr && ffmpeg->shouldUnlock) {
+		ffmpeg->mutex.unlock();
+	}
 }
 
 // This method determines the rotation between the display device's native orientation and the

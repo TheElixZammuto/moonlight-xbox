@@ -4,7 +4,7 @@
 #include <ppltasks.h>
 
 namespace moonlight_xbox_dx {
-	void MoonlightHost::UpdateStats() {
+	void MoonlightHost::UpdateHostInfo() {
 		this->Loading = true;
 		bool status = this->Connect() == 0;
 		this->Connected = status;
@@ -47,7 +47,7 @@ namespace moonlight_xbox_dx {
 		client->Unpair();
 	}
 
-	
+
 	void MoonlightHost::OnPropertyChanged(Platform::String^ propertyName)
 	{
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, propertyName]() {
