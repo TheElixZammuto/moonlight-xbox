@@ -435,6 +435,19 @@ void moonlight_xbox_dxMain::SendGuideButton(int duration) {
 	});
 }
 
+void moonlight_xbox_dxMain::SendWinAltB() {
+	// Win-Alt-B = Toggle HDR
+	concurrency::create_async([this]() {
+		moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::LeftWindows, 0);
+		moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Menu, 0);
+		moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::B, 0);
+		Sleep(100);
+		moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::B, 0);
+		moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Menu, 0);
+		moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::LeftWindows, 0);
+	});
+}
+
 void moonlight_xbox_dxMain::SetShowLogs(bool showLogs) {
 	m_LogRenderer->SetVisible(showLogs);
 }

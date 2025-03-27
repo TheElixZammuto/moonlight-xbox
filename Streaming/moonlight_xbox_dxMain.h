@@ -31,6 +31,7 @@ namespace moonlight_xbox_dx
 		void Disconnect();
 		void CloseApp();
 		void SendGuideButton(int duration);
+		void SendWinAltB();
 		void SetShowLogs(bool showLogs);
 		void SetShowStats(bool showStats);
 	private:
