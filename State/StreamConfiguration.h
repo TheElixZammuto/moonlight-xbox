@@ -15,6 +15,7 @@ namespace moonlight_xbox_dx
 		property Platform::String^ videoCodec;
 		property bool enableHDR;
 		property bool playAudioOnPC;
+		property bool enableVsync;
 	};
 
 	moonlight_xbox_dx::StreamConfiguration^ GetStreamConfig();

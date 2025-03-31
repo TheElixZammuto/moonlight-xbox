@@ -27,13 +27,17 @@ namespace DX
 		void HandleDeviceLost();
 		void RegisterDeviceNotify(IDeviceNotify* deviceNotify);
 		void Trim();
+		void GetDXGIFrameStatistics(std::shared_ptr<Stats>& dstStats);
 		void Present();
+		void GetUWPPixelDimensions(uint32_t *width, uint32_t *height);
 		static int uwp_get_width();
 		static int uwp_get_height();
 
+		void                       SetEnableVsync(bool ev)                  { m_enableVsync = ev; }
+
 		// Stats helpers
-		void                        SetStats(const std::shared_ptr<moonlight_xbox_dx::Stats>& stats)    { m_stats = stats; }
-		std::shared_ptr<Stats>      GetStats()                                       { return m_stats; }
+		void                        SetStats(const std::shared_ptr<moonlight_xbox_dx::Stats>& stats)  { m_stats = stats; }
+		std::shared_ptr<Stats>      GetStats()                                                        { return m_stats; }
 
 		// The size of the render target, in pixels.
 		Windows::Foundation::Size	GetOutputSize() const					{ return m_outputSize; }
@@ -102,7 +106,9 @@ namespace DX
 		IDeviceNotify*                                  m_deviceNotify;
 
 		DXGI_FORMAT                                     m_backBufferFormat;
-		bool                                            m_enableVRR;
+		bool                                            m_enableVsync;
+		bool                                            m_swapchainVsync;
+		SyncMode                                        m_displayStatus;
 		std::shared_ptr<Stats>                          m_stats;
 	};
 }

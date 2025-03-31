@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
+#include <gamingdeviceinformation.h>
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <winrt/Windows.UI.Core.h>
 #include <Pages/StreamPage.xaml.h>
@@ -12,6 +13,7 @@ using namespace DirectX;
 using namespace Microsoft::WRL;
 using namespace Windows::Foundation;
 using namespace Windows::Graphics::Display;
+using namespace Windows::Graphics::Display::Core;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Platform;
@@ -59,7 +61,8 @@ DX::DeviceResources::DeviceResources() :
 	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_10_0),
 	m_d3dRenderTargetSize(),
 	m_dxgiFactoryFlags(0),
-	m_enableVRR(true), // will be disabled if not supported
+	m_enableVsync(true),
+	m_swapchainVsync(true),
 	m_outputSize(),
 	m_logicalSize(),
 	m_nativeOrientation(DisplayOrientations::None),
@@ -120,7 +123,7 @@ void DX::DeviceResources::CreateDeviceResources()
 	DX::ThrowIfFailed(CreateDXGIFactory2(m_dxgiFactoryFlags, IID_PPV_ARGS(m_dxgiFactory.ReleaseAndGetAddressOf())));
 
 	// Determines whether tearing support is available for fullscreen borderless windows.
-	if (m_enableVRR) {
+	if (!m_enableVsync) {
 		BOOL allowTearing = FALSE;
 
 		ComPtr<IDXGIFactory5> factory5;
@@ -129,12 +132,16 @@ void DX::DeviceResources::CreateDeviceResources()
 			hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
 		}
 
+		Utils::Logf("CheckFeatureSupport(ALLOW_TEARING): %d\n", allowTearing ? 1 : 0);
+
 		if (FAILED(hr) || !allowTearing) {
-			m_enableVRR = false;
-			Utils::Log("Warning: A Variable Refresh Rate display not detected, vsync will be used instead\n");
+			//m_displayStatus &= ~VRR_SUPPORTED;
+			Utils::Log("Warning: Variable Refresh Rate display was not detected, vsync will be forced.\n");
+			m_enableVsync = true;
 		}
 		else {
-			Utils::Log("Variable Refresh Rate display detected\n");
+			Utils::Log("Warning: Variable Refresh Rate display detected, but VRR is not yet working. You will experience tearing.\n");
+			//m_displayStatus |= VRR_SUPPORTED;
 		}
 	}
 
@@ -235,8 +242,10 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
-			(m_enableVRR) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+			(m_enableVsync) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
 			);
+
+		Utils::Logf("ResizeBuffers() ALLOW_TEARING=%d\n", m_enableVsync ? 0 : 1);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
 		{
@@ -265,10 +274,9 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.SampleDesc.Quality = 0;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
-		// swapChainDesc.BufferCount = 5;
-		swapChainDesc.BufferCount = 2; // XXX do we really need 5?
+		swapChainDesc.BufferCount = 5;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = (m_enableVRR) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
+		swapChainDesc.Flags = (m_enableVsync) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -298,6 +306,8 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 				&swapChain
 			)
 		);
+
+		Utils::Logf("CreateSwapChainForComposition() ALLOW_TEARING=%d\n", m_enableVsync ? 0 : 1);
 
 		// XXX This seems like the better type of swap chain with fullscreen support
 		// TODO: review https://github.com/ahmed605/imgui-uwp/blob/master/examples/example_uwp_directx11/main.cpp
@@ -333,7 +343,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 
 		// Ensure that DXGI does not queue more than one frame at a time. This both reduces latency and
 		// ensures that the application will only render after each VSync, minimizing power consumption.
-		DX::ThrowIfFailed(dxgiDevice->SetMaximumFrameLatency(1));
+		//DX::ThrowIfFailed(dxgiDevice->SetMaximumFrameLatency(1));
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread
@@ -350,6 +360,10 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 				);
 		}, CallbackContext::Any));
 	}
+
+	// note the current state of the swapchain wrt ALLOW_TEARING. If this is changed, we have to recreate
+	// the swapchain.
+	m_swapchainVsync = m_enableVsync;
 
 	// Set the proper orientation for the swap chain, and generate 2D and
 	// 3D matrix transformations for rendering to the rotated swap chain.
@@ -591,6 +605,8 @@ void DX::DeviceResources::HandleDeviceLost()
 {
 	m_swapChain = nullptr;
 
+	Utils::Log("HandleDeviceLost()\n");
+
 	if (m_deviceNotify != nullptr)
 	{
 		m_deviceNotify->OnDeviceLost();
@@ -621,19 +637,28 @@ void DX::DeviceResources::Trim()
 	dxgiDevice->Trim();
 }
 
+void DX::DeviceResources::GetDXGIFrameStatistics(std::shared_ptr<Stats>& dstStats)
+{
+	DXGI_FRAME_STATISTICS frameStats;
+	HRESULT hr = m_swapChain->GetFrameStatistics(&frameStats);
+	if (SUCCEEDED(hr)) {
+		dstStats->SubmitDXGIFrameStatistics(&frameStats);
+	}
+}
+
 // Present the contents of the swap chain to the screen.
 void DX::DeviceResources::Present()
 {
 	HRESULT hr = E_FAIL;
-	if (m_enableVRR) {
-		// Recommended to always use tearing if supported when using a sync interval of 0.
-		hr = m_swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	DXGI_PRESENT_PARAMETERS parameters = { 0 };
+	if (m_enableVsync) {
+		// This still seems to use vsync due to the lack of DXGI_PRESENT_ALLOW_TEARING
+		hr = m_swapChain->Present1(0, 0, &parameters);
 	}
 	else {
-		// The first argument instructs DXGI to block until VSync, putting the application
-		// to sleep until the next VSync. This ensures we don't waste any cycles rendering
-		// frames that will never be displayed to the screen.
-		hr = m_swapChain->Present(1, 0);
+		// Recommended to always use tearing if supported when using a sync interval of 0.
+		// This call requires VRR to be set to Always On on Xbox
+		hr = m_swapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING, &parameters);
 	}
 
 	// Discard the contents of the render target.
@@ -654,6 +679,12 @@ void DX::DeviceResources::Present()
 			static_cast<unsigned int>((hr == DXGI_ERROR_DEVICE_REMOVED) ? m_d3dDevice->GetDeviceRemovedReason() : hr));
 		OutputDebugStringA(buff);
 #endif
+		HandleDeviceLost();
+	}
+	else if (hr == DXGI_ERROR_INVALID_CALL && m_enableVsync != m_swapchainVsync) {
+		// Swap chain vsync mismatch, try to reset
+		Utils::Logf("Present() failed due to swapchain vsync mismatch (enableVsync=%d != swapchainVsync=%d)\n",
+			m_enableVsync, m_swapchainVsync);
 		HandleDeviceLost();
 	}
 	else {
@@ -756,4 +787,27 @@ int DX::DeviceResources::uwp_get_width()
 	const LONG32 resolution_scale = static_cast<LONG32>(Windows::Graphics::Display::DisplayInformation::GetForCurrentView()->ResolutionScale);
 	auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;
 	return static_cast<LONG32>(CoreWindow::GetForCurrentThread()->Bounds.Width * surface_scale);
+}
+
+void DX::DeviceResources::GetUWPPixelDimensions(uint32_t *width, uint32_t *height)
+{
+	GAMING_DEVICE_MODEL_INFORMATION info = {};
+	GetGamingDeviceModelInformation(&info);
+
+	*width = 1920;
+	*height = 1080;
+
+	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+		// Running on an Xbox
+		auto mode = HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode();
+		*width  = std::max((uint32_t)1920, mode->ResolutionWidthInRawPixels);
+		*height = std::max((uint32_t)1080, mode->ResolutionHeightInRawPixels);
+	}
+	else {
+		// Running in Windows
+		const LONG32 resolution_scale = static_cast<LONG32>(DisplayInformation::GetForCurrentView()->ResolutionScale);
+		auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;
+		*width  = CoreWindow::GetForCurrentThread()->Bounds.Width * surface_scale;
+		*height = CoreWindow::GetForCurrentThread()->Bounds.Height * surface_scale;
+	}
 }
