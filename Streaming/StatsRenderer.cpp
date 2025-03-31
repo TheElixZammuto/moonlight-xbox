@@ -9,12 +9,11 @@ using namespace Microsoft::WRL;
 using namespace Windows::UI::Core;
 
 StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, const std::shared_ptr<Stats>& stats) :
-	m_console(nullptr),
+	m_console(std::make_unique<DX::TextConsole>()),
 	m_deviceResources(deviceResources),
 	m_visible(false),
 	m_stats(stats)
 {
-	m_console = std::make_unique<DX::TextConsole>();
 	m_console->SetForegroundColor(Colors::Yellow);
 	//m_console->SetDebugOutput(true);
 

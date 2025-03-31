@@ -372,12 +372,9 @@ void moonlight_xbox_dxMain::Clear()
 	auto context = m_deviceResources->GetD3DDeviceContext();
 
 	// Clear the views.
-	// ID3D11RenderTargetView* renderTarget[] = { m_hdrScene->GetRenderTargetView() }; // use DXTK tone mapping
-	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() }; // don't use DXTK tone mapping
+	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
 	auto depthStencil = m_deviceResources->GetDepthStencilView();
 
-	// XMVECTORF32 color;
-	// color.v = XMColorSRGBToRGB(Colors::Black);
 	context->ClearRenderTargetView(renderTarget[0], Colors::Black);
 	context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	context->OMSetRenderTargets(1, renderTarget, depthStencil);

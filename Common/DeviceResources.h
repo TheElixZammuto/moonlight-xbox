@@ -2,8 +2,6 @@
 
 #include "../State/Stats.h"
 
-using namespace moonlight_xbox_dx;
-
 namespace DX
 {
 	// Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
@@ -27,7 +25,7 @@ namespace DX
 		void HandleDeviceLost();
 		void RegisterDeviceNotify(IDeviceNotify* deviceNotify);
 		void Trim();
-		void GetDXGIFrameStatistics(std::shared_ptr<Stats>& dstStats);
+		void GetDXGIFrameStatistics(std::shared_ptr<moonlight_xbox_dx::Stats>& dstStats);
 		void Present();
 		void GetUWPPixelDimensions(uint32_t *width, uint32_t *height);
 		static int uwp_get_width();
@@ -37,7 +35,7 @@ namespace DX
 
 		// Stats helpers
 		void                        SetStats(const std::shared_ptr<moonlight_xbox_dx::Stats>& stats)  { m_stats = stats; }
-		std::shared_ptr<Stats>      GetStats()                                                        { return m_stats; }
+		std::shared_ptr<moonlight_xbox_dx::Stats>                           GetStats()                { return m_stats; }
 
 		// The size of the render target, in pixels.
 		Windows::Foundation::Size	GetOutputSize() const					{ return m_outputSize; }
@@ -109,6 +107,6 @@ namespace DX
 		bool                                            m_enableVsync;
 		bool                                            m_swapchainVsync;
 		SyncMode                                        m_displayStatus;
-		std::shared_ptr<Stats>                          m_stats;
+		std::shared_ptr<moonlight_xbox_dx::Stats>       m_stats;
 	};
 }

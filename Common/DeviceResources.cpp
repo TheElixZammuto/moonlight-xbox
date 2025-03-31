@@ -332,7 +332,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		// but I ran into issues with passing the CoreWindow
 		{
 			BOOL isFullscreen = FALSE;
-			HRESULT hr = swapChain->GetFullscreenState(&isFullscreen, NULL);
+			HRESULT hr = swapChain->GetFullscreenState(&isFullscreen, nullptr);
 			if (FAILED(hr) || !isFullscreen) {
 				Utils::Log("SwapChain is NOT running in fullscreen mode\n");
 			}

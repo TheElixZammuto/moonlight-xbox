@@ -10,11 +10,10 @@ using namespace moonlight_xbox_dx;
 using namespace Microsoft::WRL;
 
 LogRenderer::LogRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
-	m_console(nullptr),
+	m_console(std::make_unique<DX::TextConsole>()),
 	m_deviceResources(deviceResources),
 	m_visible(false)
 {
-	m_console = std::make_unique<DX::TextConsole>();
 	m_console->SetForegroundColor(Colors::Cyan);
 	//m_console->SetDebugOutput(true);
 
