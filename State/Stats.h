@@ -49,7 +49,7 @@ namespace moonlight_xbox_dx
 		bool ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char* output, size_t length);
 
 		// submitters for various types of data
-		void SubmitVideoBytesAndReassemblyTime(uint32_t length, uint32_t reassemblyMs, uint16_t frameHPL, int frameNumber);
+		void SubmitVideoBytesAndReassemblyTime(uint32_t length, uint32_t reassemblyMs, uint16_t frameHPL, uint32_t droppedFrames);
 		void SubmitDecodeMs(double decodeMs);
 		void SubmitDXGIFrameStatistics(DXGI_FRAME_STATISTICS *frameStats);
 		void SubmitRenderMs(double renderMs);

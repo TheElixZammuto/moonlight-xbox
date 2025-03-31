@@ -217,12 +217,21 @@ namespace moonlight_xbox_dx {
 			entry = entry->next;
 		}
 
+		// Detect breaks in the frame sequence indicating dropped packets
+		static uint32_t lastFrameNumber = 0;
+		uint32_t droppedFrames = 0;
+		if (lastFrameNumber > 0) {
+			// Any frame number greater than m_LastFrameNumber + 1 represents a dropped frame
+			droppedFrames = decodeUnit->frameNumber - (lastFrameNumber + 1);
+		}
+		lastFrameNumber = decodeUnit->frameNumber;
+
 		// track stats for a variety of things we can track at the same time
 		this->resources->GetStats()->SubmitVideoBytesAndReassemblyTime(
 			length,
 			(uint32_t)(decodeUnit->enqueueTimeMs - decodeUnit->receiveTimeMs),
 			decodeUnit->frameHostProcessingLatency,
-			decodeUnit->frameNumber);
+			droppedFrames);
 
 		int err;
 		err = Decode(ffmpeg_buffer, length);

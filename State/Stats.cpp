@@ -52,8 +52,8 @@ bool Stats::ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char
 // 2. Time in milliseconds from first packet of a frame until fully reassembled frame is ready for decoding
 //    Includes time spent in FEC reassembly
 // 3. Host processing latency (encode time)
-// 4. network packet loss (via frameNumber sequence)
-void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, uint32_t reassemblyMs, uint16_t frameHPL, int frameNumber) {
+// 4. network packet loss (caller reports frame sequence number holes)
+void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, uint32_t reassemblyMs, uint16_t frameHPL, uint32_t droppedFrames) {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_bwTracker.AddBytes(length);
 	m_ActiveWndVideoStats.receivedFrames++;
@@ -74,15 +74,9 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, uint32_t reassemb
 	m_ActiveWndVideoStats.totalHostProcessingLatency += frameHPL;
 
 	// Network packet loss
-	static int lastFrameNumber = 0;
-	if (!lastFrameNumber) {
-		lastFrameNumber = frameNumber;
-	}
-	else {
-		// Any frame number greater than m_LastFrameNumber + 1 represents a dropped frame
-		m_ActiveWndVideoStats.networkDroppedFrames += frameNumber - (lastFrameNumber + 1);
-		m_ActiveWndVideoStats.totalFrames += frameNumber - (lastFrameNumber + 1);
-		lastFrameNumber = frameNumber;
+	if (droppedFrames > 0) {
+		m_ActiveWndVideoStats.networkDroppedFrames += droppedFrames;
+		m_ActiveWndVideoStats.totalFrames += droppedFrames;
 	}
 }
 
