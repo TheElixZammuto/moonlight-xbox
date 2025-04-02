@@ -83,8 +83,8 @@ void MoonlightWelcome::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Rou
 	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightWelcome::OnBackRequested);
 }
 
-void MoonlightWelcome::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void MoonlightWelcome::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	navigation->BackRequested -= m_back_token;
+    auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+    m_back_token = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightWelcome::OnBackRequested);
 }
