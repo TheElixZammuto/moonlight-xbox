@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Common\DeviceResources.h"
 #include "ShaderStructures.h"
 #include "Common\StepTimer.h"
 #include "State\MoonlightClient.h"
@@ -11,7 +10,7 @@ namespace moonlight_xbox_dx
 
 	typedef struct _Rect {
 		int x, y, w, h;
-	} RECT;
+	} IRECT;
 
 	typedef struct _Frect {
 		float x, y, w, h;
@@ -25,8 +24,8 @@ namespace moonlight_xbox_dx
 		void CreateWindowSizeDependentResources();
 		void ReleaseDeviceDependentResources();
 		void Update(DX::StepTimer const& timer);
-		void scaleSourceToDestinationSurface(RECT* src, RECT* dst);
-		void screenSpaceToNormalizedDeviceCoords(RECT* src, FRECT* dst, int viewportWidth, int viewportHeight);
+		void scaleSourceToDestinationSurface(IRECT* src, IRECT* dst);
+		void screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, int viewportWidth, int viewportHeight);
 		bool Render();
 		void bindColorConversion(AVFrame* frame);
 		void SetHDR(bool enabled);
@@ -54,6 +53,8 @@ namespace moonlight_xbox_dx
 		ModelViewProjectionConstantBuffer	m_constantBufferData;
 
 		// Variables used with the rendering loop.
+		AVColorTransferCharacteristic m_LastColorTrc;
+		DXGI_HDR_METADATA_HDR10 m_lastHdr10;
 		bool	m_loadingComplete;
 		bool	m_LastFullRange;
 		int		m_LastColorSpace;

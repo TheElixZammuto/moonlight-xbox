@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "FFMpegDecoder.h"
-#include "Common/DeviceResources.h"
+#include "StatsRenderer.h"
+
 #include <Common\DirectXHelper.h>
 #include <d3d11_1.h>
 #include "Utils.hpp"
@@ -11,8 +12,9 @@ extern "C" {
 #include "Limelight.h"
 #include <third_party\h264bitstream\h264_stream.h>
 #include <libavcodec/avcodec.h>
-#include<libswscale/swscale.h>
-#include<libavutil/hwcontext_d3d11va.h>
+#include <libswscale/swscale.h>
+#include <libavutil/hwcontext_d3d11va.h>
+#include <libavutil/time.h>
 }
 #define DECODER_BUFFER_SIZE 1048576
 
@@ -49,7 +51,8 @@ namespace moonlight_xbox_dx {
 	}
 
 	void ffmpeg_log_callback(void* avcl, int	level, const char* fmt, va_list vl) {
-		//if (level > AV_LOG_INFO)return;
+		if (level > AV_LOG_INFO) return;
+
 		char message[2048];
 		vsprintf_s(message, fmt, vl);
 		OutputDebugStringA("[FFMPEG]");
@@ -66,10 +69,11 @@ namespace moonlight_xbox_dx {
 		this->width = width;
 		this->height = height;
 
+
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
 		avcodec_register_all();
 #endif
-		av_log_set_level(AV_LOG_VERBOSE);
+		av_log_set_level(AV_LOG_INFO);
 		av_log_set_callback(&ffmpeg_log_callback);
 #pragma warning(suppress : 4996)
 		av_init_packet(&pkt);
@@ -94,7 +98,7 @@ namespace moonlight_xbox_dx {
 			return -1;
 		}
 		decoder_ctx->opaque = this;
-		
+
 		AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
 		device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
 		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
@@ -111,7 +115,7 @@ namespace moonlight_xbox_dx {
 			return err2;
 
 		}
-		
+
 		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 		decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
 		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
@@ -175,13 +179,22 @@ namespace moonlight_xbox_dx {
 	}
 
 	void FFMpegDecoder::Cleanup() {
-		for (int i = 0; i < dec_frames_cnt; i++) {
-			av_frame_free(&dec_frames[i]);
+		if (dec_frames != NULL) {
+			for (int i = 0; i < dec_frames_cnt; i++) {
+				av_frame_free(&dec_frames[i]);
+			}
+			free(dec_frames);
 		}
-		free(dec_frames);
-		free(ffmpeg_buffer);
 		avcodec_close(decoder_ctx);
 		avcodec_free_context(&decoder_ctx);
+		if (ffmpeg_buffer != NULL) {
+			free(ffmpeg_buffer);
+			ffmpeg_buffer = NULL;
+		}
+		if (ready_frames != NULL) {
+			free(ready_frames);
+			ready_frames = NULL;
+		}
 		Utils::Log("Decoding Clean\n");
 	}
 
@@ -191,7 +204,6 @@ namespace moonlight_xbox_dx {
 		bool status = LiWaitForNextVideoFrame(&frameHandle, &decodeUnit);
 		if (status == false)return false;
 		int n = LiGetPendingVideoFrames();
-		Utils::stats.queueSize = n;
 		if (decodeUnit->fullLength > DECODER_BUFFER_SIZE) {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
@@ -204,6 +216,23 @@ namespace moonlight_xbox_dx {
 			length += entry->length;
 			entry = entry->next;
 		}
+
+		// Detect breaks in the frame sequence indicating dropped packets
+		static uint32_t lastFrameNumber = 0;
+		uint32_t droppedFrames = 0;
+		if (lastFrameNumber > 0) {
+			// Any frame number greater than m_LastFrameNumber + 1 represents a dropped frame
+			droppedFrames = decodeUnit->frameNumber - (lastFrameNumber + 1);
+		}
+		lastFrameNumber = decodeUnit->frameNumber;
+
+		// track stats for a variety of things we can track at the same time
+		this->resources->GetStats()->SubmitVideoBytesAndReassemblyTime(
+			length,
+			(uint32_t)(decodeUnit->enqueueTimeMs - decodeUnit->receiveTimeMs),
+			decodeUnit->frameHostProcessingLatency,
+			droppedFrames);
+
 		int err;
 		err = Decode(ffmpeg_buffer, length);
 		if (err < 0) {
@@ -219,7 +248,7 @@ namespace moonlight_xbox_dx {
 
 		pkt.data = indata;
 		pkt.size = inlen;
-		int ts = GetTickCount64();
+		decodeStartTime = av_gettime_relative();
 		err = avcodec_send_packet(decoder_ctx, &pkt);
 		if (err < 0) {
 
@@ -241,6 +270,7 @@ namespace moonlight_xbox_dx {
 			return nullptr;
 		}
 		if (err == 0) {
+			this->resources->GetStats()->SubmitDecodeMs((double)(av_gettime_relative() - decodeStartTime) / 1000.0);
 			//Smooth stream but keep queue small
 			if (LiGetPendingVideoFrames() > 1)return nullptr;
 			//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!
@@ -299,6 +329,6 @@ namespace moonlight_xbox_dx {
 		return decoder_callbacks_sdl;
 	}
 
-	
+
 }
 

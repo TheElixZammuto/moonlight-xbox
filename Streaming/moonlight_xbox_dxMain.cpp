@@ -7,6 +7,7 @@ using namespace Windows::Gaming::Input;
 
 
 using namespace moonlight_xbox_dx;
+using namespace DirectX;
 using namespace Windows::Foundation;
 using namespace Windows::System::Threading;
 using namespace Concurrency;
@@ -38,11 +39,19 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
-	m_sceneRenderer = std::unique_ptr<VideoRenderer>(new VideoRenderer(m_deviceResources, moonlightClient, configuration));
+	// Vsync forced to ON (via constructor default) until VRR works
+	// m_deviceResources->SetEnableVsync(configuration->enableVsync);
 
-	m_fpsTextRenderer = std::unique_ptr<LogRenderer>(new LogRenderer(m_deviceResources));
+	m_sceneRenderer = std::make_unique<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
 
-	m_statsTextRenderer = std::unique_ptr<StatsRenderer>(new StatsRenderer(m_deviceResources));
+	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
+
+	// Setup stats object. DeviceResources keeps a reference so that various components such as FFMpegDecoder can get to it
+	m_stats = std::make_shared<Stats>();
+	m_stats->SetDisplayStatus(configuration->enableVsync ? VSYNC_ON : VSYNC_OFF);
+	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
+	m_deviceResources->SetStats(m_stats);
+
 	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
 	client->OnStatusUpdate = ([streamPage](int status) {
@@ -71,11 +80,16 @@ moonlight_xbox_dxMain::~moonlight_xbox_dxMain()
 	m_deviceResources->RegisterDeviceNotify(nullptr);
 }
 
+void moonlight_xbox_dxMain::CreateDeviceDependentResources()
+{
+}
+
 // Updates application state when the window size changes (e.g. device orientation change)
 void moonlight_xbox_dxMain::CreateWindowSizeDependentResources()
 {
-	// TODO: Replace this with the size-dependent initialization of your app's content.
 	m_sceneRenderer->CreateWindowSizeDependentResources();
+	m_LogRenderer->CreateWindowSizeDependentResources();
+	m_statsTextRenderer->CreateWindowSizeDependentResources();
 }
 
 void moonlight_xbox_dxMain::StartRenderLoop()
@@ -93,12 +107,19 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			while (action->Status == AsyncStatus::Started)
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
-				int t1 = GetTickCount64();
+				LARGE_INTEGER beforeUpdate, afterPresent;
+				QueryPerformanceCounter(&beforeUpdate);
+
 				Update();
 				if (Render())
 				{
+					m_deviceResources->GetDXGIFrameStatistics(m_stats);
+
 					m_deviceResources->Present();
 				}
+
+				QueryPerformanceCounter(&afterPresent);
+				m_stats->SubmitRenderTime(afterPresent.QuadPart - beforeUpdate.QuadPart);
 			}
 		});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
@@ -132,12 +153,12 @@ void moonlight_xbox_dxMain::Update()
 	m_timer.Tick([&]()
 		{
 			m_sceneRenderer->Update(m_timer);
-			m_fpsTextRenderer->Update(m_timer);
+			m_LogRenderer->Update(m_timer);
 			m_statsTextRenderer->Update(m_timer);
 		});
 }
 
-bool isPressed(Windows::Gaming::Input::GamepadButtons b, Windows::Gaming::Input::GamepadButtons x) {
+inline bool isPressed(Windows::Gaming::Input::GamepadButtons b, Windows::Gaming::Input::GamepadButtons x) {
 	return (b & x) == x;
 }
 
@@ -335,33 +356,41 @@ bool moonlight_xbox_dxMain::Render()
 		return false;
 	}
 
+	Clear();
+
 	auto context = m_deviceResources->GetD3DDeviceContext();
 
-	// Reset the viewport to target the whole screen.
-	auto viewport = m_deviceResources->GetScreenViewport();
-	context->RSSetViewports(1, &viewport);
-
-	// Reset render targets to the screen.
-	ID3D11RenderTargetView* const targets[1] = { m_deviceResources->GetBackBufferRenderTargetView() };
-	context->OMSetRenderTargets(1, targets, m_deviceResources->GetDepthStencilView());
-
-	// Clear the back buffer and depth stencil view.
-	context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::Black);
-	context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-	bool shouldPresent = m_sceneRenderer->Render();
 	// Render the scene objects.
-	m_fpsTextRenderer->Render();
+	bool shouldPresent = m_sceneRenderer->Render();
+	m_LogRenderer->Render();
 	m_statsTextRenderer->Render();
 
 	return shouldPresent;
 }
 
+// Helper method to clear the back buffers.
+void moonlight_xbox_dxMain::Clear()
+{
+	auto context = m_deviceResources->GetD3DDeviceContext();
+
+	// Clear the views.
+	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
+	auto depthStencil = m_deviceResources->GetDepthStencilView();
+
+	context->ClearRenderTargetView(renderTarget[0], Colors::Black);
+	context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	context->OMSetRenderTargets(1, renderTarget, depthStencil);
+
+	// Set the viewport.
+	const auto viewport = m_deviceResources->GetScreenViewport();
+	context->RSSetViewports(1, &viewport);
+ }
+
 // Notifies renderers that device resources need to be released.
 void moonlight_xbox_dxMain::OnDeviceLost()
 {
 	m_sceneRenderer->ReleaseDeviceDependentResources();
-	m_fpsTextRenderer->ReleaseDeviceDependentResources();
+	m_LogRenderer->ReleaseDeviceDependentResources();
 	m_statsTextRenderer->ReleaseDeviceDependentResources();
 }
 
@@ -369,8 +398,10 @@ void moonlight_xbox_dxMain::OnDeviceLost()
 void moonlight_xbox_dxMain::OnDeviceRestored()
 {
 	m_sceneRenderer->CreateDeviceDependentResources();
-	m_fpsTextRenderer->CreateDeviceDependentResources();
+	m_LogRenderer->CreateDeviceDependentResources();
 	m_statsTextRenderer->CreateDeviceDependentResources();
+
+	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
 }
 
@@ -409,3 +440,23 @@ void moonlight_xbox_dxMain::SendGuideButton(int duration) {
 	});
 }
 
+void moonlight_xbox_dxMain::SendWinAltB() {
+	// Win-Alt-B = Toggle HDR
+	concurrency::create_async([this]() {
+		moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::LeftWindows, 0);
+		moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::Menu, 0);
+		moonlightClient->KeyDown((unsigned short)Windows::System::VirtualKey::B, 0);
+		Sleep(100);
+		moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::B, 0);
+		moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Menu, 0);
+		moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::LeftWindows, 0);
+	});
+}
+
+void moonlight_xbox_dxMain::SetShowLogs(bool showLogs) {
+	m_LogRenderer->SetVisible(showLogs);
+}
+
+void moonlight_xbox_dxMain::SetShowStats(bool showStats) {
+	m_statsTextRenderer->SetVisible(showStats);
+}

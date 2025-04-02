@@ -44,6 +44,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
 					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
 					if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
+					if (a.contains("enable_vsync")) h->EnableVsync = a["enable_vsync"].get<bool>();
 					if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());
 					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
 					else h->ComputerName = h->LastHostname;
@@ -55,7 +56,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 
 bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
 	MoonlightHost^ host = ref new MoonlightHost(hostname);
-	host->UpdateStats();
+	host->UpdateHostInfo();
 	if (!host->Connected)return false;
 	for (auto h : SavedHosts) {
 		if (host->InstanceId == h->InstanceId) {
@@ -79,9 +80,9 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		nlohmann::json stateJson;
 		stateJson["hosts"] = nlohmann::json::array();
 		stateJson["autostartInstance"] = that->autostartInstance;
-		stateJson["marginWidth"] = max(0, min(that->ScreenMarginWidth, 250));
-		stateJson["marginHeight"] = max(0, min(that->ScreenMarginHeight, 250));
-		stateJson["mouseSensitivity"] = max(1, min(that->MouseSensitivity, 16));
+		stateJson["marginWidth"] = std::max(0, std::min(that->ScreenMarginWidth, 250));
+		stateJson["marginHeight"] = std::max(0, std::min(that->ScreenMarginHeight, 250));
+		stateJson["mouseSensitivity"] = std::max(1, std::min(that->MouseSensitivity, 16));
 		stateJson["firstTime"] = that->FirstTime;
 		stateJson["enableKeyboard"] = that->EnableKeyboard;
 		stateJson["keyboardLayout"] = Utils::PlatformStringToStdString(that->KeyboardLayout);
@@ -100,6 +101,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["autoStartID"] = host->AutostartID;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
 			hostJson["enable_hdr"] = host->EnableHDR;
+			hostJson["enable_vsync"] = host->EnableVsync;
 			hostJson["serverAddress"] = Utils::PlatformStringToStdString(host->ServerAddress);
 
 			std::string macAddr = Utils::PlatformStringToStdString(host->MacAddress);

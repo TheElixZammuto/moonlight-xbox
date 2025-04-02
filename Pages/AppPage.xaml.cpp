@@ -41,7 +41,7 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 		return;
 	}
 	host = mhost;
-	host->UpdateStats();
+	host->UpdateHostInfo();
 	host->UpdateApps();
 	if (host->AutostartID >= 0 && GetApplicationState()->shouldAutoConnect) {
 		GetApplicationState()->shouldAutoConnect = false;
@@ -71,6 +71,10 @@ void AppPage::Connect(int appId) {
 	config->videoCodec = host->VideoCodec;
 	config->playAudioOnPC = host->PlayAudioOnPC;
 	config->enableHDR = host->EnableHDR;
+	if (config->enableHDR) {
+		host->VideoCodec = "HEVC (H.265)";
+	}
+	config->enableVsync = host->EnableVsync;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 	if (!result) {
 		printf("C");
@@ -94,7 +98,7 @@ void AppPage::resumeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml:
 
 void AppPage::closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	MoonlightClient client;
+  MoonlightClient client;
 	auto ipAddr = Utils::PlatformStringToStdString(Host->LastHostname);
 	int status = client.Connect(ipAddr.c_str());
 	if (status == 0) {

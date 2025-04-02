@@ -2,18 +2,20 @@
 #include "pch.h"
 #include "Utils.hpp"
 
+#include <chrono>
+#include <cwchar>
 #include <string>
 #include <string_view>
 #include <vector>
 
-constexpr auto LOG_LINES = 64;
+using namespace std::chrono;
+constexpr auto LOG_LINES = 70;
 
 namespace moonlight_xbox_dx {
 	namespace Utils {
 		std::vector<std::wstring> logLines;
 		bool showLogs = false;
 		bool showStats = false;
-		StreamingStats stats;
 		std::mutex logMutex;
 
 		Platform::String^ StringPrintf(const char* fmt, ...) {
@@ -37,18 +39,42 @@ namespace moonlight_xbox_dx {
 
 			return ref new Platform::String(NarrowToWideString(std::string_view(message.data())).c_str());
 		}
+    
+    std::wstring GetCurrentTimestamp() {
+			auto now = system_clock::now().time_since_epoch();
+			auto min = duration_cast<minutes>(now) % 60;
+			auto sec = duration_cast<seconds>(now) % 60;
+			auto ms  = duration_cast<milliseconds>(now) % 1000;
+
+			wchar_t buffer[16];
+			swprintf(buffer, 16, L"[%02d:%02d.%03d] ",
+					 static_cast<int>(min.count()),
+					 static_cast<int>(sec.count()),
+					 static_cast<int>(ms.count()));
+			return std::wstring(buffer);
+		}
 
 		void Log(const std::string_view& msg) {
 			try {
-				std::wstring string = NarrowToWideString(msg);
+				std::wstring string = GetCurrentTimestamp() + NarrowToWideString(msg);
+        OutputDebugString(string.c_str());
 				{
 					std::unique_lock<std::mutex> lk(logMutex);
 					if (logLines.size() == LOG_LINES) {
 						logLines.erase(logLines.begin());
 					}
+					for (auto& ch : string) {
+						// ModeSeven renders [ ] as left and right arrows, so we replace them
+						// with { } which render as brackets
+						if (ch == L'[') {
+							ch = L'{';
+						}
+						else if (ch == L']') {
+							ch = L'}';
+						}
+					}
 					logLines.push_back(string);
 				}
-				OutputDebugString(string.c_str());
 			}
 			catch (...) {
 
@@ -59,6 +85,17 @@ namespace moonlight_xbox_dx {
 			if (msg) {
 				Log(std::string_view(msg));
 			}
+		}
+
+		void Logf(const char* format, ...) {
+			va_list args;
+			va_start(args, format);
+
+			char buf[1024];
+			std::vsnprintf(buf, sizeof(buf) - 1, format, args);
+			va_end(args);
+
+			Log(std::string_view(buf));
 		}
 
 		std::vector<std::wstring> GetLogLines() {

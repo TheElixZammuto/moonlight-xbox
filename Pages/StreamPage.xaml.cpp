@@ -67,6 +67,7 @@ void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::Routed
 		// We can create the device-dependent resources.
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
 		m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources,this,new MoonlightClient(),configuration));
+		m_main->CreateDeviceDependentResources();
 		m_main->CreateWindowSizeDependentResources();
 		m_main->StartRenderLoop();
 	}
@@ -106,6 +107,7 @@ void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::
 	if (m_main == nullptr || m_deviceResources == nullptr)return;
 	critical_section::scoped_lock lock(m_main->GetCriticalSection());
 	m_deviceResources->SetLogicalSize(e->NewSize);
+	m_main->CreateDeviceDependentResources();
 	m_main->CreateWindowSizeDependentResources();
 }
 
@@ -134,6 +136,7 @@ void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::X
 {
 	Utils::showLogs = !Utils::showLogs;
 	this->toggleLogsButton->Text = Utils::showLogs ? "Hide Logs" : "Show Logs";
+	m_main->SetShowLogs(Utils::showLogs);
 }
 
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
@@ -146,6 +149,7 @@ void StreamPage::toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::
 {
 	Utils::showStats = !Utils::showStats;
 	this->toggleStatsButton->Text = Utils::showStats ? "Hide Stats" : "Show Stats";
+	m_main->SetShowStats(Utils::showStats);
 }
 
 
@@ -181,7 +185,7 @@ void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Cor
 	char modifiers = 0;
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0; 
+	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
 	this->m_main->OnKeyUp((unsigned short) e->VirtualKey, modifiers);
 
 }
@@ -190,7 +194,7 @@ void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Cor
 void StreamPage::disconnectAndCloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
-	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;	
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
 	this->m_main->StopRenderLoop();
 	this->m_main->Disconnect();
 	this->m_main->CloseApp();
@@ -220,6 +224,11 @@ void StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xa
 	this->m_main->SendGuideButton(3000);
 }
 
+
+void moonlight_xbox_dx::StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->m_main->SendWinAltB();
+}
 
 void StreamPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {

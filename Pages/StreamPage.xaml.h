@@ -18,7 +18,7 @@ namespace moonlight_xbox_dx
 	/// <summary>
 	/// A page that hosts a DirectX SwapChainPanel.
 	/// </summary>
-	
+
 	class moonlight_xbox_dxMain;
 	public ref class StreamPage sealed
 	{
@@ -66,7 +66,7 @@ namespace moonlight_xbox_dx
 				return this->Keyboard;
 			}
 		}
-		
+
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	private:
@@ -77,7 +77,7 @@ namespace moonlight_xbox_dx
 
 		// Resources used to render the DirectX content in the XAML page background.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
-		std::unique_ptr<moonlight_xbox_dxMain> m_main; 
+		std::unique_ptr<moonlight_xbox_dxMain> m_main;
 		bool m_windowVisible;
 		void Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
@@ -96,6 +96,7 @@ namespace moonlight_xbox_dx
 		void Keyboard_OnKeyUp(moonlight_xbox_dx::KeyboardControl^ sender, moonlight_xbox_dx::KeyEvent^ e);
 		void guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};

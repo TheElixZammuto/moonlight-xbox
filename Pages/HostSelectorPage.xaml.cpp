@@ -107,7 +107,7 @@ void HostSelectorPage::StartPairing(MoonlightHost^ host) {
 				else {
 					//dialog->Content = Utils::StringFromStdString(std::string(gs_error));
 				}
-				host->UpdateStats();
+				host->UpdateHostInfo();
 			}
 		));
 	});
@@ -153,7 +153,7 @@ void HostSelectorPage::OnStateLoaded() {
 	}
 	Concurrency::create_task([]() {
 		for (auto a : GetApplicationState()->SavedHosts) {
-			a->UpdateStats();
+			a->UpdateHostInfo();
 		}
 		}).then([this]() {
 			if (GetApplicationState()->autostartInstance.size() > 0) {
@@ -180,23 +180,23 @@ void HostSelectorPage::Connect(MoonlightHost^ host) {
 		return;
 	}
 	state->shouldAutoConnect = true;
-	continueFetch = false;
+	continueFetch.store(false);
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
 }
 
 void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
-	continueFetch = true;
+	continueFetch.store(true);
 	Concurrency::create_task([this] {
 		init_mdns();
-		while (continueFetch) {
+		while (continueFetch.load()) {
 			query_mdns();
 			for (auto a : GetApplicationState()->SavedHosts) {
-				a->UpdateStats();
+				a->UpdateHostInfo();
 			}
 			Sleep(5000);
 		}
-		});
+	});
 }
 
 void HostSelectorPage::OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)

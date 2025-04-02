@@ -3,7 +3,7 @@
 #include "State\MoonlightClient.h"
 #include "State\ScreenResolution.h"
 namespace moonlight_xbox_dx {
-    
+
     [Windows::UI::Xaml::Data::Bindable]
     public ref class MoonlightHost sealed : Windows::UI::Xaml::Data::INotifyPropertyChanged
     {
@@ -19,13 +19,14 @@ namespace moonlight_xbox_dx {
         bool playAudioOnPC = false;
         MoonlightClient* client;
         int currentlyRunningAppId;
-        int bitrate = 8000;
+        int bitrate = 20000;
         ScreenResolution^ resolution;
         int fps = 60;
         int autostartID = -1;
-        Platform::String^ videoCodec = "H.264";
+        Platform::String^ videoCodec = "H.265";
         Platform::String^ audioConfig = "Stereo";
         bool enableHDR = false;
+        bool enableVsync = true;
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
@@ -33,10 +34,10 @@ namespace moonlight_xbox_dx {
         void OnPropertyChanged(Platform::String^ propertyName);
         MoonlightHost(Platform::String ^host) {
             lastHostname = host;
-            resolution = ref new ScreenResolution(1280, 720);
+            resolution = ref new ScreenResolution(1920, 1080);
             loading = true;
         }
-        void UpdateStats();
+        void UpdateHostInfo();
         int Connect();
         void Unpair();
         void UpdateApps();
@@ -137,7 +138,7 @@ namespace moonlight_xbox_dx {
                 this->currentlyRunningAppId = value;
                 OnPropertyChanged("CurrentlyRunningAppId");
             }
-        } 
+        }
 
         property int AutostartID
         {
@@ -221,6 +222,16 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->enableHDR = value;
                 OnPropertyChanged("EnableHDR");
+            }
+        }
+
+        // NOTE: vsync is currently forced ON until we can figure out how to get VRR working
+        property bool EnableVsync
+        {
+            bool get() { return this->enableVsync; }
+            void set(bool value) {
+                this->enableVsync = value;
+                OnPropertyChanged("EnableVsync");
             }
         }
     };

@@ -4,3 +4,6 @@
 [submodule "vcpkg"]
 	path = vcpkg
 	url = https://github.com/microsoft/vcpkg.git
+[submodule "third_party/DirectXTK"]
+	path = third_party/DirectXTK
+	url = https://github.com/microsoft/DirectXTK.git

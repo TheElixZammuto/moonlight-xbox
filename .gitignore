@@ -340,3 +340,10 @@ ASALocalRun/
 healthchecksdb
 /libgamestream/build
 vcpkg_installed
+
+# Visual Studio Code
+.vscode/
+
+# Syncthing
+.stfolder/
+

@@ -1,23 +1,30 @@
 #pragma once
+
 #include "pch.h"
-#include "Common/DeviceResources.h"
+#include "../Common/DeviceResources.h"
 #include <State/StreamConfiguration.h>
 #include "State\MoonlightApp.h"
+
 extern "C" {
 	#include <libavcodec/avcodec.h>
 	#include <Limelight.h>
-	#include<libgamestream/client.h>
+	#include <libgamestream/client.h>
 }
 
 typedef void(*MoonlightErrorCallback)(const char *msg);
+
 namespace moonlight_xbox_dx {
 	class MoonlightClient
 	{
 	public:
 		MoonlightClient();
+		~MoonlightClient();
+		bool SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshineHdrMetadata);
 		int StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration ^config);
 		int Connect(const char* hostname);
+		bool IsHDR();
 		bool IsPaired();
+		bool IsRGBFull();
 		int Pair();
 		char *GeneratePIN();
 		std::vector<MoonlightApp^> MoonlightClient::GetApplications();
@@ -51,5 +58,7 @@ namespace moonlight_xbox_dx {
 		int port = 0;
 		bool useSoftwareEncoder = false;
 		int activeGamepadMask = 0;
+		bool m_isHDR;
+		bool m_isRGBFull;
 	};
 }

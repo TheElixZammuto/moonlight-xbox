@@ -77,11 +77,13 @@ static_assert(sizeof(CSC_CONST_BUF) % 16 == 0, "Constant buffer sizes must be a 
 
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, MoonlightClient* mclient, StreamConfiguration^ sConfig) :
+	m_LastColorTrc(AVCOL_TRC_UNSPECIFIED),
 	m_loadingComplete(false),
 	m_deviceResources(deviceResources),
 	client(mclient),
 	configuration(sConfig)
 {
+	ZeroMemory(&m_lastHdr10, sizeof(DXGI_HDR_METADATA_HDR10));
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
 }
@@ -95,21 +97,6 @@ void VideoRenderer::CreateWindowSizeDependentResources()
 void VideoRenderer::Update(DX::StepTimer const& timer)
 {
 
-}
-
-void UpdateStats(LARGE_INTEGER start) {
-	LARGE_INTEGER end, frequency;
-	QueryPerformanceCounter(&end);
-	QueryPerformanceFrequency(&frequency);
-	//Update stats
-	double ms = (end.QuadPart - start.QuadPart) / (float)(frequency.QuadPart / 1000.0f);
-	Utils::stats._accumulatedSeconds += ms;
-	if (Utils::stats._accumulatedSeconds >= 1000) {
-		Utils::stats.fps = Utils::stats._framesDecoded;
-		Utils::stats.averageRenderingTime = Utils::stats._accumulatedSeconds / ((double)Utils::stats._framesDecoded);
-		Utils::stats._accumulatedSeconds = 0;
-		Utils::stats._framesDecoded = 0;
-	}
 }
 
 bool renderedOneFrame = false;
@@ -126,12 +113,10 @@ bool VideoRenderer::Render()
 	QueryPerformanceCounter(&start);
 	FFMpegDecoder::getInstance()->shouldUnlock = false;
 	if (!FFMpegDecoder::getInstance()->SubmitDU()) {
-		UpdateStats(start);
 		return false;
 	}
 	AVFrame* frame = FFMpegDecoder::getInstance()->GetFrame();
 	if (frame == nullptr) {
-		UpdateStats(start);
 		return false;
 	}
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
@@ -155,8 +140,8 @@ bool VideoRenderer::Render()
 		D3D11_TEXTURE2D_DESC ffmpegDesc;
 		ffmpegTexture->GetDesc(&ffmpegDesc);
 		int index = (int)(frame->data[1]);
-		box.right = min(renderTextureDesc.Width, ffmpegDesc.Width);
-		box.bottom = min(renderTextureDesc.Height, ffmpegDesc.Height);
+		box.right = std::min(renderTextureDesc.Width, ffmpegDesc.Width);
+		box.bottom = std::min(renderTextureDesc.Height, ffmpegDesc.Height);
 		renderTextureDesc.Format = ffmpegDesc.Format;
 		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
 		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
@@ -182,19 +167,57 @@ bool VideoRenderer::Render()
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
-	D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, (renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R8_UNORM);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()), "Luminance SRV Creation");
-	D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(renderTexture.Get(), D3D11_SRV_DIMENSION_TEXTURE2D, (renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R8G8_UNORM);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation");
+	D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(
+		renderTexture.Get(),
+		D3D11_SRV_DIMENSION_TEXTURE2D,
+		(renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R8_UNORM
+	);
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(
+		renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()), "Luminance SRV Creation"
+	);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(
+		renderTexture.Get(),
+		D3D11_SRV_DIMENSION_TEXTURE2D,
+		(renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R8G8_UNORM
+	);
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(
+		renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation"
+	);
 	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
 	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
-	
+
 	this->bindColorConversion(frame);
 
 	m_deviceResources->GetD3DDeviceContext()->DrawIndexed(6, 0, 0);
-	m_deviceResources->GetD3DDeviceContext()->Flush();
-	Utils::stats._framesDecoded++;
-	UpdateStats(start);
+
+	if (frame->color_trc != m_LastColorTrc) {
+		DXGI_COLOR_SPACE_TYPE colorspace = {};
+
+        if (frame->color_trc == AVCOL_TRC_SMPTE2084) {
+            // Switch to Rec 2020 PQ (SMPTE ST 2084) colorspace for HDR10 rendering
+			colorspace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
+        }
+        else {
+            // Restore default sRGB colorspace
+			colorspace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+        }
+
+		UINT colorSpaceSupport = 0;
+		if (colorspace
+			&& SUCCEEDED(m_deviceResources->GetSwapChain()->CheckColorSpaceSupport(colorspace, &colorSpaceSupport))
+			&& (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
+		{
+			DX::ThrowIfFailed(m_deviceResources->GetSwapChain()->SetColorSpace1(colorspace));
+			Utils::Logf("Colorspace changed to %s\n",
+				colorspace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
+				? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
+				: "DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709");
+		}
+
+        m_LastColorTrc = frame->color_trc;
+    }
+
 	return true;
 }
 
@@ -277,10 +300,10 @@ void VideoRenderer::CreateDeviceDependentResources()
 			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
 			m_currentDisplayMode = m_lastDisplayMode;
 			// Scale video to the window size while preserving aspect ratio
-			m_DisplayWidth = max(m_currentDisplayMode->ResolutionWidthInRawPixels, 1920);
-			m_DisplayHeight = max(m_currentDisplayMode->ResolutionHeightInRawPixels, 1080);
+			m_DisplayWidth = std::max(m_currentDisplayMode->ResolutionWidthInRawPixels, (UINT)1920);
+			m_DisplayHeight = std::max(m_currentDisplayMode->ResolutionHeightInRawPixels, (UINT)1080);
 		}
-		RECT src, dst;
+		IRECT src, dst;
 		src.x = src.y = 0;
 		src.w = this->configuration->width;
 		src.h = this->configuration->height;
@@ -424,7 +447,7 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_indexBuffer.Reset();
 }
 
-void VideoRenderer::scaleSourceToDestinationSurface(RECT* src, RECT* dst)
+void VideoRenderer::scaleSourceToDestinationSurface(IRECT* src, IRECT* dst)
 {
 	int dstH = ceil((float)dst->w * src->h / src->w);
 	int dstW = ceil((float)dst->h * src->w / src->h);
@@ -439,7 +462,7 @@ void VideoRenderer::scaleSourceToDestinationSurface(RECT* src, RECT* dst)
 	}
 }
 
-void VideoRenderer::screenSpaceToNormalizedDeviceCoords(RECT* src, FRECT* dst, int viewportWidth, int viewportHeight)
+void VideoRenderer::screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, int viewportWidth, int viewportHeight)
 {
 	dst->x = ((float)src->x / (viewportWidth / 2.0f)) - 1.0f;
 	dst->y = ((float)src->y / (viewportHeight / 2.0f)) - 1.0f;
@@ -547,68 +570,14 @@ void VideoRenderer::SetHDR(bool enabled)
 {
 	HRESULT hr;
 
-	// According to MSDN, we need to lock the context even if we're just using DXGI functions
-	// https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-render-multi-thread-intro
-	//lockContext(this);
-	if(FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.lock();
+	// Do not try to render any frames while we're changing display modes
+	auto ffmpeg = FFMpegDecoder::getInstance();
+	if (ffmpeg != nullptr) {
+		ffmpeg->mutex.lock();
+		ffmpeg->shouldUnlock = false;
+	}
 
 	if (enabled) {
-		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
-		// HDR Setup
-		if (hdi) {
-			auto modes = hdi->GetSupportedDisplayModes();
-			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
-
-			Platform::String^ supportedResolutions = "Supported HDR Resolutions:\n";
-			Windows::Graphics::Display::Core::HdmiDisplayMode^ hdrMode;
-
-			for (unsigned i = 0; i < modes->Size; i++)
-			{
-				auto mode = modes->GetAt(i);
-				if (mode->ColorSpace == Windows::Graphics::Display::Core::HdmiDisplayColorSpace::BT2020)
-				{
-					supportedResolutions += mode->ResolutionWidthInRawPixels + "x" + mode->ResolutionHeightInRawPixels + " @ " + mode->RefreshRate + "hz " + mode->BitsPerPixel + "bit\n";
- 					
-					if (mode->ResolutionWidthInRawPixels == m_currentDisplayMode->ResolutionWidthInRawPixels 
-						&& mode->ResolutionHeightInRawPixels == m_currentDisplayMode->ResolutionHeightInRawPixels 
-						&& mode->RefreshRate == m_currentDisplayMode->RefreshRate)
-					{
-						if (!hdrMode)
-						{
-							hdrMode = mode;
-							continue;
-						}
-						
-						if (mode->BitsPerPixel > hdrMode->BitsPerPixel)
-						{
-							hdrMode = mode;
-						}
-					}
-				}
-			}
-
-			if (hdrMode)
-			{
-				m_currentDisplayMode = hdrMode;
-				hdi->RequestSetCurrentDisplayModeAsync(hdrMode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::Eotf2084);
-
-				Platform::String^ hdrSet = "HDR Set:\n " + hdrMode->ResolutionWidthInRawPixels + "x" + hdrMode->ResolutionHeightInRawPixels + " @ " + hdrMode->RefreshRate + "hz " + hdrMode->BitsPerPixel + "bit\n";
-				std::string hdrSetStd = Utils::PlatformStringToStdString(hdrSet);
-				Utils::Log(hdrSetStd.c_str());
-			}
-			else 
-			{
-				Utils::Log("No HDR mode found with current resolution and frame rate.\n");
-
-				std::string supportedResolutionsStd = Utils::PlatformStringToStdString(supportedResolutions);
-				Utils::Log(supportedResolutionsStd.c_str());
-
-				Platform::String^ currentResolution = "Current Resolution:\n" + m_currentDisplayMode->ResolutionWidthInRawPixels + "x" + m_currentDisplayMode->ResolutionHeightInRawPixels + " @ " + m_currentDisplayMode->RefreshRate + "hz " + m_currentDisplayMode->BitsPerPixel + "bit\n";
-				std::string currentResolutionStd = Utils::PlatformStringToStdString(currentResolution);
-				Utils::Log(currentResolutionStd.c_str());
-			}
-		}
-		DXGI_HDR_METADATA_HDR10 hdr10Metadata;
 		SS_HDR_METADATA sunshineHdrMetadata;
 
 		// Sunshine will have HDR metadata but GFE will not
@@ -616,68 +585,20 @@ void VideoRenderer::SetHDR(bool enabled)
 			RtlZeroMemory(&sunshineHdrMetadata, sizeof(sunshineHdrMetadata));
 		}
 
-		hdr10Metadata.RedPrimary[0] = sunshineHdrMetadata.displayPrimaries[0].x;
-		hdr10Metadata.RedPrimary[1] = sunshineHdrMetadata.displayPrimaries[0].y;
-		hdr10Metadata.GreenPrimary[0] = sunshineHdrMetadata.displayPrimaries[1].x;
-		hdr10Metadata.GreenPrimary[1] = sunshineHdrMetadata.displayPrimaries[1].y;
-		hdr10Metadata.BluePrimary[0] = sunshineHdrMetadata.displayPrimaries[2].x;
-		hdr10Metadata.BluePrimary[1] = sunshineHdrMetadata.displayPrimaries[2].y;
-		hdr10Metadata.WhitePoint[0] = sunshineHdrMetadata.whitePoint.x;
-		hdr10Metadata.WhitePoint[1] = sunshineHdrMetadata.whitePoint.y;
-		hdr10Metadata.MaxMasteringLuminance = sunshineHdrMetadata.maxDisplayLuminance;
-		hdr10Metadata.MinMasteringLuminance = sunshineHdrMetadata.minDisplayLuminance;
-		hdr10Metadata.MaxContentLightLevel = sunshineHdrMetadata.maxContentLightLevel;
-		hdr10Metadata.MaxFrameAverageLightLevel = sunshineHdrMetadata.maxFrameAverageLightLevel;
-
-		hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10, sizeof(hdr10Metadata), &hdr10Metadata);
-		if (SUCCEEDED(hr)) {
-			Utils::Log("Set display HDR mode: enabled\n");
-		}
-		else {
-			Utils::Log("Failed to set HDR mode\n");
-			/*/SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				"Failed to enter HDR mode: %x",
-				hr);*/
-		}
-
-		// Switch to Rec 2020 PQ (SMPTE ST 2084) colorspace for HDR10 rendering
-		hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
-		if (FAILED(hr)) {
-			Utils::Log("Failed to set Colorspace!");
-			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				"IDXGISwapChain::SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020) failed: %x",
-				hr);*/
-		}
+		// Ask the display to switch to HDR and set the metadata from Sunshine
+		client->SetDisplayHDR(true, sunshineHdrMetadata);
 	}
 	else {
-		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
-		// HDR Setup
-		if (hdi) {
-			hdi->RequestSetCurrentDisplayModeAsync(m_lastDisplayMode, Windows::Graphics::Display::Core::HdmiDisplayHdrOption::EotfSdr);
-			m_currentDisplayMode = m_lastDisplayMode;
-		}
-		// Restore default sRGB colorspace
-		hr = m_deviceResources->GetSwapChain()->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
-		if (FAILED(hr)) {
-			Utils::Log("Failed to restore SDR Colorspace!\n");
-			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				"IDXGISwapChain::SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709) failed: %x",
-				hr);*/
-		}
-
-		hr = m_deviceResources->GetSwapChain()->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_NONE, 0, nullptr);
-		if (SUCCEEDED(hr)) {
-			Utils::Log("HDR Disabled\n");
-		}
-		else {
-			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				"Failed to exit HDR mode: %x",
-				hr);*/
-		}
+		// toggle the display to the correct state
+		client->SetDisplayHDR(false, SS_HDR_METADATA{});
 	}
-	if (FFMpegDecoder::getInstance() != nullptr)FFMpegDecoder::getInstance()->mutex.unlock();
+
+	if (ffmpeg != nullptr) {
+		ffmpeg->shouldUnlock = true;
+		ffmpeg->mutex.unlock();
+	}
 }
 
 void VideoRenderer::Stop() {
-	this->SetHDR(false);
+	// nothing to do
 }
