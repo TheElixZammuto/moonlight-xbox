@@ -14,7 +14,7 @@ namespace moonlight_xbox_dx
 	/// An empty page that can be used on its own or navigated to within a Frame.
 	/// </summary>
 	[Windows::Foundation::Metadata::WebHostHidden]
-	public ref class HostSettingsPage sealed
+		public ref class HostSettingsPage sealed
 	{
 	private:
 		MoonlightHost^ host;
@@ -24,6 +24,7 @@ namespace moonlight_xbox_dx
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableVideoCodecs;
 		int currentResolutionIndex = 0;
 		int currentAppIndex = 0;
+		Windows::Foundation::EventRegistrationToken m_back_cookie;
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	public:
@@ -34,7 +35,7 @@ namespace moonlight_xbox_dx
 			}
 		}
 		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
-		
+
 		property Windows::Foundation::Collections::IVector<ScreenResolution^>^ AvailableResolutions {
 			Windows::Foundation::Collections::IVector<ScreenResolution^>^ get() {
 				if (this->availableResolutions == nullptr)
@@ -99,5 +100,7 @@ namespace moonlight_xbox_dx
 		void AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
+		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }

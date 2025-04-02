@@ -26,11 +26,10 @@ using namespace Windows::UI::ViewManagement::Core;
 
 HostSettingsPage::HostSettingsPage()
 {
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
 	InitializeComponent();
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
-
+	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &HostSettingsPage::OnLoaded);
+	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &HostSettingsPage::OnUnloaded);
 }
 
 
@@ -86,13 +85,13 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 }
 
-void moonlight_xbox_dx::HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	GetApplicationState()->UpdateFile();
 	this->Frame->GoBack();
 }
 
-void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
+void HostSettingsPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args)
 {
 	// UWP on Xbox One triggers a back request whenever the B
 	// button is pressed which can result in the app being
@@ -103,12 +102,12 @@ void moonlight_xbox_dx::HostSettingsPage::OnBackRequested(Platform::Object^ e, W
 
 }
 
-void moonlight_xbox_dx::HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	host->Resolution = AvailableResolutions->GetAt(this->ResolutionSelector->SelectedIndex);
 }
 
-void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+void HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	int index = AutoStartSelector->SelectedIndex - 1;
 	if (index >= 0 && host->Apps->Size > index) {
@@ -120,15 +119,27 @@ void moonlight_xbox_dx::HostSettingsPage::AutoStartSelector_SelectionChanged(Pla
 }
 
 
-void moonlight_xbox_dx::HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
 }
 
 
-void moonlight_xbox_dx::HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
+void HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
 {
 	if (e->Key == Windows::System::VirtualKey::Enter) {
 		CoreInputView::GetForCurrentView()->TryHide();
 	}
+}
+
+void HostSettingsPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
+}
+
+void HostSettingsPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested -= m_back_cookie;
 }

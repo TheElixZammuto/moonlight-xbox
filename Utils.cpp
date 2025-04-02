@@ -9,7 +9,6 @@
 #include <vector>
 
 using namespace std::chrono;
-
 constexpr auto LOG_LINES = 70;
 
 namespace moonlight_xbox_dx {
@@ -40,8 +39,8 @@ namespace moonlight_xbox_dx {
 
 			return ref new Platform::String(NarrowToWideString(std::string_view(message.data())).c_str());
 		}
-
-		std::wstring GetCurrentTimestamp() {
+    
+    std::wstring GetCurrentTimestamp() {
 			auto now = system_clock::now().time_since_epoch();
 			auto min = duration_cast<minutes>(now) % 60;
 			auto sec = duration_cast<seconds>(now) % 60;
@@ -58,8 +57,7 @@ namespace moonlight_xbox_dx {
 		void Log(const std::string_view& msg) {
 			try {
 				std::wstring string = GetCurrentTimestamp() + NarrowToWideString(msg);
-				OutputDebugString(string.c_str());
-
+        OutputDebugString(string.c_str());
 				{
 					std::unique_lock<std::mutex> lk(logMutex);
 					if (logLines.size() == LOG_LINES) {

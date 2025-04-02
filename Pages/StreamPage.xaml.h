@@ -73,6 +73,7 @@ namespace moonlight_xbox_dx
 		// Track our independent input on a background worker thread.
 		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;
 		Windows::UI::Core::CoreIndependentInputSource^ m_coreInput;
+		Windows::Foundation::EventRegistrationToken m_back_cookie;
 
 		// Resources used to render the DirectX content in the XAML page background.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
@@ -96,6 +97,8 @@ namespace moonlight_xbox_dx
 		void guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }
 
