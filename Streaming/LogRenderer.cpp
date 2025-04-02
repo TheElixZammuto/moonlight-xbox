@@ -23,7 +23,9 @@ LogRenderer::LogRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResou
 // Updates the text to be displayed.
 void LogRenderer::Update(DX::StepTimer const& timer)
 {
-	if (m_visible) {
+	// Only update the console once per second
+	static double lastUpdateSeconds = 0.0;
+	if (m_visible && timer.GetTotalSeconds() - lastUpdateSeconds >= 1.0) {
 		m_console->Clear();
 
 		Utils::logMutex.lock();
@@ -32,6 +34,8 @@ void LogRenderer::Update(DX::StepTimer const& timer)
 			m_console->Write(line.c_str());
 		}
 		Utils::logMutex.unlock();
+
+		lastUpdateSeconds = timer.GetTotalSeconds();
 	}
 }
 
@@ -54,6 +58,9 @@ void LogRenderer::CreateDeviceDependentResources()
 	}
 
 	m_console->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), font);
+
+	// use much faster font rendering
+	m_console->SetFixedWidthFont(true);
 }
 
 void LogRenderer::CreateWindowSizeDependentResources()

@@ -58,6 +58,8 @@ namespace DX
 
         void SetRotation(DXGI_MODE_ROTATION rotation);
 
+        void SetFixedWidthFont(bool isFixedWidth);
+
     private:
         void ProcessString(_In_z_ const wchar_t* str);
         void IncrementLine();
@@ -71,6 +73,7 @@ namespace DX
         unsigned int                                    m_rows;
         unsigned int                                    m_currentColumn;
         unsigned int                                    m_currentLine;
+        float                                           m_fixedWidth;
 
         std::unique_ptr<wchar_t[]>                      m_buffer;
         std::unique_ptr<wchar_t*[]>                     m_lines;

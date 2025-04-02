@@ -56,6 +56,9 @@ void StatsRenderer::CreateDeviceDependentResources()
 	}
 
 	m_console->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), font);
+
+	// use much faster font rendering
+	m_console->SetFixedWidthFont(true);
 }
 
 void StatsRenderer::CreateWindowSizeDependentResources()

@@ -41,7 +41,8 @@ TextConsole::TextConsole(ID3D11DeviceContext* context, const wchar_t* fontName) 
     m_textColor(1.f, 1.f, 1.f, 1.f),
     m_debugOutput(false),
     m_columns(0),
-    m_rows(0)
+    m_rows(0),
+    m_fixedWidth(0.0)
 {
     RestoreDevice(context, fontName);
 
@@ -286,8 +287,17 @@ void TextConsole::ProcessString(_In_z_ const wchar_t* str)
         {
             m_lines[m_currentLine][m_currentColumn] = *ch;
 
-            auto fontSize = m_font->MeasureString(m_lines[m_currentLine]);
-            if (XMVectorGetX(fontSize) > width)
+            float lineWidth = 0.0;
+            if (m_fixedWidth) {
+                // fixed-width font optimization
+                lineWidth = std::wcslen(m_lines[m_currentLine]) * m_fixedWidth;
+            }
+            else {
+                auto fontSize = m_font->MeasureString(m_lines[m_currentLine]);
+                lineWidth = XMVectorGetX(fontSize);
+            }
+
+            if (lineWidth > width)
             {
                 m_lines[m_currentLine][m_currentColumn] = L'\0';
 
@@ -315,3 +325,13 @@ void TextConsole::IncrementLine()
     m_currentColumn = 0;
     memset(m_lines[m_currentLine], 0, sizeof(wchar_t) * (m_columns + 1));
 }
+
+void TextConsole::SetFixedWidthFont(bool isFixedWidth) {
+    if (isFixedWidth) {
+        // If we know we're using a fixed-width font, we can avoid a lot of MeasureString calls
+        m_fixedWidth = XMVectorGetX(m_font->MeasureString(L"M"));
+    }
+    else {
+        m_fixedWidth = 0.0;
+    }
+ }
