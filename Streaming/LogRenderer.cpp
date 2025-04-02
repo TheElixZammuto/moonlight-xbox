@@ -14,7 +14,7 @@ LogRenderer::LogRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResou
 	m_deviceResources(deviceResources),
 	m_visible(false)
 {
-	m_console->SetForegroundColor(Colors::Cyan);
+	m_console->SetForegroundColor(Colors::Yellow);
 	//m_console->SetDebugOutput(true);
 
 	CreateDeviceDependentResources();
@@ -51,10 +51,9 @@ void LogRenderer::CreateDeviceDependentResources()
 {
 	m_deviceResources->GetUWPPixelDimensions(&m_displayWidth, &m_displayHeight);
 
-	// ModeSeven has the wrong characters for [] so we'll use Courier New
-	const wchar_t* font = L"Assets\\Font\\CourierNew-24.spritefont"; // sized for 4K
+	const wchar_t* font = L"Assets\\Font\\ModeSeven-24.spritefont"; // sized for 4K
 	if (m_displayHeight <= 1440) {
-		font = L"Assets\\Font\\CourierNew-12.spritefont"; // for 1080p & 1440p
+		font = L"Assets\\Font\\ModeSeven-12.spritefont"; // for 1080p & 1440p
 	}
 
 	m_console->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), font);

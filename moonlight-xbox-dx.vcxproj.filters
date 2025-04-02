@@ -1174,12 +1174,6 @@
     <None Include="Assets\Font\ModeSeven-24.spritefont">
       <Filter>Assets</Filter>
     </None>
-    <None Include="Assets\Font\CourierNew-24.spritefont">
-      <Filter>Assets</Filter>
-    </None>
-    <None Include="Assets\Font\CourierNew-12.spritefont">
-      <Filter>Assets</Filter>
-    </None>
     <None Include="Assets\Font\ModeSeven-12.spritefont">
       <Filter>Assets</Filter>
     </None>

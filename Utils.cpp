@@ -58,14 +58,25 @@ namespace moonlight_xbox_dx {
 		void Log(const std::string_view& msg) {
 			try {
 				std::wstring string = GetCurrentTimestamp() + NarrowToWideString(msg);
+				OutputDebugString(string.c_str());
+
 				{
 					std::unique_lock<std::mutex> lk(logMutex);
 					if (logLines.size() == LOG_LINES) {
 						logLines.erase(logLines.begin());
 					}
+					for (auto& ch : string) {
+						// ModeSeven renders [ ] as left and right arrows, so we replace them
+						// with { } which render as brackets
+						if (ch == L'[') {
+							ch = L'{';
+						}
+						else if (ch == L']') {
+							ch = L'}';
+						}
+					}
 					logLines.push_back(string);
 				}
-				OutputDebugString(string.c_str());
 			}
 			catch (...) {
 
