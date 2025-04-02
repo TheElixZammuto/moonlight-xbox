@@ -14,7 +14,7 @@ namespace moonlight_xbox_dx
 	/// An empty page that can be used on its own or navigated to within a Frame.
 	/// </summary>
 	[Windows::Foundation::Metadata::WebHostHidden]
-	public ref class HostSettingsPage sealed
+		public ref class HostSettingsPage sealed
 	{
 	private:
 		MoonlightHost^ host;
@@ -35,7 +35,7 @@ namespace moonlight_xbox_dx
 			}
 		}
 		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
-		
+
 		property Windows::Foundation::Collections::IVector<ScreenResolution^>^ AvailableResolutions {
 			Windows::Foundation::Collections::IVector<ScreenResolution^>^ get() {
 				if (this->availableResolutions == nullptr)

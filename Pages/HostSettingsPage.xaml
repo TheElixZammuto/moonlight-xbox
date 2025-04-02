@@ -59,12 +59,12 @@
             <TextBlock Grid.Row="5" Grid.Column="0">Autostart</TextBlock>
             <ComboBox  Grid.Row="5"  Grid.Column="1" SelectedIndex="{x:Bind CurrentAppIndex,Mode=TwoWay}" Name="AutoStartSelector" SelectionChanged="AutoStartSelector_SelectionChanged">
             </ComboBox>
-              <TextBlock Grid.Row="6" Grid.Column="0">Video Codecs</TextBlock>
+            <TextBlock Grid.Row="6" Grid.Column="0">Video Codecs</TextBlock>
             <ComboBox Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}"  Grid.Row="6"  Grid.Column="1"></ComboBox>
-            <TextBlock Grid.Row="7" Grid.Column="0" >Enable HDR: </TextBlock>
+            <TextBlock Grid.Row="7" Grid.Column="0" >Enable HDR:</TextBlock>
             <CheckBox Name="EnableHDRCheckbox" Grid.Row="7" Grid.Column="1" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}"></CheckBox>
             <TextBlock Grid.Row="8" Grid.Column="0">Other:</TextBlock>
             <Button Grid.Row="8" Grid.Column="1" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click">Open Global Settings</Button>
-            </Grid>
-        </StackPanel>
+        </Grid>
+    </StackPanel>
 </Page>

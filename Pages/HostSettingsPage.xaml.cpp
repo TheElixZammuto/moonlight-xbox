@@ -102,6 +102,11 @@ void HostSettingsPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::B
 
 }
 
+void HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	host->Resolution = AvailableResolutions->GetAt(this->ResolutionSelector->SelectedIndex);
+}
+
 void HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
 	int index = AutoStartSelector->SelectedIndex - 1;
@@ -118,6 +123,7 @@ void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Wind
 {
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
 }
+
 
 void HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
 {
