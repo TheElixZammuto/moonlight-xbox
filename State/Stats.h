@@ -26,7 +26,7 @@ typedef struct _VIDEO_STATS {
 	uint32_t framesWithHostProcessingLatency;
 	uint32_t totalReassemblyTime;
 	double totalDecodeTime;
-	double totalRenderTime;
+	uint64_t totalRenderTimeUs;
 	uint32_t lastRtt;
 	uint32_t lastRttVariance;
 	double totalFps;
@@ -52,7 +52,7 @@ namespace moonlight_xbox_dx
 		void SubmitVideoBytesAndReassemblyTime(uint32_t length, uint32_t reassemblyMs, uint16_t frameHPL, uint32_t droppedFrames);
 		void SubmitDecodeMs(double decodeMs);
 		void SubmitDXGIFrameStatistics(DXGI_FRAME_STATISTICS *frameStats);
-		void SubmitRenderMs(double renderMs);
+		void SubmitRenderTime(uint64_t renderTimeQpc);
 
 		void SetDisplayStatus(SyncMode status) { m_displayStatus = status; }
 

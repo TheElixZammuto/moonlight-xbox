@@ -107,7 +107,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			while (action->Status == AsyncStatus::Started)
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
-				double renderStartTime = m_timer.GetTotalSeconds();
+				LARGE_INTEGER beforeUpdate, afterPresent;
+				QueryPerformanceCounter(&beforeUpdate);
 
 				Update();
 				if (Render())
@@ -117,7 +118,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 					m_deviceResources->Present();
 				}
 
-				m_stats->SubmitRenderMs((m_timer.GetTotalSeconds() - renderStartTime) * 1000.0);
+				QueryPerformanceCounter(&afterPresent);
+				m_stats->SubmitRenderTime(afterPresent.QuadPart - beforeUpdate.QuadPart);
 			}
 		});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);

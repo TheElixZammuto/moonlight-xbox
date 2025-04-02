@@ -9,6 +9,15 @@ extern "C" {
 
 using namespace moonlight_xbox_dx;
 
+static uint64_t QpcToUs(uint64_t qpc) {
+	static LARGE_INTEGER qpcFreq = {0, 0};
+	if (qpcFreq.QuadPart == 0) {
+		QueryPerformanceFrequency(&qpcFreq);
+	}
+
+	return (qpc * 1000000) / qpcFreq.QuadPart;
+}
+
 Stats::Stats()
 {
 	ZeroMemory(&m_ActiveWndVideoStats, sizeof(VIDEO_STATS));
@@ -87,12 +96,11 @@ void Stats::SubmitDecodeMs(double decodeMs) {
 	m_ActiveWndVideoStats.decodedFrames++;
 }
 
-// Time in milliseconds for all rendering, including Update(), Render(), and Present().
-// If vsync is enabled, this will include time waiting for vsync in Present().
+// Time in microseconds for all rendering, including Update(), Render(), and Present().
 // Also increments the rendered frame count.
-void Stats::SubmitRenderMs(double renderMs) {
+void Stats::SubmitRenderTime(uint64_t renderTimeQpc) {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	m_ActiveWndVideoStats.totalRenderTime += renderMs;
+	m_ActiveWndVideoStats.totalRenderTimeUs += QpcToUs(renderTimeQpc);
 	m_ActiveWndVideoStats.renderedFrames++;
 }
 
@@ -147,7 +155,7 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.networkDroppedFrames += src.networkDroppedFrames;
 	dst.totalReassemblyTime += src.totalReassemblyTime;
 	dst.totalDecodeTime += src.totalDecodeTime;
-	dst.totalRenderTime += src.totalRenderTime;
+	dst.totalRenderTimeUs += src.totalRenderTimeUs;
 
 	if (dst.minHostProcessingLatency == 0) {
 		dst.minHostProcessingLatency = src.minHostProcessingLatency;
@@ -335,13 +343,12 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   "Frames dropped by your network connection: %.2f%%\n"
 					   "Average network latency: %s\n"
 					   "Average reassembly/decoding time: %.2f/%.2f ms\n"
-					   "Average frametime: %.2f ms (vsync %s)\n",
+					   "Average frametime: %.2f ms\n",
 					   (double)stats.networkDroppedFrames / stats.totalFrames * 100,
 					   rttString,
 					   (double)stats.totalReassemblyTime / stats.decodedFrames,
 					   (double)stats.totalDecodeTime / stats.decodedFrames,
-					   (double)stats.totalRenderTime / stats.renderedFrames,
-					   (m_displayStatus == VSYNC_ON) ? "on" : "OFF");
+					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames);
 		if (ret < 0 || ret >= length - offset) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
