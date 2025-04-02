@@ -104,7 +104,7 @@ void AppPage::closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::
 	if (status == 0) {
 		client.StopApp();
 	}
-	host->UpdateStats();
+	host->UpdateHostInfo();
 }
 
 

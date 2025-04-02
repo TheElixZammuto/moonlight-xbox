@@ -79,12 +79,12 @@ void MoonlightWelcome::Page_KeyDown(Platform::Object^ sender, Windows::UI::Xaml:
 
 void MoonlightWelcome::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightWelcome::OnBackRequested);
-}
-
-void MoonlightWelcome::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
     auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
     m_back_token = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightWelcome::OnBackRequested);
+}
+
+void MoonlightWelcome::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested -= m_back_token;
 }
