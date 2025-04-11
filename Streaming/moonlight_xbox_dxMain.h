@@ -32,12 +32,14 @@ namespace moonlight_xbox_dx
 		void CloseApp();
 		void SendGuideButton(int duration);
 		void SendWinAltB();
-		void SetShowLogs(bool showLogs);
-		void SetShowStats(bool showStats);
+		bool ToggleLogs();
+		bool ToggleStats();
+		void SetImGui(bool isVisible);
 	private:
 		void ProcessInput();
 		void Update();
 		bool Render();
+		void RenderImGui();
 		void Clear();
 
 		// Cached pointer to device resources.

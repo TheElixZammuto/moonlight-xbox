@@ -47,14 +47,14 @@
                         </MenuFlyoutItem>
                     </MenuFlyoutSubItem>
                     <MenuFlyoutSeparator></MenuFlyoutSeparator>
+                    <MenuFlyoutItem x:Name="toggleStatsButton" Text="Show Stats &amp; Graphs" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon Glyph="&#xEC48;" />
+                        </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
                     <MenuFlyoutItem x:Name="toggleLogsButton" Text="Show Logs" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >
                         <MenuFlyoutItem.Icon>
                             <FontIcon Glyph="&#xF0B5;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                    <MenuFlyoutItem x:Name="toggleStatsButton" Text="Show Stats" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xEC48;" />
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
                     <MenuFlyoutSeparator></MenuFlyoutSeparator>

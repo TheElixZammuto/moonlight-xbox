@@ -12,6 +12,7 @@ using namespace Microsoft::WRL;
 LogRenderer::LogRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_console(std::make_unique<DX::TextConsole>()),
 	m_deviceResources(deviceResources),
+	m_mutex(),
 	m_visible(false)
 {
 	m_console->SetForegroundColor(Colors::Yellow);
@@ -23,6 +24,8 @@ LogRenderer::LogRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResou
 // Updates the text to be displayed.
 void LogRenderer::Update(DX::StepTimer const& timer)
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
+
 	// Only update the console once per second
 	static double lastUpdateSeconds = 0.0;
 	if (m_visible && timer.GetTotalSeconds() - lastUpdateSeconds >= 1.0) {
@@ -42,6 +45,7 @@ void LogRenderer::Update(DX::StepTimer const& timer)
 // Renders a frame to the screen.
 void LogRenderer::Render()
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	if (m_visible) {
 		m_console->Render();
 	}
@@ -75,6 +79,7 @@ void LogRenderer::ReleaseDeviceDependentResources()
 	m_console->ReleaseDevice();
 }
 
-void LogRenderer::SetVisible(bool visible) {
-	m_visible = visible;
+void LogRenderer::ToggleVisible() {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_visible = m_visible == true ? false : true;
 }

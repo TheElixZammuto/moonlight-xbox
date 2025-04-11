@@ -346,4 +346,5 @@ vcpkg_installed
 
 # Syncthing
 .stfolder/
+.stignore
 
