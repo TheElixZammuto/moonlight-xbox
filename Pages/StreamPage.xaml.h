@@ -67,6 +67,33 @@ namespace moonlight_xbox_dx
 			}
 		}
 
+		property TextBlock^ m_logsTextBlock {
+			TextBlock^ get() {
+				return this->LogsTextBlock;
+			}
+		}
+
+		property StackPanel^ m_logsPanel {
+			StackPanel^ get() {
+				return this->LogsPanel;
+			}
+		}
+
+		property TextBlock^ m_statsTextBlock {
+			TextBlock^ get() {
+				return this->StatsTextBlock;
+			}
+		}
+
+		property StackPanel^ m_statsPanel {
+			StackPanel^ get() {
+				return this->StatsPanel;
+			}
+		}
+
+		void UpdateLogsText(Platform::Object^ sender, Platform::Object^ args);
+		void UpdateStatsText(Platform::Object^ sender, Platform::Object^ args);
+
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	private:
@@ -74,6 +101,8 @@ namespace moonlight_xbox_dx
 		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;
 		Windows::UI::Core::CoreIndependentInputSource^ m_coreInput;
 		Windows::Foundation::EventRegistrationToken m_back_cookie;
+		Windows::UI::Xaml::DispatcherTimer^ m_logsTimer;
+		Windows::UI::Xaml::DispatcherTimer^ m_statsTimer;
 
 		// Resources used to render the DirectX content in the XAML page background.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;

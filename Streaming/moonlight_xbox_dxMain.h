@@ -2,8 +2,6 @@
 
 #include "Common\StepTimer.h"
 #include "Streaming\VideoRenderer.h"
-#include "Streaming\LogRenderer.h"
-#include "Streaming\StatsRenderer.h"
 #include "Pages\StreamPage.xaml.h"
 
 // Renders Direct2D and 3D content on the screen.
@@ -20,6 +18,8 @@ namespace moonlight_xbox_dx
 		void StartRenderLoop();
 		void StopRenderLoop();
 		void SetFlyoutOpened(bool value);
+		DX::StepTimer GetTimer() { return m_timer; }
+		std::shared_ptr<Stats> GetStats() { return m_stats; }
 		Concurrency::critical_section& GetCriticalSection() { return m_criticalSection; }
 		bool mouseMode = false;
 		bool keyboardMode = false;
@@ -32,8 +32,6 @@ namespace moonlight_xbox_dx
 		void CloseApp();
 		void SendGuideButton(int duration);
 		void SendWinAltB();
-		void SetShowLogs(bool showLogs);
-		void SetShowStats(bool showStats);
 	private:
 		void ProcessInput();
 		void Update();
@@ -44,8 +42,6 @@ namespace moonlight_xbox_dx
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
 		std::unique_ptr<VideoRenderer> m_sceneRenderer;
-		std::unique_ptr<LogRenderer>   m_LogRenderer;
-		std::unique_ptr<StatsRenderer> m_statsTextRenderer;
 
 		std::shared_ptr<Stats>         m_stats;
 
