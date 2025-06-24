@@ -26,6 +26,7 @@ namespace moonlight_xbox_dx {
         Platform::String^ videoCodec = "H.265";
         Platform::String^ audioConfig = "Stereo";
         bool enableHDR = false;
+        bool enableSOPS = false;
         bool enableVsync = true;
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
     public:
@@ -222,6 +223,15 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->enableHDR = value;
                 OnPropertyChanged("EnableHDR");
+            }
+        }
+
+        property bool EnableSOPS
+        {
+            bool get() { return this->enableSOPS; }
+            void set(bool value) {
+                this->enableSOPS = value;
+                OnPropertyChanged("EnableSOPS");
             }
         }
 

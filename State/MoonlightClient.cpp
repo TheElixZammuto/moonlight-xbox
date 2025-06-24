@@ -245,7 +245,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	//Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
 	this->SetGamepadCount(std::max((UINT)1, gamepads->Size));
-	int a = gs_start_app(&serverData, &config, sConfig->appID, false, sConfig->playAudioOnPC, activeGamepadMask);
+	int a = gs_start_app(&serverData, &config, sConfig->appID, sConfig->enableSOPS, sConfig->playAudioOnPC, activeGamepadMask);
 	if (a != 0) {
 		char message[2048];
 		sprintf(message, "gs_startapp failed with status code %d\n", a);

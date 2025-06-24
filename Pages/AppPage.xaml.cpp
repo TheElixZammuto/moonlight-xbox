@@ -71,6 +71,7 @@ void AppPage::Connect(int appId) {
 	config->videoCodec = host->VideoCodec;
 	config->playAudioOnPC = host->PlayAudioOnPC;
 	config->enableHDR = host->EnableHDR;
+	config->enableSOPS = host->EnableSOPS;
 	if (config->enableHDR) {
 		host->VideoCodec = "HEVC (H.265)";
 	}

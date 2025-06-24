@@ -16,6 +16,7 @@ namespace moonlight_xbox_dx
 		property bool enableHDR;
 		property bool playAudioOnPC;
 		property bool enableVsync;
+		property bool enableSOPS;
 	};
 
 	moonlight_xbox_dx::StreamConfiguration^ GetStreamConfig();

@@ -35,6 +35,7 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0">Resolution</TextBlock>
             <ComboBox x:Name="ResolutionSelector" SelectionChanged="ResolutionSelector_SelectionChanged" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind AvailableResolutions}" Width="200">
@@ -63,8 +64,10 @@
             <ComboBox Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}"  Grid.Row="6"  Grid.Column="1"></ComboBox>
             <TextBlock Grid.Row="7" Grid.Column="0" >Enable HDR:</TextBlock>
             <CheckBox Name="EnableHDRCheckbox" Grid.Row="7" Grid.Column="1" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}"></CheckBox>
-            <TextBlock Grid.Row="8" Grid.Column="0">Other:</TextBlock>
-            <Button Grid.Row="8" Grid.Column="1" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click">Open Global Settings</Button>
+            <TextBlock Grid.Row="8" Grid.Column="0" >Optimize game settings:</TextBlock>
+            <CheckBox Name="EnableSOPSCheckbox" Grid.Row="8" Grid.Column="1" IsChecked="{x:Bind Host.EnableSOPS,Mode=TwoWay}"></CheckBox>
+            <TextBlock Grid.Row="9" Grid.Column="0">Other:</TextBlock>
+            <Button Grid.Row="9" Grid.Column="1" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click">Open Global Settings</Button>
         </Grid>
     </StackPanel>
 </Page>
