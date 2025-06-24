@@ -28,6 +28,7 @@ namespace DX
 		void GetDXGIFrameStatistics(std::shared_ptr<moonlight_xbox_dx::Stats>& dstStats);
 		void Present();
 		void GetUWPPixelDimensions(uint32_t *width, uint32_t *height);
+		void SetForceTearing(bool forceTearing);
 		static int uwp_get_width();
 		static int uwp_get_height();
 
@@ -106,6 +107,7 @@ namespace DX
 		DXGI_FORMAT                                     m_backBufferFormat;
 		bool                                            m_enableVsync;
 		bool                                            m_swapchainVsync;
+		bool                                            m_forceTearing;
 		SyncMode                                        m_displayStatus;
 		std::shared_ptr<moonlight_xbox_dx::Stats>       m_stats;
 	};

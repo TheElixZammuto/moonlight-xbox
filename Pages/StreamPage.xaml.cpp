@@ -142,6 +142,7 @@ void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::X
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
 	SetStreamConfig(configuration);
+	m_deviceResources->SetForceTearing(configuration->forceTearing);
 	if (configuration == nullptr)return;
 }
 

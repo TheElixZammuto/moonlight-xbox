@@ -63,6 +63,7 @@ DX::DeviceResources::DeviceResources() :
 	m_dxgiFactoryFlags(0),
 	m_enableVsync(true),
 	m_swapchainVsync(true),
+	m_forceTearing(false),
 	m_outputSize(),
 	m_logicalSize(),
 	m_nativeOrientation(DisplayOrientations::None),
@@ -242,10 +243,10 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
-			(m_enableVsync) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+			(m_enableVsync && !m_forceTearing) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
 			);
 
-		Utils::Logf("ResizeBuffers() ALLOW_TEARING=%d\n", m_enableVsync ? 0 : 1);
+		Utils::Logf("ResizeBuffers() ALLOW_TEARING=%d\n", (m_enableVsync && !m_forceTearing) ? 0 : 1);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
 		{
@@ -276,7 +277,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
 		swapChainDesc.BufferCount = 5;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = (m_enableVsync) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+		swapChainDesc.Flags = (m_enableVsync && !m_forceTearing) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -307,7 +308,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			)
 		);
 
-		Utils::Logf("CreateSwapChainForComposition() ALLOW_TEARING=%d\n", m_enableVsync ? 0 : 1);
+		Utils::Logf("CreateSwapChainForComposition() ALLOW_TEARING=%d\n", (m_enableVsync && !m_forceTearing) ? 0 : 1);
 
 		// XXX This seems like the better type of swap chain with fullscreen support
 		// TODO: review https://github.com/ahmed605/imgui-uwp/blob/master/examples/example_uwp_directx11/main.cpp
@@ -524,6 +525,11 @@ void DX::DeviceResources::SetDpi(float dpi)
 	{
 		CreateWindowSizeDependentResources();
 	}
+}
+
+void DX::DeviceResources::SetForceTearing(bool forceTearing)
+{
+	m_forceTearing = forceTearing;
 }
 
 // This method is called in the event handler for the OrientationChanged event.
