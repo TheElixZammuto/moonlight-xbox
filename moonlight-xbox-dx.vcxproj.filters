@@ -50,9 +50,6 @@
     <ClCompile Include="Common\DeviceResources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Streaming\LogRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Streaming\VideoRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -66,9 +63,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Streaming\StatsRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="State\ApplicationState.cpp">
@@ -370,9 +364,6 @@
     <ClInclude Include="Streaming\VideoRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Streaming\LogRenderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Streaming\ShaderStructures.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -386,9 +377,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Streaming\StatsRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="State\ApplicationState.h">

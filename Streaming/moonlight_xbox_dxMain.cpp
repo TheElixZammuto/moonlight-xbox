@@ -44,12 +44,9 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	m_sceneRenderer = std::make_unique<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
 
-	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
-
 	// Setup stats object. DeviceResources keeps a reference so that various components such as FFMpegDecoder can get to it
 	m_stats = std::make_shared<Stats>();
 	m_stats->SetDisplayStatus(configuration->enableVsync ? VSYNC_ON : VSYNC_OFF);
-	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
 	m_deviceResources->SetStats(m_stats);
 
 	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
@@ -88,8 +85,6 @@ void moonlight_xbox_dxMain::CreateDeviceDependentResources()
 void moonlight_xbox_dxMain::CreateWindowSizeDependentResources()
 {
 	m_sceneRenderer->CreateWindowSizeDependentResources();
-	m_LogRenderer->CreateWindowSizeDependentResources();
-	m_statsTextRenderer->CreateWindowSizeDependentResources();
 }
 
 void moonlight_xbox_dxMain::StartRenderLoop()
@@ -153,8 +148,6 @@ void moonlight_xbox_dxMain::Update()
 	m_timer.Tick([&]()
 		{
 			m_sceneRenderer->Update(m_timer);
-			m_LogRenderer->Update(m_timer);
-			m_statsTextRenderer->Update(m_timer);
 		});
 }
 
@@ -362,8 +355,6 @@ bool moonlight_xbox_dxMain::Render()
 
 	// Render the scene objects.
 	bool shouldPresent = m_sceneRenderer->Render();
-	m_LogRenderer->Render();
-	m_statsTextRenderer->Render();
 
 	return shouldPresent;
 }
@@ -390,16 +381,12 @@ void moonlight_xbox_dxMain::Clear()
 void moonlight_xbox_dxMain::OnDeviceLost()
 {
 	m_sceneRenderer->ReleaseDeviceDependentResources();
-	m_LogRenderer->ReleaseDeviceDependentResources();
-	m_statsTextRenderer->ReleaseDeviceDependentResources();
 }
 
 // Notifies renderers that device resources may now be recreated.
 void moonlight_xbox_dxMain::OnDeviceRestored()
 {
 	m_sceneRenderer->CreateDeviceDependentResources();
-	m_LogRenderer->CreateDeviceDependentResources();
-	m_statsTextRenderer->CreateDeviceDependentResources();
 
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
@@ -451,12 +438,4 @@ void moonlight_xbox_dxMain::SendWinAltB() {
 		moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::Menu, 0);
 		moonlightClient->KeyUp((unsigned short)Windows::System::VirtualKey::LeftWindows, 0);
 	});
-}
-
-void moonlight_xbox_dxMain::SetShowLogs(bool showLogs) {
-	m_LogRenderer->SetVisible(showLogs);
-}
-
-void moonlight_xbox_dxMain::SetShowStats(bool showStats) {
-	m_statsTextRenderer->SetVisible(showStats);
 }
