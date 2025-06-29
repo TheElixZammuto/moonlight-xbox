@@ -817,3 +817,21 @@ void DX::DeviceResources::GetUWPPixelDimensions(uint32_t *width, uint32_t *heigh
 		*height = CoreWindow::GetForCurrentThread()->Bounds.Height * surface_scale;
 	}
 }
+
+double DX::DeviceResources::GetUWPRefreshRate()
+{
+	GAMING_DEVICE_MODEL_INFORMATION info = {};
+	GetGamingDeviceModelInformation(&info);
+
+	double refreshRate = 0.0f;
+
+	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+		// Running on Xbox
+		refreshRate = HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->RefreshRate;
+	}
+	else {
+		// It seems difficult to get the refresh rate in Windows, TODO
+	}
+
+	return refreshRate;
+}
