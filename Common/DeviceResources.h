@@ -28,11 +28,13 @@ namespace DX
 		void GetDXGIFrameStatistics(std::shared_ptr<moonlight_xbox_dx::Stats>& dstStats);
 		void Present();
 		void GetUWPPixelDimensions(uint32_t *width, uint32_t *height);
+		double GetUWPRefreshRate();
 		void SetForceTearing(bool forceTearing);
 		static int uwp_get_width();
 		static int uwp_get_height();
 
 		void                       SetEnableVsync(bool ev)                  { m_enableVsync = ev; }
+		double                     GetRefreshRate() const                   { return m_refreshRate; }
 
 		// Stats helpers
 		void                        SetStats(const std::shared_ptr<moonlight_xbox_dx::Stats>& stats)  { m_stats = stats; }
@@ -91,6 +93,7 @@ namespace DX
 		float											m_compositionScaleX;
 		float											m_compositionScaleY;
 		DWORD                                           m_dxgiFactoryFlags;
+		double                                          m_refreshRate;
 
 		// Variables that take into account whether the app supports high resolution screens or not.
 		float											m_effectiveDpi;

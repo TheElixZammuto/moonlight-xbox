@@ -218,7 +218,11 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.width = sConfig->width;
 	config.height = sConfig->height;
 	config.bitrate = sConfig->bitrate;
-	config.clientRefreshRateX100 = sConfig->FPS * 100;
+	if (res->GetRefreshRate() > 0.0) {
+		// request stream matching our exact fractional refresh rate
+		config.clientRefreshRateX100 = (int)(res->GetRefreshRate() * 100.0);
+		Utils::Logf("Requesting stream with clientRefreshRateX100=%d for %.2f\n", config.clientRefreshRateX100, res->GetRefreshRate());
+	}
 	config.colorRange = this->IsRGBFull() ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
 	config.colorSpace = COLORSPACE_REC_601;
 	config.encryptionFlags = 0;
