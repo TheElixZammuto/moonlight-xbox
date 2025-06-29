@@ -44,7 +44,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
 					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
 					if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
-					if (a.contains("enable_sops")) h->EnableHDR = a["enable_sops"].get<bool>();
+					if (a.contains("enable_sops")) h->EnableSOPS = a["enable_sops"].get<bool>();
 					if (a.contains("force_tearing")) h->ForceTearing = a["force_tearing"].get<bool>();
 					if (a.contains("enable_vsync")) h->EnableVsync = a["enable_vsync"].get<bool>();
 					if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());

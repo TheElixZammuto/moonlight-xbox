@@ -7,8 +7,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-
-    <StackPanel Padding="8,16,8,8">
+    <ScrollViewer>
+        <StackPanel Padding="8,16,8,8">
         <StackPanel Orientation="Horizontal">
             <Button Margin="0 0 0 16" Name="backButton" Click="backButton_Click">
                 <Button.Content>
@@ -91,4 +91,5 @@
             <CheckBox Name="EnableVsyncCheckbox" Grid.Row="12" Grid.Column="1" IsChecked="{x:Bind Host.EnableVsync,Mode=TwoWay}"></CheckBox>
         </Grid>
     </StackPanel>
+    </ScrollViewer>
 </Page>
