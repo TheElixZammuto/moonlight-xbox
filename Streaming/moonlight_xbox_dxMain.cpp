@@ -72,6 +72,9 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	});
 
 	m_timer.SetFixedTimeStep(false);
+
+	double refreshRate = m_deviceResources->GetUWPRefreshRate();
+	m_deviceResources->SetRefreshRate(refreshRate);
 }
 
 moonlight_xbox_dxMain::~moonlight_xbox_dxMain()
