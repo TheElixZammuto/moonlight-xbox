@@ -41,6 +41,14 @@ StreamPage::StreamPage():
 
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &StreamPage::OnLoaded);
 	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &StreamPage::OnUnloaded);
+
+	m_logsTimer = ref new Windows::UI::Xaml::DispatcherTimer();
+	m_logsTimer->Interval = Windows::Foundation::TimeSpan{ 10000000 }; // 1 second
+	m_logsTimer->Tick += ref new Windows::Foundation::EventHandler<Object^>(this, &StreamPage::UpdateLogsText);
+	
+	m_statsTimer = ref new Windows::UI::Xaml::DispatcherTimer();
+	m_statsTimer->Interval = Windows::Foundation::TimeSpan{ 10000000 }; // 1 second
+	m_statsTimer->Tick += ref new Windows::Foundation::EventHandler<Object^>(this, &StreamPage::UpdateStatsText);
 }
 
 
@@ -136,7 +144,14 @@ void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::X
 {
 	Utils::showLogs = !Utils::showLogs;
 	this->toggleLogsButton->Text = Utils::showLogs ? "Hide Logs" : "Show Logs";
-	m_main->SetShowLogs(Utils::showLogs);
+	m_logsPanel->Visibility = Utils::showLogs ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+	
+	if (Utils::showLogs) {
+		m_logsTimer->Start();
+		UpdateLogsText(sender, e);
+	} else {
+		m_logsTimer->Stop();
+	}
 }
 
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
@@ -150,7 +165,16 @@ void StreamPage::toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::
 {
 	Utils::showStats = !Utils::showStats;
 	this->toggleStatsButton->Text = Utils::showStats ? "Hide Stats" : "Show Stats";
-	m_main->SetShowStats(Utils::showStats);
+
+	m_statsPanel->Visibility = Utils::showStats ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+
+	if (Utils::showStats) {
+		m_statsTimer->Start();
+		UpdateStatsText(sender, e);
+	}
+	else {
+		m_statsTimer->Stop();
+	}
 }
 
 
@@ -243,3 +267,44 @@ void StreamPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedE
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
 }
+
+void StreamPage::UpdateLogsText(Platform::Object^ sender, Platform::Object^ args)
+{
+    Utils::logMutex.lock();
+    std::vector<std::wstring> lines = Utils::GetLogLines();
+    std::wstring combinedText;
+    for (const auto& line : lines) {
+        combinedText += line;
+    }
+    Utils::logMutex.unlock();
+
+    m_logsTextBlock->Text = ref new Platform::String(combinedText.c_str());
+}
+
+void StreamPage::UpdateStatsText(Platform::Object^ sender, Platform::Object^ args)
+{
+	if (m_main != nullptr && m_main->GetStats() != nullptr) {
+		char statsOutput[1024];
+		DX::StepTimer timer = m_main->GetTimer();
+
+		if (m_main->GetStats()->ShouldUpdateDisplay(timer, Utils::showStats, statsOutput, sizeof(statsOutput))) {
+			// Remove trailing newline if it exists
+			size_t len = strlen(statsOutput);
+			if (len > 0 && statsOutput[len - 1] == '\n') {
+				statsOutput[len - 1] = '\0';
+			}
+
+			// Convert from char* to Platform::String^
+			size_t size = strlen(statsOutput) + 1;
+			wchar_t* wideText = new wchar_t[size];
+			size_t convertedChars = 0;
+			mbstowcs_s(&convertedChars, wideText, size, statsOutput, _TRUNCATE);
+			Platform::String^ statsText = ref new Platform::String(wideText);
+			delete[] wideText;
+
+			m_statsTextBlock->Text = statsText;
+		}
+	}
+
+}
+
