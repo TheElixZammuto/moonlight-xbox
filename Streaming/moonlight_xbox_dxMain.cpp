@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "moonlight_xbox_dxMain.h"
 #include "Common\DirectXHelper.h"
+#include "../Plot/ImGuiPlots.h"
 #include "Utils.hpp"
 #include <Pages/StreamPage.xaml.h>
 using namespace Windows::Gaming::Input;
@@ -39,9 +40,6 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
-	// Vsync forced to ON (via constructor default) until VRR works
-	// m_deviceResources->SetEnableVsync(configuration->enableVsync);
-
 	m_sceneRenderer = std::make_unique<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
 
 	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
@@ -72,6 +70,10 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	});
 
 	m_timer.SetFixedTimeStep(false);
+
+	double refreshRate = m_deviceResources->GetUWPRefreshRate();
+	m_deviceResources->SetRefreshRate(refreshRate);
+	m_deviceResources->SetFrameRate((double)configuration->FPS);
 }
 
 moonlight_xbox_dxMain::~moonlight_xbox_dxMain()
@@ -107,19 +109,23 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			while (action->Status == AsyncStatus::Started)
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
-				LARGE_INTEGER beforeUpdate, afterPresent;
-				QueryPerformanceCounter(&beforeUpdate);
+				LARGE_INTEGER beforeRender, beforePresent;
 
 				Update();
-				if (Render())
-				{
-					m_deviceResources->GetDXGIFrameStatistics(m_stats);
+				QueryPerformanceCounter(&beforeRender);
+				if (Render()) {
+					QueryPerformanceCounter(&beforePresent);
+					m_stats->SubmitRenderTime(beforePresent.QuadPart - beforeRender.QuadPart);
+
+					static uint64_t lastPresentTime = 0;
+					if (lastPresentTime > 0) {
+						double frametime = QpcToMs(beforePresent.QuadPart - lastPresentTime);
+						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, (float)frametime);
+					}
+					lastPresentTime = beforePresent.QuadPart;
 
 					m_deviceResources->Present();
 				}
-
-				QueryPerformanceCounter(&afterPresent);
-				m_stats->SubmitRenderTime(afterPresent.QuadPart - beforeUpdate.QuadPart);
 			}
 		});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
@@ -358,12 +364,24 @@ bool moonlight_xbox_dxMain::Render()
 
 	Clear();
 
-	auto context = m_deviceResources->GetD3DDeviceContext();
+	// Start the Dear ImGui frame
+	bool showImGui = m_deviceResources->GetShowImGui();
+	if (showImGui) {
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplUwp_NewFrame();
+		ImGui::NewFrame();
+	}
 
 	// Render the scene objects.
 	bool shouldPresent = m_sceneRenderer->Render();
 	m_LogRenderer->Render();
-	m_statsTextRenderer->Render();
+	m_statsTextRenderer->Render(showImGui);
+
+	if (showImGui) {
+		RenderImGui();
+		ImGui::Render();
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	}
 
 	return shouldPresent;
 }
@@ -384,7 +402,19 @@ void moonlight_xbox_dxMain::Clear()
 	// Set the viewport.
 	const auto viewport = m_deviceResources->GetScreenViewport();
 	context->RSSetViewports(1, &viewport);
- }
+}
+
+// Set this to true to use the ImGui demo/debug tools.
+// Normal ImGui code can be used anywhere in the other Render() methods.
+void moonlight_xbox_dxMain::RenderImGui()
+{
+	bool show_demo_window = false;
+
+	// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+	if (show_demo_window) {
+		ImGui::ShowDemoWindow(&show_demo_window);
+	}
+}
 
 // Notifies renderers that device resources need to be released.
 void moonlight_xbox_dxMain::OnDeviceLost()
@@ -453,10 +483,29 @@ void moonlight_xbox_dxMain::SendWinAltB() {
 	});
 }
 
-void moonlight_xbox_dxMain::SetShowLogs(bool showLogs) {
-	m_LogRenderer->SetVisible(showLogs);
+bool moonlight_xbox_dxMain::ToggleLogs() {
+	bool visible = m_LogRenderer->GetVisible();
+
+	DISPATCH_UI([&], {
+		m_LogRenderer->ToggleVisible();
+	});
+
+	return visible ? false : true;
 }
 
-void moonlight_xbox_dxMain::SetShowStats(bool showStats) {
-	m_statsTextRenderer->SetVisible(showStats);
+bool moonlight_xbox_dxMain::ToggleStats() {
+	bool visible = m_statsTextRenderer->GetVisible();
+
+	DISPATCH_UI([&], {
+		m_statsTextRenderer->ToggleVisible();
+	});
+
+	return visible ? false : true;
+}
+
+void moonlight_xbox_dxMain::SetImGui(bool isVisible) {
+	DISPATCH_UI([=], {
+		m_deviceResources->SetShowImGui(isVisible);
+		Utils::Logf("ImGui graphs are now %d\n", isVisible ? 1 : 0);
+	});
 }

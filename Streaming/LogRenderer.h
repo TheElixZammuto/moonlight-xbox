@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <mutex>
 #include <string>
 #include "..\Common\StepTimer.h"
 #include "..\Common\TextConsole.h"
@@ -15,9 +16,11 @@ namespace moonlight_xbox_dx
 		void ReleaseDeviceDependentResources();
 		void Update(DX::StepTimer const& timer);
 		void Render();
-		void SetVisible(bool visible);
+		bool GetVisible() { return m_visible; }
+		void ToggleVisible();
 
 	private:
+		std::mutex                           m_mutex;
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 		std::unique_ptr<DX::TextConsole>     m_console;
 		bool                                 m_visible;

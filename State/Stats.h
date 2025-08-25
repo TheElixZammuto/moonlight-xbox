@@ -4,8 +4,13 @@
 #include <mutex>
 #include <string>
 #include "../Common/StepTimer.h"
+#include "../Utils/FloatBuffer.h"
 
 #include "BandwidthTracker.h"
+
+extern "C" {
+	#include "Limelight.h"
+}
 
 typedef enum {
 	VSYNC_ON      = 1,        // vsync is enabled
@@ -20,6 +25,7 @@ typedef struct _VIDEO_STATS {
 	uint32_t renderedFrames;
 	uint32_t totalFrames;
 	uint32_t networkDroppedFrames;
+	uint32_t pacerDroppedFrames;
 	uint16_t minHostProcessingLatency;
 	uint16_t maxHostProcessingLatency;
 	uint32_t totalHostProcessingLatency;
@@ -34,10 +40,6 @@ typedef struct _VIDEO_STATS {
 	double decodedFps;
 	double renderedFps;
 	double measurementStartTimestamp;
-	// extra DX-specific stats
-	uint32_t dxRefreshCountDiff;
-	uint32_t dxPresentCountDiff;
-	uint32_t dxGlitchCount;
 } VIDEO_STATS, *PVIDEO_STATS;
 
 namespace moonlight_xbox_dx
@@ -49,12 +51,15 @@ namespace moonlight_xbox_dx
 		bool ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char* output, size_t length);
 
 		// submitters for various types of data
-		void SubmitVideoBytesAndReassemblyTime(uint32_t length, uint32_t reassemblyMs, uint16_t frameHPL, uint32_t droppedFrames);
+		void SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT decodeUnit, uint32_t droppedFrames);
 		void SubmitDecodeMs(double decodeMs);
-		void SubmitDXGIFrameStatistics(DXGI_FRAME_STATISTICS *frameStats);
+		void SubmitDroppedFrame(int count);
 		void SubmitRenderTime(uint64_t renderTimeQpc);
 
 		void SetDisplayStatus(SyncMode status) { m_displayStatus = status; }
+
+		FloatBuffer* GetBandwidthBuffer()  { return &m_bandwidthBuffer; }
+		FloatBuffer* GetDecodeTimeBuffer() { return &m_decodeTimeBuffer; }
 
 	private:
 		void addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst);
@@ -72,5 +77,8 @@ namespace moonlight_xbox_dx
 		uint64_t							 m_PreviousPresentCount;
 		uint64_t                             m_PreviousRefreshCount;
 		uint32_t                             m_GlitchCount;
+
+		FloatBuffer                          m_bandwidthBuffer;
+		FloatBuffer                          m_decodeTimeBuffer;
 	};
 }

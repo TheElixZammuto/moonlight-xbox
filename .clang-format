@@ -1,0 +1,30 @@
+BasedOnStyle: LLVM
+UseTab: ForIndentation
+IndentWidth: 4
+TabWidth: 4
+BreakBeforeBraces: Mozilla
+ColumnLimit: 0
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+IndentCaseLabels: false
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+BreakConstructorInitializers: AfterColon
+
+# Don't move pch.h below other headers
+IncludeBlocks: Preserve
+IncludeCategories:
+  # PCH must be first
+  - Regex: '^"pch\.h"$'
+    Priority: 1
+
+  # system headers (<...>)
+  - Regex: '^<.*>'
+    Priority: 2
+
+  # everything else
+  - Regex: '.*'
+    Priority: 3

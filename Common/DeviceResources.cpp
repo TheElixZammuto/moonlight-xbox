@@ -73,7 +73,9 @@ DX::DeviceResources::DeviceResources() :
 	m_compositionScaleX(1.0f),
 	m_compositionScaleY(1.0f),
 	m_deviceNotify(nullptr),
-	m_stats(nullptr)
+	m_stats(nullptr),
+	m_imguiRunning(false),
+	m_showImGui(false)
 {
 	m_refreshRate = GetUWPRefreshRate();
 
@@ -330,23 +332,9 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			swapChain.As(&m_swapChain)
 		);
 
-		// XXX I think because of CreateSwapChainForComposition we don't run in fullscreen,
-		// and thus VRR does not work. CreateSwapChainForCoreWindow is possibly the solution
-		// but I ran into issues with passing the CoreWindow
-		{
-			BOOL isFullscreen = FALSE;
-			HRESULT hr = swapChain->GetFullscreenState(&isFullscreen, nullptr);
-			if (FAILED(hr) || !isFullscreen) {
-				Utils::Log("SwapChain is NOT running in fullscreen mode\n");
-			}
-			else {
-				Utils::Log("SwapChain is fullscreen\n");
-			}
-		}
-
-		// Ensure that DXGI does not queue more than one frame at a time. This both reduces latency and
-		// ensures that the application will only render after each VSync, minimizing power consumption.
-		//DX::ThrowIfFailed(dxgiDevice->SetMaximumFrameLatency(1));
+		// We must not call this for flip swapchains. It will counterintuitively
+		// increase latency by forcing our Present() to block on DWM even when
+		// DX::ThrowIfFailed(dxgiDevice->SetMaximumFrameLatency(1));
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread
@@ -508,6 +496,15 @@ void DX::DeviceResources::SetSwapChainPanel(SwapChainPanel^ panel)
 	m_compositionScaleY = panel->CompositionScaleY;
 
 	CreateWindowSizeDependentResources();
+
+	ComPtr<ISwapChainPanelNative> panelNative;
+	DX::ThrowIfFailed(
+		reinterpret_cast<IUnknown*>(m_swapChainPanel)->QueryInterface(IID_PPV_ARGS(&panelNative))
+		);
+
+	// Setup Dear ImGui context
+	float dpi = currentDisplayInformation->LogicalDpi / 96.0f;
+	ImGui_Init(panelNative, dpi);
 }
 
 // This method is called in the event handler for the SizeChanged event.
@@ -611,6 +608,8 @@ void DX::DeviceResources::ValidateDevice()
 // Recreate all device resources and set them back to the current state.
 void DX::DeviceResources::HandleDeviceLost()
 {
+	ImGui_Deinit();
+
 	m_swapChain = nullptr;
 
 	Utils::Log("HandleDeviceLost()\n");
@@ -645,28 +644,22 @@ void DX::DeviceResources::Trim()
 	dxgiDevice->Trim();
 }
 
-void DX::DeviceResources::GetDXGIFrameStatistics(std::shared_ptr<Stats>& dstStats)
-{
-	DXGI_FRAME_STATISTICS frameStats;
-	HRESULT hr = m_swapChain->GetFrameStatistics(&frameStats);
-	if (SUCCEEDED(hr)) {
-		dstStats->SubmitDXGIFrameStatistics(&frameStats);
-	}
-}
-
 // Present the contents of the swap chain to the screen.
 void DX::DeviceResources::Present()
 {
 	HRESULT hr = E_FAIL;
 	DXGI_PRESENT_PARAMETERS parameters = { 0 };
 	if (m_enableVsync) {
-		// This still seems to use vsync due to the lack of DXGI_PRESENT_ALLOW_TEARING
+		// This will still use vsync due to the lack of DXGI_PRESENT_ALLOW_TEARING
 		hr = m_swapChain->Present1(0, 0, &parameters);
 	}
 	else {
 		// Recommended to always use tearing if supported when using a sync interval of 0.
 		// This call requires VRR to be set to Always On on Xbox
 		hr = m_swapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING, &parameters);
+		if (hr == DXGI_ERROR_INVALID_CALL) {
+			Utils::Logf("Present1() vsync: disabled, DXGI_ERROR_INVALID_CALL\n");
+		}
 	}
 
 	// Discard the contents of the render target.
@@ -836,4 +829,45 @@ double DX::DeviceResources::GetUWPRefreshRate()
 	}
 
 	return refreshRate;
+}
+
+void DX::DeviceResources::ImGui_Init(const ComPtr<ISwapChainPanelNative>& panelNative, float dpi)
+{
+	if (!m_imguiRunning) {
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+
+		uint32_t displayWidth, displayHeight = 0;
+		GetUWPPixelDimensions(&displayWidth, &displayHeight);
+		io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", displayHeight == 2160 ? 36.0f : 18.0f);
+
+		io.ConfigFlags |= ImGuiConfigFlags_NoKeyboard;
+		io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+		io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+		io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad; // disable gamepad
+
+		// Setup viewport
+		io.DisplayFramebufferScale = { dpi, dpi };
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+
+		// Setup Platform/Renderer backends
+		ImGui_ImplUwp_InitForSwapChainPanel(static_cast<void*>(panelNative.Get()));
+		ImGui_ImplDX11_Init(m_d3dDevice.Get(), m_d3dContext.Get());
+
+		m_imguiRunning = true;
+	}
+}
+
+void DX::DeviceResources::ImGui_Deinit()
+{
+	if (m_imguiRunning) {
+		ImGui_ImplDX11_Shutdown();
+		ImGui_ImplUwp_Shutdown();
+		ImGui::DestroyContext();
+
+		m_imguiRunning = false;
+	}
 }

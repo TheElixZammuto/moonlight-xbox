@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "../State/Stats.h"
+#include <windows.ui.xaml.media.dxinterop.h>
 
 namespace DX
 {
@@ -25,7 +26,6 @@ namespace DX
 		void HandleDeviceLost();
 		void RegisterDeviceNotify(IDeviceNotify* deviceNotify);
 		void Trim();
-		void GetDXGIFrameStatistics(std::shared_ptr<moonlight_xbox_dx::Stats>& dstStats);
 		void Present();
 		void GetUWPPixelDimensions(uint32_t *width, uint32_t *height);
 		double GetUWPRefreshRate();
@@ -33,8 +33,15 @@ namespace DX
 		static int uwp_get_width();
 		static int uwp_get_height();
 
-		void                       SetEnableVsync(bool ev)                  { m_enableVsync = ev; }
-		double                     GetRefreshRate() const                   { return m_refreshRate; }
+		bool                        GetEnableVsync() const                  { return m_enableVsync; }
+		void                        SetEnableVsync(bool ev)                 { m_enableVsync = ev; }
+		double                      GetRefreshRate() const                  { return m_refreshRate; }
+		void                        SetRefreshRate(double rate)             { m_refreshRate = rate; }
+		double                      GetFrameRate() const                    { return m_frameRate; }
+		void                        SetFrameRate(double rate)               { m_frameRate = rate; }
+
+		bool                        GetShowImGui() const                    { return m_showImGui; }
+		void                        SetShowImGui(bool show)                 { m_showImGui = show; }
 
 		// Stats helpers
 		void                        SetStats(const std::shared_ptr<moonlight_xbox_dx::Stats>& stats)  { m_stats = stats; }
@@ -68,6 +75,9 @@ namespace DX
 		void UpdateRenderTargetSize();
 		DXGI_MODE_ROTATION ComputeDisplayRotation();
 
+		void ImGui_Init(const Microsoft::WRL::ComPtr<ISwapChainPanelNative>& panelNative, float dpi);
+		void ImGui_Deinit();
+
 		// Direct3D objects.
 		Microsoft::WRL::ComPtr<IDXGIFactory2>           m_dxgiFactory;
 		Microsoft::WRL::ComPtr<ID3D11Device3>			m_d3dDevice;
@@ -94,6 +104,7 @@ namespace DX
 		float											m_compositionScaleY;
 		DWORD                                           m_dxgiFactoryFlags;
 		double                                          m_refreshRate;
+		double                                          m_frameRate;
 
 		// Variables that take into account whether the app supports high resolution screens or not.
 		float											m_effectiveDpi;
@@ -111,7 +122,9 @@ namespace DX
 		bool                                            m_enableVsync;
 		bool                                            m_swapchainVsync;
 		bool                                            m_forceTearing;
+		bool                                            m_showImGui;
 		SyncMode                                        m_displayStatus;
 		std::shared_ptr<moonlight_xbox_dx::Stats>       m_stats;
+		bool                                            m_imguiRunning;
 	};
 }

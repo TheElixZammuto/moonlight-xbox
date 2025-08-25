@@ -17,6 +17,7 @@ using namespace Windows::Graphics::Display;
 using namespace Windows::System::Threading;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Input;
+using namespace Windows::UI::ViewManagement;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls::Primitives;
@@ -37,7 +38,6 @@ StreamPage::StreamPage():
 	swapChainPanel->SizeChanged +=
 		ref new SizeChangedEventHandler(this, &StreamPage::OnSwapChainPanelSizeChanged);
 	m_deviceResources = std::make_shared<DX::DeviceResources>();
-	//Resize to make fullscreen on Xbox
 
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &StreamPage::OnLoaded);
 	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &StreamPage::OnUnloaded);
@@ -63,7 +63,7 @@ void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::Routed
 		Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 		keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &StreamPage::OnKeyDown));
 		keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &StreamPage::OnKeyUp));
-		// At this point we have access to the device. 
+		// At this point we have access to the device.
 		// We can create the device-dependent resources.
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
 		m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources,this,new MoonlightClient(),configuration));
@@ -105,6 +105,7 @@ void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::Routed
 void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e)
 {
 	if (m_main == nullptr || m_deviceResources == nullptr)return;
+	Utils::Logf("StreamPage::OnSwapChainPanelSizeChanged( NewSize: %f x %f )\n", e->NewSize.Width, e->NewSize.Height);
 	critical_section::scoped_lock lock(m_main->GetCriticalSection());
 	m_deviceResources->SetLogicalSize(e->NewSize);
 	m_main->CreateDeviceDependentResources();
@@ -131,12 +132,10 @@ void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::
 	this->toggleMouseButton->Text = m_main->mouseMode ? "Exit Mouse Mode" : "Toggle Mouse Mode";
 }
 
-
 void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	Utils::showLogs = !Utils::showLogs;
-	this->toggleLogsButton->Text = Utils::showLogs ? "Hide Logs" : "Show Logs";
-	m_main->SetShowLogs(Utils::showLogs);
+	bool isVisible = m_main->ToggleLogs();
+	this->toggleLogsButton->Text = isVisible ? "Hide Logs" : "Show Logs";
 }
 
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
@@ -148,11 +147,10 @@ void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArg
 
 void StreamPage::toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	Utils::showStats = !Utils::showStats;
-	this->toggleStatsButton->Text = Utils::showStats ? "Hide Stats" : "Show Stats";
-	m_main->SetShowStats(Utils::showStats);
+	bool isVisible = m_main->ToggleStats();
+	this->toggleStatsButton->Text = isVisible ? "Hide Stats" : "Show Stats";
+	this->m_main->SetImGui(isVisible);
 }
-
 
 void StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
@@ -226,7 +224,7 @@ void StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xa
 }
 
 
-void moonlight_xbox_dx::StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->m_main->SendWinAltB();
 }
