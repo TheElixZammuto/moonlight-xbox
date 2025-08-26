@@ -24,6 +24,5 @@ namespace moonlight_xbox_dx
 		OpusMSDecoder* decoder;
 		int sampleRate;
 		int samplePerFrame;
-		opus_int16 pcmBuffer[240 * 6];
 	};
 }
