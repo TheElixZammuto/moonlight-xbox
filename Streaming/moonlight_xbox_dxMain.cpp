@@ -48,6 +48,8 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	m_stats = std::make_shared<Stats>();
 	m_stats->SetDisplayStatus(configuration->enableVsync ? VSYNC_ON : VSYNC_OFF);
 	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
+	m_statsTextRenderer->SetVisible(configuration->enableStats);
+	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	m_deviceResources->SetStats(m_stats);
 
 	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
@@ -364,11 +366,11 @@ bool moonlight_xbox_dxMain::Render()
 
 	Clear();
 
-	// Start the Dear ImGui frame
+	// Start the Dear ImGui frame, limited to only running at 60fps
 	bool showImGui = m_deviceResources->GetShowImGui();
 	if (showImGui) {
 		ImGui_ImplDX11_NewFrame();
-		ImGui_ImplUwp_NewFrame();
+		ImGui_ImplUwp_NewFrame(m_deviceResources->GetPixelWidth(), m_deviceResources->GetPixelHeight());
 		ImGui::NewFrame();
 	}
 
@@ -409,10 +411,15 @@ void moonlight_xbox_dxMain::Clear()
 void moonlight_xbox_dxMain::RenderImGui()
 {
 	bool show_demo_window = false;
+	bool show_metrics = false;
 
 	// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 	if (show_demo_window) {
 		ImGui::ShowDemoWindow(&show_demo_window);
+	}
+
+	if (show_metrics) {
+		ImGui::ShowMetricsWindow(&show_metrics);
 	}
 }
 

@@ -54,11 +54,28 @@ void StatsRenderer::Render(bool showImGui)
 	}
 }
 
+struct clampData
+{
+	const float *values;
+	float maxVal;
+};
+
+static inline float clampGetter(void *data, int idx)
+{
+	const clampData *c = static_cast<const clampData *>(data);
+	return fminf(c->values[idx], c->maxVal);
+}
+
 void StatsRenderer::RenderGraphs()
 {
+	// Track graph CPU overhead per frame
+	LARGE_INTEGER t0;
+	QueryPerformanceCounter(&t0);
+
 	// we malloc a buffer for each stat only once and reuse it each frame
-	assert(PlotCount == 5);
-	static float *buffers[5] = {
+	assert(PlotCount == 6);
+	static float *buffers[6] = {
+	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
@@ -67,7 +84,6 @@ void StatsRenderer::RenderGraphs()
 
 	ImGuiIO &io = ImGui::GetIO();
 
-	m_deviceResources->GetUWPPixelDimensions(&m_displayWidth, &m_displayHeight);
 	float graphW = 850.0f * (m_displayWidth / 3840.0f);
 	float graphH = 120.0f * (m_displayHeight / 2160.0f);
 	float opacity = 0.8f;
@@ -99,7 +115,7 @@ void StatsRenderer::RenderGraphs()
 
 		float minY = 0.0f;
 		float maxY = 0.0f;
-		size_t countF = plot.buffer.copyInto(buffers[i], minY, maxY);
+		size_t countF = plot.buffer.copyInto(buffers[i], 512, minY, maxY);
 		float avgF = plot.buffer.average();
 		if (!countF) {
 			return;
@@ -108,13 +124,13 @@ void StatsRenderer::RenderGraphs()
 		char label[64];
 		switch (plot.desc.labelType) {
 		case PLOT_LABEL_MIN_MAX_AVG:
-			sprintf(label, "%s  %.1f / %.1f / %.1f %s", plot.desc.title, minY, maxY, avgF, plot.desc.unit);
+			snprintf(label, sizeof(label), "%s  %.1f / %.1f / %.1f %s", plot.desc.title, minY, maxY, avgF, plot.desc.unit);
 			break;
 		case PLOT_LABEL_MIN_MAX_AVG_INT:
-			sprintf(label, "%s  %d / %d / %.1f %s", plot.desc.title, (int)minY, (int)maxY, avgF, plot.desc.unit);
+			snprintf(label, sizeof(label), "%s  %d / %d / %.1f %s", plot.desc.title, (int)minY, (int)maxY, avgF, plot.desc.unit);
 			break;
 		case PLOT_LABEL_TOTAL_INT:
-			sprintf(label, "%s  %d %s", plot.desc.title, (int)plot.buffer.sum(), plot.desc.unit);
+			snprintf(label, sizeof(label), "%s  %d %s", plot.desc.title, (int)plot.buffer.sum(), plot.desc.unit);
 			break;
 		}
 		float scaleMin = FLT_MAX;
@@ -133,26 +149,34 @@ void StatsRenderer::RenderGraphs()
 		ImGui::PushID(i);
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.19f, 0.19f, 0.19f, opacity)); // dark
 		ImGui::PushStyleColor(ImGuiCol_PlotLines, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));     // green
-		ImGui::PlotLines("##xx", buffers[i], countF, 0, (countF > 0 ? label : "no data"), scaleMin, scaleMax, ImVec2(width, height));
+		if (plot.desc.clampMax > 0.0) {
+			clampData ctx{buffers[i], plot.desc.clampMax};
+			ImGui::PlotLines("##xx", clampGetter, &ctx, countF, 0, (countF > 0 ? label : "no data"), scaleMin, scaleMax, ImVec2(width, height));
+		} else {
+			ImGui::PlotLines("##xx", buffers[i], countF, 0, (countF > 0 ? label : "no data"), scaleMin, scaleMax, ImVec2(width, height));
+		}
 		ImGui::PopStyleColor(2);
 		ImGui::PopID();
 	};
 
-	// Row 1: A, C, E  -> indices {0,2,4}
 	const int row1[3] = {PLOT_FRAMETIME, PLOT_DROPPED_NETWORK, PLOT_QUEUED_FRAMES};
 	for (int c = 0; c < 3; ++c) {
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
 		draw_plot(row1[c], graphW, graphH);
 	}
 
-	// Row 2: B, D  (indices 1,3), aligned left under row1 col1 and col2
 	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	const int row2[2] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER};
-	draw_plot(row2[0], graphW, graphH);
-	ImGui::SameLine(0.0f, itemSpacingX);
-	draw_plot(row2[1], graphW, graphH);
+	const int row2[3] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER, PLOT_OVERHEAD};
+	for (int c = 0; c < 3; ++c) {
+		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
+		draw_plot(row2[c], graphW, graphH);
+	}
 
 	ImGui::End();
+
+	LARGE_INTEGER t1;
+	QueryPerformanceCounter(&t1);
+	ImGuiPlots::instance().observeFloat(PLOT_OVERHEAD, (float)QpcToMs(t1.QuadPart - t0.QuadPart));
 }
 
 void StatsRenderer::CreateDeviceDependentResources()

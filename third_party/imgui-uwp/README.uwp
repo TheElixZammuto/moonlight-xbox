@@ -1,0 +1,5 @@
+This copy of imgui-uwp has been modified to work on Xbox, the only change is to the ImGui_ImplUwp_NewFrame() function where the width and height are passed in.
+
+This version was derived from 7d11060fedaae3d5b9e6dcd7e2cc8a6d35656d8d @ https://github.com/ahmed605/imgui-uwp
+
+It is currently paired with ImGui 69d572bb107c2e2dde3b0ce9d4bb583ac628be6b (April 16, 2025).

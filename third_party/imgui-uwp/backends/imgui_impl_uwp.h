@@ -24,4 +24,4 @@ IMGUI_IMPL_API bool     ImGui_ImplUwp_Init(void* core_window); // ABI::Windows::
 IMGUI_IMPL_API bool     ImGui_ImplUwp_InitForCurrentView();
 IMGUI_IMPL_API bool     ImGui_ImplUwp_InitForSwapChainPanel(void* swapchain_panel); // ABI::Windows::UI::Xaml::Controls::ISwapChainPanel*
 IMGUI_IMPL_API void     ImGui_ImplUwp_Shutdown();
-IMGUI_IMPL_API void     ImGui_ImplUwp_NewFrame();
+IMGUI_IMPL_API void     ImGui_ImplUwp_NewFrame(unsigned int width, unsigned int height);

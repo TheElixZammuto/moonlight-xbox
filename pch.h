@@ -48,7 +48,8 @@ static uint64_t QpcToUs(uint64_t qpc) {
 		QueryPerformanceFrequency(&qpcFreq);
 	}
 
-	return (qpc * 1000000) / qpcFreq.QuadPart;
+	return (qpc / qpcFreq.QuadPart) * UINT64_C(1000000) +
+	       (qpc % qpcFreq.QuadPart) * UINT64_C(1000000) / qpcFreq.QuadPart;
 }
 
 static uint64_t QpcToNs(uint64_t qpc) {
@@ -60,8 +61,8 @@ static uint64_t QpcToNs(uint64_t qpc) {
 		QueryPerformanceFrequency(&qpcFreq);
 	}
 
-    return qpc / qpcFreq.QuadPart * UINT64_C(1000000000) +
-        qpc % qpcFreq.QuadPart * UINT64_C(1000000000) / qpcFreq.QuadPart;
+    return (qpc / qpcFreq.QuadPart) * UINT64_C(1000000000) +
+           (qpc % qpcFreq.QuadPart) * UINT64_C(1000000000) / qpcFreq.QuadPart;
 }
 
 static uint64_t QpcNsNow() {

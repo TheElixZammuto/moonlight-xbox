@@ -6,6 +6,7 @@
 #include <winrt/Windows.UI.Core.h>
 #include <Pages/StreamPage.xaml.h>
 #include <Streaming/FFmpegDecoder.h>
+#include <Plot/ImGuiPlots.h>
 
 using namespace moonlight_xbox_dx;
 using namespace D2D1;
@@ -78,6 +79,7 @@ DX::DeviceResources::DeviceResources() :
 	m_showImGui(false)
 {
 	m_refreshRate = GetUWPRefreshRate();
+	GetUWPPixelDimensions(&m_pixelWidth, &m_pixelHeight);
 
 	CreateDeviceIndependentResources();
 	CreateDeviceResources();
@@ -838,9 +840,7 @@ void DX::DeviceResources::ImGui_Init(const ComPtr<ISwapChainPanelNative>& panelN
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 
-		uint32_t displayWidth, displayHeight = 0;
-		GetUWPPixelDimensions(&displayWidth, &displayHeight);
-		io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", displayHeight == 2160 ? 36.0f : 18.0f);
+		io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", m_pixelHeight == 2160 ? 36.0f : 18.0f);
 
 		io.ConfigFlags |= ImGuiConfigFlags_NoKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
@@ -864,6 +864,8 @@ void DX::DeviceResources::ImGui_Init(const ComPtr<ISwapChainPanelNative>& panelN
 void DX::DeviceResources::ImGui_Deinit()
 {
 	if (m_imguiRunning) {
+		ImGuiPlots::instance().clearData();
+
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplUwp_Shutdown();
 		ImGui::DestroyContext();

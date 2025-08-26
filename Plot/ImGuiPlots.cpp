@@ -24,6 +24,7 @@ ImGuiPlots::ImGuiPlots() :
         Plot(kPlotDescs[PLOT_QUEUED_FRAMES]),
         Plot(kPlotDescs[PLOT_DROPPED_NETWORK]),
         Plot(kPlotDescs[PLOT_DROPPED_PACER]),
+        Plot(kPlotDescs[PLOT_OVERHEAD]),
     }}
 {
 }

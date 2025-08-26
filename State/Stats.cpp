@@ -175,6 +175,11 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 
 void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, char* output, size_t length) {
 	FFMpegDecoder* ffmpeg = FFMpegDecoder::getInstance();
+	if (!ffmpeg) {
+		output[0] = 0;
+		return;
+	}
+
 	int offset = 0;
 	const char* codecString;
 	int ret = -1;
@@ -333,12 +338,12 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   "Average network latency: %s\n"
 					   "Average reassembly/decoding time: %.2f/%.2f ms\n"
 					   "Average render time: %.2f ms\n",
-					   (double)stats.networkDroppedFrames / stats.totalFrames * 100,
-					   (double)stats.pacerDroppedFrames / stats.totalFrames * 100,
+					   stats.totalFrames ? (double)stats.networkDroppedFrames / stats.totalFrames * 100 : 0.0f,
+					   stats.totalFrames ? (double)stats.pacerDroppedFrames / stats.totalFrames * 100 : 0.0f,
 					   rttString,
-					   (double)stats.totalReassemblyTime / stats.decodedFrames,
-					   (double)stats.totalDecodeTime / stats.decodedFrames,
-					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames);
+					   stats.decodedFrames ? (double)stats.totalReassemblyTime / stats.decodedFrames : 0.0f,
+					   stats.decodedFrames ? (double)stats.totalDecodeTime / stats.decodedFrames : 0.0f,
+					   stats.renderedFrames ? (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames : 0.0f);
 		if (ret < 0 || ret >= length - offset) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;

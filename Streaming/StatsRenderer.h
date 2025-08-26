@@ -1,11 +1,11 @@
 #pragma once
 
-#include "..\Common\StepTimer.h"
-#include "..\Common\TextConsole.h"
-#include "..\State\Stats.h"
 #include <memory>
 #include <mutex>
 #include <string>
+#include "..\Common\StepTimer.h"
+#include "..\Common\TextConsole.h"
+#include "..\State\Stats.h"
 
 namespace moonlight_xbox_dx {
 class StatsRenderer
@@ -21,6 +21,10 @@ class StatsRenderer
 	bool GetVisible()
 	{
 		return m_visible;
+	}
+	void SetVisible(bool visible)
+	{
+		m_visible = visible;
 	}
 	void ToggleVisible();
 

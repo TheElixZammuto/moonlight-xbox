@@ -53,6 +53,8 @@ namespace DX
 		// The size of the render target, in dips.
 		Windows::Foundation::Size	GetLogicalSize() const					{ return m_logicalSize; }
 		float						GetDpi() const							{ return m_effectiveDpi; }
+		uint32_t                    GetPixelWidth() const                   { return m_pixelWidth; }
+		uint32_t                    GetPixelHeight() const                  { return m_pixelHeight; }
 
 		// D3D Accessors.
 		ID3D11Device3*				GetD3DDevice() const					{ return m_d3dDevice.Get(); }
@@ -105,6 +107,8 @@ namespace DX
 		DWORD                                           m_dxgiFactoryFlags;
 		double                                          m_refreshRate;
 		double                                          m_frameRate;
+		uint32_t                                        m_pixelWidth;
+		uint32_t                                        m_pixelHeight;
 
 		// Variables that take into account whether the app supports high resolution screens or not.
 		float											m_effectiveDpi;

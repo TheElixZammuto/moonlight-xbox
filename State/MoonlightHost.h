@@ -27,6 +27,8 @@ namespace moonlight_xbox_dx {
         Platform::String^ audioConfig = "Stereo";
         bool enableHDR = false;
         bool enableSOPS = false;
+        bool enableStats = false;
+        bool enableGraphs = true;
         bool enableVsync = true;
         bool forceTearing = false;
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
@@ -233,6 +235,24 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->enableSOPS = value;
                 OnPropertyChanged("EnableSOPS");
+            }
+        }
+
+        property bool EnableStats
+        {
+            bool get() { return this->enableStats; }
+            void set(bool value) {
+                this->enableStats = value;
+                OnPropertyChanged("EnableStats");
+            }
+        }
+
+        property bool EnableGraphs
+        {
+            bool get() { return this->enableGraphs; }
+            void set(bool value) {
+                this->enableGraphs = value;
+                OnPropertyChanged("EnableGraphs");
             }
         }
 

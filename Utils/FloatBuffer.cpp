@@ -15,8 +15,8 @@ FloatBuffer::FloatBuffer(std::size_t capacity) :
     capacity_(capacity),
     count_(0),
     head_(0),
-    min_(FLT_MAX),
-    max_(-FLT_MAX),
+    min_(0.0f),
+    max_(0.0f),
     sum_(0.0f)
 {
 	if (!is_power_of_two(capacity_)) {
@@ -53,7 +53,7 @@ void FloatBuffer::push(float value) noexcept
 	}
 }
 
-std::size_t FloatBuffer::copyInto(float *outBuffer, float &out_min, float &out_max) const
+std::size_t FloatBuffer::copyInto(float *outBuffer, std::size_t outSize, float &out_min, float &out_max) const
 {
 	std::lock_guard<std::mutex> lock(mtx_);
 
@@ -63,21 +63,23 @@ std::size_t FloatBuffer::copyInto(float *outBuffer, float &out_min, float &out_m
 		return 0;
 	}
 
+	std::size_t outLen = std::min(count_, outSize);
+
 	// Oldest element lives at tail.
 	const std::size_t tail = (head_ + capacity_ - count_) & (capacity_ - 1);
-	const std::size_t first = std::min(capacity_ - tail, count_);
+	const std::size_t first = std::min(capacity_ - tail, outLen);
 
 	// First contiguous chunk.
 	std::memcpy(outBuffer, buffer_.data() + tail, first * sizeof(float));
 
 	// If wrapped, copy remaining prefix from index 0.
-	if (first < count_) {
-		std::memcpy(outBuffer + first, buffer_.data(), (count_ - first) * sizeof(float));
+	if (first < outLen) {
+		std::memcpy(outBuffer + first, buffer_.data(), (outLen - first) * sizeof(float));
 	}
 
 	out_min = min_;
 	out_max = max_;
-	return count_;
+	return outLen;
 }
 
 void FloatBuffer::clear() noexcept
@@ -85,8 +87,8 @@ void FloatBuffer::clear() noexcept
 	std::lock_guard<std::mutex> lock(mtx_);
 	head_ = 0;
 	count_ = 0;
-	min_ = FLT_MAX;
-	max_ = -FLT_MAX;
+	min_ = 0.0f;
+	max_ = 0.0f;
 	sum_ = 0.0f;
 	// Note: we intentionally do not zero buffer_ for performance.
 }
@@ -122,8 +124,8 @@ bool FloatBuffer::is_power_of_two(std::size_t x) noexcept
 
 void FloatBuffer::recompute_min_max_unsafe() noexcept
 {
-	float mn = FLT_MAX;
-	float mx = -FLT_MAX;
+	float mn = 1000.0f;
+	float mx = 0.0f;
 
 	const std::size_t tail = (head_ + capacity_ - count_) & (capacity_ - 1);
 	const std::size_t first = std::min(capacity_ - tail, count_);

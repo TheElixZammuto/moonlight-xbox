@@ -577,7 +577,7 @@ static void ImGui_ImplUwp_UpdateGamepads()
 #endif // #ifndef IMGUI_IMPL_UWP_DISABLE_GAMEPAD
 }
 
-void    ImGui_ImplUwp_NewFrame()
+void    ImGui_ImplUwp_NewFrame(unsigned int width, unsigned int height)
 {
     ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplUwp_Data* bd = ImGui_ImplUwp_GetBackendData();
@@ -585,8 +585,8 @@ void    ImGui_ImplUwp_NewFrame()
 
     // Setup display size (every frame to accommodate for window resizing)
 
-    // XXX Xbox dimensions
-    io.DisplaySize = ImVec2(3840.0f, 2160.0f); // XXX
+    // Xbox dimensions come from caller
+    io.DisplaySize = ImVec2((float)width, (float)height);
 
 	// if (bd->CoreWindow)
 	// {

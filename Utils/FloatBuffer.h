@@ -12,7 +12,7 @@ class FloatBuffer
 	explicit FloatBuffer(std::size_t capacity = kDefaultCapacity);
 
 	void push(float value) noexcept;
-	std::size_t copyInto(float *outBuffer, float &out_min, float &out_max) const;
+	std::size_t copyInto(float *outBuffer, std::size_t outSize, float &out_min, float &out_max) const;
 	void clear() noexcept;
 
 	std::size_t capacity() const noexcept
