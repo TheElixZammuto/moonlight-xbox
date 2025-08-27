@@ -70,6 +70,8 @@ namespace moonlight_xbox_dx {
 		this->width = width;
 		this->height = height;
 
+		this->frameDropTarget = 2; // user can modify this value
+
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
 		avcodec_register_all();
@@ -196,6 +198,7 @@ namespace moonlight_xbox_dx {
 			free(ready_frames);
 			ready_frames = NULL;
 		}
+		shouldUnlock = false;
 		Utils::Log("Decoding Clean\n");
 	}
 
@@ -271,12 +274,16 @@ namespace moonlight_xbox_dx {
 			this->resources->GetStats()->SubmitDecodeMs((double)(av_gettime_relative() - decodeStartTime) / 1000.0);
 
 			// Frame pacing (to be improved)
+			int dropTarget = this->frameDropTarget;
 			bool is_idr = (frame->pict_type == AV_PICTURE_TYPE_I) && (frame->flags & AV_FRAME_FLAG_KEY);
-			bool shouldDrop = LiGetPendingVideoFrames() > 2 && !is_idr;
+			int pending = LiGetPendingVideoFrames();
+			bool shouldDrop = pending > dropTarget && !is_idr;
 			ImGuiPlots::instance().observeFloat(PLOT_DROPPED_PACER, shouldDrop ? 1 : 0);
 			if (shouldDrop) {
+				Utils::Logf("dropping frame because pending frame count %d > frame queue size %d\n", pending, dropTarget);
 				// Drop frame to reduce latency (unless it's an IDR frame)
 				this->resources->GetStats()->SubmitDroppedFrame(1);
+				av_frame_unref(frame);
 				return nullptr;
 			}
 
@@ -288,6 +295,23 @@ namespace moonlight_xbox_dx {
 			return frame;
 		}
 		return nullptr;
+	}
+
+	int FFMpegDecoder::ModifyFrameDropTarget(bool increase) {
+		int current = frameDropTarget;
+		if (increase) {
+			if (current >= 14) {
+				// decodeUnitQueue is 15, so our max here is 14
+				return current;
+			}
+			return ++frameDropTarget;
+		}
+		else {
+			if (current == 0) {
+				return current;
+			}
+			return --frameDropTarget;
+		}
 	}
 
 	//Helpers

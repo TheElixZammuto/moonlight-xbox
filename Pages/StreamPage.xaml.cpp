@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "StreamPage.xaml.h"
+#include "../Streaming/FFMpegDecoder.h"
 #include <Utils.hpp>
 #include <KeyboardControl.xaml.h>
 
@@ -227,6 +228,26 @@ void StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xa
 void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->m_main->SendWinAltB();
+}
+
+void StreamPage::increaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	int target = 2;
+	FFMpegDecoder* ffmpeg = FFMpegDecoder::getInstance();
+	if (ffmpeg) {
+		target = ffmpeg->ModifyFrameDropTarget(true); // true increases the value
+	}
+	this->frameDropTargetLabel->Text = "Frame queue size: " + target;
+}
+
+void StreamPage::decreaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	int target = 2;
+	FFMpegDecoder* ffmpeg = FFMpegDecoder::getInstance();
+	if (ffmpeg) {
+		target = ffmpeg->ModifyFrameDropTarget(false); // false decreases the value
+	}
+	this->frameDropTargetLabel->Text = "Frame queue size: " + target;
 }
 
 void StreamPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

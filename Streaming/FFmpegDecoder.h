@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <queue>
 #include "../Common/StepTimer.h"
 
@@ -26,6 +27,7 @@ namespace moonlight_xbox_dx
 		void Cleanup();
 		bool SubmitDU();
 		AVFrame* GetFrame();
+		int ModifyFrameDropTarget(bool increase);
 		static FFMpegDecoder* getInstance();
 		static DECODER_RENDERER_CALLBACKS getDecoder();
 		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources);
@@ -48,5 +50,6 @@ namespace moonlight_xbox_dx
 		int next_frame, current_frame;
 		std::shared_ptr<DX::DeviceResources> resources;
 		int64_t decodeStartTime;
+		std::atomic_int frameDropTarget;
 	};
 }

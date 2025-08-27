@@ -86,7 +86,7 @@ void StatsRenderer::RenderGraphs()
 
 	float graphW = 850.0f * (m_displayWidth / 3840.0f);
 	float graphH = 120.0f * (m_displayHeight / 2160.0f);
-	float opacity = 0.8f;
+	float opacity = 0.7f;
 
 	LogOnce("Drawing graphs of size %.1f x %.1f in viewport %d x %d using opacity %.2f\n",
 	        graphW, graphH, m_displayWidth, m_displayHeight, opacity);
