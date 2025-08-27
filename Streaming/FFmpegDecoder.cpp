@@ -71,6 +71,7 @@ namespace moonlight_xbox_dx {
 		this->height = height;
 
 		this->frameDropTarget = 2; // user can modify this value
+		this->m_LastFrameNumber = 0;
 
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
@@ -198,6 +199,7 @@ namespace moonlight_xbox_dx {
 			free(ready_frames);
 			ready_frames = NULL;
 		}
+		m_LastFrameNumber = 0;
 		shouldUnlock = false;
 		Utils::Log("Decoding Clean\n");
 	}
@@ -221,13 +223,12 @@ namespace moonlight_xbox_dx {
 		}
 
 		// Detect breaks in the frame sequence indicating dropped packets
-		static uint32_t lastFrameNumber = 0;
 		uint32_t droppedFramesNetwork = 0;
-		if (lastFrameNumber > 0) {
+		if (m_LastFrameNumber > 0 && decodeUnit->frameNumber > (m_LastFrameNumber + 1)) {
 			// Any frame number greater than m_LastFrameNumber + 1 represents a dropped frame
-			droppedFramesNetwork = decodeUnit->frameNumber - (lastFrameNumber + 1);
+			droppedFramesNetwork = decodeUnit->frameNumber - (m_LastFrameNumber + 1);
 		}
-		lastFrameNumber = decodeUnit->frameNumber;
+		m_LastFrameNumber = decodeUnit->frameNumber;
 
 		// track stats for a variety of things we can track at the same time
 		this->resources->GetStats()->SubmitVideoBytesAndReassemblyTime(length, decodeUnit, droppedFramesNetwork);

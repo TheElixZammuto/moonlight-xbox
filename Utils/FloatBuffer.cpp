@@ -15,8 +15,8 @@ FloatBuffer::FloatBuffer(std::size_t capacity) :
     capacity_(capacity),
     count_(0),
     head_(0),
-    min_(0.0f),
-    max_(0.0f),
+    min_(FLT_MAX),
+    max_(-FLT_MAX),
     sum_(0.0f)
 {
 	if (!is_power_of_two(capacity_)) {
@@ -87,8 +87,8 @@ void FloatBuffer::clear() noexcept
 	std::lock_guard<std::mutex> lock(mtx_);
 	head_ = 0;
 	count_ = 0;
-	min_ = 0.0f;
-	max_ = 0.0f;
+	min_ = FLT_MAX;
+	max_ = -FLT_MAX;
 	sum_ = 0.0f;
 	// Note: we intentionally do not zero buffer_ for performance.
 }
@@ -124,8 +124,8 @@ bool FloatBuffer::is_power_of_two(std::size_t x) noexcept
 
 void FloatBuffer::recompute_min_max_unsafe() noexcept
 {
-	float mn = 1000.0f;
-	float mx = 0.0f;
+	float mn = FLT_MAX;
+	float mx = -FLT_MAX;
 
 	const std::size_t tail = (head_ + capacity_ - count_) & (capacity_ - 1);
 	const std::size_t first = std::min(capacity_ - tail, count_);

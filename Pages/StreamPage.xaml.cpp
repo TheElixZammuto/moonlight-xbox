@@ -237,7 +237,7 @@ void StreamPage::increaseFrameDropTarget_Click(Platform::Object^ sender, Windows
 	if (ffmpeg) {
 		target = ffmpeg->ModifyFrameDropTarget(true); // true increases the value
 	}
-	this->frameDropTargetLabel->Text = "Frame queue size: " + target;
+	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
 }
 
 void StreamPage::decreaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -247,7 +247,7 @@ void StreamPage::decreaseFrameDropTarget_Click(Platform::Object^ sender, Windows
 	if (ffmpeg) {
 		target = ffmpeg->ModifyFrameDropTarget(false); // false decreases the value
 	}
-	this->frameDropTargetLabel->Text = "Frame queue size: " + target;
+	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
 }
 
 void StreamPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

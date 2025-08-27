@@ -51,5 +51,6 @@ namespace moonlight_xbox_dx
 		std::shared_ptr<DX::DeviceResources> resources;
 		int64_t decodeStartTime;
 		std::atomic_int frameDropTarget;
+		uint32_t m_LastFrameNumber;
 	};
 }
