@@ -1,33 +1,29 @@
 #include "pch.h"
 #include "Stats.h"
 #include "Utils.hpp"
+#include "../Plot/ImGuiPlots.h"
 #include "../Streaming/FFMpegDecoder.h"
-
-extern "C" {
-	#include <Limelight.h>
-}
 
 using namespace moonlight_xbox_dx;
 
-static uint64_t QpcToUs(uint64_t qpc) {
-	static LARGE_INTEGER qpcFreq = {0, 0};
-	if (qpcFreq.QuadPart == 0) {
-		QueryPerformanceFrequency(&qpcFreq);
-	}
-
-	return (qpc * 1000000) / qpcFreq.QuadPart;
-}
-
-Stats::Stats()
+Stats::Stats() :
+	m_bandwidthBuffer(512),
+	m_decodeTimeBuffer(512)
 {
 	ZeroMemory(&m_ActiveWndVideoStats, sizeof(VIDEO_STATS));
 	ZeroMemory(&m_LastWndVideoStats, sizeof(VIDEO_STATS));
 	ZeroMemory(&m_GlobalVideoStats, sizeof(VIDEO_STATS));
 }
 
+// Called every frame, if true is returned, the stats text is refreshed
 bool Stats::ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char* output, size_t length)
 {
 	bool shouldUpdate = false;
+
+	// when visible, data points for graphs are collected every frame
+	if (isVisible) {
+		m_bandwidthBuffer.push((float)m_bwTracker.GetAverageMbps());
+	}
 
 	// Process stats once per second
 	if (timer.GetTotalSeconds() - m_ActiveWndVideoStats.measurementStartTimestamp >= 1.0) {
@@ -62,14 +58,20 @@ bool Stats::ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char
 //    Includes time spent in FEC reassembly
 // 3. Host processing latency (encode time)
 // 4. network packet loss (caller reports frame sequence number holes)
-void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, uint32_t reassemblyMs, uint16_t frameHPL, uint32_t droppedFrames) {
+void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT decodeUnit, uint32_t droppedFrames) {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	m_bwTracker.AddBytes(length);
 	m_ActiveWndVideoStats.receivedFrames++;
 	m_ActiveWndVideoStats.totalFrames++;
+
+	// bandwidth
+	m_bwTracker.AddBytes(length);
+
+	// reassembly time
+	uint32_t reassemblyMs = (uint32_t)(decodeUnit->enqueueTimeMs - decodeUnit->receiveTimeMs);
 	m_ActiveWndVideoStats.totalReassemblyTime += reassemblyMs;
 
 	// Host processing latency
+	uint16_t frameHPL = decodeUnit->frameHostProcessingLatency;
 	if (frameHPL != 0) {
 		if (m_ActiveWndVideoStats.minHostProcessingLatency != 0) {
 			m_ActiveWndVideoStats.minHostProcessingLatency = std::min(m_ActiveWndVideoStats.minHostProcessingLatency, frameHPL);
@@ -78,15 +80,26 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, uint32_t reassemb
 			m_ActiveWndVideoStats.minHostProcessingLatency = frameHPL;
 		}
 		m_ActiveWndVideoStats.framesWithHostProcessingLatency += 1;
+		m_ActiveWndVideoStats.maxHostProcessingLatency = std::max(m_ActiveWndVideoStats.maxHostProcessingLatency, frameHPL);
+		m_ActiveWndVideoStats.totalHostProcessingLatency += frameHPL;
 	}
-	m_ActiveWndVideoStats.maxHostProcessingLatency = std::max(m_ActiveWndVideoStats.maxHostProcessingLatency, frameHPL);
-	m_ActiveWndVideoStats.totalHostProcessingLatency += frameHPL;
 
 	// Network packet loss
 	if (droppedFrames > 0) {
 		m_ActiveWndVideoStats.networkDroppedFrames += droppedFrames;
 		m_ActiveWndVideoStats.totalFrames += droppedFrames;
 	}
+	ImGuiPlots::instance().observeFloat(PLOT_DROPPED_NETWORK, droppedFrames);
+
+	// Host frametime graph
+	static unsigned int lastHostPts = 0;
+	if (lastHostPts > 0) {
+		ImGuiPlots::instance().observeFloat(PLOT_HOST_FRAMETIME, (float)(decodeUnit->presentationTimeMs - lastHostPts));
+	}
+	lastHostPts = decodeUnit->presentationTimeMs;
+
+	// Queued frames for graph
+	ImGuiPlots::instance().observeFloat(PLOT_QUEUED_FRAMES, LiGetPendingVideoFrames());
 }
 
 // Time in milliseconds we spent decoding one frame, it is added up to later be divided by decodedFrames
@@ -94,55 +107,21 @@ void Stats::SubmitDecodeMs(double decodeMs) {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_ActiveWndVideoStats.totalDecodeTime += decodeMs;
 	m_ActiveWndVideoStats.decodedFrames++;
+	m_decodeTimeBuffer.push((float)decodeMs);
+}
+
+void Stats::SubmitDroppedFrame(int count) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_ActiveWndVideoStats.pacerDroppedFrames += count;
 }
 
 // Time in microseconds for all rendering, including Update(), Render(), and Present().
 // Also increments the rendered frame count.
 void Stats::SubmitRenderTime(uint64_t renderTimeQpc) {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	m_ActiveWndVideoStats.totalRenderTimeUs += QpcToUs(renderTimeQpc);
+	uint64_t renderTimeUs = QpcToUs(renderTimeQpc);
+	m_ActiveWndVideoStats.totalRenderTimeUs += renderTimeUs;
 	m_ActiveWndVideoStats.renderedFrames++;
-}
-
-void Stats::SubmitDXGIFrameStatistics(DXGI_FRAME_STATISTICS *frameStats) {
-	std::lock_guard<std::mutex> lock(m_mutex);
-
-	// frameStats->PresentCount;
-	// frameStats->PresentRefreshCount;
-	// frameStats->SyncRefreshCount;
-	// frameStats->SyncQPCTime;
-
-	// The values in PresentRefreshCount, SyncRefreshCount, and SyncQPCTime members of DXGI_FRAME_STATISTICS have the following characteristics:
-	// PresentRefreshCount is equal to SyncRefreshCount when the app presents on every vsync.
-	// SyncRefreshCount is obtained on the vsync interval when the present was submitted.
-	// SyncQPCTime is approximately the time associated with the vsync interval.
-
-	// Track glitches, from https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/TechniqueDemos/D3D12MemoryManagement/src/Framework.cpp
-	if (frameStats->PresentCount > m_PreviousPresentCount) {
-		if (m_PreviousRefreshCount > 0 &&
-			(frameStats->PresentRefreshCount - m_PreviousRefreshCount) > (frameStats->PresentCount - m_PreviousPresentCount))
-		{
-			++m_GlitchCount;
-			m_ActiveWndVideoStats.dxGlitchCount++;
-		}
-	}
-
-	if (m_PreviousRefreshCount > 0) {
-		m_ActiveWndVideoStats.dxRefreshCountDiff = frameStats->PresentRefreshCount - m_PreviousRefreshCount;
-		m_ActiveWndVideoStats.dxPresentCountDiff = frameStats->PresentCount - m_PreviousPresentCount;
-	}
-
-	m_PreviousRefreshCount = frameStats->SyncRefreshCount;
-	m_PreviousPresentCount = frameStats->PresentCount;
-
-	// TODO: research this method of vsync frame pacing
-
-	// Microsoft covers this topic at:
-	// https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-flip-model#frame-synchronization-of-dxgi-flip-model-apps
-	// https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-flip-model#avoiding-detecting-and-recovering-from-glitches
-
-	// Some promising code around calculating estimated vsync timings and glitch recovery is in
-	// https://github.com/Emill/n64-fast3d-engine/blob/master/gfx_dxgi.cpp
 }
 
 /// private methods
@@ -153,6 +132,7 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.renderedFrames += src.renderedFrames;
 	dst.totalFrames += src.totalFrames;
 	dst.networkDroppedFrames += src.networkDroppedFrames;
+	dst.pacerDroppedFrames += src.pacerDroppedFrames;
 	dst.totalReassemblyTime += src.totalReassemblyTime;
 	dst.totalDecodeTime += src.totalDecodeTime;
 	dst.totalRenderTimeUs += src.totalRenderTimeUs;
@@ -177,10 +157,6 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 		assert(dst.lastRtt > 0);
 	}
 
-	dst.dxRefreshCountDiff = src.dxRefreshCountDiff; // these only store the most recent value
-	dst.dxPresentCountDiff = src.dxPresentCountDiff;
-	dst.dxGlitchCount += src.dxGlitchCount;
-
 	double now = timer.GetTotalSeconds();
 
 	// Initialize the measurement start point if this is the first video stat window
@@ -199,6 +175,11 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 
 void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, char* output, size_t length) {
 	FFMpegDecoder* ffmpeg = FFMpegDecoder::getInstance();
+	if (!ffmpeg) {
+		output[0] = 0;
+		return;
+	}
+
 	int offset = 0;
 	const char* codecString;
 	int ret = -1;
@@ -327,6 +308,18 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 
 		offset += ret;
 	}
+	else {
+		// If all frames are duplicates this can happen, but let's avoid having the whole stats area change height
+		ret = snprintf(&output[offset],
+					   length - offset,
+					   "Host processing latency min/max/avg: -/-/- ms\n");
+		if (ret < 0 || ret >= length - offset) {
+			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			return;
+		}
+
+		offset += ret;
+	}
 
 	if (stats.renderedFrames != 0) {
 		char rttString[32];
@@ -341,14 +334,16 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 		ret = snprintf(&output[offset],
 					   length - offset,
 					   "Frames dropped by your network connection: %.2f%%\n"
+					   "Frames dropped due to network jitter: %.2f%%\n"
 					   "Average network latency: %s\n"
 					   "Average reassembly/decoding time: %.2f/%.2f ms\n"
-					   "Average frametime: %.2f ms\n",
-					   (double)stats.networkDroppedFrames / stats.totalFrames * 100,
+					   "Average render time: %.2f ms\n",
+					   stats.totalFrames ? (double)stats.networkDroppedFrames / stats.totalFrames * 100 : 0.0f,
+					   stats.totalFrames ? (double)stats.pacerDroppedFrames / stats.totalFrames * 100 : 0.0f,
 					   rttString,
-					   (double)stats.totalReassemblyTime / stats.decodedFrames,
-					   (double)stats.totalDecodeTime / stats.decodedFrames,
-					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames);
+					   stats.decodedFrames ? (double)stats.totalReassemblyTime / stats.decodedFrames : 0.0f,
+					   stats.decodedFrames ? (double)stats.totalDecodeTime / stats.decodedFrames : 0.0f,
+					   stats.renderedFrames ? (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames : 0.0f);
 		if (ret < 0 || ret >= length - offset) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
@@ -356,18 +351,4 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 
 		offset += ret;
 	}
-
-#if defined(_DEBUG)
-	// Extra info only of interest to devs and not yet used for anything
-	ret = snprintf(&output[offset],
-					length - offset,
-					"dxRefreshCountDiff %d dxPresentCountDiff %d dxGlitchCount %d\n",
-					stats.dxRefreshCountDiff, stats.dxPresentCountDiff, stats.dxGlitchCount);
-	if (ret < 0 || ret >= length - offset) {
-		Utils::Log("Error: stringifyVideoStats length overflow\n");
-		return;
-	}
-
-	offset += ret;
-#endif
 }

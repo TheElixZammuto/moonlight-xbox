@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "FFMpegDecoder.h"
+#include "../Plot/ImGuiPlots.h"
 #include "StatsRenderer.h"
 
 #include <Common\DirectXHelper.h>
@@ -68,6 +69,9 @@ namespace moonlight_xbox_dx {
 		this->videoFormat = videoFormat;
 		this->width = width;
 		this->height = height;
+
+		this->frameDropTarget = 2; // user can modify this value
+		this->m_LastFrameNumber = 0;
 
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
@@ -195,6 +199,8 @@ namespace moonlight_xbox_dx {
 			free(ready_frames);
 			ready_frames = NULL;
 		}
+		m_LastFrameNumber = 0;
+		shouldUnlock = false;
 		Utils::Log("Decoding Clean\n");
 	}
 
@@ -203,7 +209,6 @@ namespace moonlight_xbox_dx {
 		VIDEO_FRAME_HANDLE frameHandle = nullptr;
 		bool status = LiWaitForNextVideoFrame(&frameHandle, &decodeUnit);
 		if (status == false)return false;
-		int n = LiGetPendingVideoFrames();
 		if (decodeUnit->fullLength > DECODER_BUFFER_SIZE) {
 			Utils::Log("(0) Decoder Buffer Size reached\n");
 			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
@@ -218,20 +223,15 @@ namespace moonlight_xbox_dx {
 		}
 
 		// Detect breaks in the frame sequence indicating dropped packets
-		static uint32_t lastFrameNumber = 0;
-		uint32_t droppedFrames = 0;
-		if (lastFrameNumber > 0) {
+		uint32_t droppedFramesNetwork = 0;
+		if (m_LastFrameNumber > 0 && decodeUnit->frameNumber > (m_LastFrameNumber + 1)) {
 			// Any frame number greater than m_LastFrameNumber + 1 represents a dropped frame
-			droppedFrames = decodeUnit->frameNumber - (lastFrameNumber + 1);
+			droppedFramesNetwork = decodeUnit->frameNumber - (m_LastFrameNumber + 1);
 		}
-		lastFrameNumber = decodeUnit->frameNumber;
+		m_LastFrameNumber = decodeUnit->frameNumber;
 
 		// track stats for a variety of things we can track at the same time
-		this->resources->GetStats()->SubmitVideoBytesAndReassemblyTime(
-			length,
-			(uint32_t)(decodeUnit->enqueueTimeMs - decodeUnit->receiveTimeMs),
-			decodeUnit->frameHostProcessingLatency,
-			droppedFrames);
+		this->resources->GetStats()->SubmitVideoBytesAndReassemblyTime(length, decodeUnit, droppedFramesNetwork);
 
 		int err;
 		err = Decode(ffmpeg_buffer, length);
@@ -270,17 +270,49 @@ namespace moonlight_xbox_dx {
 			return nullptr;
 		}
 		if (err == 0) {
+			AVFrame *frame = dec_frames[next_frame];
+
 			this->resources->GetStats()->SubmitDecodeMs((double)(av_gettime_relative() - decodeStartTime) / 1000.0);
-			//Smooth stream but keep queue small
-			if (LiGetPendingVideoFrames() > 1)return nullptr;
+
+			// Frame pacing (to be improved)
+			int dropTarget = this->frameDropTarget;
+			bool is_idr = (frame->pict_type == AV_PICTURE_TYPE_I) && (frame->flags & AV_FRAME_FLAG_KEY);
+			int pending = LiGetPendingVideoFrames();
+			bool shouldDrop = pending > dropTarget && !is_idr;
+			ImGuiPlots::instance().observeFloat(PLOT_DROPPED_PACER, shouldDrop ? 1 : 0);
+			if (shouldDrop) {
+				Utils::Logf("dropping frame because pending frame count %d > frame queue size %d\n", pending, dropTarget);
+				// Drop frame to reduce latency (unless it's an IDR frame)
+				this->resources->GetStats()->SubmitDroppedFrame(1);
+				av_frame_unref(frame);
+				return nullptr;
+			}
+
 			//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!
 			//Honestly this did take too much time of my life to care to make a better version
 			//If you want to fix this, have fun! (And hopefully you have Microsoft blessing/tools/support for that)
 			if (hackWait && LiGetPendingVideoFrames() < 2)moonlight_xbox_dx::usleep(12000);
-			AVFrame* frame = dec_frames[next_frame];
+
 			return frame;
 		}
 		return nullptr;
+	}
+
+	int FFMpegDecoder::ModifyFrameDropTarget(bool increase) {
+		int current = frameDropTarget;
+		if (increase) {
+			if (current >= 14) {
+				// decodeUnitQueue is 15, so our max here is 14
+				return current;
+			}
+			return ++frameDropTarget;
+		}
+		else {
+			if (current == 0) {
+				return current;
+			}
+			return --frameDropTarget;
+		}
 	}
 
 	//Helpers

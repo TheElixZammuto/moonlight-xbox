@@ -136,7 +136,7 @@
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <AppxPackageDir>C:\Progetti\moonlight-xbox-dx\AppPackages\moonlight-xbox-dx\</AppxPackageDir>
-	<PackageCertificateKeyFile>moonlight-xbox-dx_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateKeyFile>moonlight-xbox-dx_TemporaryKey.pfx</PackageCertificateKeyFile>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
@@ -242,7 +242,7 @@
     <ClCompile>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)\third_party\DirectXTK\inc;$(ProjectDir)vcpkg_installed\x64-uwp\include;$(IntermediateOutputPath);third_party\moonlight-common-c\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)\third_party\DirectXTK\inc;$(ProjectDir)vcpkg_installed\x64-uwp\include;$(IntermediateOutputPath);third_party\moonlight-common-c\src;third_party\imgui;third_party\imgui\backends;third_party\imgui-uwp\backends;third_party\implot;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
@@ -261,7 +261,7 @@
     <ClCompile>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)\third_party\DirectXTK\inc;$(ProjectDir)vcpkg_installed\x64-uwp\include;$(IntermediateOutputPath);third_party\moonlight-common-c\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)\third_party\DirectXTK\inc;$(ProjectDir)vcpkg_installed\x64-uwp\include;$(IntermediateOutputPath);third_party\moonlight-common-c\src;third_party\imgui;third_party\imgui\backends;third_party\imgui-uwp\backends;third_party\implot;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
@@ -326,6 +326,7 @@
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Common\imconfig.moonlight.h" />
     <ClInclude Include="Common\TextConsole.h" />
     <ClInclude Include="MoonlightWelcome.xaml.h">
       <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
@@ -334,6 +335,8 @@
       <DependentUpon>KeyboardControl.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Keyboard\KeyboardCommon.h" />
+    <ClInclude Include="Plot\ImGuiPlots.h" />
+    <ClInclude Include="Plot\PlotDesc.h" />
     <ClInclude Include="State\BandwidthTracker.h" />
     <ClInclude Include="State\MoonlightClient.h" />
     <ClInclude Include="State\Stats.h" />
@@ -370,6 +373,7 @@
     <ClInclude Include="Streaming\FFmpegDecoder.h" />
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
     <ClInclude Include="Utils.hpp" />
+    <ClInclude Include="Utils\FloatBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.xaml.cpp">
@@ -466,6 +470,7 @@
     <ClCompile Include="MoonlightWelcome.xaml.cpp">
       <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="Plot\ImGuiPlots.cpp" />
     <ClCompile Include="State\BandwidthTracker.cpp" />
     <ClCompile Include="State\MoonlightClient.cpp" />
     <ClCompile Include="State\Stats.cpp" />
@@ -507,7 +512,36 @@
     <ClCompile Include="Streaming\AudioPlayer.cpp" />
     <ClCompile Include="Streaming\FFmpegDecoder.cpp" />
     <ClCompile Include="Streaming\moonlight_xbox_dxMain.cpp" />
+    <ClCompile Include="third_party\imgui-uwp\backends\imgui_impl_uwp.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\backends\imgui_impl_dx11.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui_tables.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="Utils\FloatBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">

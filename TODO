@@ -2,12 +2,6 @@ Look into using a CoreWindow swapchain in fullscreen for VRR support
 
 Calculate bitrate algorithm from res/fps
 
-Remember stats enabled status in a host pref
-
 Changing vsync mode requires a full swapchain reset
-
-Look into GetFrameStatistics() and frame pacing techniques
-    https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-flip-model
-    See SubmitDXGIFrameStatistics() for more links
 
 When changing the Windows HDR calibration profile on the host, it causes the stream to reset and often switch to the wrong colorspace.

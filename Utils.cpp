@@ -39,7 +39,7 @@ namespace moonlight_xbox_dx {
 
 			return ref new Platform::String(NarrowToWideString(std::string_view(message.data())).c_str());
 		}
-    
+
     std::wstring GetCurrentTimestamp() {
 			auto now = system_clock::now().time_since_epoch();
 			auto min = duration_cast<minutes>(now) % 60;

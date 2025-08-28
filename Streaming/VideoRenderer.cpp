@@ -109,8 +109,6 @@ bool VideoRenderer::Render()
 		return true;
 	}
 	//Create a rendering texture
-	LARGE_INTEGER start;
-	QueryPerformanceCounter(&start);
 	FFMpegDecoder::getInstance()->shouldUnlock = false;
 	if (!FFMpegDecoder::getInstance()->SubmitDU()) {
 		return false;
