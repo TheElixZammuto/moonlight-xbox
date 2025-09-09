@@ -63,6 +63,7 @@ DX::DeviceResources::DeviceResources() :
 	m_d3dRenderTargetSize(),
 	m_dxgiFactoryFlags(0),
 	m_enableVsync(true),
+	m_frameLatencyWaitableObject(),
 	m_swapchainVsync(true),
 	m_forceTearing(false),
 	m_outputSize(),
@@ -249,7 +250,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
-			(m_enableVsync && !m_forceTearing) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+			0
 			);
 
 		Utils::Logf("ResizeBuffers() ALLOW_TEARING=%d\n", (m_enableVsync && !m_forceTearing) ? 0 : 1);
@@ -283,7 +284,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
 		swapChainDesc.BufferCount = 5;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = (m_enableVsync && !m_forceTearing) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+		swapChainDesc.Flags = 0;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -334,9 +335,9 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			swapChain.As(&m_swapChain)
 		);
 
-		// We must not call this for flip swapchains. It will counterintuitively
-		// increase latency by forcing our Present() to block on DWM even when
-		// DX::ThrowIfFailed(dxgiDevice->SetMaximumFrameLatency(1));
+		// This controls how GetFrameLatencyWaitableObject operates
+		//DX::ThrowIfFailed(m_swapChain->SetMaximumFrameLatency(1));
+		//m_frameLatencyWaitableObject = m_swapChain->GetFrameLatencyWaitableObject();
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread
@@ -693,11 +694,6 @@ void DX::DeviceResources::Present()
 	else {
 		DX::ThrowIfFailed(hr);
 	}
-
-	auto ffmpeg = moonlight_xbox_dx::FFMpegDecoder::getInstance();
-	if (ffmpeg != nullptr && ffmpeg->shouldUnlock) {
-		ffmpeg->mutex.unlock();
-	}
 }
 
 // This method determines the rotation between the display device's native orientation and the
@@ -755,6 +751,14 @@ DXGI_MODE_ROTATION DX::DeviceResources::ComputeDisplayRotation()
 	return rotation;
 }
 
+// Block the current thread until the swap chain has finished presenting.
+void DX::DeviceResources::WaitOnSwapChain()
+{
+	DWORD result = WaitForSingleObjectEx(
+	    m_frameLatencyWaitableObject,
+	    1000, // 1 second timeout (shouldn't ever occur)
+	    true);
+}
 
 //Thank you tunip3 for https://github.com/libretro/RetroArch/pull/13406/files
 //Check if we are running on Xbox

@@ -73,14 +73,15 @@ void StatsRenderer::RenderGraphs()
 	QueryPerformanceCounter(&t0);
 
 	// we malloc a buffer for each stat only once and reuse it each frame
-	assert(PlotCount == 6);
-	static float *buffers[6] = {
+	assert(PlotCount == 7);
+	static float *buffers[7] = {
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
-	    (float *)malloc(sizeof(float) * 512)};
+	    (float *)malloc(sizeof(float) * 512),
+		(float *)malloc(sizeof(float) * 512)};
 
 	ImGuiIO &io = ImGui::GetIO();
 
@@ -96,7 +97,7 @@ void StatsRenderer::RenderGraphs()
 	float itemSpacingX = ImGui::GetStyle().ItemSpacing.x;
 	float itemSpacingY = ImGui::GetStyle().ItemSpacing.y;
 	float row1Width = (3 * graphW) + (2 * itemSpacingX);
-	float totalHeight = (2 * graphH) + (2 * itemSpacingY) + 50;
+	float totalHeight = (3 * graphH) + (2 * itemSpacingY) + 50;
 
 	// Anchor window to top-right
 	ImVec2 windowPos(m_displayWidth - 10.0f, 10.0f); // 10px margin
@@ -171,6 +172,10 @@ void StatsRenderer::RenderGraphs()
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
 		draw_plot(row2[c], graphW, graphH);
 	}
+
+	// 3rd row for quickly graphing something if needed
+	// ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
+	// draw_plot(PLOT_ETC, graphW, graphH);
 
 	ImGui::End();
 

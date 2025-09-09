@@ -45,7 +45,7 @@ namespace moonlight_xbox_dx
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
-		std::unique_ptr<VideoRenderer> m_sceneRenderer;
+		std::shared_ptr<VideoRenderer> m_sceneRenderer;
 		std::unique_ptr<LogRenderer>   m_LogRenderer;
 		std::unique_ptr<StatsRenderer> m_statsTextRenderer;
 

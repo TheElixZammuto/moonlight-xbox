@@ -5,6 +5,10 @@
 #include "State\MoonlightClient.h"
 #include "State\StreamConfiguration.h"
 
+extern "C" {
+#include <libavcodec/avcodec.h>
+}
+
 namespace moonlight_xbox_dx
 {
 
@@ -26,7 +30,7 @@ namespace moonlight_xbox_dx
 		void Update(DX::StepTimer const& timer);
 		void scaleSourceToDestinationSurface(IRECT* src, IRECT* dst);
 		void screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, int viewportWidth, int viewportHeight);
-		bool Render();
+		bool Render(AVFrame* frame);
 		void bindColorConversion(AVFrame* frame);
 		void SetHDR(bool enabled);
 		void Stop();

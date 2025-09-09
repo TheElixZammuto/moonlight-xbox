@@ -27,6 +27,7 @@ namespace DX
 		void RegisterDeviceNotify(IDeviceNotify* deviceNotify);
 		void Trim();
 		void Present();
+		void WaitOnSwapChain();
 		void GetUWPPixelDimensions(uint32_t *width, uint32_t *height);
 		double GetUWPRefreshRate();
 		void SetForceTearing(bool forceTearing);
@@ -85,6 +86,7 @@ namespace DX
 		Microsoft::WRL::ComPtr<ID3D11Device3>			m_d3dDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext3>	m_d3dContext;
 		Microsoft::WRL::ComPtr<IDXGISwapChain4>			m_swapChain;
+		HANDLE                                          m_frameLatencyWaitableObject;
 
 		// Direct3D rendering objects. Required for 3D.
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>	m_d3dRenderTargetView;

@@ -233,20 +233,14 @@ void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::
 void StreamPage::increaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	int target = 2;
-	FFMpegDecoder* ffmpeg = FFMpegDecoder::getInstance();
-	if (ffmpeg) {
-		target = ffmpeg->ModifyFrameDropTarget(true); // true increases the value
-	}
+	target =  FFMpegDecoder::instance().ModifyFrameDropTarget(true); // true increases the value
 	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
 }
 
 void StreamPage::decreaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	int target = 2;
-	FFMpegDecoder* ffmpeg = FFMpegDecoder::getInstance();
-	if (ffmpeg) {
-		target = ffmpeg->ModifyFrameDropTarget(false); // false decreases the value
-	}
+	target = FFMpegDecoder::instance().ModifyFrameDropTarget(false); // false decreases the value
 	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
 }
 

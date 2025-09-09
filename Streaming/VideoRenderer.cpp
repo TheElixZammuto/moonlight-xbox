@@ -101,22 +101,19 @@ void VideoRenderer::Update(DX::StepTimer const& timer)
 
 bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
-bool VideoRenderer::Render()
+bool VideoRenderer::Render(AVFrame* frame)
 {
 	// Loading is asynchronous. Only draw geometry after it's loaded.
 	if (!m_loadingComplete)
 	{
 		return true;
 	}
-	//Create a rendering texture
-	FFMpegDecoder::getInstance()->shouldUnlock = false;
-	if (!FFMpegDecoder::getInstance()->SubmitDU()) {
-		return false;
-	}
-	AVFrame* frame = FFMpegDecoder::getInstance()->GetFrame();
-	if (frame == nullptr) {
-		return false;
-	}
+
+	FQLog("[%lld ms] rendering frame\n", frame->pts);
+
+	auto d3dcontext = m_deviceResources->GetD3DDeviceContext();
+	auto d3ddevice = m_deviceResources->GetD3DDevice();
+
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
 	D3D11_BOX box;
 	box.left = 0;
@@ -125,43 +122,33 @@ bool VideoRenderer::Render()
 	box.bottom = renderTextureDesc.Height;
 	box.front = 0;
 	box.back = 1;
-	if (frame->format != AV_PIX_FMT_D3D11) {
-		char msg[2048];
-		sprintf_s(msg, "Pixel format mismatch - got %d instead of D3D11!\n", frame->format);
-		Utils::Log(msg);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
-	}
-	else {
-		FFMpegDecoder::getInstance()->mutex.lock();
-		FFMpegDecoder::getInstance()->shouldUnlock = true;
-		ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
-		D3D11_TEXTURE2D_DESC ffmpegDesc;
-		ffmpegTexture->GetDesc(&ffmpegDesc);
-		int index = (int)(frame->data[1]);
-		box.right = std::min(renderTextureDesc.Width, ffmpegDesc.Width);
-		box.bottom = std::min(renderTextureDesc.Height, ffmpegDesc.Height);
-		renderTextureDesc.Format = ffmpegDesc.Format;
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
-		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
-	}
 
-	auto context = m_deviceResources->GetD3DDeviceContext();
+	ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
+	D3D11_TEXTURE2D_DESC ffmpegDesc;
+	ffmpegTexture->GetDesc(&ffmpegDesc);
+	int index = (int)(frame->data[1]);
+	box.right = std::min(renderTextureDesc.Width, ffmpegDesc.Width);
+	box.bottom = std::min(renderTextureDesc.Height, ffmpegDesc.Height);
+	renderTextureDesc.Format = ffmpegDesc.Format;
+	DX::ThrowIfFailed(d3ddevice->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
+	d3dcontext->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
+
 	UINT stride = sizeof(VERTEX);
 	UINT offset = 0;
-	context->IASetIndexBuffer(m_indexBuffer.Get(),
+	d3dcontext->IASetIndexBuffer(m_indexBuffer.Get(),
 		DXGI_FORMAT_R32_UINT,
 		0);
-	context->IASetVertexBuffers(
+	d3dcontext->IASetVertexBuffers(
 		0,
 		1,
 		m_vertexBuffer.GetAddressOf(),
 		&stride,
 		&offset
 	);
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->IASetInputLayout(m_inputLayout.Get());
+	d3dcontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	d3dcontext->IASetInputLayout(m_inputLayout.Get());
 	// Attach our vertex shader.
-	context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+	d3dcontext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
@@ -170,7 +157,7 @@ bool VideoRenderer::Render()
 		D3D11_SRV_DIMENSION_TEXTURE2D,
 		(renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R8_UNORM
 	);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(
+	DX::ThrowIfFailed(d3ddevice->CreateShaderResourceView(
 		renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()), "Luminance SRV Creation"
 	);
 
@@ -179,15 +166,15 @@ bool VideoRenderer::Render()
 		D3D11_SRV_DIMENSION_TEXTURE2D,
 		(renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R8G8_UNORM
 	);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(
+	DX::ThrowIfFailed(d3ddevice->CreateShaderResourceView(
 		renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation"
 	);
-	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
-	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
+	d3dcontext->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
+	d3dcontext->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
 
 	this->bindColorConversion(frame);
 
-	m_deviceResources->GetD3DDeviceContext()->DrawIndexed(6, 0, 0);
+	d3dcontext->DrawIndexed(6, 0, 0);
 
 	if (frame->color_trc != m_LastColorTrc) {
 		DXGI_COLOR_SPACE_TYPE colorspace = {};
@@ -566,14 +553,7 @@ void VideoRenderer::bindColorConversion(AVFrame* frame)
 
 void VideoRenderer::SetHDR(bool enabled)
 {
-	HRESULT hr;
-
-	// Do not try to render any frames while we're changing display modes
-	auto ffmpeg = FFMpegDecoder::getInstance();
-	if (ffmpeg != nullptr) {
-		ffmpeg->mutex.lock();
-		ffmpeg->shouldUnlock = false;
-	}
+	FFMpegDecoder::instance().mutex.lock();
 
 	if (enabled) {
 		SS_HDR_METADATA sunshineHdrMetadata;
@@ -591,12 +571,10 @@ void VideoRenderer::SetHDR(bool enabled)
 		client->SetDisplayHDR(false, SS_HDR_METADATA{});
 	}
 
-	if (ffmpeg != nullptr) {
-		ffmpeg->shouldUnlock = true;
-		ffmpeg->mutex.unlock();
-	}
+	FFMpegDecoder::instance().mutex.unlock();
 }
 
 void VideoRenderer::Stop() {
 	// nothing to do
 }
+

@@ -85,3 +85,19 @@ static double QpcToMs(uint64_t qpc) {
             Utils::Logf(fmt, ##__VA_ARGS__);                 \
         });                                                  \
     } while (0)
+
+// Frame queue debugging
+#if !defined(NDEBUG)
+//#define FRAME_QUEUE_VERBOSE
+#endif
+
+#ifdef FRAME_QUEUE_VERBOSE
+	#define FQLog(fmt, ...) \
+		moonlight_xbox_dx::Utils::Logf("[%d] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+#else
+  	#if defined(_MSC_VER)
+    	#define FQLog(...) __noop
+  	#else
+		#define FQLog(fmt, ...) do {} while(0)
+	#endif
+#endif

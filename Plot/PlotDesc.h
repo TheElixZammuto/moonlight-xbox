@@ -11,6 +11,7 @@ enum PlotType
 	PLOT_DROPPED_NETWORK,
 	PLOT_DROPPED_PACER,
 	PLOT_OVERHEAD,
+	PLOT_ETC,
 	PlotCount
 };
 
@@ -34,10 +35,11 @@ struct PlotDesc
 
 // clang-format off
 inline constexpr std::array<PlotDesc, PlotCount> kPlotDescs = {{
-    {"Frametime",                      PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1, 50.0, 0.0, 49.9},
-    {"Host Frametime",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1, 50.0, 0.0, 49.9},
-    {"Queued Frames",                  PLOT_LABEL_MIN_MAX_AVG,   "", -1.0, 10.0, 0.0, 0.0},
-    {"Dropped Frames (network)",       PLOT_LABEL_TOTAL_INT,     "", -1.0, 3.0, 0.0, 0.0},
-    {"Dropped Frames (pacing queue)",  PLOT_LABEL_TOTAL_INT,     "", -1.0, 3.0, 0.0, 0.0},
-    {"Graph overhead",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1, 6.0, 0.0, 0.0},
+    {"Frametime",                      PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 49.9f},
+    {"Host Frametime",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 49.9f},
+    {"Queued Frames",                  PLOT_LABEL_MIN_MAX_AVG,   "", -1.0f, 10.0f, 0.0f, 0.0f},
+    {"Dropped Frames (network)",       PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
+    {"Dropped Frames (pacing queue)",  PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
+    {"Graph overhead",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 6.0f, 0.0f, 0.0f},
+	{"Etc...",                         PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 49.9f},
 }};

@@ -25,6 +25,8 @@ ImGuiPlots::ImGuiPlots() :
         Plot(kPlotDescs[PLOT_DROPPED_NETWORK]),
         Plot(kPlotDescs[PLOT_DROPPED_PACER]),
         Plot(kPlotDescs[PLOT_OVERHEAD]),
+
+        Plot(kPlotDescs[PLOT_ETC]),
     }}
 {
 }

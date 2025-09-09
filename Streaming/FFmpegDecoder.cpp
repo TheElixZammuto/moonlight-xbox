@@ -17,9 +17,49 @@ extern "C" {
 #include <libavutil/hwcontext_d3d11va.h>
 #include <libavutil/time.h>
 }
-#define DECODER_BUFFER_SIZE 1048576
+
+using namespace moonlight_xbox_dx;
+
+#define INITIAL_DECODER_BUFFER_SIZE (256 * 1024)
+
+static bool ensure_buf_size(unsigned char **buf, int *buf_size, int required_size)
+{
+	if (*buf_size >= required_size)
+		return true;
+
+	Utils::Logf("ensure_buf_size grew from %d -> %d\n", *buf_size, required_size);
+
+	*buf_size = required_size;
+	*buf = (unsigned char *)realloc(*buf, *buf_size);
+	if (!*buf) {
+		return false;
+	}
+
+	return true;
+}
 
 namespace moonlight_xbox_dx {
+	FFMpegDecoder &FFMpegDecoder::instance() {
+		static FFMpegDecoder inst;
+		return inst;
+	}
+
+	FFMpegDecoder::FFMpegDecoder():
+		width(0),
+		height(0),
+		videoFormat(0),
+		decoder(nullptr),
+		decoder_ctx(nullptr),
+		device_ctx(nullptr),
+		d3d11va_device_ctx(nullptr),
+		ffmpeg_buffer(nullptr),
+		ffmpeg_buffer_size(0),
+		resources(nullptr),
+		decodeStartTime(0),
+		frameDropTarget(2),
+		m_LastFrameNumber(0),
+		m_Pacer(nullptr) {
+	}
 
 	void lock_context(void* dec) {
 		auto ff = (FFMpegDecoder*)dec;
@@ -31,38 +71,28 @@ namespace moonlight_xbox_dx {
 		ff->mutex.unlock();
 	}
 
-	enum AVPixelFormat ffGetFormat(AVCodecContext* context, const enum AVPixelFormat* pixFmts)
-	{
-		FFMpegDecoder* d = ((FFMpegDecoder*)context->opaque);
-		const enum AVPixelFormat* p;
+	void ffmpeg_log_callback(void *ptr, int level, const char *fmt, va_list vl) {
+		char lineBuffer[1024];
+		static int printPrefix = 1;
 
-		for (p = pixFmts; *p != -1; p++) {
-			// Only match our hardware decoding codec or preferred SW pixel
-			// format (if not using hardware decoding). It's crucial
-			// to override the default get_format() which will try
-			// to gracefully fall back to software decode and break us.
-			if (*p == AV_PIX_FMT_D3D11) {
-				return *p;
-			}
+		if ((level & 0xFF) > av_log_get_level()) {
+			return;
 		}
 
+		// We need to use the *previous* printPrefix value to determine whether to
+		// print the prefix this time. av_log_format_line() will set the printPrefix
+		// value to indicate whether the prefix should be printed *next time*.
+		bool shouldPrefixThisMessage = printPrefix != 0;
 
-
-		return AV_PIX_FMT_NONE;
+		av_log_format_line(ptr, level, fmt, vl, lineBuffer, sizeof(lineBuffer), &printPrefix);
+		Utils::Logf(shouldPrefixThisMessage ? "[ffmpeg] %s" : "%s", lineBuffer);
 	}
 
-	void ffmpeg_log_callback(void* avcl, int	level, const char* fmt, va_list vl) {
-		if (level > AV_LOG_INFO) return;
+	void FFMpegDecoder::CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config) {
+		this->resources = res;
 
-		char message[2048];
-		vsprintf_s(message, fmt, vl);
-		OutputDebugStringA("[FFMPEG]");
-		OutputDebugStringA(message);
-		if (level <= AV_LOG_INFO) {
-			Utils::Log("[FFMPEG]");
-			Utils::Log(message);
-			Utils::Log("\n");
-		}
+		m_Pacer = std::make_unique<Pacer>(res);
+        m_Pacer->initialize(config->fps, res->GetRefreshRate());
 	}
 
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
@@ -72,15 +102,17 @@ namespace moonlight_xbox_dx {
 
 		this->frameDropTarget = 2; // user can modify this value
 		this->m_LastFrameNumber = 0;
+		this->ffmpeg_buffer_size = 0;
 
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
 		avcodec_register_all();
 #endif
-		av_log_set_level(AV_LOG_INFO);
+		// Increase log level until the first frame is decoded
+		av_log_set_level(AV_LOG_DEBUG);
+
 		av_log_set_callback(&ffmpeg_log_callback);
 #pragma warning(suppress : 4996)
-		av_init_packet(&pkt);
 
 		if (videoFormat & VIDEO_FORMAT_MASK_H264) {
 			decoder = avcodec_find_decoder(AV_CODEC_ID_H264);
@@ -125,7 +157,6 @@ namespace moonlight_xbox_dx {
 		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
 		decoder_ctx->width = width;
 		decoder_ctx->height = height;
-		decoder_ctx->get_format = ffGetFormat;
 
 		int err = avcodec_open2(decoder_ctx, decoder, NULL);
 		if (err < 0) {
@@ -134,33 +165,17 @@ namespace moonlight_xbox_dx {
 			Utils::Log(msg);
 			return err;
 		}
-		ffmpeg_buffer = (unsigned char*)malloc(DECODER_BUFFER_SIZE + AV_INPUT_BUFFER_PADDING_SIZE);
-		if (ffmpeg_buffer == NULL) {
-			Utils::Log("OOM\n");
+
+		if (decoder_ctx->pix_fmt != AV_PIX_FMT_D3D11) {
+    		Utils::Log("Warning: decoder did not select AV_PIX_FMT_D3D11\n");
+		}
+
+		if (!ensure_buf_size(&ffmpeg_buffer, &ffmpeg_buffer_size, INITIAL_DECODER_BUFFER_SIZE + AV_INPUT_BUFFER_PADDING_SIZE)) {
+			Utils::Log("Couldn't allocate initial ffmpeg_buffer\n");
 			Cleanup();
 			return -1;
 		}
-		int buffer_count = 2;
-		dec_frames_cnt = buffer_count;
-		dec_frames = (AVFrame**)malloc(buffer_count * sizeof(AVFrame*));
-		ready_frames = (AVFrame**)malloc(buffer_count * sizeof(AVFrame*));
-		if (dec_frames == NULL) {
-			Utils::Log("Cannot allocate Frames\n");
-			return -1;
-		}
 
-		for (int i = 0; i < buffer_count; i++) {
-			dec_frames[i] = av_frame_alloc();
-			if (dec_frames[i] == NULL) {
-				Utils::Log("Cannot allocate Frames\n");
-				return -1;
-			}
-			ready_frames[i] = av_frame_alloc();
-			if (ready_frames[i] == NULL) {
-				Utils::Log("Cannot allocate Frames\n");
-				return -1;
-			}
-		}
 		GAMING_DEVICE_MODEL_INFORMATION info = {};
 		GetGamingDeviceModelInformation(&info);
 		if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT &&
@@ -174,53 +189,36 @@ namespace moonlight_xbox_dx {
 		return 0;
 	}
 
-	void FFMpegDecoder::Start() {
-		Utils::Log("Decoding Started\n");
-	}
-
-	void FFMpegDecoder::Stop() {
-		Utils::Log("Decoding Stopped\n");
-	}
-
 	void FFMpegDecoder::Cleanup() {
-		if (dec_frames != NULL) {
-			for (int i = 0; i < dec_frames_cnt; i++) {
-				av_frame_free(&dec_frames[i]);
-			}
-			free(dec_frames);
-		}
-		avcodec_close(decoder_ctx);
 		avcodec_free_context(&decoder_ctx);
 		if (ffmpeg_buffer != NULL) {
 			free(ffmpeg_buffer);
 			ffmpeg_buffer = NULL;
-		}
-		if (ready_frames != NULL) {
-			free(ready_frames);
-			ready_frames = NULL;
+			ffmpeg_buffer_size = 0;
 		}
 		m_LastFrameNumber = 0;
-		shouldUnlock = false;
-		Utils::Log("Decoding Clean\n");
+		m_Pacer.reset(nullptr);
+
+		Utils::Log("FFMpegDecoder::Cleanup\n");
 	}
 
-	bool FFMpegDecoder::SubmitDU() {
-		PDECODE_UNIT decodeUnit = nullptr;
-		VIDEO_FRAME_HANDLE frameHandle = nullptr;
-		bool status = LiWaitForNextVideoFrame(&frameHandle, &decodeUnit);
-		if (status == false)return false;
-		if (decodeUnit->fullLength > DECODER_BUFFER_SIZE) {
-			Utils::Log("(0) Decoder Buffer Size reached\n");
-			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
-			return false;
-		}
+	// Called by the VideoDec thread
+	int FFMpegDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
 		PLENTRY entry = decodeUnit->bufferList;
-		uint32_t length = 0;
-		while (entry != NULL) {
-			memcpy(ffmpeg_buffer + length, entry->data, entry->length);
-			length += entry->length;
-			entry = entry->next;
+		int length = 0;
+		int64_t decodeStart = av_gettime_relative();
+
+		if (!ensure_buf_size(&ffmpeg_buffer, &ffmpeg_buffer_size, decodeUnit->fullLength + AV_INPUT_BUFFER_PADDING_SIZE)) {
+			Utils::Logf("Couldn't realloc ffmpeg_buffer\n");
+			return DR_NEED_IDR;
 		}
+
+	    while (entry != NULL) {
+		    memcpy(ffmpeg_buffer + length, entry->data, entry->length);
+		    length += entry->length;
+		    entry = entry->next;
+	    }
+		memset(ffmpeg_buffer + length, 0, AV_INPUT_BUFFER_PADDING_SIZE);
 
 		// Detect breaks in the frame sequence indicating dropped packets
 		uint32_t droppedFramesNetwork = 0;
@@ -233,69 +231,58 @@ namespace moonlight_xbox_dx {
 		// track stats for a variety of things we can track at the same time
 		this->resources->GetStats()->SubmitVideoBytesAndReassemblyTime(length, decodeUnit, droppedFramesNetwork);
 
-		int err;
-		err = Decode(ffmpeg_buffer, length);
+		// ffmpeg_decode
+		AVPacket *pkt = av_packet_alloc();
+		pkt->data = ffmpeg_buffer;
+		pkt->size = length;
+		int err = avcodec_send_packet(decoder_ctx, pkt);
+		av_packet_unref(pkt);
 		if (err < 0) {
-			LiCompleteVideoFrame(frameHandle, DR_NEED_IDR);
-			return false;
-		}
-		LiCompleteVideoFrame(frameHandle, DR_OK);
-		return true;
-	}
-
-	int FFMpegDecoder::Decode(unsigned char* indata, int inlen) {
-		int err;
-
-		pkt.data = indata;
-		pkt.size = inlen;
-		decodeStartTime = av_gettime_relative();
-		err = avcodec_send_packet(decoder_ctx, &pkt);
-		if (err < 0) {
-
-			char errorstringnew[2048], ffmpegError[1024];
+			char ffmpegError[1024];
 			av_strerror(err, ffmpegError, 1024);
-			sprintf(errorstringnew, "Error avcodec_send_packet: %s\n", ffmpegError);
-			Utils::Log(errorstringnew);
-			return err == 1 ? 0 : err;
+			Utils::Logf("avcodec_send_packet failed: %s\n", ffmpegError);
+			return DR_NEED_IDR;
 		}
-		return err < 0 ? err : 0;
-	}
 
-	AVFrame* FFMpegDecoder::GetFrame() {
-		int err = avcodec_receive_frame(decoder_ctx, dec_frames[next_frame]);
-		if (err != 0 && err != AVERROR(EAGAIN)) {
-			char errorstringnew[1024];
-			sprintf(errorstringnew, "Error avcodec_receive_frame: %d\n", AVERROR(err));
-			Utils::Log(errorstringnew);
-			return nullptr;
-		}
-		if (err == 0) {
-			AVFrame *frame = dec_frames[next_frame];
-
-			this->resources->GetStats()->SubmitDecodeMs((double)(av_gettime_relative() - decodeStartTime) / 1000.0);
-
-			// Frame pacing (to be improved)
-			int dropTarget = this->frameDropTarget;
-			bool is_idr = (frame->pict_type == AV_PICTURE_TYPE_I) && (frame->flags & AV_FRAME_FLAG_KEY);
-			int pending = LiGetPendingVideoFrames();
-			bool shouldDrop = pending > dropTarget && !is_idr;
-			ImGuiPlots::instance().observeFloat(PLOT_DROPPED_PACER, shouldDrop ? 1 : 0);
-			if (shouldDrop) {
-				Utils::Logf("dropping frame because pending frame count %d > frame queue size %d\n", pending, dropTarget);
-				// Drop frame to reduce latency (unless it's an IDR frame)
-				this->resources->GetStats()->SubmitDroppedFrame(1);
-				av_frame_unref(frame);
-				return nullptr;
+		for (;;) {
+			AVFrame* frame = av_frame_alloc();
+			err = avcodec_receive_frame(decoder_ctx, frame);
+		    if (err == AVERROR(EAGAIN)) {
+			    av_frame_free(&frame);
+			    break; // decoder needs more input before producing another frame
+		    }
+		    if (err == AVERROR_EOF) {
+			    av_frame_free(&frame);
+			    break;
+		    }
+		    if (err < 0) {
+				char ffmpegError[1024];
+				av_strerror(err, ffmpegError, sizeof(ffmpegError));
+				Utils::Logf("avcodec_receive_frame failed: %s\n", ffmpegError);
+				av_frame_free(&frame);
+				return DR_NEED_IDR;
 			}
 
-			//Not the best way to handle this. BUT IT DOES FIX XBOX ONES!!!!
-			//Honestly this did take too much time of my life to care to make a better version
-			//If you want to fix this, have fun! (And hopefully you have Microsoft blessing/tools/support for that)
-			if (hackWait && LiGetPendingVideoFrames() < 2)moonlight_xbox_dx::usleep(12000);
+			// Capture a frame timestamp to measuring pacing delay
+			LARGE_INTEGER(afterDecode);
+			QueryPerformanceCounter(&afterDecode);
+			frame->pkt_dts = afterDecode.QuadPart;
 
-			return frame;
+			// Store the presentation time
+			frame->pts = decodeUnit->presentationTimeMs;
+
+			// Queue the frame for rendering (or render now if pacer is disabled)
+			m_Pacer->submitFrame(frame);
 		}
-		return nullptr;
+
+		this->resources->GetStats()->SubmitDecodeMs(double(av_gettime_relative() - decodeStart) / 1000.0);
+
+		// Restore default log level after a successful decode
+		if (av_log_get_level() > 0) {
+			av_log_set_level(AV_LOG_QUIET);
+		}
+
+		return DR_OK;
 	}
 
 	int FFMpegDecoder::ModifyFrameDropTarget(bool increase) {
@@ -316,51 +303,41 @@ namespace moonlight_xbox_dx {
 	}
 
 	//Helpers
-	FFMpegDecoder* instance;
-
-	FFMpegDecoder* FFMpegDecoder::createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources) {
-		if (instance == NULL) {
-			instance = new FFMpegDecoder(resources);
-		}
-		return instance;
+	int initCallback(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) noexcept {
+		return FFMpegDecoder::instance().Init(videoFormat, width, height, redrawRate, context, drFlags);
 	}
 
-	FFMpegDecoder* getDecoderInstance() {
-		return instance;
+	void cleanupCallback()noexcept {
+		FFMpegDecoder::instance().Cleanup();
 	}
 
-	int initCallback(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
-		return instance->Init(videoFormat, width, height, redrawRate, context, drFlags);
-	}
-	void startCallback() {
-		instance->Start();
-	}
-	void stopCallback() {
-		instance->Stop();
-	}
-	void cleanupCallback() {
-		instance->Cleanup();
-		delete instance;
-		instance = NULL;
-	}
-
-	FFMpegDecoder* FFMpegDecoder::getInstance() {
-		return instance;
+	int submitDecodeUnit(PDECODE_UNIT decodeUnit) noexcept {
+		return FFMpegDecoder::instance().SubmitDecodeUnit(decodeUnit);
 	}
 
 	DECODER_RENDERER_CALLBACKS FFMpegDecoder::getDecoder() {
-		instance = FFMpegDecoder::getInstance();
 		DECODER_RENDERER_CALLBACKS decoder_callbacks_sdl;
 		LiInitializeVideoCallbacks(&decoder_callbacks_sdl);
 		decoder_callbacks_sdl.setup = initCallback;
-		decoder_callbacks_sdl.start = startCallback;
-		decoder_callbacks_sdl.stop = stopCallback;
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
-		decoder_callbacks_sdl.submitDecodeUnit = NULL;
-		decoder_callbacks_sdl.capabilities = CAPABILITY_PULL_RENDERER | CAPABILITY_INTRA_REFRESH;
+		decoder_callbacks_sdl.submitDecodeUnit = submitDecodeUnit;
+		decoder_callbacks_sdl.capabilities = CAPABILITY_DIRECT_SUBMIT | CAPABILITY_INTRA_REFRESH;
+		//decoder_callbacks_sdl.capabilities = CAPABILITY_DIRECT_SUBMIT | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC;
 		return decoder_callbacks_sdl;
 	}
 
 
 }
 
+void FFMpegDecoder::WaitForFrame() {
+	if (m_Pacer) {
+		m_Pacer->waitForFrame();
+	}
+}
+
+bool FFMpegDecoder::RenderFrameOnMainThread(std::shared_ptr<VideoRenderer>& sceneRenderer) {
+	if (m_Pacer) {
+    	return m_Pacer->renderOnMainThread(sceneRenderer);
+	}
+	return false;
+}

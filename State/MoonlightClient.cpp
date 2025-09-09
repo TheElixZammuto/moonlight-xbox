@@ -271,8 +271,10 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.setHdrMode = connection_set_hdr;
 	callbacks.rumble = connection_rumble;
 	//callbacks.rumbleTriggers = connection_trigger_rumble;
-	FFMpegDecoder::createDecoderInstance(res);
+
+	FFMpegDecoder::instance().CompleteInitialization(res, &config);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
+
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
 	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
 	sprintf(message, "LiStartConnection %d\n", k);

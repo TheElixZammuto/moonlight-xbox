@@ -3,6 +3,8 @@
 #include <atomic>
 #include <queue>
 #include "../Common/StepTimer.h"
+#include "Pacer.h"
+#include "VideoRenderer.h"
 
 extern "C" {
 	#include <Limelight.h>
@@ -18,39 +20,37 @@ namespace moonlight_xbox_dx
 
 	class FFMpegDecoder {
 	public:
-		FFMpegDecoder(std::shared_ptr<DX::DeviceResources> r) {
-			resources = r;
-		};
+		// Singleton accessor
+		static FFMpegDecoder &instance();
+
+		void CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config);
 		int Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags);
-		void Start();
-		void Stop();
 		void Cleanup();
-		bool SubmitDU();
-		AVFrame* GetFrame();
+		int SubmitDecodeUnit(PDECODE_UNIT decodeUnit);
 		int ModifyFrameDropTarget(bool increase);
+		void WaitForFrame();
+		bool RenderFrameOnMainThread(std::shared_ptr<VideoRenderer>& sceneRenderer);
 		static FFMpegDecoder* getInstance();
 		static DECODER_RENDERER_CALLBACKS getDecoder();
-		static FFMpegDecoder* createDecoderInstance(std::shared_ptr<DX::DeviceResources> resources);
 		std::recursive_mutex mutex;
-		bool shouldUnlock = false;
 		bool hackWait = false;
-		int videoFormat,width,height;
+		int videoFormat, width, height;
 
 	private:
-		int Decode(unsigned char* indata, int inlen);
-		AVPacket pkt;
+		FFMpegDecoder();
+		FFMpegDecoder(const FFMpegDecoder &) = delete;
+		FFMpegDecoder &operator=(const FFMpegDecoder &) = delete;
+
 		const AVCodec* decoder;
 		AVCodecContext* decoder_ctx;
 		AVHWDeviceContext* device_ctx;
 		AVD3D11VADeviceContext* d3d11va_device_ctx;
 		unsigned char* ffmpeg_buffer;
-		int dec_frames_cnt;
-		AVFrame** dec_frames;
-		AVFrame** ready_frames;
-		int next_frame, current_frame;
+		int ffmpeg_buffer_size;
 		std::shared_ptr<DX::DeviceResources> resources;
 		int64_t decodeStartTime;
 		std::atomic_int frameDropTarget;
-		uint32_t m_LastFrameNumber;
+		int m_LastFrameNumber;
+		std::unique_ptr<Pacer> m_Pacer;
 	};
 }

@@ -4,6 +4,7 @@
 #include "../Plot/ImGuiPlots.h"
 #include "Utils.hpp"
 #include <Pages/StreamPage.xaml.h>
+#include <Streaming\FFMpegDecoder.h>
 using namespace Windows::Gaming::Input;
 
 
@@ -40,7 +41,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
-	m_sceneRenderer = std::make_unique<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
+	m_sceneRenderer = std::make_shared<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
 
 	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
 
@@ -111,13 +112,15 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			while (action->Status == AsyncStatus::Started)
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
-				LARGE_INTEGER beforeRender, beforePresent;
+				LARGE_INTEGER beforeWait, afterWait, beforePresent;
 
+				FFMpegDecoder::instance().WaitForFrame();
 				Update();
-				QueryPerformanceCounter(&beforeRender);
+
+				// Make sure our use of D3D doesn't overlap with ffmpeg's hardware decoding
+				FFMpegDecoder::instance().mutex.lock();
 				if (Render()) {
 					QueryPerformanceCounter(&beforePresent);
-					m_stats->SubmitRenderTime(beforePresent.QuadPart - beforeRender.QuadPart);
 
 					static uint64_t lastPresentTime = 0;
 					if (lastPresentTime > 0) {
@@ -128,6 +131,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 					m_deviceResources->Present();
 				}
+				FFMpegDecoder::instance().mutex.unlock();
 			}
 		});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
@@ -375,7 +379,7 @@ bool moonlight_xbox_dxMain::Render()
 	}
 
 	// Render the scene objects.
-	bool shouldPresent = m_sceneRenderer->Render();
+	bool shouldPresent = FFMpegDecoder::instance().RenderFrameOnMainThread(m_sceneRenderer);
 	m_LogRenderer->Render();
 	m_statsTextRenderer->Render(showImGui);
 
