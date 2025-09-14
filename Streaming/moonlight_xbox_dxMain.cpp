@@ -142,7 +142,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 		{
 			// Target period = 1000hz
 			using clock = std::chrono::high_resolution_clock;
-			const auto period = std::chrono::microseconds(1000);
+			const auto period = std::chrono::microseconds(2000);
 			auto next = clock::now() + period;
 
 			// Calculate the updated frame and render once per vertical blanking interval.
@@ -370,7 +370,6 @@ void moonlight_xbox_dxMain::ProcessInput()
 			moonlightClient->SendGamepadReading(i, reading);
 		}
 		previousReading[i] = reading;
-		usleep(2000);
 	}
 }
 
