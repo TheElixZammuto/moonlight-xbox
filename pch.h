@@ -88,7 +88,7 @@ static double QpcToMs(uint64_t qpc) {
 
 // Frame queue debugging
 #if !defined(NDEBUG)
-//#define FRAME_QUEUE_VERBOSE
+#define FRAME_QUEUE_VERBOSE
 #endif
 
 #ifdef FRAME_QUEUE_VERBOSE

@@ -5,6 +5,7 @@
 #include "../Common/StepTimer.h"
 #include "Pacer.h"
 #include "VideoRenderer.h"
+#include "Utils.hpp"
 
 extern "C" {
 	#include <Limelight.h>
@@ -48,9 +49,26 @@ namespace moonlight_xbox_dx
 		unsigned char* ffmpeg_buffer;
 		int ffmpeg_buffer_size;
 		std::shared_ptr<DX::DeviceResources> resources;
-		int64_t decodeStartTime;
 		std::atomic_int frameDropTarget;
 		int m_LastFrameNumber;
 		std::unique_ptr<Pacer> m_Pacer;
 	};
+}
+
+inline void LOCK_D3D(const char *msg) {
+#if !defined(NDEBUG)
+	LARGE_INTEGER t0, t1;
+	QueryPerformanceCounter(&t0);
+#endif
+
+	FFMpegDecoder::instance().mutex.lock();
+
+#if !defined(NDEBUG)
+	QueryPerformanceCounter(&t1);
+	Utils::Logf("%s acquired lock_context in %.3f ms\n", msg, QpcToMs(t1.QuadPart - t0.QuadPart));
+#endif
+}
+
+inline void UNLOCK_D3D() {
+	FFMpegDecoder::instance().mutex.unlock();
 }

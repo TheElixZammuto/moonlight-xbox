@@ -27,7 +27,7 @@ static bool ensure_buf_size(unsigned char **buf, int *buf_size, int required_siz
 	if (*buf_size >= required_size)
 		return true;
 
-	Utils::Logf("ensure_buf_size grew from %d -> %d\n", *buf_size, required_size);
+	FQLog("ensure_buf_size grew from %d -> %d\n", *buf_size, required_size);
 
 	*buf_size = required_size;
 	*buf = (unsigned char *)realloc(*buf, *buf_size);
@@ -55,20 +55,17 @@ namespace moonlight_xbox_dx {
 		ffmpeg_buffer(nullptr),
 		ffmpeg_buffer_size(0),
 		resources(nullptr),
-		decodeStartTime(0),
 		frameDropTarget(2),
 		m_LastFrameNumber(0),
 		m_Pacer(nullptr) {
 	}
 
-	void lock_context(void* dec) {
-		auto ff = (FFMpegDecoder*)dec;
-		ff->mutex.lock();
+	void lock_context(void*) {
+		LOCK_D3D("ffmpeg");
 	}
 
-	void unlock_context(void* dec) {
-		auto ff = (FFMpegDecoder*)dec;
-		ff->mutex.unlock();
+	void unlock_context(void*) {
+		UNLOCK_D3D();
 	}
 
 	void ffmpeg_log_callback(void *ptr, int level, const char *fmt, va_list vl) {
@@ -142,7 +139,7 @@ namespace moonlight_xbox_dx {
 		d3d11va_device_ctx->device_context = this->resources->GetD3DDeviceContext();
 		d3d11va_device_ctx->lock = lock_context;
 		d3d11va_device_ctx->unlock = unlock_context;
-		d3d11va_device_ctx->lock_ctx = this;
+		d3d11va_device_ctx->lock_ctx = nullptr;
 		int err2;
 		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
 			char msg[2048];
@@ -152,13 +149,15 @@ namespace moonlight_xbox_dx {
 
 		}
 
-		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-		decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
-		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
-		decoder_ctx->width = width;
-		decoder_ctx->height = height;
+	    decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+	    decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
+	    decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
+	    decoder_ctx->pkt_timebase.num = 1;
+	    decoder_ctx->pkt_timebase.den = 90000;
+	    decoder_ctx->width = width;
+	    decoder_ctx->height = height;
 
-		int err = avcodec_open2(decoder_ctx, decoder, NULL);
+	    int err = avcodec_open2(decoder_ctx, decoder, NULL);
 		if (err < 0) {
 			char msg[2048];
 			sprintf(msg, "Failed to create FFMpeg Codec: %d\n", err);
@@ -204,9 +203,12 @@ namespace moonlight_xbox_dx {
 
 	// Called by the VideoDec thread
 	int FFMpegDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
+		LARGE_INTEGER decodeStart, decodeEnd;
 		PLENTRY entry = decodeUnit->bufferList;
 		int length = 0;
-		int64_t decodeStart = av_gettime_relative();
+		QueryPerformanceCounter(&decodeStart);
+
+		FQLog("*** SubmitDecodeUnit(frame=%d, length=%d)\n", decodeUnit->frameNumber, decodeUnit->fullLength);
 
 		if (!ensure_buf_size(&ffmpeg_buffer, &ffmpeg_buffer_size, decodeUnit->fullLength + AV_INPUT_BUFFER_PADDING_SIZE)) {
 			Utils::Logf("Couldn't realloc ffmpeg_buffer\n");
@@ -223,7 +225,7 @@ namespace moonlight_xbox_dx {
 		// Detect breaks in the frame sequence indicating dropped packets
 		uint32_t droppedFramesNetwork = 0;
 		if (m_LastFrameNumber > 0 && decodeUnit->frameNumber > (m_LastFrameNumber + 1)) {
-			// Any frame number greater than m_LastFrameNumber + 1 represents a dropped frame
+			// Any frame number greater than m_LastFrameNumber + 1 represents a dropped fraFme
 			droppedFramesNetwork = decodeUnit->frameNumber - (m_LastFrameNumber + 1);
 		}
 		m_LastFrameNumber = decodeUnit->frameNumber;
@@ -235,6 +237,9 @@ namespace moonlight_xbox_dx {
 		AVPacket *pkt = av_packet_alloc();
 		pkt->data = ffmpeg_buffer;
 		pkt->size = length;
+		pkt->pts = (int64_t)decodeUnit->rtpTimestamp;
+		pkt->dts = pkt->pts;
+
 		int err = avcodec_send_packet(decoder_ctx, pkt);
 		av_packet_unref(pkt);
 		if (err < 0) {
@@ -243,19 +248,17 @@ namespace moonlight_xbox_dx {
 			Utils::Logf("avcodec_send_packet failed: %s\n", ffmpegError);
 			return DR_NEED_IDR;
 		}
+		FQLog("avcodec_send_packet size %d\n", length);
 
-		for (;;) {
+		while (err >= 0) {
 			AVFrame* frame = av_frame_alloc();
 			err = avcodec_receive_frame(decoder_ctx, frame);
-		    if (err == AVERROR(EAGAIN)) {
-			    av_frame_free(&frame);
-			    break; // decoder needs more input before producing another frame
-		    }
-		    if (err == AVERROR_EOF) {
-			    av_frame_free(&frame);
-			    break;
-		    }
-		    if (err < 0) {
+			if (err == AVERROR(EAGAIN) || err == AVERROR_EOF) {
+				FQLog("avcodec_receive_frame returned %d\n", err);
+				av_frame_free(&frame);
+				break;
+			}
+			else if (err < 0) {
 				char ffmpegError[1024];
 				av_strerror(err, ffmpegError, sizeof(ffmpegError));
 				Utils::Logf("avcodec_receive_frame failed: %s\n", ffmpegError);
@@ -264,18 +267,29 @@ namespace moonlight_xbox_dx {
 			}
 
 			// Capture a frame timestamp to measuring pacing delay
-			LARGE_INTEGER(afterDecode);
-			QueryPerformanceCounter(&afterDecode);
-			frame->pkt_dts = afterDecode.QuadPart;
+			QueryPerformanceCounter(&decodeEnd);
+			//frame->pkt_dts = decodeEnd.QuadPart;
 
 			// Store the presentation time
-			frame->pts = decodeUnit->presentationTimeMs;
+			//frame->pts = decodeUnit->presentationTimeMs;
 
 			// Queue the frame for rendering (or render now if pacer is disabled)
 			m_Pacer->submitFrame(frame);
+
+			double decodeTimeMs = QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart);
+			FQLog("avcodec_receive_frame got frame %3"PRId64" in %.3f ms (pts %llu)\n", decoder_ctx->frame_num, decodeTimeMs, frame->pts);
+			// if (decodeUnit->frameNumber > 200 && decodeTimeMs > 12.0f) {
+			// 	__debugbreak;
+			// 	assert(false);
+			// }
+
+			// Even though we have a valid frame, the ffmpeg API needs us to loop and call avcodec_receive_frame()
+			// again where we expect to get AVERROR(EAGAIN) and break out.
 		}
 
-		this->resources->GetStats()->SubmitDecodeMs(double(av_gettime_relative() - decodeStart) / 1000.0);
+		if (decodeEnd.QuadPart > decodeStart.QuadPart) {
+			this->resources->GetStats()->SubmitDecodeMs(QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart));
+		}
 
 		// Restore default log level after a successful decode
 		if (av_log_get_level() > 0) {

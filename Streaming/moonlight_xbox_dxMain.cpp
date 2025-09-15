@@ -118,7 +118,12 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				Update();
 
 				// Make sure our use of D3D doesn't overlap with ffmpeg's hardware decoding
-				FFMpegDecoder::instance().mutex.lock();
+				// LARGE_INTEGER t0, t1;
+				// FQLog("render loop before lock_context\n");
+				// QueryPerformanceCounter(&t0);
+				// FFMpegDecoder::instance().mutex.lock();
+				// QueryPerformanceCounter(&t1);
+				// FQLog("render loop acquired lock_context in %.3f ms\n", QpcToMs(t1.QuadPart - t0.QuadPart));
 				if (Render()) {
 					QueryPerformanceCounter(&beforePresent);
 
@@ -131,7 +136,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 					m_deviceResources->Present();
 				}
-				FFMpegDecoder::instance().mutex.unlock();
+				//FFMpegDecoder::instance().mutex.unlock();
+				//FQLog("render loop unlock context\n");
 			}
 		});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
@@ -384,25 +390,33 @@ bool moonlight_xbox_dxMain::Render()
 		return false;
 	}
 
+	LOCK_D3D("Clear");
 	Clear();
+	UNLOCK_D3D();
 
 	// Start the Dear ImGui frame, limited to only running at 60fps
 	bool showImGui = m_deviceResources->GetShowImGui();
 	if (showImGui) {
+		LOCK_D3D("ImGui 1");
 		ImGui_ImplDX11_NewFrame();
+		UNLOCK_D3D();
 		ImGui_ImplUwp_NewFrame(m_deviceResources->GetPixelWidth(), m_deviceResources->GetPixelHeight());
 		ImGui::NewFrame();
 	}
 
 	// Render the scene objects.
+	LOCK_D3D("Render");
 	bool shouldPresent = FFMpegDecoder::instance().RenderFrameOnMainThread(m_sceneRenderer);
 	m_LogRenderer->Render();
 	m_statsTextRenderer->Render(showImGui);
+	UNLOCK_D3D();
 
 	if (showImGui) {
 		RenderImGui();
 		ImGui::Render();
+		LOCK_D3D("ImGui 2");
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+		UNLOCK_D3D();
 	}
 
 	return shouldPresent;

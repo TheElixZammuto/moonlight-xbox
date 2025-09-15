@@ -652,6 +652,9 @@ void DX::DeviceResources::Present()
 {
 	HRESULT hr = E_FAIL;
 	DXGI_PRESENT_PARAMETERS parameters = { 0 };
+
+	LOCK_D3D("Present");
+
 	if (m_enableVsync) {
 		// This will still use vsync due to the lack of DXGI_PRESENT_ALLOW_TEARING
 		hr = m_swapChain->Present1(0, 0, &parameters);
@@ -672,6 +675,8 @@ void DX::DeviceResources::Present()
 
 	// Discard the contents of the depth stencil.
 	m_d3dContext->DiscardView1(m_d3dDepthStencilView.Get(), nullptr, 0);
+
+	UNLOCK_D3D();
 
 	// If the device was removed either by a disconnection or a driver upgrade, we
 	// must recreate all device resources.
