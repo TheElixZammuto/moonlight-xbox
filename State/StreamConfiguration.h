@@ -19,7 +19,6 @@ namespace moonlight_xbox_dx
 		property bool enableSOPS;
 		property bool enableStats;
 		property bool enableGraphs;
-		property bool forceTearing;
 	};
 
 	moonlight_xbox_dx::StreamConfiguration^ GetStreamConfig();

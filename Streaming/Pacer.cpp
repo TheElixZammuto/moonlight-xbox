@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Pacer.h"
+#include "FFmpegDecoder.h"
 #include "../Plot/ImGuiPlots.h"
 #include "Utils.hpp"
 
@@ -14,7 +15,8 @@ Pacer::Pacer(const std::shared_ptr<DX::DeviceResources>& res) :
     m_DeviceResources(res),
     m_Stopping(false),
     m_MaxVideoFps(0),
-    m_DisplayFps(0.0f)
+    m_DisplayFps(0.0f),
+    m_FrameDropTarget(1)
 {
 
 }
@@ -49,9 +51,6 @@ bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer>& sceneRenderer)
         if (!m_RenderQueue.empty()) {
             frame = std::move(m_RenderQueue.front());
             m_RenderQueue.pop_front();
-
-            FQLog("[<- pts %llu] dequeue frame, queue size %d\n",
-                frame->pts, m_RenderQueue.size());
         }
     }
 
@@ -82,21 +81,26 @@ void Pacer::renderFrame(std::shared_ptr<VideoRenderer>& sceneRenderer, AVFrame* 
     sceneRenderer->Render(frame);
     QueryPerformanceCounter(&afterRender);
 
-    m_DeviceResources->GetStats()->SubmitPacerTime(
-        beforeRender.QuadPart - frame->pkt_dts, // pkt_dts is afterDecode.QuadPart
-        afterRender.QuadPart - beforeRender.QuadPart);
+    if (frame->opaque_ref) {
+        MLFrameData *data = (MLFrameData *)frame->opaque_ref->data;
+
+        m_DeviceResources->GetStats()->SubmitPacerTime(
+            beforeRender.QuadPart - data->decodeEndQpc,
+            afterRender.QuadPart - beforeRender.QuadPart);
+    }
 
     av_frame_free(&frame);
 
     // Drop frames if we have too many queued up for a while
     m_FrameQueueLock.lock();
 
-    int frameDropTarget = 0;
+    // these were originally 0 and 2
+    int frameDropTarget = m_FrameDropTarget;
     for (int queueHistoryEntry : m_RenderQueueHistory) {
         if (queueHistoryEntry == 0) {
             // Be lenient as long as the queue length
             // resolves before the end of frame history
-            frameDropTarget = 2;
+            frameDropTarget += 2;
             break;
         }
     }
@@ -115,8 +119,8 @@ void Pacer::renderFrame(std::shared_ptr<VideoRenderer>& sceneRenderer, AVFrame* 
         AVFrame* frame = std::move(m_RenderQueue.front());
         m_RenderQueue.pop_front();
 
-		Utils::Logf("pacer queue %d > frame drop target %d, dropping oldest frame (pts %lld)\n",
-            m_RenderQueue.size() + 1, frameDropTarget, frame->pts);
+		FQLog("!! pacer queue overflow: %d > frame drop target %d, dropping oldest frame (pts %.3f ms)\n",
+            m_RenderQueue.size() + 1, frameDropTarget, (frame->pts / 90000.0) * 1000);
 		m_DeviceResources->GetStats()->SubmitDroppedFrame(1);
 
         // Drop the lock while we call av_frame_free()
@@ -142,8 +146,8 @@ void Pacer::dropFrameForEnqueue(std::deque<AVFrame*>& queue)
         AVFrame* frame = std::move(queue.front());
         queue.pop_front();
 
-        Utils::Logf("pacer queue full (%d), dropping oldest frame (pts %lld)\n",
-            queue.size() + 1, frame->pts);
+        FQLog("!! pacer queue full (%d), dropping oldest frame (pts %.3f ms)\n",
+            queue.size() + 1, (frame->pts / 90000.0) * 1000);
 		m_DeviceResources->GetStats()->SubmitDroppedFrame(1);
 
         av_frame_free(&frame);
@@ -166,9 +170,24 @@ void Pacer::submitFrame(AVFrame* frame)
 
         size_t queueSize = m_RenderQueue.size();
         ImGuiPlots::instance().observeFloat(PLOT_QUEUED_FRAMES, (float)queueSize);
-        FQLog("[-> pts %lld] enqueue frame, render queue size %d\n", frame->pts, queueSize);
     }
 
     // notify render loop of new frame
     m_RenderQueueNotEmpty.notify_one();
+}
+
+int Pacer::modifyFrameDropTarget(bool increase) {
+    int current = m_FrameDropTarget;
+    if (increase) {
+        if (current >= 5) {
+            return current;
+        }
+        return ++m_FrameDropTarget;
+    }
+    else {
+        if (current == 0) {
+            return current;
+        }
+        return --m_FrameDropTarget;
+    }
 }

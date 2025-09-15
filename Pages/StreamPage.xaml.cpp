@@ -142,7 +142,6 @@ void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::X
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
 	SetStreamConfig(configuration);
-	m_deviceResources->SetForceTearing(configuration->forceTearing);
 	if (configuration == nullptr)return;
 }
 
@@ -232,14 +231,14 @@ void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::
 
 void StreamPage::increaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	int target = 2;
+	int target = 1;
 	target =  FFMpegDecoder::instance().ModifyFrameDropTarget(true); // true increases the value
 	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
 }
 
 void StreamPage::decreaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	int target = 2;
+	int target = 1;
 	target = FFMpegDecoder::instance().ModifyFrameDropTarget(false); // false decreases the value
 	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
 }

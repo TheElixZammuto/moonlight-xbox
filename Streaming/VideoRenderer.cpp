@@ -109,7 +109,7 @@ bool VideoRenderer::Render(AVFrame* frame)
 		return true;
 	}
 
-	FQLog("[%lld ms] rendering frame\n", frame->pts);
+	//LOCK_D3D("VideoRenderer->Render");
 
 	auto d3dcontext = m_deviceResources->GetD3DDeviceContext();
 	auto d3ddevice = m_deviceResources->GetD3DDevice();
@@ -202,6 +202,8 @@ bool VideoRenderer::Render(AVFrame* frame)
 
         m_LastColorTrc = frame->color_trc;
     }
+
+	//UNLOCK_D3D();
 
 	return true;
 }

@@ -59,13 +59,11 @@ namespace ScreenRotation
 DX::DeviceResources::DeviceResources() :
 	m_backBufferFormat(DXGI_FORMAT_R10G10B10A2_UNORM), // 10-bit for HDR
 	m_screenViewport(),
-	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_10_0),
+	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_11_1),
 	m_d3dRenderTargetSize(),
 	m_dxgiFactoryFlags(0),
 	m_enableVsync(true),
-	m_frameLatencyWaitableObject(),
 	m_swapchainVsync(true),
-	m_forceTearing(false),
 	m_outputSize(),
 	m_logicalSize(),
 	m_nativeOrientation(DisplayOrientations::None),
@@ -250,10 +248,8 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
-			0
+			m_enableVsync ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
 			);
-
-		Utils::Logf("ResizeBuffers() ALLOW_TEARING=%d\n", (m_enableVsync && !m_forceTearing) ? 0 : 1);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
 		{
@@ -284,7 +280,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
 		swapChainDesc.BufferCount = 5;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = 0;
+		swapChainDesc.Flags = m_enableVsync ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -315,29 +311,11 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			)
 		);
 
-		Utils::Logf("CreateSwapChainForComposition() ALLOW_TEARING=%d\n", (m_enableVsync && !m_forceTearing) ? 0 : 1);
-
-		// XXX This seems like the better type of swap chain with fullscreen support
-		// TODO: review https://github.com/ahmed605/imgui-uwp/blob/master/examples/example_uwp_directx11/main.cpp
-		// DX::ThrowIfFailed(
-		// 	dxgiFactory->CreateSwapChainForCoreWindow(
-		// 		m_d3dDevice.Get(),
-		// 		// reinterpret_cast<::IUnknown*>(winrt::get_abi(CoreWindow::GetForCurrentThread())), // compiles and crashes
-		// 		// reinterpret_cast<IUnknown*>(CoreWindow::GetForCurrentThread()), // this also compiles and crashes
-		//      winrt::get_unknown(CoreWindow::GetForCurrentThread()),
-		// 		&swapChainDesc,
-		// 		nullptr,
-		// 		&swapChain
-		// 	)
-		// );
+		Utils::Logf("Vsync: %s\n", m_enableVsync ? "enabled" : "disabled");
 
 		DX::ThrowIfFailed(
 			swapChain.As(&m_swapChain)
 		);
-
-		// This controls how GetFrameLatencyWaitableObject operates
-		//DX::ThrowIfFailed(m_swapChain->SetMaximumFrameLatency(1));
-		//m_frameLatencyWaitableObject = m_swapChain->GetFrameLatencyWaitableObject();
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread
@@ -529,11 +507,6 @@ void DX::DeviceResources::SetDpi(float dpi)
 	}
 }
 
-void DX::DeviceResources::SetForceTearing(bool forceTearing)
-{
-	m_forceTearing = forceTearing;
-}
-
 // This method is called in the event handler for the OrientationChanged event.
 void DX::DeviceResources::SetCurrentOrientation(DisplayOrientations currentOrientation)
 {
@@ -653,7 +626,7 @@ void DX::DeviceResources::Present()
 	HRESULT hr = E_FAIL;
 	DXGI_PRESENT_PARAMETERS parameters = { 0 };
 
-	LOCK_D3D("Present");
+	//LOCK_D3D("Present");
 
 	if (m_enableVsync) {
 		// This will still use vsync due to the lack of DXGI_PRESENT_ALLOW_TEARING
@@ -676,7 +649,7 @@ void DX::DeviceResources::Present()
 	// Discard the contents of the depth stencil.
 	m_d3dContext->DiscardView1(m_d3dDepthStencilView.Get(), nullptr, 0);
 
-	UNLOCK_D3D();
+	//UNLOCK_D3D();
 
 	// If the device was removed either by a disconnection or a driver upgrade, we
 	// must recreate all device resources.
@@ -754,15 +727,6 @@ DXGI_MODE_ROTATION DX::DeviceResources::ComputeDisplayRotation()
 		break;
 	}
 	return rotation;
-}
-
-// Block the current thread until the swap chain has finished presenting.
-void DX::DeviceResources::WaitOnSwapChain()
-{
-	DWORD result = WaitForSingleObjectEx(
-	    m_frameLatencyWaitableObject,
-	    1000, // 1 second timeout (shouldn't ever occur)
-	    true);
 }
 
 //Thank you tunip3 for https://github.com/libretro/RetroArch/pull/13406/files

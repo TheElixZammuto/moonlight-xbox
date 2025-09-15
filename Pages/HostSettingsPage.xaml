@@ -39,8 +39,6 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
-                <RowDefinition Height="auto"></RowDefinition>
-                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0">Resolution</TextBlock>
             <ComboBox x:Name="ResolutionSelector" SelectionChanged="ResolutionSelector_SelectionChanged" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind AvailableResolutions}" Width="200">
@@ -69,42 +67,27 @@
             <ComboBox Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}"  Grid.Row="6"  Grid.Column="1"></ComboBox>
             <TextBlock Grid.Row="7" Grid.Column="0" >Enable HDR:</TextBlock>
             <CheckBox Name="EnableHDRCheckbox" Grid.Row="7" Grid.Column="1" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}"></CheckBox>
-            <TextBlock Grid.Row="8" Grid.Column="0" >Optimize game settings:</TextBlock>
+            <TextBlock Grid.Row="8" Grid.Column="0" >Optimize host resolution:</TextBlock>
             <CheckBox Name="EnableSOPSCheckbox" Grid.Row="8" Grid.Column="1" IsChecked="{x:Bind Host.EnableSOPS,Mode=TwoWay}"></CheckBox>
 
-            <TextBlock Grid.Row="9" Grid.Column="0">Show performance stats:</TextBlock>
+            <TextBlock Grid.Row="9" Grid.Column="0">Enable V-Sync:</TextBlock>
+            <CheckBox Name="EnableVsyncCheckbox" Grid.Row="9" Grid.Column="1" IsChecked="{x:Bind Host.EnableVsync,Mode=TwoWay}"></CheckBox>
+
+            <TextBlock Grid.Row="10" Grid.Column="0">Show performance stats:</TextBlock>
             <CheckBox
-                Grid.Row="9" Grid.Column="1"
+                Grid.Row="10" Grid.Column="1"
                 x:Name="EnableStatsCheckbox"
                 IsChecked="{x:Bind Host.EnableStats, Mode=TwoWay}" />
 
-            <TextBlock Grid.Row="10" Grid.Column="0" >Show performance graphs:</TextBlock>
+            <TextBlock Grid.Row="11" Grid.Column="0" >Show performance graphs:</TextBlock>
             <CheckBox
-                Grid.Row="10" Grid.Column="1"
+                Grid.Row="11" Grid.Column="1"
                 x:Name="EnableGraphsCheckbox"
                 IsEnabled="{x:Bind Host.EnableStats, Mode=OneWay}"
                 IsChecked="{x:Bind Host.EnableGraphs, Mode=TwoWay}" />
 
-            <TextBlock Grid.Row="11" Grid.Column="0">Other:</TextBlock>
-            <Button Grid.Row="11" Grid.Column="1" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click">Open Global Settings</Button>
-            <Border Margin="0,8,0,8" Grid.Row="12" Grid.ColumnSpan="2">
-                <Border.Background>
-                    <SolidColorBrush Color="Orange"/>
-                </Border.Background>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Margin="8,8,4,8" VerticalAlignment="Center">
-                        <Run FontFamily="Segoe Fluent Icons" FontSize="32">&#xe946;</Run>
-                    </TextBlock>
-                    <TextBlock Margin="4,8,4,8" VerticalAlignment="Center">
-                       The settings below are experimental, edit these at your own risk!
-                    </TextBlock>
-                </StackPanel>
-
-            </Border>
-            <TextBlock Grid.Row="13" Grid.Column="0">Force Tearing:</TextBlock>
-            <CheckBox Name="ForceTearingCheckbox" Grid.Row="13" Grid.Column="1" IsChecked="{x:Bind Host.ForceTearing,Mode=TwoWay}"></CheckBox>
-            <TextBlock Grid.Row="14" Grid.Column="0">Enable V-Sync:</TextBlock>
-            <CheckBox Name="EnableVsyncCheckbox" Grid.Row="14" Grid.Column="1" IsChecked="{x:Bind Host.EnableVsync,Mode=TwoWay}"></CheckBox>
+            <TextBlock Grid.Row="12" Grid.Column="0">Other:</TextBlock>
+            <Button Grid.Row="12" Grid.Column="1" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click">Open Global Settings</Button>
         </Grid>
     </StackPanel>
     </ScrollViewer>

@@ -30,7 +30,6 @@ namespace DX
 		void WaitOnSwapChain();
 		void GetUWPPixelDimensions(uint32_t *width, uint32_t *height);
 		double GetUWPRefreshRate();
-		void SetForceTearing(bool forceTearing);
 		static int uwp_get_width();
 		static int uwp_get_height();
 
@@ -86,7 +85,6 @@ namespace DX
 		Microsoft::WRL::ComPtr<ID3D11Device3>			m_d3dDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext3>	m_d3dContext;
 		Microsoft::WRL::ComPtr<IDXGISwapChain4>			m_swapChain;
-		HANDLE                                          m_frameLatencyWaitableObject;
 
 		// Direct3D rendering objects. Required for 3D.
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>	m_d3dRenderTargetView;
@@ -127,7 +125,6 @@ namespace DX
 		DXGI_FORMAT                                     m_backBufferFormat;
 		bool                                            m_enableVsync;
 		bool                                            m_swapchainVsync;
-		bool                                            m_forceTearing;
 		bool                                            m_showImGui;
 		SyncMode                                        m_displayStatus;
 		std::shared_ptr<moonlight_xbox_dx::Stats>       m_stats;

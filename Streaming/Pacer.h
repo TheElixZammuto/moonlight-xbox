@@ -26,6 +26,8 @@ public:
 
     bool renderOnMainThread(std::shared_ptr<VideoRenderer>& sceneRenderer);
 
+    int modifyFrameDropTarget(bool increase);
+
 private:
     void renderFrame(std::shared_ptr<VideoRenderer>& sceneRenderer, AVFrame* frame);
 
@@ -39,4 +41,5 @@ private:
     std::atomic<bool> m_Stopping{false};
     int m_MaxVideoFps;
     double m_DisplayFps;
+    std::atomic_int m_FrameDropTarget;
 };

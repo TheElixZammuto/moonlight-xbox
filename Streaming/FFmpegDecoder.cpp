@@ -55,7 +55,7 @@ namespace moonlight_xbox_dx {
 		ffmpeg_buffer(nullptr),
 		ffmpeg_buffer_size(0),
 		resources(nullptr),
-		frameDropTarget(2),
+		m_FrameDropTarget(1),
 		m_LastFrameNumber(0),
 		m_Pacer(nullptr) {
 	}
@@ -97,7 +97,7 @@ namespace moonlight_xbox_dx {
 		this->width = width;
 		this->height = height;
 
-		this->frameDropTarget = 2; // user can modify this value
+		this->m_FrameDropTarget = 1; // user can modify this value
 		this->m_LastFrameNumber = 0;
 		this->ffmpeg_buffer_size = 0;
 
@@ -175,6 +175,14 @@ namespace moonlight_xbox_dx {
 			return -1;
 		}
 
+		// Put D3D11 in multithread-friendly mode
+		ID3D11Multithread *pMultithread = nullptr;
+		HRESULT hr = d3d11va_device_ctx->device->QueryInterface(__uuidof(ID3D11Multithread), (void **)&pMultithread);
+		if (SUCCEEDED(hr)) {
+			pMultithread->SetMultithreadProtected(TRUE);
+			pMultithread->Release();
+		}
+
 		GAMING_DEVICE_MODEL_INFORMATION info = {};
 		GetGamingDeviceModelInformation(&info);
 		if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT &&
@@ -201,14 +209,30 @@ namespace moonlight_xbox_dx {
 		Utils::Log("FFMpegDecoder::Cleanup\n");
 	}
 
-	// Called by the VideoDec thread
+    static inline int frame_attach_userdata(AVFrame *frame, uint32_t presentationTimeMs, int64_t decodeEndQpc) {
+	    if (!frame) return AVERROR(EINVAL);
+
+	    if (frame->opaque_ref) {
+		    av_buffer_unref(&frame->opaque_ref);
+	    }
+
+	    AVBufferRef *buf = av_buffer_allocz(sizeof(MLFrameData));
+	    if (!buf) return AVERROR(ENOMEM);
+
+	    MLFrameData *data = (MLFrameData *)buf->data;
+	    data->presentationTimeMs = presentationTimeMs;
+	    data->decodeEndQpc = decodeEndQpc;
+	    frame->opaque_ref = buf;
+
+	    return 0;
+    }
+
+    // Called by the VideoDec thread
 	int FFMpegDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
 		LARGE_INTEGER decodeStart, decodeEnd;
 		PLENTRY entry = decodeUnit->bufferList;
 		int length = 0;
 		QueryPerformanceCounter(&decodeStart);
-
-		FQLog("*** SubmitDecodeUnit(frame=%d, length=%d)\n", decodeUnit->frameNumber, decodeUnit->fullLength);
 
 		if (!ensure_buf_size(&ffmpeg_buffer, &ffmpeg_buffer_size, decodeUnit->fullLength + AV_INPUT_BUFFER_PADDING_SIZE)) {
 			Utils::Logf("Couldn't realloc ffmpeg_buffer\n");
@@ -225,7 +249,7 @@ namespace moonlight_xbox_dx {
 		// Detect breaks in the frame sequence indicating dropped packets
 		uint32_t droppedFramesNetwork = 0;
 		if (m_LastFrameNumber > 0 && decodeUnit->frameNumber > (m_LastFrameNumber + 1)) {
-			// Any frame number greater than m_LastFrameNumber + 1 represents a dropped fraFme
+			// Any frame number greater than m_LastFrameNumber + 1 represents a dropped frame
 			droppedFramesNetwork = decodeUnit->frameNumber - (m_LastFrameNumber + 1);
 		}
 		m_LastFrameNumber = decodeUnit->frameNumber;
@@ -248,13 +272,11 @@ namespace moonlight_xbox_dx {
 			Utils::Logf("avcodec_send_packet failed: %s\n", ffmpegError);
 			return DR_NEED_IDR;
 		}
-		FQLog("avcodec_send_packet size %d\n", length);
 
 		while (err >= 0) {
 			AVFrame* frame = av_frame_alloc();
 			err = avcodec_receive_frame(decoder_ctx, frame);
 			if (err == AVERROR(EAGAIN) || err == AVERROR_EOF) {
-				FQLog("avcodec_receive_frame returned %d\n", err);
 				av_frame_free(&frame);
 				break;
 			}
@@ -268,20 +290,17 @@ namespace moonlight_xbox_dx {
 
 			// Capture a frame timestamp to measuring pacing delay
 			QueryPerformanceCounter(&decodeEnd);
-			//frame->pkt_dts = decodeEnd.QuadPart;
-
-			// Store the presentation time
-			//frame->pts = decodeUnit->presentationTimeMs;
+			frame_attach_userdata(frame, decodeUnit->presentationTimeMs, decodeEnd.QuadPart);
 
 			// Queue the frame for rendering (or render now if pacer is disabled)
 			m_Pacer->submitFrame(frame);
 
 			double decodeTimeMs = QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart);
-			FQLog("avcodec_receive_frame got frame %3"PRId64" in %.3f ms (pts %llu)\n", decoder_ctx->frame_num, decodeTimeMs, frame->pts);
-			// if (decodeUnit->frameNumber > 200 && decodeTimeMs > 12.0f) {
-			// 	__debugbreak;
-			// 	assert(false);
-			// }
+			FQLog("✓ Frame decoded [pts: %.3f] [in#: %d] [out#: %d] [lost: %d] %.3f ms\n",
+				(frame->pts / 90000.0) * 1000.0,
+				decodeUnit->frameNumber, decoder_ctx->frame_num,
+				decoder_ctx->frame_num - decodeUnit->frameNumber,
+				QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart));
 
 			// Even though we have a valid frame, the ffmpeg API needs us to loop and call avcodec_receive_frame()
 			// again where we expect to get AVERROR(EAGAIN) and break out.
@@ -300,20 +319,7 @@ namespace moonlight_xbox_dx {
 	}
 
 	int FFMpegDecoder::ModifyFrameDropTarget(bool increase) {
-		int current = frameDropTarget;
-		if (increase) {
-			if (current >= 14) {
-				// decodeUnitQueue is 15, so our max here is 14
-				return current;
-			}
-			return ++frameDropTarget;
-		}
-		else {
-			if (current == 0) {
-				return current;
-			}
-			return --frameDropTarget;
-		}
+		return m_Pacer->modifyFrameDropTarget(increase);
 	}
 
 	//Helpers

@@ -2,7 +2,7 @@ BasedOnStyle: LLVM
 UseTab: ForIndentation
 IndentWidth: 4
 TabWidth: 4
-BreakBeforeBraces: Mozilla
+BreakBeforeBraces: Attach
 ColumnLimit: 0
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true

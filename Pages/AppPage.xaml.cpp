@@ -74,7 +74,6 @@ void AppPage::Connect(int appId) {
 	config->enableSOPS = host->EnableSOPS;
 	config->enableStats = host->EnableStats;
 	config->enableGraphs = host->EnableGraphs;
-	config->forceTearing = host->ForceTearing;
 	if (config->enableHDR) {
 		host->VideoCodec = "HEVC (H.265)";
 	}
