@@ -43,36 +43,33 @@
 		)
 
 // Time helpers
-static uint64_t QpcToUs(uint64_t qpc) {
+static int64_t QpcFreq() {
 	static LARGE_INTEGER qpcFreq = {0, 0};
 	if (qpcFreq.QuadPart == 0) {
 		QueryPerformanceFrequency(&qpcFreq);
 	}
-
-	return (qpc / qpcFreq.QuadPart) * UINT64_C(1000000) +
-	       (qpc % qpcFreq.QuadPart) * UINT64_C(1000000) / qpcFreq.QuadPart;
+	return qpcFreq.QuadPart;
 }
 
-static uint64_t QpcToNs(uint64_t qpc) {
-    // Convert QPC units (1/perf_freq seconds) to nanoseconds. This will work
-    // without overflow because the QPC value is guaranteed not to roll-over
-    // within 100 years, so perf_freq must be less than 2.9*10^9.
-	static LARGE_INTEGER qpcFreq = {0, 0};
-	if (qpcFreq.QuadPart == 0) {
-		QueryPerformanceFrequency(&qpcFreq);
-	}
-
-    return (qpc / qpcFreq.QuadPart) * UINT64_C(1000000000) +
-           (qpc % qpcFreq.QuadPart) * UINT64_C(1000000000) / qpcFreq.QuadPart;
+static int64_t QpcToUs(int64_t qpc) {
+	int64_t qpcFreq = QpcFreq();
+	return (qpc / qpcFreq) * UINT64_C(1000000) +
+	       (qpc % qpcFreq) * UINT64_C(1000000) / qpcFreq;
 }
 
-static uint64_t QpcNsNow() {
-    LARGE_INTEGER perf_count;
-    QueryPerformanceCounter(&perf_count);
-    return QpcToNs(perf_count.QuadPart);
+static int64_t QpcToNs(int64_t qpc) {
+	int64_t qpcFreq = QpcFreq();
+	return (qpc / qpcFreq) * UINT64_C(1000000000) +
+	       (qpc % qpcFreq) * UINT64_C(1000000000) / qpcFreq;
 }
 
-static double QpcToMs(uint64_t qpc) {
+static int64_t QpcNsNow() {
+	LARGE_INTEGER perf_count;
+	QueryPerformanceCounter(&perf_count);
+	return QpcToNs(perf_count.QuadPart);
+}
+
+static double QpcToMs(int64_t qpc) {
 	return (double)QpcToUs(qpc) / 1000.0f;
 }
 

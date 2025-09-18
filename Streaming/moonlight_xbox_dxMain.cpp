@@ -116,18 +116,10 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 				FFMpegDecoder::instance().WaitForFrame();
 				Update();
-
-				// Make sure our use of D3D doesn't overlap with ffmpeg's hardware decoding
-				// LARGE_INTEGER t0, t1;
-				// FQLog("render loop before lock_context\n");
-				// QueryPerformanceCounter(&t0);
-				// FFMpegDecoder::instance().mutex.lock();
-				// QueryPerformanceCounter(&t1);
-				// FQLog("render loop acquired lock_context in %.3f ms\n", QpcToMs(t1.QuadPart - t0.QuadPart));
 				if (Render()) {
 					QueryPerformanceCounter(&beforePresent);
 
-					static uint64_t lastPresentTime = 0;
+					static int64_t lastPresentTime = 0;
 					if (lastPresentTime > 0) {
 						double frametime = QpcToMs(beforePresent.QuadPart - lastPresentTime);
 						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, (float)frametime);
@@ -136,8 +128,6 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 					m_deviceResources->Present();
 				}
-				//FFMpegDecoder::instance().mutex.unlock();
-				//FQLog("render loop unlock context\n");
 			}
 		});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);

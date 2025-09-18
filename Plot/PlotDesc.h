@@ -9,7 +9,8 @@ enum PlotType
 	PLOT_HOST_FRAMETIME,
 	PLOT_QUEUED_FRAMES,
 	PLOT_DROPPED_NETWORK,
-	PLOT_DROPPED_PACER,
+	PLOT_DROPPED_PACER_BACK,
+	PLOT_DROPPED_PACER_FRONT,
 	PLOT_OVERHEAD,
 	PLOT_ETC,
 	PlotCount
@@ -39,7 +40,8 @@ inline constexpr std::array<PlotDesc, PlotCount> kPlotDescs = {{
     {"Host Frametime",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 49.9f},
     {"Queued Frames",                  PLOT_LABEL_MIN_MAX_AVG,   "", -1.0f, 10.0f, 0.0f, 0.0f},
     {"Dropped Frames (network)",       PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
-    {"Dropped Frames (pacing queue)",  PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
+    {"Dropped Frames (back pacing)",   PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
+    {"Dropped Frames (front pacing)",  PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
     {"Graph overhead",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 6.0f, 0.0f, 0.0f},
 	{"Etc...",                         PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 49.9f},
 }};

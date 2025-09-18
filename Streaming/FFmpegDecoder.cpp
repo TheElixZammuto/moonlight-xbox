@@ -55,7 +55,6 @@ namespace moonlight_xbox_dx {
 		ffmpeg_buffer(nullptr),
 		ffmpeg_buffer_size(0),
 		resources(nullptr),
-		m_FrameDropTarget(1),
 		m_LastFrameNumber(0),
 		m_Pacer(nullptr) {
 	}
@@ -97,7 +96,6 @@ namespace moonlight_xbox_dx {
 		this->width = width;
 		this->height = height;
 
-		this->m_FrameDropTarget = 1; // user can modify this value
 		this->m_LastFrameNumber = 0;
 		this->ffmpeg_buffer_size = 0;
 
@@ -296,8 +294,8 @@ namespace moonlight_xbox_dx {
 			m_Pacer->submitFrame(frame);
 
 			double decodeTimeMs = QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart);
-			FQLog("✓ Frame decoded [pts: %.3f] [in#: %d] [out#: %d] [lost: %d] %.3f ms\n",
-				(frame->pts / 90000.0) * 1000.0,
+			FQLog("✓ Frame decoded [pts: %.3f] [in#: %d] [out#: %d] [lost: %d] decode time %.3f ms\n",
+				frame->pts / 90.0,
 				decodeUnit->frameNumber, decoder_ctx->frame_num,
 				decoder_ctx->frame_num - decodeUnit->frameNumber,
 				QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart));

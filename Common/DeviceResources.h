@@ -60,6 +60,8 @@ namespace DX
 		ID3D11Device3*				GetD3DDevice() const					{ return m_d3dDevice.Get(); }
 		ID3D11DeviceContext3*		GetD3DDeviceContext() const				{ return m_d3dContext.Get(); }
 		IDXGISwapChain4*			GetSwapChain() const					{ return m_swapChain.Get(); }
+		IDXGIOutput*     			GetDXGIOutput() const					{ return m_dxgiOutput.Get(); }
+		HANDLE	    				GetFrameLatencyWaitable() const			{ return m_frameLatencyWaitable; }
 		auto                        GetDXGIFactory() const noexcept         { return m_dxgiFactory.Get(); }
 		D3D_FEATURE_LEVEL			GetDeviceFeatureLevel() const			{ return m_d3dFeatureLevel; }
 		ID3D11RenderTargetView1*	GetBackBufferRenderTargetView() const	{ return m_d3dRenderTargetView.Get(); }
@@ -85,6 +87,8 @@ namespace DX
 		Microsoft::WRL::ComPtr<ID3D11Device3>			m_d3dDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext3>	m_d3dContext;
 		Microsoft::WRL::ComPtr<IDXGISwapChain4>			m_swapChain;
+		Microsoft::WRL::ComPtr<IDXGIOutput>             m_dxgiOutput;
+		HANDLE                                          m_frameLatencyWaitable;
 
 		// Direct3D rendering objects. Required for 3D.
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>	m_d3dRenderTargetView;

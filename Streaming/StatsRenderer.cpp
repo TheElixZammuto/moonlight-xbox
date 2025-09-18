@@ -73,14 +73,15 @@ void StatsRenderer::RenderGraphs()
 	QueryPerformanceCounter(&t0);
 
 	// we malloc a buffer for each stat only once and reuse it each frame
-	assert(PlotCount == 7);
-	static float *buffers[7] = {
+	assert(PlotCount == 8);
+	static float *buffers[8] = {
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
+		(float *)malloc(sizeof(float) * 512),
 		(float *)malloc(sizeof(float) * 512)};
 
 	ImGuiIO &io = ImGui::GetIO();
@@ -167,15 +168,15 @@ void StatsRenderer::RenderGraphs()
 	}
 
 	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	const int row2[3] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER, PLOT_OVERHEAD};
+	const int row2[3] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER_BACK, PLOT_DROPPED_PACER_FRONT};
 	for (int c = 0; c < 3; ++c) {
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
 		draw_plot(row2[c], graphW, graphH);
 	}
 
 	// 3rd row for quickly graphing something if needed
-	// ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	// draw_plot(PLOT_ETC, graphW, graphH);
+	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
+	draw_plot(PLOT_OVERHEAD, graphW, graphH);
 
 	ImGui::End();
 

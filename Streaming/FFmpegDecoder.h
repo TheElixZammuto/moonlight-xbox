@@ -64,7 +64,7 @@ inline void LOCK_D3D(const char *msg) {
 	QueryPerformanceCounter(&t0);
 #endif
 
-	FFMpegDecoder::instance().mutex.lock();
+	moonlight_xbox_dx::FFMpegDecoder::instance().mutex.lock();
 
 #ifdef FRAME_QUEUE_VERBOSE
 	QueryPerformanceCounter(&t1);
@@ -73,5 +73,5 @@ inline void LOCK_D3D(const char *msg) {
 }
 
 inline void UNLOCK_D3D() {
-	FFMpegDecoder::instance().mutex.unlock();
+	moonlight_xbox_dx::FFMpegDecoder::instance().mutex.unlock();
 }

@@ -91,15 +91,12 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT deco
 	}
 	ImGuiPlots::instance().observeFloat(PLOT_DROPPED_NETWORK, droppedFrames);
 
-	// Host frametime graph
-	static unsigned int lastHostPts = 0;
+	// Host frametime graph, uses raw 90kHz units to avoid rounding errors
+	static uint32_t lastHostPts = 0;
 	if (lastHostPts > 0) {
-		ImGuiPlots::instance().observeFloat(PLOT_HOST_FRAMETIME, (float)(decodeUnit->presentationTimeMs - lastHostPts));
+		ImGuiPlots::instance().observeFloat(PLOT_HOST_FRAMETIME, (float)((decodeUnit->rtpTimestamp - lastHostPts) / 90.0f));
 	}
-	lastHostPts = decodeUnit->presentationTimeMs;
-
-	// Queued frames for graph
-	//ImGuiPlots::instance().observeFloat(PLOT_QUEUED_FRAMES, LiGetPendingVideoFrames());
+	lastHostPts = decodeUnit->rtpTimestamp;
 }
 
 // Time in milliseconds we spent decoding one frame, it is added up to later be divided by decodedFrames
@@ -117,12 +114,12 @@ void Stats::SubmitDroppedFrame(int count) {
 
 // Time in microseconds we spent in the frame pacer, and time for rendering the frame.
 // Also increments the rendered frame count.
-void Stats::SubmitPacerTime(uint64_t pacerTimeQpc, uint64_t renderTimeQpc) {
+void Stats::SubmitPacerTime(int64_t pacerTimeQpc, int64_t renderTimeQpc) {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	uint64_t pacerTimeUs = QpcToUs(pacerTimeQpc);
+	int64_t pacerTimeUs = QpcToUs(pacerTimeQpc);
 	m_ActiveWndVideoStats.totalPacerTimeUs += pacerTimeUs;
 
-	uint64_t renderTimeUs = QpcToUs(renderTimeQpc);
+	int64_t renderTimeUs = QpcToUs(renderTimeQpc);
 	m_ActiveWndVideoStats.totalRenderTimeUs += renderTimeUs;
 	m_ActiveWndVideoStats.renderedFrames++;
 }

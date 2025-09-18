@@ -243,12 +243,14 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	if (m_swapChain != nullptr)
 	{
 		// If the swap chain already exists, resize it.
+		int flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+		if (!m_enableVsync) flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		HRESULT hr = m_swapChain->ResizeBuffers(
 			2, // Double-buffered swap chain.
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
-			m_enableVsync ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+			flags
 			);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
@@ -280,7 +282,8 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
 		swapChainDesc.BufferCount = 5;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = m_enableVsync ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+		if (!m_enableVsync) swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -294,6 +297,9 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		DX::ThrowIfFailed(
 			dxgiDevice->GetAdapter(&dxgiAdapter)
 			);
+
+		DX::ThrowIfFailed(
+		    dxgiAdapter->EnumOutputs(0, &m_dxgiOutput));
 
 		ComPtr<IDXGIFactory4> dxgiFactory;
 		DX::ThrowIfFailed(
@@ -316,6 +322,9 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		DX::ThrowIfFailed(
 			swapChain.As(&m_swapChain)
 		);
+
+		//m_swapChain->SetMaximumFrameLatency(1);
+		m_frameLatencyWaitable = m_swapChain->GetFrameLatencyWaitableObject();
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread

@@ -55,7 +55,7 @@ namespace moonlight_xbox_dx
 		void SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT decodeUnit, uint32_t droppedFrames);
 		void SubmitDecodeMs(double decodeMs);
 		void SubmitDroppedFrame(int count);
-		void SubmitPacerTime(uint64_t pacerTimeQpc, uint64_t renderTimeQpc);
+		void SubmitPacerTime(int64_t pacerTimeQpc, int64_t renderTimeQpc);
 
 		void SetDisplayStatus(SyncMode status) { m_displayStatus = status; }
 
