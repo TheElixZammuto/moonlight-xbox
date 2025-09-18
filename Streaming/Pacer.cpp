@@ -342,7 +342,7 @@ void Pacer::submitFrame(AVFrame* frame)
         dropFrameForEnqueue(m_PacingQueue, PLOT_DROPPED_PACER_BACK);
         m_PacingQueue.push_back(frame);
 
-        size_t queueSize = m_RenderQueue.size();
+        size_t queueSize = m_PacingQueue.size();
         ImGuiPlots::instance().observeFloat(PLOT_QUEUED_FRAMES, (float)queueSize);
     }
 
