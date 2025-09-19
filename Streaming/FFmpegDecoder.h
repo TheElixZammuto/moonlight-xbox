@@ -32,6 +32,7 @@ class FFMpegDecoder {
 	int Init(int videoFormat, int width, int height, int redrawRate, void *context, int drFlags);
 	void Cleanup();
 	int SubmitDecodeUnit(PDECODE_UNIT decodeUnit);
+	int GetFrameDropTarget();
 	int ModifyFrameDropTarget(bool increase);
 	void WaitForFrame();
 	bool RenderFrameOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer);

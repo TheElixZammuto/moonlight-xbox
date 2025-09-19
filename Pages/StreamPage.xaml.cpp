@@ -231,15 +231,13 @@ void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::
 
 void StreamPage::increaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	int target = 1;
-	target =  FFMpegDecoder::instance().ModifyFrameDropTarget(true); // true increases the value
+	int target =  FFMpegDecoder::instance().ModifyFrameDropTarget(true); // true increases the value
 	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
 }
 
 void StreamPage::decreaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	int target = 1;
-	target = FFMpegDecoder::instance().ModifyFrameDropTarget(false); // false decreases the value
+	int target = FFMpegDecoder::instance().ModifyFrameDropTarget(false); // false decreases the value
 	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
 }
 
@@ -247,6 +245,9 @@ void StreamPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEve
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &StreamPage::OnBackRequested);
+
+	int target = FFMpegDecoder::instance().GetFrameDropTarget();
+	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
 }
 
 

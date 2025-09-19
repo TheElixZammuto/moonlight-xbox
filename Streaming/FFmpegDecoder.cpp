@@ -88,7 +88,7 @@ namespace moonlight_xbox_dx {
 		this->resources = res;
 
 		m_Pacer = std::make_unique<Pacer>(res);
-        m_Pacer->initialize(config->fps, res->GetRefreshRate());
+        m_Pacer->initialize(config->fps, res->GetRefreshRate(), false /* useVsyncThread */);
 	}
 
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
@@ -314,6 +314,13 @@ namespace moonlight_xbox_dx {
 		}
 
 		return DR_OK;
+	}
+
+	int FFMpegDecoder::GetFrameDropTarget() {
+		if (m_Pacer) {
+			return m_Pacer->getFrameDropTarget();
+		}
+		return 0;
 	}
 
 	int FFMpegDecoder::ModifyFrameDropTarget(bool increase) {

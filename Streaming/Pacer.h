@@ -20,11 +20,13 @@ public:
 
     void submitFrame(AVFrame* frame);
 
-    void initialize(int maxVideoFps, double refreshRate);
+    void initialize(int maxVideoFps, double refreshRate, bool useVsyncThread);
 
     void waitForFrame();
 
     bool renderOnMainThread(std::shared_ptr<moonlight_xbox_dx::VideoRenderer>& sceneRenderer);
+
+    int getFrameDropTarget();
 
     int modifyFrameDropTarget(bool increase);
 
@@ -53,5 +55,6 @@ private:
     std::atomic<bool> m_Stopping{false};
     int m_MaxVideoFps;
     double m_DisplayFps;
+    bool m_UseVsyncThread;
     std::atomic_int m_FrameDropTarget;
 };

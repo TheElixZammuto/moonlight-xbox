@@ -168,7 +168,7 @@ void StatsRenderer::RenderGraphs()
 	}
 
 	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	const int row2[3] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER_BACK, PLOT_DROPPED_PACER_FRONT};
+	const int row2[3] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER_FRONT, PLOT_OVERHEAD};
 	for (int c = 0; c < 3; ++c) {
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
 		draw_plot(row2[c], graphW, graphH);
@@ -176,7 +176,7 @@ void StatsRenderer::RenderGraphs()
 
 	// 3rd row for quickly graphing something if needed
 	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	draw_plot(PLOT_OVERHEAD, graphW, graphH);
+	draw_plot(PLOT_DROPPED_PACER_BACK, graphW, graphH);
 
 	ImGui::End();
 

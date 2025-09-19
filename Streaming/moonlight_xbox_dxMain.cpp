@@ -114,7 +114,6 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				critical_section::scoped_lock lock(m_criticalSection);
 				LARGE_INTEGER beforeWait, afterWait, beforePresent;
 
-				FFMpegDecoder::instance().WaitForFrame();
 				Update();
 				if (Render()) {
 					QueryPerformanceCounter(&beforePresent);
@@ -396,6 +395,7 @@ bool moonlight_xbox_dxMain::Render()
 
 	// Render the scene objects.
 	//LOCK_D3D("Render");
+	FFMpegDecoder::instance().WaitForFrame();
 	bool shouldPresent = FFMpegDecoder::instance().RenderFrameOnMainThread(m_sceneRenderer);
 	m_LogRenderer->Render();
 	m_statsTextRenderer->Render(showImGui);

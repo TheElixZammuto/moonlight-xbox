@@ -40,10 +40,12 @@ Pacer::~Pacer()
     m_Stopping = true;
     m_RenderQueueNotEmpty.notify_all();
 
-    // Stop the V-sync thread
-    m_PacingQueueNotEmpty.notify_all();
-    if (m_VsyncThread.joinable()) {
-        m_VsyncThread.join();
+    if (m_UseVsyncThread) {
+        // Stop the V-sync thread
+        m_PacingQueueNotEmpty.notify_all();
+        if (m_VsyncThread.joinable()) {
+            m_VsyncThread.join();
+        }
     }
 
     // Drain and free any remaining frames in both queues
@@ -67,21 +69,25 @@ Pacer::~Pacer()
     }
 }
 
-void Pacer::initialize(int maxVideoFps, double refreshRate)
+void Pacer::initialize(int maxVideoFps, double refreshRate, bool useVsyncThread)
 {
     m_MaxVideoFps = maxVideoFps;
     m_DisplayFps = refreshRate;
+    m_UseVsyncThread = useVsyncThread;
 
     Utils::Logf("Frame pacing: target %.2f Hz with %d FPS stream",
                 m_DisplayFps, m_MaxVideoFps);
 
-    // Start the dedicated vblank pacing thread once
-    if (!m_VsyncThread.joinable()) {
-        m_VsyncThread = std::thread(&Pacer::vsyncThread, this);
+    if (m_UseVsyncThread) {
+        // Start the dedicated vblank pacing thread
+        if (!m_VsyncThread.joinable()) {
+            m_VsyncThread = std::thread(&Pacer::vsyncThread, this);
+        }
     }
 }
 
-// Vsync thread
+// Vsync thread, this method needs a way to wait on vsync, and it's unclear how
+// to do this in UWP.
 
 void Pacer::vsyncThread()
 {
@@ -91,21 +97,13 @@ void Pacer::vsyncThread()
 
     while (!m_Stopping) {
         // See comments in waitForVsync()
+        waitForVsync();
 
-        LARGE_INTEGER beforeWait, afterWait;
-        // QueryPerformanceCounter(&beforeWait);
-        // waitForVsync();
-        // QueryPerformanceCounter(&afterWait);
-        // FQLog("waitForVsync() waited %.3f ms\n", QpcToMs(afterWait.QuadPart - beforeWait.QuadPart));
+        if (m_Stopping) {
+            break;
+        }
 
-        // if (m_Stopping) {
-        //     break;
-        // }
-
-        QueryPerformanceCounter(&beforeWait);
         handleVsync(1000.0 / m_DisplayFps);
-        QueryPerformanceCounter(&afterWait);
-        FQLog("handleVsync() waited %.3f ms\n", QpcToMs(afterWait.QuadPart - beforeWait.QuadPart));
     }
 }
 
@@ -118,7 +116,7 @@ void Pacer::waitForVsync()
     //m_DeviceResources->GetDXGIOutput()->WaitForVBlank();
 
     //HANDLE flw = m_DeviceResources->GetFrameLatencyWaitable();
-    //WaitForSingleObject(flw, 2000 /*ms timeout*/);
+    //WaitForSingleObjectEx(flw, 1000, true);
 }
 
 // Called in an arbitrary thread by the IVsyncSource on V-sync
@@ -319,8 +317,8 @@ void Pacer::dropFrameForEnqueue(std::deque<AVFrame*>& queue, int plotId)
         AVFrame* frame = std::move(queue.front());
         queue.pop_front();
 
-        FQLog("! pacing queue %d full (%d), dropping oldest frame (pts %.3f ms)\n",
-            plotId, queue.size() + 1, frame->pts / 90.0);
+        FQLog("! queue full (%d), dropping oldest frame (pts %.3f ms)\n",
+            queue.size() + 1, frame->pts / 90.0);
 		m_DeviceResources->GetStats()->SubmitDroppedFrame(1);
 
         av_frame_free(&frame);
@@ -335,19 +333,28 @@ void Pacer::submitFrame(AVFrame* frame)
     // Make sure initialize() has been called
     assert(m_MaxVideoFps != 0);
 
-    // Queue the frame and possibly wake up the render thread
-    {
-        std::scoped_lock<std::mutex> lock(m_FrameQueueLock);
+    if (m_UseVsyncThread) {
+        // Queue the frame and possibly wake up the render thread
+        {
+            std::scoped_lock<std::mutex> lock(m_FrameQueueLock);
 
-        dropFrameForEnqueue(m_PacingQueue, PLOT_DROPPED_PACER_BACK);
-        m_PacingQueue.push_back(frame);
+            dropFrameForEnqueue(m_PacingQueue, PLOT_DROPPED_PACER_BACK);
+            m_PacingQueue.push_back(frame);
 
-        size_t queueSize = m_PacingQueue.size();
-        ImGuiPlots::instance().observeFloat(PLOT_QUEUED_FRAMES, (float)queueSize);
+            size_t queueSize = m_PacingQueue.size();
+            ImGuiPlots::instance().observeFloat(PLOT_QUEUED_FRAMES, (float)queueSize);
+        }
+
+        // notify pacing loop of new frame
+        m_PacingQueueNotEmpty.notify_one();
     }
+    else {
+        enqueueFrameForRenderingAndUnlock(frame);
+    }
+}
 
-    // notify pacing loop of new frame
-    m_PacingQueueNotEmpty.notify_one();
+int Pacer::getFrameDropTarget() {
+    return m_FrameDropTarget;
 }
 
 int Pacer::modifyFrameDropTarget(bool increase) {
