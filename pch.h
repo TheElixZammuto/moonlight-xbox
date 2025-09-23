@@ -43,34 +43,35 @@
 		)
 
 // Time helpers
-static int64_t QpcFreq() {
-	static LARGE_INTEGER qpcFreq = {0, 0};
-	if (qpcFreq.QuadPart == 0) {
-		QueryPerformanceFrequency(&qpcFreq);
-	}
-	return qpcFreq.QuadPart;
+static inline int64_t QpcFreq() {
+    static int64_t f = []{
+        LARGE_INTEGER li{};
+        QueryPerformanceFrequency(&li);
+        return li.QuadPart;
+    }();
+    return f;
 }
 
-static int64_t QpcToUs(int64_t qpc) {
-	int64_t qpcFreq = QpcFreq();
-	return (qpc / qpcFreq) * UINT64_C(1000000) +
-	       (qpc % qpcFreq) * UINT64_C(1000000) / qpcFreq;
+static inline int64_t QpcNow() {
+    LARGE_INTEGER li{};
+    QueryPerformanceCounter(&li);
+    return li.QuadPart;
 }
 
-static int64_t QpcToNs(int64_t qpc) {
-	int64_t qpcFreq = QpcFreq();
-	return (qpc / qpcFreq) * UINT64_C(1000000000) +
-	       (qpc % qpcFreq) * UINT64_C(1000000000) / qpcFreq;
+static inline int64_t UsToQpc(int64_t us) {
+    const int64_t f = QpcFreq();
+    return (us / UINT64_C(1000000)) * f +
+	       (us % UINT64_C(1000000)) * f / UINT64_C(1000000);
 }
 
-static int64_t QpcNsNow() {
-	LARGE_INTEGER perf_count;
-	QueryPerformanceCounter(&perf_count);
-	return QpcToNs(perf_count.QuadPart);
+static inline int64_t QpcToUs(int64_t qpc) {
+	const int64_t f = QpcFreq();
+	return (qpc / f) * UINT64_C(1000000) +
+	       (qpc % f) * UINT64_C(1000000) / f;
 }
 
-static double QpcToMs(int64_t qpc) {
-	return (double)QpcToUs(qpc) / 1000.0f;
+static inline double QpcToMs(int64_t qpc) {
+	return (double)QpcToUs(qpc) / 1000.0;
 }
 
 // Log something only once, safe to use in hot areas of the code
@@ -86,7 +87,7 @@ static double QpcToMs(int64_t qpc) {
 
 // Frame queue debugging
 #if !defined(NDEBUG)
-#define FRAME_QUEUE_VERBOSE
+//#define FRAME_QUEUE_VERBOSE
 #endif
 
 #ifdef FRAME_QUEUE_VERBOSE

@@ -108,6 +108,10 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 	// Create a task that will be run on a background thread.
 	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action)
 		{
+			if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)) {
+        		Utils::Logf("Failed to set render thread priority: %d\n", GetLastError());
+    		}
+
 			// Calculate the updated frame and render once per vertical blanking interval.
 			while (action->Status == AsyncStatus::Started)
 			{
@@ -135,7 +139,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 	}
 	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action)
 		{
-			// Target period = 1000hz
+			// Target period = 2000hz
 			using clock = std::chrono::high_resolution_clock;
 			const auto period = std::chrono::microseconds(2000);
 			auto next = clock::now() + period;
@@ -395,8 +399,10 @@ bool moonlight_xbox_dxMain::Render()
 
 	// Render the scene objects.
 	//LOCK_D3D("Render");
+
 	FFMpegDecoder::instance().WaitForFrame();
 	bool shouldPresent = FFMpegDecoder::instance().RenderFrameOnMainThread(m_sceneRenderer);
+
 	m_LogRenderer->Render();
 	m_statsTextRenderer->Render(showImGui);
 	//UNLOCK_D3D();
@@ -419,11 +425,9 @@ void moonlight_xbox_dxMain::Clear()
 
 	// Clear the views.
 	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
-	auto depthStencil = m_deviceResources->GetDepthStencilView();
 
 	context->ClearRenderTargetView(renderTarget[0], Colors::Black);
-	context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	context->OMSetRenderTargets(1, renderTarget, depthStencil);
+	context->OMSetRenderTargets(1, renderTarget, nullptr);
 
 	// Set the viewport.
 	const auto viewport = m_deviceResources->GetScreenViewport();

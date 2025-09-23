@@ -88,7 +88,7 @@ namespace moonlight_xbox_dx {
 		this->resources = res;
 
 		m_Pacer = std::make_unique<Pacer>(res);
-        m_Pacer->initialize(config->fps, res->GetRefreshRate(), false /* useVsyncThread */);
+        m_Pacer->initialize(config->fps, res->GetRefreshRate());
 	}
 
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
@@ -297,7 +297,7 @@ namespace moonlight_xbox_dx {
 			FQLog("✓ Frame decoded [pts: %.3f] [in#: %d] [out#: %d] [lost: %d] decode time %.3f ms\n",
 				frame->pts / 90.0,
 				decodeUnit->frameNumber, decoder_ctx->frame_num,
-				decoder_ctx->frame_num - decodeUnit->frameNumber,
+				decodeUnit->frameNumber - decoder_ctx->frame_num,
 				QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart));
 
 			// Even though we have a valid frame, the ffmpeg API needs us to loop and call avcodec_receive_frame()

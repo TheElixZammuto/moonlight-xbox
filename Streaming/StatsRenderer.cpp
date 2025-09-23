@@ -161,22 +161,26 @@ void StatsRenderer::RenderGraphs()
 		ImGui::PopID();
 	};
 
-	const int row1[3] = {PLOT_FRAMETIME, PLOT_DROPPED_NETWORK, PLOT_QUEUED_FRAMES};
+	const int row1[3] = {PLOT_FRAMETIME, PLOT_DROPPED_NETWORK, PLOT_VSYNC_INTERVAL};
 	for (int c = 0; c < 3; ++c) {
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
 		draw_plot(row1[c], graphW, graphH);
 	}
 
 	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	const int row2[3] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER_FRONT, PLOT_OVERHEAD};
-	for (int c = 0; c < 3; ++c) {
+	const int row2[4] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER_FRONT, PLOT_DROPPED_PACER_BACK, PLOT_OVERHEAD};
+	for (int c = 0; c < 4; ++c) {
+		float width = graphW;
+		if (row2[c] == PLOT_DROPPED_PACER_FRONT || row2[c] == PLOT_DROPPED_PACER_BACK) {
+			width /= 2;
+		}
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
-		draw_plot(row2[c], graphW, graphH);
+		draw_plot(row2[c], width, graphH);
 	}
 
 	// 3rd row for quickly graphing something if needed
-	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	draw_plot(PLOT_DROPPED_PACER_BACK, graphW, graphH);
+	// ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
+	// draw_plot(PLOT_DROPPED_PACER_BACK, graphW, graphH);
 
 	ImGui::End();
 

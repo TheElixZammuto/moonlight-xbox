@@ -62,8 +62,8 @@ DX::DeviceResources::DeviceResources() :
 	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_11_1),
 	m_d3dRenderTargetSize(),
 	m_dxgiFactoryFlags(0),
-	m_enableVsync(true),
-	m_swapchainVsync(true),
+	m_enableVsync(false),
+	m_swapchainVsync(false),
 	m_outputSize(),
 	m_logicalSize(),
 	m_nativeOrientation(DisplayOrientations::None),
@@ -187,6 +187,8 @@ void DX::DeviceResources::CreateDeviceResources()
 
 	if (FAILED(hr))
 	{
+		DX::ThrowIfFailed(hr);
+
 		// If the initialization fails, fall back to the WARP device.
 		// For more information on WARP, see:
 		// https://go.microsoft.com/fwlink/?LinkId=286690
@@ -223,7 +225,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	ID3D11RenderTargetView* nullViews[] = {nullptr};
 	m_d3dContext->OMSetRenderTargets(ARRAYSIZE(nullViews), nullViews, nullptr);
 	m_d3dRenderTargetView = nullptr;
-	m_d3dDepthStencilView = nullptr;
 	m_d3dContext->Flush1(D3D11_CONTEXT_TYPE_ALL, nullptr);
 
 	UpdateRenderTargetSize();
@@ -280,7 +281,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.SampleDesc.Quality = 0;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
-		swapChainDesc.BufferCount = 5;
+		swapChainDesc.BufferCount = 3;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 		if (!m_enableVsync) swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
@@ -323,7 +324,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			swapChain.As(&m_swapChain)
 		);
 
-		//m_swapChain->SetMaximumFrameLatency(1);
+		m_swapChain->SetMaximumFrameLatency(2);
 		m_frameLatencyWaitable = m_swapChain->GetFrameLatencyWaitableObject();
 
 		// Associate swap chain with SwapChainPanel
@@ -412,34 +413,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			backBuffer.Get(),
 			nullptr,
 			&m_d3dRenderTargetView
-			)
-		);
-
-	// Create a depth stencil view for use with 3D rendering if needed.
-	CD3D11_TEXTURE2D_DESC1 depthStencilDesc(
-		DXGI_FORMAT_D24_UNORM_S8_UINT,
-		lround(m_d3dRenderTargetSize.Width),
-		lround(m_d3dRenderTargetSize.Height),
-		1, // This depth stencil view has only one texture.
-		1, // Use a single mipmap level.
-		D3D11_BIND_DEPTH_STENCIL
-		);
-
-	ComPtr<ID3D11Texture2D1> depthStencil;
-	DX::ThrowIfFailed(
-		m_d3dDevice->CreateTexture2D1(
-			&depthStencilDesc,
-			nullptr,
-			&depthStencil
-			)
-		);
-
-	CD3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc(D3D11_DSV_DIMENSION_TEXTURE2D);
-	DX::ThrowIfFailed(
-		m_d3dDevice->CreateDepthStencilView(
-			depthStencil.Get(),
-			&depthStencilViewDesc,
-			&m_d3dDepthStencilView
 			)
 		);
 
@@ -655,9 +628,6 @@ void DX::DeviceResources::Present()
 	// overwritten. If dirty or scroll rects are used, this call should be modified.
 	m_d3dContext->DiscardView1(m_d3dRenderTargetView.Get(), nullptr, 0);
 
-	// Discard the contents of the depth stencil.
-	m_d3dContext->DiscardView1(m_d3dDepthStencilView.Get(), nullptr, 0);
-
 	//UNLOCK_D3D();
 
 	// If the device was removed either by a disconnection or a driver upgrade, we
@@ -810,6 +780,7 @@ double DX::DeviceResources::GetUWPRefreshRate()
 	}
 	else {
 		// It seems difficult to get the refresh rate in Windows, TODO
+		refreshRate = 120.0;
 	}
 
 	return refreshRate;

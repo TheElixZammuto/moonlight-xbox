@@ -347,6 +347,7 @@
     <ClInclude Include="Common\StepTimer.h" />
     <ClInclude Include="Streaming\Pacer.h" />
     <ClInclude Include="Streaming\PacerCompat.h" />
+    <ClInclude Include="Streaming\PacerRational.h" />
     <ClInclude Include="Streaming\VideoRenderer.h" />
     <ClInclude Include="Streaming\LogRenderer.h" />
     <ClInclude Include="Streaming\ShaderStructures.h" />
@@ -382,6 +383,7 @@
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="Common\DirectXHelper.cpp" />
     <ClCompile Include="Common\TextConsole.cpp" />
     <ClCompile Include="Keyboard\kbda1.cpp" />
     <ClCompile Include="Keyboard\kbda2.cpp" />

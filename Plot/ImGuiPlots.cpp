@@ -21,7 +21,7 @@ ImGuiPlots::ImGuiPlots() :
     plots_{{
         Plot(kPlotDescs[PLOT_FRAMETIME]),
         Plot(kPlotDescs[PLOT_HOST_FRAMETIME]),
-        Plot(kPlotDescs[PLOT_QUEUED_FRAMES]),
+        Plot(kPlotDescs[PLOT_VSYNC_INTERVAL]),
         Plot(kPlotDescs[PLOT_DROPPED_NETWORK]),
         Plot(kPlotDescs[PLOT_DROPPED_PACER_BACK]),
         Plot(kPlotDescs[PLOT_DROPPED_PACER_FRONT]),
