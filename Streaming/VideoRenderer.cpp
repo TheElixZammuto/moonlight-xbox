@@ -58,8 +58,12 @@ static const float k_CscMatrix_Bt2020Full[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
 
 #define OFFSETS_ELEMENT_COUNT 3
 
+// 8-bit offsets
 static const float k_Offsets_Lim[OFFSETS_ELEMENT_COUNT] = { 16.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f };
 static const float k_Offsets_Full[OFFSETS_ELEMENT_COUNT] = { 0.0f, 128.0f / 255.0f, 128.0f / 255.0f };
+// 10-bit offsets
+static const float k_Offsets_10bit_Lim[OFFSETS_ELEMENT_COUNT] = { 64.0f / 1023.0f, 512.0f / 1023.0f, 512.0f / 1023.0f };
+static const float k_Offsets_10bit_Full[OFFSETS_ELEMENT_COUNT] = { 0.0f, 512.0f / 1023.0f, 512.0f / 1023.0f };
 
 typedef struct _CSC_CONST_BUF
 {
@@ -528,9 +532,13 @@ void VideoRenderer::bindColorConversion(AVFrame* frame)
 
 		// No adjustments are needed to the float[3] array of offsets, so it can just
 		// be copied with memcpy().
-		memcpy(constBuf.offsets,
-			fullRange ? k_Offsets_Full : k_Offsets_Lim,
-			sizeof(constBuf.offsets));
+		if (colorspace == COLORSPACE_REC_2020) {
+			// This is important to avoid tinting the image slightly
+			memcpy(constBuf.offsets, fullRange ? k_Offsets_10bit_Full : k_Offsets_10bit_Lim, sizeof(constBuf.offsets));
+		}
+		else {
+			memcpy(constBuf.offsets, fullRange ? k_Offsets_Full : k_Offsets_Lim, sizeof(constBuf.offsets));
+		}
 
 		D3D11_SUBRESOURCE_DATA constData = {};
 		constData.pSysMem = &constBuf;
