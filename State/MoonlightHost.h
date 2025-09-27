@@ -29,7 +29,7 @@ namespace moonlight_xbox_dx {
         bool enableSOPS = false;
         bool enableStats = false;
         bool enableGraphs = true;
-        bool enableVsync = true;
+        bool enableVsync = false;
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/

@@ -61,7 +61,7 @@ Pacer::Pacer(const std::shared_ptr<DX::DeviceResources> &res) :
     m_VsyncSeq(0),
     m_VsyncNextDeadlineQpc(0),
     m_Stopping(false),
-    m_MaxVideoFps(0),
+    m_StreamFps(0),
     m_RefreshRate(0.0),
     m_FrameDropTarget(0) {
 }
@@ -101,16 +101,24 @@ Pacer::~Pacer() {
 	}
 }
 
-void Pacer::initialize(int maxVideoFps, double refreshRate) {
-	m_MaxVideoFps = maxVideoFps;
+void Pacer::initialize(int streamFps, double refreshRate) {
+	m_StreamFps = streamFps;
 	m_RefreshRate = refreshRate;
 
 	Utils::Logf("Frame pacing: target %.2f Hz with %d FPS stream",
-	            m_RefreshRate, m_MaxVideoFps);
+	            m_RefreshRate, m_StreamFps);
 
-	// Start the timing emulator thread
-	if (!m_VsyncEmulator.joinable()) {
-		m_VsyncEmulator = std::thread(&Pacer::vsyncEmulator, this);
+	// If running on Xbox at 120hz, emulate the vsync interval
+	if (m_DeviceResources->isXbox() && m_StreamFps == 120) {
+		// Start the timing emulator thread
+		if (!m_VsyncEmulator.joinable()) {
+			m_VsyncEmulator = std::thread(&Pacer::vsyncEmulator, this);
+		}
+	} else {
+		// Much simpler hardware vsync thread
+		if (!m_VsyncEmulator.joinable()) {
+			m_VsyncEmulator = std::thread(&Pacer::vsyncHardware, this);
+		}
 	}
 
 	// Start the dedicated vblank pacing thread
@@ -156,6 +164,24 @@ static inline void SleepUntilQpc(int64_t targetQpc,
 	}
 }
 
+int64_t Pacer::measureVsyncQpc(int intervals) {
+	auto *out = m_DeviceResources->GetDXGIOutput();
+
+	// Align to a vblank edge and measure deltas
+	out->WaitForVBlank();
+	int64_t prev = QpcNow();
+	int64_t sum = 0;
+
+	for (int i = 0; i < intervals; ++i) {
+		out->WaitForVBlank();
+		const int64_t now = QpcNow();
+		sum += (now - prev);
+		prev = now;
+	}
+
+	return sum / intervals;
+}
+
 void Pacer::vsyncEmulator() {
 	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)) {
 		Utils::Logf("Failed to set vsyncEmulator priority: %d\n", GetLastError());
@@ -184,27 +210,41 @@ void Pacer::vsyncEmulator() {
 		break;
 	}
 
-	Utils::Logf("Pacer: emulating vsync for %.2fhz using integer rate %lu/%lu\n",
+	// measure system vsync rate so we stay in phase
+	// I experimented with having this run at 240hz but it doesn't seem necessary
+	int64_t systemVsyncQpc = measureVsyncQpc(8);
+	int32_t phase = (int32_t)(QpcToMs(systemVsyncQpc) / 1000.0 / (1.0 / ((double)hzNum / hzDen)) + 0.5); // e.g. 16.6 / 8.3 = 2
+
+	Utils::Logf("Pacer: hardware vsync interval %.2f ms\n", QpcToMs(systemVsyncQpc));
+	Utils::Logf("Pacer: using emulated vsync timer @ %.2f Hz using integer rate %lu/%lu\n",
 	            m_RefreshRate, hzNum, hzDen);
 
-	static constexpr int64_t remeasureEveryFrames = 3600; // 30s at 120hz
+	// 30s resync seems about right, on Series X it drifts about 0.3ms in this time
+	static constexpr int32_t remeasureEveryFrames = 120 * 30;
 	uint64_t frames = 0;
 	int64_t baseQpc = 0;
-	int64_t lastVsync = 0;
+	int32_t resyncInFrames = 0;
 
 	while (!stopping()) {
 		int64_t curDeadlineQpc = period.nextDeadlineQpc;
 
-		if (baseQpc == 0 || frames % remeasureEveryFrames == 0) {
+		if (resyncInFrames <= 0 && frames % phase == 0) {
 			// Align to a real vblank edge at startup and at regular intervals
 			m_DeviceResources->GetDXGIOutput()->WaitForVBlank();
 			baseQpc = QpcNow();
 			period.initFromHz(hzNum, hzDen, baseQpc);
 
+			if (curDeadlineQpc > 0) {
+				Utils::Logf("resync to hardware vsync, frame: %d, drift: %lld ticks (%.3f ms), phase: %d\n",
+					frames, period.nextDeadlineQpc - curDeadlineQpc, QpcToMs(period.nextDeadlineQpc - curDeadlineQpc), phase);
+			}
+
 			curDeadlineQpc = baseQpc;
+			resyncInFrames = remeasureEveryFrames;
 		} else {
 			// Emulate the vsync interval
 			SleepUntilQpc(period.nextDeadlineQpc);
+			--resyncInFrames;
 		}
 
 		// Compute next period
@@ -223,9 +263,41 @@ void Pacer::vsyncEmulator() {
 	}
 }
 
+void Pacer::vsyncHardware() {
+	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)) {
+		Utils::Logf("Failed to set vsyncHardware priority: %d\n", GetLastError());
+	}
+
+	// measure system vsync rate
+	int64_t systemVsyncQpc = measureVsyncQpc(8);
+	int64_t lastT0 = 0;
+
+	Utils::Logf("Pacer: using hardware vsync interval %.2f ms\n", QpcToMs(systemVsyncQpc));
+
+	while (!stopping()) {
+		// Align to a real vblank
+		m_DeviceResources->GetDXGIOutput()->WaitForVBlank();
+		const int64_t now = QpcNow();
+
+		// signal vsync thread, passing it the next deadline
+		{
+			std::lock_guard<std::mutex> lock(m_VsyncMutex);
+			++m_VsyncSeq;
+			m_VsyncNextDeadlineQpc = now + systemVsyncQpc;
+		}
+		m_VsyncSignalled.notify_one();
+
+		if (lastT0 > 0) {
+			ImGuiPlots::instance().observeFloat(PLOT_VSYNC_INTERVAL, (float)QpcToMs(now - lastT0));
+		}
+		lastT0 = now;
+	}
+
+}
+
 void Pacer::backPacer() {
 	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)) {
-		Utils::Logf("Failed to set vsyncThread priority: %d\n", GetLastError());
+		Utils::Logf("Failed to set backPacer priority: %d\n", GetLastError());
 	}
 
 	uint64_t seenSeq = 0;
@@ -251,12 +323,11 @@ void Pacer::backPacer() {
 		LARGE_INTEGER t0;
 		static int64_t lastT0 = 0;
 		QueryPerformanceCounter(&t0);
-		FQLog("vsyncThread interval %.3f ms\n", QpcToMs(t0.QuadPart - lastT0));
+		FQLog("backPacer interval %.3f ms\n", QpcToMs(t0.QuadPart - lastT0));
 		lastT0 = t0.QuadPart;
 	}
 }
 
-// XXX rename this
 void Pacer::handleVsync(int64_t nextDeadlineQpc) {
 	// Compute remaining time until the next edge, then subtract slack.
 	const int64_t now = QpcNow();
@@ -276,8 +347,7 @@ void Pacer::handleVsync(int64_t nextDeadlineQpc) {
 	// If we may get more frames per second than we can display, use
 	// frame history to drop frames only if consistently above the
 	// one queued frame mark.
-	// XXX this should match for 119.88 now
-	if (m_MaxVideoFps >= m_RefreshRate) {
+	if (m_StreamFps >= std::round(m_RefreshRate)) {
 		for (int queueHistoryEntry : m_PacingQueueHistory) {
 			if (queueHistoryEntry <= 1) {
 				// Be lenient as long as the queue length
@@ -432,7 +502,7 @@ void Pacer::frontPacer(std::shared_ptr<VideoRenderer> &sceneRenderer, AVFrame *f
 	}
 
 	// Keep a rolling 500 ms window of render queue history
-	if (m_RenderQueueHistory.size() == m_MaxVideoFps / 2) {
+	if (m_RenderQueueHistory.size() == m_StreamFps / 2) {
 		m_RenderQueueHistory.pop_front();
 	}
 
@@ -481,9 +551,6 @@ void Pacer::dropFrameForEnqueue(std::deque<AVFrame *> &queue, int plotId) {
 }
 
 void Pacer::submitFrame(AVFrame *frame) {
-	// Make sure initialize() has been called
-	assert(m_MaxVideoFps != 0);
-
 	// Queue the frame and possibly wake up the render thread
 	{
 		std::scoped_lock<std::mutex> lock(m_FrameQueueLock);

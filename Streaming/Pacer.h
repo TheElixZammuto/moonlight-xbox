@@ -29,7 +29,11 @@ class Pacer {
 	int modifyFrameDropTarget(bool increase);
 
   private:
+	int64_t measureVsyncQpc(int intervals);
+
 	void vsyncEmulator();
+
+	void vsyncHardware();
 
 	void backPacer();
 
@@ -60,7 +64,7 @@ class Pacer {
 	std::condition_variable m_RenderQueueNotEmpty;
 	std::condition_variable m_PacingQueueNotEmpty;
 	std::atomic<bool> m_Stopping{false};
-	int m_MaxVideoFps;
+	int m_StreamFps;
 	double m_RefreshRate;
 	std::atomic_int m_FrameDropTarget;
 };

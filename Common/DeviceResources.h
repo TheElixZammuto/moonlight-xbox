@@ -22,6 +22,7 @@ namespace DX
 		void SetCurrentOrientation(Windows::Graphics::Display::DisplayOrientations currentOrientation);
 		void SetDpi(float dpi);
 		void SetCompositionScale(float compositionScaleX, float compositionScaleY);
+		void SetVsync(bool enableVsync);
 		void ValidateDevice();
 		void HandleDeviceLost();
 		void RegisterDeviceNotify(IDeviceNotify* deviceNotify);
@@ -30,6 +31,7 @@ namespace DX
 		void WaitOnSwapChain();
 		void GetUWPPixelDimensions(uint32_t *width, uint32_t *height);
 		double GetUWPRefreshRate();
+		bool isXbox();
 		static int uwp_get_width();
 		static int uwp_get_height();
 

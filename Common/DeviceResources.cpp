@@ -241,13 +241,13 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	m_d3dRenderTargetSize.Width = normalizedWidth;
 	m_d3dRenderTargetSize.Height = normalizedHeight;
 
-	if (m_swapChain != nullptr)
+	if (m_swapChain != nullptr && m_enableVsync == m_swapchainVsync)
 	{
 		// If the swap chain already exists, resize it.
 		int flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 		if (!m_enableVsync) flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		HRESULT hr = m_swapChain->ResizeBuffers(
-			2, // Double-buffered swap chain.
+			0, // Don't change the number of buffers
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
@@ -511,6 +511,11 @@ void DX::DeviceResources::SetCompositionScale(float compositionScaleX, float com
 	}
 }
 
+void DX::DeviceResources::SetVsync(bool enableVsync)
+{
+	m_enableVsync = enableVsync;
+}
+
 // This method is called in the event handler for the DisplayContentsInvalidated event.
 void DX::DeviceResources::ValidateDevice()
 {
@@ -714,6 +719,19 @@ bool is_running_on_xbox(void)
 {
 	Platform::String^ device_family = Windows::System::Profile::AnalyticsInfo::VersionInfo->DeviceFamily;
 	return (device_family == L"Windows.Xbox");
+}
+
+bool DX::DeviceResources::isXbox()
+{
+	GAMING_DEVICE_MODEL_INFORMATION info;
+	if (FAILED(GetGamingDeviceModelInformation(&info))) {
+		return false;
+	}
+
+	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+		return true;
+	}
+	return false;
 }
 
 int DX::DeviceResources::uwp_get_height()

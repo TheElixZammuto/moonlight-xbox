@@ -218,15 +218,27 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.width = sConfig->width;
 	config.height = sConfig->height;
 	config.bitrate = sConfig->bitrate;
-	if (res->GetRefreshRate() > 0.0) {
-		// request stream matching our exact fractional refresh rate
-		config.clientRefreshRateX100 = (int)(res->GetRefreshRate() * 100.0);
-		Utils::Logf("Requesting stream with clientRefreshRateX100=%d for %.2f\n", config.clientRefreshRateX100, res->GetRefreshRate());
+	config.fps = sConfig->FPS;
+	if (res->GetRefreshRate() > 0.0 && info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+		// Pass fractional refresh rate to host in case it's supported
+		switch (config.fps) {
+		case 120:
+			config.clientRefreshRateX100 = (int)(res->GetRefreshRate() * 100.0);
+			break;
+		case 60:
+			config.clientRefreshRateX100 = 5994; // enable 60fps stream in 120hz
+			break;
+		default:
+			config.clientRefreshRateX100 = sConfig->FPS * 100;
+			break;
+		}
+
+		Utils::Logf("Requesting stream with clientRefreshRateX100=%d for %d FPS within %.2f Hz\n",
+			config.clientRefreshRateX100, config.fps, res->GetRefreshRate());
 	}
 	config.colorRange = this->IsRGBFull() ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
 	config.colorSpace = COLORSPACE_REC_601;
 	config.encryptionFlags = 0;
-	config.fps = sConfig->FPS;
 	config.packetSize = 1024;
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
 	if (!isXboxOne) {

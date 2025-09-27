@@ -19,18 +19,17 @@ struct QpcRationalPeriod {
 
 	// Initialize from exact Hz as a rational number: Hz = num/den.
 	// Period(QPC) = QpcFreq * den / num.
-	// Example: 59.94 Hz => num=60000, den=1001
-	void initFromHz(uint32_t num, uint32_t hzDen, int64_t baseQpc) {
+	void initFromHz(uint32_t hzNum, uint32_t hzDen, int64_t baseQpc) {
 		const uint64_t f = (uint64_t)QpcFreq();
 
 		uint64_t hi = 0;
 		uint64_t lo = _umul128(f, (uint64_t)hzDen, &hi);
-		uint64_t q = 0, r = 0;
-		div128by32(hi, lo, num, q, r);
+		uint64_t r = 0;
+		uint64_t q = _udiv128(hi, lo, hzNum, &r);
 
 		baseTicks = (int64_t)q;
 		remainder = r;
-		den = num;
+		den = hzNum;
 		accum = 0;
 		nextDeadlineQpc = baseQpc + baseTicks;
 	}
@@ -46,14 +45,5 @@ struct QpcRationalPeriod {
 				accum -= den;
 			}
 		}
-	}
-
-  private:
-	// Divide a 128-bit {hi:lo} by 32-bit divisor
-	static void div128by32(uint64_t hi, uint64_t lo,
-	                       uint32_t divisor,
-	                       uint64_t &quotient, uint64_t &remainder) {
-		// We can do this in two 64-bit steps with _udiv128
-		quotient = _udiv128(hi, lo, divisor, &remainder);
 	}
 };
