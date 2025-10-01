@@ -112,24 +112,22 @@ void moonlight_xbox_dxMain::StartRenderLoop()
         		Utils::Logf("Failed to set render thread priority: %d\n", GetLastError());
     		}
 
+			int64_t lastPresentTime = 0;
+
 			// Calculate the updated frame and render once per vertical blanking interval.
 			while (action->Status == AsyncStatus::Started)
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
-				LARGE_INTEGER beforeWait, afterWait, beforePresent;
 
 				Update();
 				if (Render()) {
-					QueryPerformanceCounter(&beforePresent);
-
-					static int64_t lastPresentTime = 0;
-					if (lastPresentTime > 0) {
-						double frametime = QpcToMs(beforePresent.QuadPart - lastPresentTime);
-						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, (float)frametime);
-					}
-					lastPresentTime = beforePresent.QuadPart;
-
 					m_deviceResources->Present();
+
+					int64_t afterPresent = QpcNow();
+					if (lastPresentTime > 0) {
+						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, (float)QpcToMs(afterPresent - lastPresentTime));
+					}
+					lastPresentTime = afterPresent;
 				}
 			}
 		});

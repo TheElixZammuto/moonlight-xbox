@@ -78,7 +78,6 @@ namespace DX
 		void CreateDeviceResources();
 		void CreateWindowSizeDependentResources();
 		void UpdateRenderTargetSize();
-		DXGI_MODE_ROTATION ComputeDisplayRotation();
 
 		void ImGui_Init(const Microsoft::WRL::ComPtr<ISwapChainPanelNative>& panelNative, float dpi);
 		void ImGui_Deinit();

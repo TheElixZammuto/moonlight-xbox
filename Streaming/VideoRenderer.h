@@ -30,6 +30,7 @@ namespace moonlight_xbox_dx
 		void Update(DX::StepTimer const& timer);
 		void scaleSourceToDestinationSurface(IRECT* src, IRECT* dst);
 		void screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, int viewportWidth, int viewportHeight);
+		void EnsureYuvTargets(ID3D11Device* dev, DXGI_FORMAT fmt, UINT w, UINT h);
 		bool Render(AVFrame* frame);
 		void bindColorConversion(AVFrame* frame);
 		void SetHDR(bool enabled);
@@ -53,13 +54,19 @@ namespace moonlight_xbox_dx
 		Windows::Graphics::Display::Core::HdmiDisplayMode^ m_lastDisplayMode;
 		Windows::Graphics::Display::Core::HdmiDisplayMode^ m_currentDisplayMode;
 
+		Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_yuvTexture;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_srvY;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_srvUV;
+		DXGI_FORMAT                                      m_yuvFormat = DXGI_FORMAT_UNKNOWN;
+		UINT                                             m_yuvWidth = 0, m_yuvHeight = 0;
+
 		// System resources for cube geometry.
 		ModelViewProjectionConstantBuffer	m_constantBufferData;
 
 		// Variables used with the rendering loop.
 		AVColorTransferCharacteristic m_LastColorTrc;
 		DXGI_HDR_METADATA_HDR10 m_lastHdr10;
-		bool	m_loadingComplete;
+		std::atomic<bool> m_loadingComplete;
 		bool	m_LastFullRange;
 		int		m_LastColorSpace;
 		MoonlightClient *client;

@@ -229,12 +229,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 
 	UpdateRenderTargetSize();
 
-	// The width and height of the swap chain must be based on the window's
-	// natively-oriented width and height. If the window is not in the native
-	// orientation, the dimensions must be reversed.
-	DXGI_MODE_ROTATION displayRotation = ComputeDisplayRotation();
-
-	bool swapDimensions = displayRotation == DXGI_MODE_ROTATION_ROTATE90 || displayRotation == DXGI_MODE_ROTATION_ROTATE270;
 	//Get the correct screen resolution and adapt the swapchain to 16:9 aspect ratio
 	float normalizedWidth = uwp_get_width();
 	float normalizedHeight = uwp_get_height();
@@ -347,48 +341,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	// the swapchain.
 	m_swapchainVsync = m_enableVsync;
 
-	// Set the proper orientation for the swap chain, and generate 2D and
-	// 3D matrix transformations for rendering to the rotated swap chain.
-	// Note the rotation angle for the 2D and 3D transforms are different.
-	// This is due to the difference in coordinate spaces.  Additionally,
-	// the 3D matrix is specified explicitly to avoid rounding errors.
-
-	switch (displayRotation)
-	{
-	case DXGI_MODE_ROTATION_IDENTITY:
-		m_orientationTransform2D = Matrix3x2F::Identity();
-		m_orientationTransform3D = ScreenRotation::Rotation0;
-		break;
-
-	case DXGI_MODE_ROTATION_ROTATE90:
-		m_orientationTransform2D =
-			Matrix3x2F::Rotation(90.0f) *
-			Matrix3x2F::Translation(m_logicalSize.Height, 0.0f);
-		m_orientationTransform3D = ScreenRotation::Rotation270;
-		break;
-
-	case DXGI_MODE_ROTATION_ROTATE180:
-		m_orientationTransform2D =
-			Matrix3x2F::Rotation(180.0f) *
-			Matrix3x2F::Translation(m_logicalSize.Width, m_logicalSize.Height);
-		m_orientationTransform3D = ScreenRotation::Rotation180;
-		break;
-
-	case DXGI_MODE_ROTATION_ROTATE270:
-		m_orientationTransform2D =
-			Matrix3x2F::Rotation(270.0f) *
-			Matrix3x2F::Translation(0.0f, m_logicalSize.Width);
-		m_orientationTransform3D = ScreenRotation::Rotation90;
-		break;
-
-	default:
-		throw ref new FailureException();
-	}
-
-	DX::ThrowIfFailed(
-		m_swapChain->SetRotation(displayRotation)
-		);
-
 	// Setup inverse scale on the swap chain
 	DXGI_MATRIX_3X2_F inverseScale = { 0 };
 	inverseScale._11 = 1.0f / m_effectiveCompositionScaleX;
@@ -485,6 +437,7 @@ void DX::DeviceResources::SetDpi(float dpi)
 {
 	if (dpi != m_dpi)
 	{
+		m_dpi = dpi;
 		CreateWindowSizeDependentResources();
 	}
 }
@@ -616,7 +569,7 @@ void DX::DeviceResources::Present()
 	//LOCK_D3D("Present");
 
 	if (m_enableVsync) {
-		// This will still use vsync due to the lack of DXGI_PRESENT_ALLOW_TEARING
+		// Composition swapchain
 		hr = m_swapChain->Present1(0, 0, &parameters);
 	}
 	else {
@@ -656,61 +609,6 @@ void DX::DeviceResources::Present()
 	else {
 		DX::ThrowIfFailed(hr);
 	}
-}
-
-// This method determines the rotation between the display device's native orientation and the
-// current display orientation.
-DXGI_MODE_ROTATION DX::DeviceResources::ComputeDisplayRotation()
-{
-	DXGI_MODE_ROTATION rotation = DXGI_MODE_ROTATION_UNSPECIFIED;
-
-	// Note: NativeOrientation can only be Landscape or Portrait even though
-	// the DisplayOrientations enum has other values.
-	switch (m_nativeOrientation)
-	{
-	case DisplayOrientations::Landscape:
-		switch (m_currentOrientation)
-		{
-		case DisplayOrientations::Landscape:
-			rotation = DXGI_MODE_ROTATION_IDENTITY;
-			break;
-
-		case DisplayOrientations::Portrait:
-			rotation = DXGI_MODE_ROTATION_ROTATE270;
-			break;
-
-		case DisplayOrientations::LandscapeFlipped:
-			rotation = DXGI_MODE_ROTATION_ROTATE180;
-			break;
-
-		case DisplayOrientations::PortraitFlipped:
-			rotation = DXGI_MODE_ROTATION_ROTATE90;
-			break;
-		}
-		break;
-
-	case DisplayOrientations::Portrait:
-		switch (m_currentOrientation)
-		{
-		case DisplayOrientations::Landscape:
-			rotation = DXGI_MODE_ROTATION_ROTATE90;
-			break;
-
-		case DisplayOrientations::Portrait:
-			rotation = DXGI_MODE_ROTATION_IDENTITY;
-			break;
-
-		case DisplayOrientations::LandscapeFlipped:
-			rotation = DXGI_MODE_ROTATION_ROTATE270;
-			break;
-
-		case DisplayOrientations::PortraitFlipped:
-			rotation = DXGI_MODE_ROTATION_ROTATE180;
-			break;
-		}
-		break;
-	}
-	return rotation;
 }
 
 //Thank you tunip3 for https://github.com/libretro/RetroArch/pull/13406/files
