@@ -121,6 +121,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 				Update();
 				if (Render()) {
+					FFMpegDecoder::instance().WaitUntilPresentTarget();
+
 					m_deviceResources->Present();
 
 					int64_t afterPresent = QpcNow();

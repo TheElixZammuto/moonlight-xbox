@@ -17,8 +17,9 @@ extern "C" {
 #define MAX_BUFFER 1024 * 1024
 
 typedef struct MLFrameData {
-	uint32_t presentationTimeMs;
-	int64_t decodeEndQpc;
+	uint32_t presentationTimeMs; // host's pts
+	int64_t decodeEndQpc;        // when we finished decoding
+	int64_t presentTargetQpc;    // timestamp when frame should be presented
 } MLFrameData;
 
 namespace moonlight_xbox_dx {
@@ -36,6 +37,7 @@ class FFMpegDecoder {
 	int ModifyFrameDropTarget(bool increase);
 	void WaitForFrame();
 	bool RenderFrameOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer);
+	void WaitUntilPresentTarget();
 	static FFMpegDecoder *getInstance();
 	static DECODER_RENDERER_CALLBACKS getDecoder();
 	std::recursive_mutex mutex;

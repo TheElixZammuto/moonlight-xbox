@@ -24,6 +24,8 @@ class Pacer {
 
 	bool renderOnMainThread(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
 
+	void waitUntilPresentTarget();
+
 	int getFrameDropTarget();
 
 	int modifyFrameDropTarget(bool increase);
@@ -63,6 +65,7 @@ class Pacer {
 	std::mutex m_FrameQueueLock;
 	std::condition_variable m_RenderQueueNotEmpty;
 	std::condition_variable m_PacingQueueNotEmpty;
+	int64_t m_PresentTargetQpc;
 	std::atomic<bool> m_Stopping{false};
 	int m_StreamFps;
 	double m_RefreshRate;

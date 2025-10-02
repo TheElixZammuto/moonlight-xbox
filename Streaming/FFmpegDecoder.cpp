@@ -360,9 +360,15 @@ void FFMpegDecoder::WaitForFrame() {
 	}
 }
 
-bool FFMpegDecoder::RenderFrameOnMainThread(std::shared_ptr<VideoRenderer>& sceneRenderer) {
+bool FFMpegDecoder::RenderFrameOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 	if (m_Pacer) {
-    	return m_Pacer->renderOnMainThread(sceneRenderer);
+		return m_Pacer->renderOnMainThread(sceneRenderer);
 	}
 	return false;
+}
+
+void FFMpegDecoder::WaitUntilPresentTarget() {
+	if (m_Pacer) {
+		m_Pacer->waitUntilPresentTarget();
+	}
 }

@@ -318,7 +318,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			swapChain.As(&m_swapChain)
 		);
 
-		m_swapChain->SetMaximumFrameLatency(2);
+		m_swapChain->SetMaximumFrameLatency(1);
 		m_frameLatencyWaitable = m_swapChain->GetFrameLatencyWaitableObject();
 
 		// Associate swap chain with SwapChainPanel

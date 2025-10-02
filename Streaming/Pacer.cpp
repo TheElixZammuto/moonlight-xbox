@@ -235,8 +235,8 @@ void Pacer::vsyncEmulator() {
 			period.initFromHz(hzNum, hzDen, baseQpc);
 
 			if (curDeadlineQpc > 0) {
-				Utils::Logf("resync to hardware vsync, frame: %d, drift: %lld ticks (%.3f ms), phase: %d\n",
-					frames, period.nextDeadlineQpc - curDeadlineQpc, QpcToMs(period.nextDeadlineQpc - curDeadlineQpc), phase);
+				FQLog("resync to hardware vsync, frame: %d, drift: %lld ticks (%.3f ms), phase: %d\n",
+				            frames, period.nextDeadlineQpc - curDeadlineQpc, QpcToMs(period.nextDeadlineQpc - curDeadlineQpc), phase);
 			}
 
 			curDeadlineQpc = baseQpc;
@@ -292,7 +292,6 @@ void Pacer::vsyncHardware() {
 		}
 		lastT0 = now;
 	}
-
 }
 
 void Pacer::backPacer() {
@@ -405,29 +404,41 @@ void Pacer::handleVsync(int64_t nextDeadlineQpc) {
 	// Place the first frame on the render queue
 	AVFrame *frame = std::move(m_PacingQueue.front());
 	m_PacingQueue.pop_front();
-	lock.unlock();
 
-	// try to time this as close to deadline as possible
-	remainingQpc = nextDeadlineQpc - QpcNow();
-	if (remainingQpc > 150) {
-		SleepUntilQpc(nextDeadlineQpc);
+	// Pass along the target timestamp with the frame metadata
+	if (frame->opaque_ref) {
+		auto *data = reinterpret_cast<MLFrameData *>(frame->opaque_ref->data);
+		data->presentTargetQpc = nextDeadlineQpc;
 	}
 
+	lock.unlock();
+
+	// Render frame immediately, it will wait to be presented at presentTargetQpc
 	enqueueFrameForRenderingAndUnlock(frame);
+}
+
+void Pacer::enqueueFrameForRenderingAndUnlock(AVFrame *frame) {
+	{
+		std::scoped_lock<std::mutex> lock(m_FrameQueueLock);
+		dropFrameForEnqueue(m_RenderQueue, PLOT_DROPPED_PACER_FRONT);
+		m_RenderQueue.push_back(frame);
+	}
+
+	// notify render loop of new frame
+	m_RenderQueueNotEmpty.notify_one();
 }
 
 // Main thread
 
 void Pacer::waitForFrame() {
 	// Wait for the renderer to be ready for the next frame
-	LARGE_INTEGER t0, t1;
-	QueryPerformanceCounter(&t0);
+	int64_t t0 = QpcNow();
 
 	HANDLE flw = m_DeviceResources->GetFrameLatencyWaitable();
 	WaitForSingleObjectEx(flw, 1000, true);
 
-	QueryPerformanceCounter(&t1);
-	FQLog("waitForFrame part 1 waited %.3f ms\n", QpcToMs(t1.QuadPart - t0.QuadPart));
+	int64_t t1 = QpcNow();
+	FQLog("waitForFrame(): FrameLatencyWaitable waited %.3f ms\n", QpcToMs(t1 - t0));
 
 	std::unique_lock<std::mutex> lock(m_FrameQueueLock);
 	m_RenderQueueNotEmpty.wait(lock, [this] {
@@ -435,7 +446,7 @@ void Pacer::waitForFrame() {
 	});
 
 	int64_t t2 = QpcNow();
-	FQLog("waitForFrame part 2 waited %.3f ms\n", QpcToMs(t2 - t1.QuadPart));
+	FQLog("waitForFrame(): m_RenderQueueNotEmpty waited %.3f ms\n", QpcToMs(t2 - t1));
 }
 
 bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
@@ -453,20 +464,37 @@ bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 		return false; // no frame, don't Present()
 	}
 
+	// Extract the target present time for this frame
+	if (frame->opaque_ref) {
+		auto *data = reinterpret_cast<MLFrameData *>(frame->opaque_ref->data);
+		m_PresentTargetQpc = data ? data->presentTargetQpc : 0;
+	} else {
+		m_PresentTargetQpc = 0;
+	}
+
 	frontPacer(sceneRenderer, frame);
 	return true; // ok to Present()
 }
 
-void Pacer::enqueueFrameForRenderingAndUnlock(AVFrame *frame) {
-	{
-		std::scoped_lock<std::mutex> lock(m_FrameQueueLock);
-		dropFrameForEnqueue(m_RenderQueue, PLOT_DROPPED_PACER_FRONT);
-		m_RenderQueue.push_back(frame);
+void Pacer::waitUntilPresentTarget() {
+	const int64_t target = m_PresentTargetQpc;
+	if (target <= 0) {
+		return;
 	}
 
-	// notify render loop of new frame
-	FQLog("enqueueFrame notifying m_RenderQueueNotEmpty\n");
-	m_RenderQueueNotEmpty.notify_one();
+	const int64_t now = QpcNow();
+	if (target <= now) {
+		FQLog("waitUntilPresentTarget(): target was %.3f ms too late\n", QpcToMs(now - target));
+		return;
+	}
+
+	FQLog("waitUntilPresentTarget(): waiting for %.3f ms\n", QpcToMs(target - now));
+
+	SleepUntilQpc(target);
+
+	// Measure how well we timed things
+	// const double skewMs = QpcToMs(QpcNow() - target);
+	// ImGuiPlots::instance().observeFloat(PLOT_PRESENT_ACCURACY, (float)skewMs);
 }
 
 void Pacer::frontPacer(std::shared_ptr<VideoRenderer> &sceneRenderer, AVFrame *frame) {
