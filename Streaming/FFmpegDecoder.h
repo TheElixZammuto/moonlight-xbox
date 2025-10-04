@@ -60,21 +60,3 @@ class FFMpegDecoder {
 	std::unique_ptr<Pacer> m_Pacer;
 };
 } // namespace moonlight_xbox_dx
-
-inline void LOCK_D3D(const char *msg) {
-#ifdef FRAME_QUEUE_VERBOSE
-	LARGE_INTEGER t0, t1;
-	QueryPerformanceCounter(&t0);
-#endif
-
-	moonlight_xbox_dx::FFMpegDecoder::instance().mutex.lock();
-
-#ifdef FRAME_QUEUE_VERBOSE
-	QueryPerformanceCounter(&t1);
-	//FQLog("%s acquired lock_context in %.3f ms\n", msg, QpcToMs(t1.QuadPart - t0.QuadPart));
-#endif
-}
-
-inline void UNLOCK_D3D() {
-	moonlight_xbox_dx::FFMpegDecoder::instance().mutex.unlock();
-}

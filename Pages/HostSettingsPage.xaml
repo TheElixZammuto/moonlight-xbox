@@ -70,8 +70,9 @@
             <TextBlock Grid.Row="8" Grid.Column="0" >Optimize host resolution:</TextBlock>
             <CheckBox Name="EnableSOPSCheckbox" Grid.Row="8" Grid.Column="1" IsChecked="{x:Bind Host.EnableSOPS,Mode=TwoWay}"></CheckBox>
 
-            <TextBlock Grid.Row="9" Grid.Column="0">Enable V-Sync:</TextBlock>
-            <CheckBox Name="EnableVsyncCheckbox" Grid.Row="9" Grid.Column="1" IsChecked="{x:Bind Host.EnableVsync,Mode=TwoWay}"></CheckBox>
+            <!-- On Xbox, V-Sync must be enabled for 30 & 60fps, and disabled for 120. No user-serviceable parts inside. -->
+            <!-- <TextBlock Grid.Row="9" Grid.Column="0">Enable V-Sync:</TextBlock>
+            <CheckBox Name="EnableVsyncCheckbox" Grid.Row="9" Grid.Column="1" IsChecked="{x:Bind Host.EnableVsync,Mode=TwoWay}"></CheckBox> -->
 
             <TextBlock Grid.Row="10" Grid.Column="0">Show performance stats:</TextBlock>
             <CheckBox

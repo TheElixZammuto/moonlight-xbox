@@ -383,36 +383,27 @@ bool moonlight_xbox_dxMain::Render()
 		return false;
 	}
 
-	//LOCK_D3D("Clear");
 	Clear();
-	//UNLOCK_D3D();
 
 	// Start the Dear ImGui frame, limited to only running at 60fps
 	bool showImGui = m_deviceResources->GetShowImGui();
 	if (showImGui) {
-		//LOCK_D3D("ImGui 1");
 		ImGui_ImplDX11_NewFrame();
-		//UNLOCK_D3D();
 		ImGui_ImplUwp_NewFrame(m_deviceResources->GetPixelWidth(), m_deviceResources->GetPixelHeight());
 		ImGui::NewFrame();
 	}
 
 	// Render the scene objects.
-	//LOCK_D3D("Render");
-
 	FFMpegDecoder::instance().WaitForFrame();
 	bool shouldPresent = FFMpegDecoder::instance().RenderFrameOnMainThread(m_sceneRenderer);
 
 	m_LogRenderer->Render();
 	m_statsTextRenderer->Render(showImGui);
-	//UNLOCK_D3D();
 
 	if (showImGui) {
 		RenderImGui();
 		ImGui::Render();
-		//LOCK_D3D("ImGui 2");
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-		//UNLOCK_D3D();
 	}
 
 	return shouldPresent;

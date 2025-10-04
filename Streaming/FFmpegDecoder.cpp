@@ -59,14 +59,6 @@ namespace moonlight_xbox_dx {
 		m_Pacer(nullptr) {
 	}
 
-	void lock_context(void*) {
-		LOCK_D3D("ffmpeg");
-	}
-
-	void unlock_context(void*) {
-		UNLOCK_D3D();
-	}
-
 	void ffmpeg_log_callback(void *ptr, int level, const char *fmt, va_list vl) {
 		char lineBuffer[1024];
 		static int printPrefix = 1;
@@ -135,9 +127,6 @@ namespace moonlight_xbox_dx {
 		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
 		d3d11va_device_ctx->device = this->resources->GetD3DDevice();
 		d3d11va_device_ctx->device_context = this->resources->GetD3DDeviceContext();
-		d3d11va_device_ctx->lock = lock_context;
-		d3d11va_device_ctx->unlock = unlock_context;
-		d3d11va_device_ctx->lock_ctx = nullptr;
 		int err2;
 		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
 			char msg[2048];

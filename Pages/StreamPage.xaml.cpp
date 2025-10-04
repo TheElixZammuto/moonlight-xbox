@@ -142,7 +142,13 @@ void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::X
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
 	SetStreamConfig(configuration);
-	m_deviceResources->SetVsync(configuration->enableVsync);
+
+	if (configuration->FPS > 60) {
+		m_deviceResources->SetVsync(false);
+	} else {
+		m_deviceResources->SetVsync(true);
+	}
+
 	if (configuration == nullptr)return;
 }
 

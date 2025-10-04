@@ -149,8 +149,6 @@ bool VideoRenderer::Render(AVFrame *frame) {
 		return true;
 	}
 
-	// LOCK_D3D("VideoRenderer->Render");
-
 	auto *ctx = m_deviceResources->GetD3DDeviceContext();
 	auto *dev = m_deviceResources->GetD3DDevice();
 
@@ -208,8 +206,6 @@ bool VideoRenderer::Render(AVFrame *frame) {
 
 		m_LastColorTrc = frame->color_trc;
 	}
-
-	// UNLOCK_D3D();
 
 	return true;
 }
