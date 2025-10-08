@@ -121,9 +121,11 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 				Update();
 				if (Render()) {
-					FFMpegDecoder::instance().WaitUntilPresentTarget();
+					Pacer::instance().waitUntilPresentTarget();
 
 					m_deviceResources->Present();
+
+					Pacer::instance().afterPresent();
 
 					int64_t afterPresent = QpcNow();
 					if (lastPresentTime > 0) {
@@ -394,8 +396,8 @@ bool moonlight_xbox_dxMain::Render()
 	}
 
 	// Render the scene objects.
-	FFMpegDecoder::instance().WaitForFrame();
-	bool shouldPresent = FFMpegDecoder::instance().RenderFrameOnMainThread(m_sceneRenderer);
+	Pacer::instance().waitForFrame();
+	bool shouldPresent = Pacer::instance().renderOnMainThread(m_sceneRenderer);
 
 	m_LogRenderer->Render();
 	m_statsTextRenderer->Render(showImGui);
@@ -534,4 +536,12 @@ void moonlight_xbox_dxMain::SetImGui(bool isVisible) {
 		m_deviceResources->SetShowImGui(isVisible);
 		Utils::Logf("ImGui graphs are now %d\n", isVisible ? 1 : 0);
 	});
+}
+
+void moonlight_xbox_dxMain::SetTearOffset(double offset) {
+	Pacer::instance().setTearOffset(offset);
+}
+
+double moonlight_xbox_dxMain::GetTearOffset() {
+	return Pacer::instance().getTearOffset();
 }

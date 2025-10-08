@@ -55,8 +55,7 @@ namespace moonlight_xbox_dx {
 		ffmpeg_buffer(nullptr),
 		ffmpeg_buffer_size(0),
 		resources(nullptr),
-		m_LastFrameNumber(0),
-		m_Pacer(nullptr) {
+		m_LastFrameNumber(0) {
 	}
 
 	void ffmpeg_log_callback(void *ptr, int level, const char *fmt, va_list vl) {
@@ -78,9 +77,7 @@ namespace moonlight_xbox_dx {
 
 	void FFMpegDecoder::CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config) {
 		this->resources = res;
-
-		m_Pacer = std::make_unique<Pacer>(res);
-        m_Pacer->initialize(config->fps, res->GetRefreshRate());
+		Pacer::instance().init(res, config->fps, res->GetRefreshRate());
 	}
 
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
@@ -191,7 +188,8 @@ namespace moonlight_xbox_dx {
 			ffmpeg_buffer_size = 0;
 		}
 		m_LastFrameNumber = 0;
-		m_Pacer.reset(nullptr);
+
+		Pacer::instance().deinit();
 
 		Utils::Log("FFMpegDecoder::Cleanup\n");
 	}
@@ -280,7 +278,7 @@ namespace moonlight_xbox_dx {
 			frame_attach_userdata(frame, decodeUnit->presentationTimeMs, decodeEnd.QuadPart);
 
 			// Queue the frame for rendering (or render now if pacer is disabled)
-			m_Pacer->submitFrame(frame);
+			Pacer::instance().submitFrame(frame);
 
 			double decodeTimeMs = QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart);
 			FQLog("✓ Frame decoded [pts: %.3f] [in#: %d] [out#: %d] [lost: %d] decode time %.3f ms\n",
@@ -305,17 +303,6 @@ namespace moonlight_xbox_dx {
 		return DR_OK;
 	}
 
-	int FFMpegDecoder::GetFrameDropTarget() {
-		if (m_Pacer) {
-			return m_Pacer->getFrameDropTarget();
-		}
-		return 0;
-	}
-
-	int FFMpegDecoder::ModifyFrameDropTarget(bool increase) {
-		return m_Pacer->modifyFrameDropTarget(increase);
-	}
-
 	//Helpers
 	int initCallback(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) noexcept {
 		return FFMpegDecoder::instance().Init(videoFormat, width, height, redrawRate, context, drFlags);
@@ -338,26 +325,5 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.capabilities = CAPABILITY_DIRECT_SUBMIT | CAPABILITY_INTRA_REFRESH;
 		//decoder_callbacks_sdl.capabilities = CAPABILITY_DIRECT_SUBMIT | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC;
 		return decoder_callbacks_sdl;
-	}
-
-
-}
-
-void FFMpegDecoder::WaitForFrame() {
-	if (m_Pacer) {
-		m_Pacer->waitForFrame();
-	}
-}
-
-bool FFMpegDecoder::RenderFrameOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
-	if (m_Pacer) {
-		return m_Pacer->renderOnMainThread(sceneRenderer);
-	}
-	return false;
-}
-
-void FFMpegDecoder::WaitUntilPresentTarget() {
-	if (m_Pacer) {
-		m_Pacer->waitUntilPresentTarget();
 	}
 }

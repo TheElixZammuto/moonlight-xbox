@@ -75,7 +75,8 @@ DX::DeviceResources::DeviceResources() :
 	m_deviceNotify(nullptr),
 	m_stats(nullptr),
 	m_imguiRunning(false),
-	m_showImGui(false)
+	m_showImGui(false),
+	m_frameLatencyWaitable()
 {
 	m_refreshRate = GetUWPRefreshRate();
 	GetUWPPixelDimensions(&m_pixelWidth, &m_pixelHeight);
@@ -230,8 +231,8 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	UpdateRenderTargetSize();
 
 	//Get the correct screen resolution and adapt the swapchain to 16:9 aspect ratio
-	float normalizedWidth = uwp_get_width();
-	float normalizedHeight = uwp_get_height();
+	float normalizedWidth = (float)uwp_get_width();
+	float normalizedHeight = (float)uwp_get_height();
 	m_d3dRenderTargetSize.Width = normalizedWidth;
 	m_d3dRenderTargetSize.Height = normalizedHeight;
 
@@ -384,13 +385,13 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 {
 	auto state = GetApplicationState();
 	m_effectiveDpi = m_dpi;
-	double compositionScaleMultiplier = 1;
+	float compositionScaleMultiplier = 1.0f;
 
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	if (hdi) {
 		auto mode = hdi->GetCurrentDisplayMode();
-		if (mode->ResolutionWidthInRawPixels > 2560)compositionScaleMultiplier = 2;
-		else if (mode->ResolutionWidthInRawPixels > 1920)compositionScaleMultiplier = 1.33333333;
+		if (mode->ResolutionWidthInRawPixels > 2560) compositionScaleMultiplier = 2.0f;
+		else if (mode->ResolutionWidthInRawPixels > 1920) compositionScaleMultiplier = 1.33333333f;
 	}
 
 	m_effectiveCompositionScaleX = m_compositionScaleX * compositionScaleMultiplier;
@@ -674,8 +675,8 @@ void DX::DeviceResources::GetUWPPixelDimensions(uint32_t *width, uint32_t *heigh
 		// Running in Windows
 		const LONG32 resolution_scale = static_cast<LONG32>(DisplayInformation::GetForCurrentView()->ResolutionScale);
 		auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;
-		*width  = CoreWindow::GetForCurrentThread()->Bounds.Width * surface_scale;
-		*height = CoreWindow::GetForCurrentThread()->Bounds.Height * surface_scale;
+		*width  = (uint32_t)CoreWindow::GetForCurrentThread()->Bounds.Width * surface_scale;
+		*height = (uint32_t)CoreWindow::GetForCurrentThread()->Bounds.Height * surface_scale;
 	}
 }
 

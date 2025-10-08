@@ -89,7 +89,7 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT deco
 		m_ActiveWndVideoStats.networkDroppedFrames += droppedFrames;
 		m_ActiveWndVideoStats.totalFrames += droppedFrames;
 	}
-	ImGuiPlots::instance().observeFloat(PLOT_DROPPED_NETWORK, droppedFrames);
+	ImGuiPlots::instance().observeFloat(PLOT_DROPPED_NETWORK, (float)droppedFrames);
 
 	// Host frametime graph, uses raw 90kHz units to avoid rounding errors
 	static uint32_t lastHostPts = 0;
@@ -124,6 +124,12 @@ void Stats::SubmitPacerTime(int64_t pacerTimeQpc, int64_t renderTimeQpc) {
 	m_ActiveWndVideoStats.renderedFrames++;
 }
 
+// Present to display latency (how close to hitting vblank we are)
+void Stats::SubmitPresentPacing(double presentDisplayMs) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_ActiveWndVideoStats.totalPresentDisplayMs += presentDisplayMs;
+}
+
 /// private methods
 
 void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst) {
@@ -137,6 +143,7 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.totalDecodeTime += src.totalDecodeTime;
 	dst.totalPacerTimeUs += src.totalPacerTimeUs;
 	dst.totalRenderTimeUs += src.totalRenderTimeUs;
+	dst.totalPresentDisplayMs += src.totalPresentDisplayMs;
 
 	if (dst.minHostProcessingLatency == 0) {
 		dst.minHostProcessingLatency = src.minHostProcessingLatency;
@@ -332,7 +339,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   "Frames dropped due to network jitter: %.2f%%\n"
 					   "Average network latency: %s\n"
 					   "Average reassembly/decoding time: %.2f/%.2f ms\n"
-					   "Average frame queue delay: %.2f ms\n"
+					   "Average frame queue/present delay: %.2f/%.2f ms\n"
 					   "Average render time: %.2f ms\n",
 					   stats.totalFrames ? (double)stats.networkDroppedFrames / stats.totalFrames * 100 : 0.0f,
 					   stats.totalFrames ? (double)stats.pacerDroppedFrames / stats.totalFrames * 100 : 0.0f,
@@ -340,6 +347,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   stats.decodedFrames ? (double)stats.totalReassemblyTime / stats.decodedFrames : 0.0f,
 					   stats.decodedFrames ? (double)stats.totalDecodeTime / stats.decodedFrames : 0.0f,
 					   stats.renderedFrames ? (double)stats.totalPacerTimeUs / 1000.0 / stats.renderedFrames : 0.0f,
+					   stats.renderedFrames ? (double)stats.totalPresentDisplayMs / stats.renderedFrames : 0.0f,
 					   stats.renderedFrames ? (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames : 0.0f);
 		if (ret < 0 || ret >= length - offset) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");

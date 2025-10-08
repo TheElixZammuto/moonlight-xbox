@@ -39,6 +39,8 @@ namespace moonlight_xbox_dx
 		bool ToggleLogs();
 		bool ToggleStats();
 		void SetImGui(bool isVisible);
+		void SetTearOffset(double offset);
+		double GetTearOffset();
 	private:
 		void ProcessInput();
 		void Update();

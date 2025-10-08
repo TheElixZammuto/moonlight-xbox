@@ -44,34 +44,48 @@
 
 // Time helpers
 static inline int64_t QpcFreq() {
-    static int64_t f = []{
-        LARGE_INTEGER li{};
-        QueryPerformanceFrequency(&li);
-        return li.QuadPart;
-    }();
-    return f;
+	static int64_t f = [] {
+		LARGE_INTEGER li{};
+		QueryPerformanceFrequency(&li);
+		return li.QuadPart;
+	}();
+	return f;
 }
 
 static inline int64_t QpcNow() {
-    LARGE_INTEGER li{};
-    QueryPerformanceCounter(&li);
-    return li.QuadPart;
+	LARGE_INTEGER li{};
+	QueryPerformanceCounter(&li);
+	return li.QuadPart;
 }
 
 static inline int64_t UsToQpc(int64_t us) {
-    const int64_t f = QpcFreq();
-    return (us / UINT64_C(1000000)) * f +
-	       (us % UINT64_C(1000000)) * f / UINT64_C(1000000);
+	const int64_t f = QpcFreq();
+	return (us / INT64_C(1000000)) * f +
+	       (us % INT64_C(1000000)) * f / INT64_C(1000000);
 }
 
 static inline int64_t QpcToUs(int64_t qpc) {
 	const int64_t f = QpcFreq();
-	return (qpc / f) * UINT64_C(1000000) +
-	       (qpc % f) * UINT64_C(1000000) / f;
+	int64_t q = qpc / f;
+	int64_t r = qpc % f;
+	if (r < 0) {
+		--q;
+		r += f;
+	}
+	return q * INT64_C(1000000) + (r * INT64_C(1000000)) / f;
+}
+
+static inline double QpcToMsD(double qpc) {
+	return qpc * 1000.0 / (double)QpcFreq();
 }
 
 static inline double QpcToMs(int64_t qpc) {
-	return (double)QpcToUs(qpc) / 1000.0;
+    return QpcToMsD(static_cast<double>(qpc));
+}
+
+static inline int64_t MsToQpc(double ms) {
+	const int64_t us = static_cast<int64_t>(ms * 1000.0 + 0.5);
+    return UsToQpc(us);
 }
 
 // Log something only once, safe to use in hot areas of the code
@@ -85,14 +99,17 @@ static inline double QpcToMs(int64_t qpc) {
         });                                                  \
     } while (0)
 
-// Frame queue debugging
+// Frame queue debugging, uncomment FRAME_QUEUE_VERBOSE
+// Note: When FQLog is enabled, the spam is intense, so it only logs data for a short time
 #if !defined(NDEBUG)
 //#define FRAME_QUEUE_VERBOSE
+static int __once = 0;
 #endif
 
 #ifdef FRAME_QUEUE_VERBOSE
 	#define FQLog(fmt, ...) \
-		moonlight_xbox_dx::Utils::Logf("[%d] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+        if (++__once > 200 && __once < 1000) \
+		    moonlight_xbox_dx::Utils::Logf("[%d] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
 #else
   	#if defined(_MSC_VER)
     	#define FQLog(...) __noop

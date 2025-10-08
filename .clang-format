@@ -12,7 +12,8 @@ AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignTrailingComments: true
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
-BreakConstructorInitializers: AfterColon
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: Never
 
 # Don't move pch.h below other headers
 IncludeBlocks: Preserve

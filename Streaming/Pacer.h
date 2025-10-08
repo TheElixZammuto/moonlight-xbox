@@ -3,6 +3,8 @@
 #include <atomic>
 #include <deque>
 #include <thread>
+#include "PacerRational.h"
+#include "PacerTearController.h"
 #include "Utils.hpp"
 #include "VideoRenderer.h"
 
@@ -12,52 +14,41 @@ extern "C" {
 
 class Pacer {
   public:
-	Pacer(const std::shared_ptr<DX::DeviceResources> &res);
+	// Singleton accessor
+	static Pacer &instance();
 
-	~Pacer();
-
+	void deinit();
+	void init(const std::shared_ptr<DX::DeviceResources> &res, int maxVideoFps, double refreshRate);
+	void waitForFrame();
+	bool renderOnMainThread(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
+	void waitUntilPresentTarget();
+	void afterPresent();
+	void setTearOffset(double offset);
+	double getTearOffset();
 	void submitFrame(AVFrame *frame);
 
-	void initialize(int maxVideoFps, double refreshRate);
-
-	void waitForFrame();
-
-	bool renderOnMainThread(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
-
-	void waitUntilPresentTarget();
-
-	int getFrameDropTarget();
-
-	int modifyFrameDropTarget(bool increase);
-
   private:
-	int64_t measureVsyncQpc(int intervals);
-
-	void vsyncEmulator();
-
-	void vsyncHardware();
-
-	void backPacer();
-
-	void handleVsync(int64_t nextDeadlineQpc);
-
-	void enqueueFrameForRenderingAndUnlock(AVFrame *frame);
-
-	void frontPacer(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer, AVFrame *frame);
-
-	void dropFrameForEnqueue(std::deque<AVFrame *> &queue, int plotId);
+	Pacer();
+	Pacer(const Pacer &) = delete;
+	Pacer &operator=(const Pacer &) = delete;
 
 	bool stopping() const noexcept {
 		return m_Stopping.load(std::memory_order_acquire);
 	}
 
+	void vsyncEmulator();
+	void vsyncHardware();
+	void backPacer();
+	void handleVsync(int64_t nextDeadlineQpc);
+	void enqueueFrameForRenderingAndUnlock(AVFrame *frame);
+	void frontPacer(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer, AVFrame *frame);
+	void dropFrameForEnqueue(std::deque<AVFrame *> &queue);
+	int64_t waitForVBlank();
+
+	bool m_Running;
 	std::shared_ptr<DX::DeviceResources> m_DeviceResources;
-	std::thread m_VsyncEmulator;
+	std::thread m_VsyncThread;
 	std::thread m_BackPacerThread;
-	std::mutex m_VsyncMutex;
-	std::condition_variable m_VsyncSignalled;
-	uint64_t m_VsyncSeq;
-	int64_t m_VsyncNextDeadlineQpc;
 	std::deque<AVFrame *> m_RenderQueue;
 	std::deque<AVFrame *> m_PacingQueue;
 	std::deque<int> m_RenderQueueHistory;
@@ -65,9 +56,17 @@ class Pacer {
 	std::mutex m_FrameQueueLock;
 	std::condition_variable m_RenderQueueNotEmpty;
 	std::condition_variable m_PacingQueueNotEmpty;
-	int64_t m_PresentTargetQpc;
 	std::atomic<bool> m_Stopping{false};
 	int m_StreamFps;
 	double m_RefreshRate;
-	std::atomic_int m_FrameDropTarget;
+
+	QpcRationalPeriod m_VsyncPeriod;
+	int64_t m_VsyncNextDeadlineQpc;
+	int64_t m_PresentTargetQpc;
+	int64_t m_PresentVsyncQpc;
+	std::mutex m_VsyncMutex;
+	std::condition_variable m_VsyncSignalled;
+	uint64_t m_VsyncSeq;
+
+	TearController m_TearCtl;
 };

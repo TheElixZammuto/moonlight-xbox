@@ -17,16 +17,14 @@ StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources> &deviceR
     m_deviceResources(deviceResources),
     m_mutex(),
     m_visible(false),
-    m_stats(stats)
-{
+    m_stats(stats) {
 	m_console->SetForegroundColor(Colors::Yellow);
 	// m_console->SetDebugOutput(true);
 
 	CreateDeviceDependentResources();
 }
 
-void StatsRenderer::Update(DX::StepTimer const &timer)
-{
+void StatsRenderer::Update(DX::StepTimer const &timer) {
 	// We let the Stats class always process even if not visible. Most of the time
 	// it will simply accumulate stats during its 1-second window period. Each second,
 	// when it determines the user-visible text should be updated, it will update outputStr and return true.
@@ -43,8 +41,7 @@ void StatsRenderer::Update(DX::StepTimer const &timer)
 }
 
 // Renders a frame to the screen.
-void StatsRenderer::Render(bool showImGui)
-{
+void StatsRenderer::Render(bool showImGui) {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	if (m_visible) {
 		m_console->Render();
@@ -54,23 +51,19 @@ void StatsRenderer::Render(bool showImGui)
 	}
 }
 
-struct clampData
-{
+struct clampData {
 	const float *values;
 	float maxVal;
 };
 
-static inline float clampGetter(void *data, int idx)
-{
+static inline float clampGetter(void *data, int idx) {
 	const clampData *c = static_cast<const clampData *>(data);
 	return fminf(c->values[idx], c->maxVal);
 }
 
-void StatsRenderer::RenderGraphs()
-{
+void StatsRenderer::RenderGraphs() {
 	// Track graph CPU overhead per frame
-	LARGE_INTEGER t0;
-	QueryPerformanceCounter(&t0);
+	int64_t plotStartQpc = QpcNow();
 
 	// we malloc a buffer for each stat only once and reuse it each frame
 	assert(PlotCount == 8);
@@ -81,14 +74,14 @@ void StatsRenderer::RenderGraphs()
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
-		(float *)malloc(sizeof(float) * 512),
-		(float *)malloc(sizeof(float) * 512)};
+	    (float *)malloc(sizeof(float) * 512),
+	    (float *)malloc(sizeof(float) * 512)};
 
 	ImGuiIO &io = ImGui::GetIO();
 
 	float graphW = 850.0f * (m_displayWidth / 3840.0f);
 	float graphH = 120.0f * (m_displayHeight / 2160.0f);
-	float opacity = 0.7f;
+	float opacity = 0.8f;
 
 	LogOnce("Drawing graphs of size %.1f x %.1f in viewport %d x %d using opacity %.2f\n",
 	        graphW, graphH, m_displayWidth, m_displayHeight, opacity);
@@ -117,7 +110,7 @@ void StatsRenderer::RenderGraphs()
 
 		float minY = 0.0f;
 		float maxY = 0.0f;
-		size_t countF = plot.buffer.copyInto(buffers[i], 512, minY, maxY);
+		int countF = plot.buffer.copyInto(buffers[i], 512, minY, maxY);
 		float avgF = plot.buffer.average();
 		if (!countF) {
 			return;
@@ -161,36 +154,29 @@ void StatsRenderer::RenderGraphs()
 		ImGui::PopID();
 	};
 
-	const int row1[3] = {PLOT_FRAMETIME, PLOT_DROPPED_NETWORK, PLOT_VSYNC_INTERVAL};
+	const int row1[3] = {PLOT_FRAMETIME, PLOT_VSYNC_INTERVAL, PLOT_DROPPED_NETWORK};
 	for (int c = 0; c < 3; ++c) {
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
 		draw_plot(row1[c], graphW, graphH);
 	}
 
 	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	const int row2[4] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER_FRONT, PLOT_DROPPED_PACER_BACK, PLOT_OVERHEAD};
+	const int row2[4] = {PLOT_HOST_FRAMETIME, PLOT_PRESENT_PACING, PLOT_DROPPED_PACER};
 	for (int c = 0; c < 4; ++c) {
-		float width = graphW;
-		if (row2[c] == PLOT_DROPPED_PACER_FRONT || row2[c] == PLOT_DROPPED_PACER_BACK) {
-			width /= 2;
-		}
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
-		draw_plot(row2[c], width, graphH);
+		draw_plot(row2[c], graphW, graphH);
 	}
 
 	// 3rd row for quickly graphing something if needed
 	// ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	// draw_plot(PLOT_DROPPED_PACER_BACK, graphW, graphH);
+	// draw_plot(PLOT_ETC, graphW, graphH);
 
 	ImGui::End();
 
-	LARGE_INTEGER t1;
-	QueryPerformanceCounter(&t1);
-	ImGuiPlots::instance().observeFloat(PLOT_OVERHEAD, (float)QpcToMs(t1.QuadPart - t0.QuadPart));
+	ImGuiPlots::instance().observeFloat(PLOT_OVERHEAD, (float)QpcToMs(QpcNow() - plotStartQpc));
 }
 
-void StatsRenderer::CreateDeviceDependentResources()
-{
+void StatsRenderer::CreateDeviceDependentResources() {
 	m_deviceResources->GetUWPPixelDimensions(&m_displayWidth, &m_displayHeight);
 
 	const wchar_t *font = L"Assets\\Font\\ModeSeven-24.spritefont"; // sized for 4K
@@ -204,21 +190,34 @@ void StatsRenderer::CreateDeviceDependentResources()
 	m_console->SetFixedWidthFont(true);
 }
 
-void StatsRenderer::CreateWindowSizeDependentResources()
-{
+void StatsRenderer::CreateWindowSizeDependentResources() {
+	int left = 10;
+	int right = m_displayWidth / 3;
+	int bottom = 0;
+
+	if (m_displayHeight >= 2160) { // 24pt font
+		left = 20;
+		right = m_displayWidth / 2;
+		bottom = 448;
+	} else if (m_displayHeight >= 1440) { // 12pt font
+		left = 14;
+		bottom = 224;
+	} else {
+		left = 10;
+		bottom = 168;
+	}
+
 	// The size of our text area (left, top, right, bottom)
-	RECT size = {20, 0, m_displayWidth * 0.5, m_displayHeight * 0.2};
+	RECT size = {left, left, right, bottom};
 
 	m_console->SetWindow(size);
 }
 
-void StatsRenderer::ReleaseDeviceDependentResources()
-{
+void StatsRenderer::ReleaseDeviceDependentResources() {
 	m_console->ReleaseDevice();
 }
 
-void StatsRenderer::ToggleVisible()
-{
+void StatsRenderer::ToggleVisible() {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_visible = m_visible == true ? false : true;
 }

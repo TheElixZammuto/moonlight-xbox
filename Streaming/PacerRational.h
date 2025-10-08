@@ -31,7 +31,7 @@ struct QpcRationalPeriod {
 		remainder = r;
 		den = hzNum;
 		accum = 0;
-		nextDeadlineQpc = baseQpc + baseTicks;
+		nextDeadlineQpc = baseQpc;
 	}
 
 	// Advance to the next deadline

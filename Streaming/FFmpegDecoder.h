@@ -19,7 +19,8 @@ extern "C" {
 typedef struct MLFrameData {
 	uint32_t presentationTimeMs; // host's pts
 	int64_t decodeEndQpc;        // when we finished decoding
-	int64_t presentTargetQpc;    // timestamp when frame should be presented
+	int64_t presentTargetQpc;    // timestamp when frame should be presented (slightly earlier than vsync)
+	int64_t presentVsyncQpc;     // hard vsync deadline
 } MLFrameData;
 
 namespace moonlight_xbox_dx {
@@ -33,11 +34,6 @@ class FFMpegDecoder {
 	int Init(int videoFormat, int width, int height, int redrawRate, void *context, int drFlags);
 	void Cleanup();
 	int SubmitDecodeUnit(PDECODE_UNIT decodeUnit);
-	int GetFrameDropTarget();
-	int ModifyFrameDropTarget(bool increase);
-	void WaitForFrame();
-	bool RenderFrameOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer);
-	void WaitUntilPresentTarget();
 	static FFMpegDecoder *getInstance();
 	static DECODER_RENDERER_CALLBACKS getDecoder();
 	std::recursive_mutex mutex;
@@ -57,6 +53,5 @@ class FFMpegDecoder {
 	int ffmpeg_buffer_size;
 	std::shared_ptr<DX::DeviceResources> resources;
 	int m_LastFrameNumber;
-	std::unique_ptr<Pacer> m_Pacer;
 };
 } // namespace moonlight_xbox_dx
