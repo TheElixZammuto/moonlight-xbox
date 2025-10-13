@@ -77,7 +77,6 @@ void AppPage::Connect(int appId) {
 	if (config->enableHDR) {
 		host->VideoCodec = "HEVC (H.265)";
 	}
-	config->enableVsync = host->EnableVsync;
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 	if (!result) {
 		printf("C");

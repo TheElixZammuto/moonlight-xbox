@@ -53,7 +53,7 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
             <TextBlock Grid.Row="1" Grid.Column="0">FPS</TextBlock>
-            <ComboBox ItemsSource="{x:Bind AvailableFPS}" SelectedItem="{x:Bind Host.FPS,Mode=TwoWay}" Grid.Row="1"  Grid.Column="1"></ComboBox>
+            <ComboBox x:Name="FPSSelector" SelectionChanged="FPSSelector_SelectionChanged" SelectedItem="{x:Bind Host.FPS,Mode=OneWay}" Grid.Row="1"  Grid.Column="1" ItemsSource="{x:Bind AvailableFPS}"></ComboBox>
             <TextBlock Grid.Row="2" Grid.Column="0">Bitrate</TextBlock>
             <Slider Grid.Row="2" Grid.Column="1" Value="{x:Bind Host.Bitrate}" x:DefaultBindMode="TwoWay" Minimum="5000" Maximum="500000" SmallChange="10000" TickFrequency="50000" StepFrequency="50000" />
             <TextBlock Grid.Row="3" Grid.Column="0">Audio Configuration</TextBlock>
@@ -65,8 +65,16 @@
             </ComboBox>
             <TextBlock Grid.Row="6" Grid.Column="0">Video Codecs</TextBlock>
             <ComboBox Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}"  Grid.Row="6"  Grid.Column="1"></ComboBox>
+
             <TextBlock Grid.Row="7" Grid.Column="0" >Enable HDR:</TextBlock>
-            <CheckBox Name="EnableHDRCheckbox" Grid.Row="7" Grid.Column="1" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}"></CheckBox>
+            <CheckBox
+                Name="EnableHDRCheckbox" Grid.Row="7" Grid.Column="1"
+                IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}" />
+            <TextBlock
+                Name="HDR4KNote" Grid.Row="7" Grid.Column="2" Visibility="Collapsed">
+                HDR requires Xbox system resolution set to 4K.
+            </TextBlock>
+
             <TextBlock Grid.Row="8" Grid.Column="0" >Optimize host resolution:</TextBlock>
             <CheckBox Name="EnableSOPSCheckbox" Grid.Row="8" Grid.Column="1" IsChecked="{x:Bind Host.EnableSOPS,Mode=TwoWay}"></CheckBox>
 

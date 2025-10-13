@@ -221,20 +221,27 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.fps = sConfig->FPS;
 	if (res->GetRefreshRate() > 0.0 && info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
 		// Pass fractional refresh rate to host in case it's supported
+		double rr = res->GetRefreshRate();
 		switch (config.fps) {
 		case 120:
-			config.clientRefreshRateX100 = (int)(res->GetRefreshRate() * 100.0);
+			config.clientRefreshRateX100 = (int)(rr * 100.0);
 			break;
 		case 60:
-			config.clientRefreshRateX100 = 5994; // enable 60fps stream in 120hz
+			if (rr >= 120.0) {
+				config.clientRefreshRateX100 = 6000;
+			} else if (rr >= 119.0) {
+				config.clientRefreshRateX100 = 5994;
+			} else {
+				config.clientRefreshRateX100 = (int)(rr * 100.0);
+			}
 			break;
 		default:
 			config.clientRefreshRateX100 = sConfig->FPS * 100;
 			break;
 		}
 
-		Utils::Logf("Requesting stream with clientRefreshRateX100=%d for %d FPS within %.2f Hz\n",
-			config.clientRefreshRateX100, config.fps, res->GetRefreshRate());
+		Utils::Logf("Requesting stream with clientRefreshRateX100=%d for %d FPS on %.2f Hz display\n",
+			config.clientRefreshRateX100, config.fps, rr);
 	}
 	config.colorRange = this->IsRGBFull() ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
 	config.colorSpace = COLORSPACE_REC_601;
