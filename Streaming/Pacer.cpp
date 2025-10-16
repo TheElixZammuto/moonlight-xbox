@@ -319,6 +319,10 @@ void Pacer::vsyncHardware() {
 		hzDen = 1;
 	}
 
+	if (m_StreamFps == 30) {
+		hzNum /= 2;
+	}
+
 	int64_t lastT0 = 0;
 
 	// no tearing to worry about, we will just use it for timing
@@ -330,9 +334,17 @@ void Pacer::vsyncHardware() {
 	Utils::Logf("Pacer: using integer vsync timer %lu/%lu based on system refresh rate %.2f Hz\n",
 	            hzNum, hzDen, m_RefreshRate);
 
+	bool skipNextVblank = false;
+
 	while (!stopping()) {
 		// Align to a real vblank
 		int64_t now = waitForVBlank();
+
+		// If we're streaming 30fps, wait 2 vblanks per frame
+		if (m_StreamFps == 30 && skipNextVblank) {
+			skipNextVblank = false;
+			continue;
+		}
 
 		m_VsyncPeriod.initFromHz(hzNum, hzDen, now);
 
@@ -351,6 +363,10 @@ void Pacer::vsyncHardware() {
 			ImGuiPlots::instance().observeFloat(PLOT_VSYNC_INTERVAL, (float)QpcToMs(now - lastT0));
 		}
 		lastT0 = now;
+
+		if (m_StreamFps == 30 && !skipNextVblank) {
+			skipNextVblank = true;
+		}
 	}
 
 	Utils::Logf("vsyncHardware thread stopped\n");
