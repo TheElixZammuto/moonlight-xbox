@@ -668,15 +668,15 @@ void DX::DeviceResources::GetUWPPixelDimensions(uint32_t *width, uint32_t *heigh
 	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
 		// Running on an Xbox
 		auto mode = HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode();
-		*width  = std::max((uint32_t)1920, mode->ResolutionWidthInRawPixels);
+		*width = std::max((uint32_t)1920, mode->ResolutionWidthInRawPixels);
 		*height = std::max((uint32_t)1080, mode->ResolutionHeightInRawPixels);
 	}
 	else {
 		// Running in Windows
 		const LONG32 resolution_scale = static_cast<LONG32>(DisplayInformation::GetForCurrentView()->ResolutionScale);
 		auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;
-		*width  = (uint32_t)CoreWindow::GetForCurrentThread()->Bounds.Width * surface_scale;
-		*height = (uint32_t)CoreWindow::GetForCurrentThread()->Bounds.Height * surface_scale;
+		*width = static_cast<uint32_t>(CoreWindow::GetForCurrentThread()->Bounds.Width * surface_scale);
+		*height = static_cast<uint32_t>(CoreWindow::GetForCurrentThread()->Bounds.Height * surface_scale);
 	}
 }
 

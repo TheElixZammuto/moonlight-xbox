@@ -91,7 +91,7 @@ Pacer::Pacer()
 }
 
 void Pacer::deinit() {
-	m_Running = false;
+	m_Running.store(false, std::memory_order_release);
 	m_Stopping.store(true, std::memory_order_release);
 	m_RenderQueueNotEmpty.notify_all();
 
@@ -136,7 +136,7 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 	m_StreamFps = streamFps;
 	m_RefreshRate = refreshRate;
 
-	Utils::Logf("Pacer: init target %.2f Hz with %d FPS stream",
+	Utils::Logf("Pacer: init target %.2f Hz with %d FPS stream\n",
 	            m_RefreshRate, m_StreamFps);
 
 	// If running on Xbox at 120hz, emulate the vsync interval
@@ -157,7 +157,7 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 		m_BackPacerThread = std::thread(&Pacer::backPacer, this);
 	}
 
-	m_Running = true;
+	m_Running.store(true, std::memory_order_release);
 }
 
 // Vsync Emulator
@@ -208,7 +208,7 @@ void Pacer::vsyncEmulator() {
 	}
 
 	int64_t vsyncQpc = waitForVBlank();
-	m_VsyncPeriod.initFromHz(hzNum, hzDen, vsyncQpc);
+	m_VsyncPeriod.initFromHz(hzNum, hzDen, vsyncQpc, QpcFreq());
 
 	Utils::Logf("Pacer: using emulated integer vsync timer %lu/%lu based on system refresh rate %.2f Hz\n",
 	            hzNum, hzDen, m_RefreshRate);
@@ -232,7 +232,7 @@ void Pacer::vsyncEmulator() {
 			// Align to a real vblank edge
 			baseQpc = waitForVBlank();
 
-			m_VsyncPeriod.initFromHz(hzNum, hzDen, baseQpc);
+			m_VsyncPeriod.initFromHz(hzNum, hzDen, baseQpc, QpcFreq());
 			FQLog("resync to hardware vsync, waited %.3fms\n", QpcToMs(baseQpc - pre));
 			lastVblankSeq = m_VsyncSeq;
 
@@ -315,7 +315,7 @@ void Pacer::vsyncHardware() {
 
 	// no tearing to worry about, we will just use it for timing
 	int64_t vsyncQpc = waitForVBlank();
-	m_VsyncPeriod.initFromHz(hzNum, hzDen, vsyncQpc);
+	m_VsyncPeriod.initFromHz(hzNum, hzDen, vsyncQpc, QpcFreq());
 
 	Utils::Logf("Pacer: using integer vsync timer %lu/%lu based on system refresh rate %.2f Hz\n",
 	            hzNum, hzDen, m_RefreshRate);
@@ -332,7 +332,7 @@ void Pacer::vsyncHardware() {
 			continue;
 		}
 
-		m_VsyncPeriod.initFromHz(hzNum, hzDen, now);
+		m_VsyncPeriod.initFromHz(hzNum, hzDen, now, QpcFreq());
 
 		// Compute next period
 		m_VsyncPeriod.step();
@@ -506,7 +506,7 @@ void Pacer::enqueueFrameForRenderingAndUnlock(AVFrame *frame) {
 // Main render thread
 
 void Pacer::waitForFrame() {
-	if (!m_Running) return;
+	if (!running()) return;
 
 	// Wait for the renderer to be ready for the next frame
 #ifdef FRAME_QUEUE_VERBOSE
@@ -528,7 +528,7 @@ void Pacer::waitForFrame() {
 
 // called by render thread
 bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
-	if (!m_Running) return false;
+	if (!running()) return false;
 
 	AVFrame *frame = nullptr;
 
@@ -620,7 +620,7 @@ void Pacer::frontPacer(std::shared_ptr<VideoRenderer> &sceneRenderer, AVFrame *f
 
 // called by render thread
 void Pacer::waitUntilPresentTarget() {
-	if (!m_Running) return;
+	if (!running()) return;
 
 	FQLog("waitUntilPresentTarget(): waiting for %.3fms\n", QpcToMs(m_PresentTargetQpc - QpcNow()));
 
@@ -629,7 +629,7 @@ void Pacer::waitUntilPresentTarget() {
 
 // called by render thread
 void Pacer::afterPresent(int64_t presentTimeQpc) {
-	if (!m_Running) return;
+	if (!running()) return;
 
 	// Called immediately after Present(), check our timings and adjust future timings
 	const int64_t driftQpc = presentTimeQpc - m_PresentVsyncQpc;

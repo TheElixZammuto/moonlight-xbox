@@ -53,7 +53,7 @@ void FloatBuffer::push(float value) noexcept
 	}
 }
 
-int FloatBuffer::copyInto(float *outBuffer, std::size_t outSize, float &out_min, float &out_max) const
+std::size_t FloatBuffer::copyInto(float *outBuffer, std::size_t outSize, float &out_min, float &out_max) const
 {
 	std::lock_guard<std::mutex> lock(mtx_);
 
@@ -79,7 +79,7 @@ int FloatBuffer::copyInto(float *outBuffer, std::size_t outSize, float &out_min,
 
 	out_min = min_;
 	out_max = max_;
-	return outLen;
+	return static_cast<int>(outLen);
 }
 
 void FloatBuffer::clear() noexcept

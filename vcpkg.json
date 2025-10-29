@@ -7,9 +7,7 @@
       "default-features": false,
       "features": [
         "avcodec",
-        "avdevice",
-        "swscale",
-        "x264"
+        "swscale"
       ]
     },
     "curl",

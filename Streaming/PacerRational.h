@@ -3,10 +3,10 @@
 
 #pragma once
 #include <cstdint>
-#include <immintrin.h>
 #include <intrin.h>
-
+#if defined(_MSC_VER)
 #pragma intrinsic(_umul128, _udiv128)
+#endif
 
 // Represents a period in QPC ticks using an integer part plus a fractional accumulator.
 // This avoids drift at fractional Hz such as 59.94 or 119.88.
@@ -19,11 +19,9 @@ struct QpcRationalPeriod {
 
 	// Initialize from exact Hz as a rational number: Hz = num/den.
 	// Period(QPC) = QpcFreq * den / num.
-	void initFromHz(uint32_t hzNum, uint32_t hzDen, int64_t baseQpc) {
-		const uint64_t f = (uint64_t)QpcFreq();
-
+	void initFromHz(uint32_t hzNum, uint32_t hzDen, int64_t baseQpc, int64_t qpcFreq) {
 		uint64_t hi = 0;
-		uint64_t lo = _umul128(f, (uint64_t)hzDen, &hi);
+		uint64_t lo = _umul128((uint64_t)qpcFreq, (uint64_t)hzDen, &hi);
 		uint64_t r = 0;
 		uint64_t q = _udiv128(hi, lo, hzNum, &r);
 

@@ -84,7 +84,8 @@ static inline double QpcToMs(int64_t qpc) {
 }
 
 static inline int64_t MsToQpc(double ms) {
-	const int64_t us = static_cast<int64_t>(ms * 1000.0 + 0.5);
+	const double us_d = ms * 1000.0;
+	const int64_t us = static_cast<int64_t>(us_d >= 0.0 ? us_d + 0.5 : us_d - 0.5);
     return UsToQpc(us);
 }
 
@@ -103,13 +104,14 @@ static inline int64_t MsToQpc(double ms) {
 // Note: When FQLog is enabled, the spam is intense, so it only logs data for a short time
 #if !defined(NDEBUG)
 //#define FRAME_QUEUE_VERBOSE
-static int __once = 0;
 #endif
 
 #ifdef FRAME_QUEUE_VERBOSE
+	#include <atomic>
+	static std::atomic<int> g_fqlog_counter{0};
 	#define FQLog(fmt, ...) \
-        if (++__once > 200 && __once < 1000) \
-		    moonlight_xbox_dx::Utils::Logf("[%d] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+        if (++g_fqlog_counter > 200 && g_fqlog_counter < 1000) \
+		    moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
 #else
   	#if defined(_MSC_VER)
     	#define FQLog(...) __noop

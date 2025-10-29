@@ -71,7 +71,7 @@
                 Name="EnableHDRCheckbox" Grid.Row="7" Grid.Column="1"
                 IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}" />
             <TextBlock
-                Name="HDR4KNote" Grid.Row="7" Grid.Column="2" Visibility="Collapsed">
+                Name="HDR4KNote" Grid.Row="7" Grid.Column="1" Visibility="Collapsed">
                 HDR requires Xbox system resolution set to 4K.
             </TextBlock>
 

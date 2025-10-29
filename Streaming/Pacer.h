@@ -29,8 +29,12 @@ class Pacer {
 	Pacer(const Pacer &) = delete;
 	Pacer &operator=(const Pacer &) = delete;
 
-	bool stopping() const noexcept {
+	inline bool stopping() const noexcept {
 		return m_Stopping.load(std::memory_order_acquire);
+	}
+
+	inline bool running() const noexcept {
+		return m_Running.load(std::memory_order_acquire);
 	}
 
 	void vsyncEmulator();
@@ -42,7 +46,6 @@ class Pacer {
 	void dropFrameForEnqueue(std::deque<AVFrame *> &queue);
 	int64_t waitForVBlank();
 
-	bool m_Running;
 	std::shared_ptr<DX::DeviceResources> m_DeviceResources;
 	std::thread m_VsyncThread;
 	std::thread m_BackPacerThread;
@@ -53,6 +56,7 @@ class Pacer {
 	std::mutex m_FrameQueueLock;
 	std::condition_variable m_RenderQueueNotEmpty;
 	std::condition_variable m_PacingQueueNotEmpty;
+	std::atomic<bool> m_Running{false};
 	std::atomic<bool> m_Stopping{false};
 	int m_StreamFps;
 	double m_RefreshRate;

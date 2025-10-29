@@ -43,3 +43,5 @@ inline constexpr std::array<PlotDesc, PlotCount> kPlotDescs = {{
     {"Graph overhead",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 6.0f, 0.0f, 0.0f},
 	{"Etc...",                         PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 49.9f},
 }};
+
+static_assert(kPlotDescs.size() == PlotCount, "Plot descriptors out of sync with PlotType enum");

@@ -12,6 +12,7 @@ extern "C" {
 #include <State\StreamConfiguration.h>
 #include <gamingdeviceinformation.h>
 #include <atomic>
+#include <cmath>
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
@@ -224,7 +225,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 		double rr = res->GetRefreshRate();
 		switch (config.fps) {
 		case 120:
-			config.clientRefreshRateX100 = (int)(rr * 100.0);
+			config.clientRefreshRateX100 = (int)std::lround(rr * 100.0);
 			break;
 		case 60:
 			if (rr >= 120.0) {
@@ -232,7 +233,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 			} else if (rr >= 119.0) {
 				config.clientRefreshRateX100 = 5994;
 			} else {
-				config.clientRefreshRateX100 = (int)(rr * 100.0);
+				config.clientRefreshRateX100 = (int)std::lround(rr * 100.0);
 			}
 			break;
 		default:

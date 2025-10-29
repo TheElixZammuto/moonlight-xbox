@@ -134,6 +134,7 @@ namespace moonlight_xbox_dx {
 		}
 
 	    decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+	    av_buffer_unref(&hw_device_ctx);
 	    decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
 	    decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
 	    decoder_ctx->pkt_timebase.num = 1;
@@ -165,17 +166,6 @@ namespace moonlight_xbox_dx {
 		if (SUCCEEDED(hr)) {
 			pMultithread->SetMultithreadProtected(TRUE);
 			pMultithread->Release();
-		}
-
-		GAMING_DEVICE_MODEL_INFORMATION info = {};
-		GetGamingDeviceModelInformation(&info);
-		if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT &&
-			(info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE ||
-				info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE_S ||
-				info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE_X ||
-				info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE_X_DEVKIT)) {
-			Utils::Log("Using hack for Xbox One Consoles");
-			hackWait = true;
 		}
 		return 0;
 	}
@@ -251,6 +241,7 @@ namespace moonlight_xbox_dx {
 
 		int err = avcodec_send_packet(decoder_ctx, pkt);
 		av_packet_unref(pkt);
+		av_packet_free(&pkt);
 		if (err < 0) {
 			char ffmpegError[1024];
 			av_strerror(err, ffmpegError, 1024);
@@ -297,7 +288,7 @@ namespace moonlight_xbox_dx {
 
 		// Restore default log level after a successful decode
 		if (av_log_get_level() > 0) {
-			av_log_set_level(AV_LOG_QUIET);
+			av_log_set_level(AV_LOG_ERROR);
 		}
 
 		return DR_OK;

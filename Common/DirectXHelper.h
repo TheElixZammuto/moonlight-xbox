@@ -79,43 +79,4 @@ namespace DX
 	}
 #endif
 
-    class DeviceResources;
-
-    // Used to track time spent executing Gpu work
-    class GpuPerformanceTimer
-    {
-    public:
-        GpuPerformanceTimer(
-            const std::shared_ptr<DX::DeviceResources>& deviceResources);
-
-        void StartTimerForFrame();
-        void EndTimerForFrame();
-
-        float GetFrameTime() const;
-        float GetAvgFrameTime() const;
-        float GetMinFrameTime() const;
-        float GetMaxFrameTime() const;
-
-    private:
-        std::shared_ptr<DX::DeviceResources> m_deviceResources;
-
-        static constexpr uint32_t QueryCount = 5u;
-
-        Microsoft::WRL::ComPtr<ID3D11Query> m_startTimestampQuery[QueryCount];
-        Microsoft::WRL::ComPtr<ID3D11Query> m_endTimestampQuery[QueryCount];
-        Microsoft::WRL::ComPtr<ID3D11Query> m_disjointQuery[QueryCount];
-
-        uint32_t m_currentQuery = 0u;
-        uint32_t m_currentFrameIndex = 0u;
-
-        static constexpr uint32_t TimeHistoryCount = 64u;
-
-        uint32_t m_processingTimeHistoryIndex = 0u;
-        float m_processingTimeHistory[TimeHistoryCount] = {};
-
-        float m_processingTimeMs = 0.0f;
-        float m_processingTimeAvgMs = 0.0f;
-        float m_processingTimeMinMs = +std::numeric_limits<float>::infinity();
-        float m_processingTimeMaxMs = -std::numeric_limits<float>::infinity();
-    };
 }

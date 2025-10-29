@@ -103,7 +103,7 @@ void VideoRenderer::Update(DX::StepTimer const& timer)
 
 }
 
-void VideoRenderer::EnsureYuvTargets(ID3D11Device* dev, DXGI_FORMAT fmt, UINT w, UINT h) {
+void VideoRenderer::ensureYuvTargets(ID3D11Device* dev, DXGI_FORMAT fmt, UINT w, UINT h) {
 	if (m_yuvTexture && m_yuvFormat == fmt && m_yuvWidth == w && m_yuvHeight == h)
 		return;
 
@@ -157,7 +157,7 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ffmpegTexture->GetDesc(&ffmpegDesc);
 	int index = (int)(frame->data[1]);
 
-	EnsureYuvTargets(dev, ffmpegDesc.Format, frame->width, frame->height);
+	ensureYuvTargets(dev, ffmpegDesc.Format, frame->width, frame->height);
 
 	ID3D11ShaderResourceView *nullSrvs[2] = {nullptr, nullptr};
 	ctx->PSSetShaderResources(0, 2, nullSrvs);
@@ -539,8 +539,6 @@ void VideoRenderer::bindColorConversion(AVFrame* frame)
 
 void VideoRenderer::SetHDR(bool enabled)
 {
-	FFMpegDecoder::instance().mutex.lock();
-
 	if (enabled) {
 		SS_HDR_METADATA sunshineHdrMetadata;
 
@@ -556,8 +554,6 @@ void VideoRenderer::SetHDR(bool enabled)
 		// toggle the display to the correct state
 		client->SetDisplayHDR(false, SS_HDR_METADATA{});
 	}
-
-	FFMpegDecoder::instance().mutex.unlock();
 }
 
 void VideoRenderer::Stop() {

@@ -36,8 +36,6 @@ class FFMpegDecoder {
 	int SubmitDecodeUnit(PDECODE_UNIT decodeUnit);
 	static FFMpegDecoder *getInstance();
 	static DECODER_RENDERER_CALLBACKS getDecoder();
-	std::recursive_mutex mutex;
-	bool hackWait = false;
 	int videoFormat, width, height;
 
   private:

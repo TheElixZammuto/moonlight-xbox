@@ -6,10 +6,6 @@
 #include "Streaming\StatsRenderer.h"
 #include "Pages\StreamPage.xaml.h"
 
-namespace DX {
-    class GpuPerformanceTimer;
-}
-
 // Renders Direct2D and 3D content on the screen.
 namespace moonlight_xbox_dx
 {

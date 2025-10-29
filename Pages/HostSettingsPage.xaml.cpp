@@ -8,6 +8,7 @@
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
 #include <gamingdeviceinformation.h>
+#include <cmath> // sqrtf, lround
 using namespace Windows::UI::Core;
 
 using namespace moonlight_xbox_dx;
@@ -132,6 +133,7 @@ void HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sen
 
 void HostSettingsPage::FPSSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
+	if (e->AddedItems->Size == 0) return;
 	int selectedFPS = (int)e->AddedItems->GetAt(0);
 
 	// Default to a new bitrate if a new FPS was chosen

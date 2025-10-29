@@ -77,8 +77,6 @@ void StatsRenderer::RenderGraphs() {
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512)};
 
-	ImGuiIO &io = ImGui::GetIO();
-
 	float graphW = 850.0f * (m_displayWidth / 3840.0f);
 	float graphH = 120.0f * (m_displayHeight / 2160.0f);
 	float opacity = 0.8f;
@@ -110,7 +108,7 @@ void StatsRenderer::RenderGraphs() {
 
 		float minY = 0.0f;
 		float maxY = 0.0f;
-		int countF = plot.buffer.copyInto(buffers[i], 512, minY, maxY);
+		std::size_t countF = plot.buffer.copyInto(buffers[i], 512, minY, maxY);
 		float avgF = plot.buffer.average();
 		if (!countF) {
 			return;
@@ -161,8 +159,8 @@ void StatsRenderer::RenderGraphs() {
 	}
 
 	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	const int row2[4] = {PLOT_HOST_FRAMETIME, PLOT_PRESENT_PACING, PLOT_DROPPED_PACER};
-	for (int c = 0; c < 4; ++c) {
+	const int row2[3] = {PLOT_HOST_FRAMETIME, PLOT_PRESENT_PACING, PLOT_DROPPED_PACER};
+	for (int c = 0; c < 3; ++c) {
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
 		draw_plot(row2[c], graphW, graphH);
 	}

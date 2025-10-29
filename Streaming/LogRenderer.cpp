@@ -32,7 +32,6 @@ void LogRenderer::Update(DX::StepTimer const& timer)
 	static double lastUpdateSeconds = 0.0;
 	if (m_visible && timer.GetTotalSeconds() - lastUpdateSeconds >= 1.0) {
 		m_console->Clear();
-		m_warningConsole->Clear();
 
 		Utils::logMutex.lock();
 		std::vector<std::wstring> lines = Utils::GetLogLines();
@@ -40,8 +39,6 @@ void LogRenderer::Update(DX::StepTimer const& timer)
 			m_console->Write(line.c_str());
 		}
 		Utils::logMutex.unlock();
-
-		m_warningConsole->Write(L"Warning: Viewing logs reduces performance");
 
 		lastUpdateSeconds = timer.GetTotalSeconds();
 	}
@@ -95,4 +92,8 @@ void LogRenderer::ReleaseDeviceDependentResources()
 void LogRenderer::ToggleVisible() {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_visible = m_visible == true ? false : true;
+	if (m_visible) {
+		m_warningConsole->Clear();
+		m_warningConsole->Write(L"Warning: Viewing logs reduces performance");
+	}
 }

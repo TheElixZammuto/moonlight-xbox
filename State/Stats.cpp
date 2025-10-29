@@ -93,10 +93,11 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT deco
 
 	// Host frametime graph, uses raw 90kHz units to avoid rounding errors
 	static uint32_t lastHostPts = 0;
-	if (lastHostPts > 0) {
-		ImGuiPlots::instance().observeFloat(PLOT_HOST_FRAMETIME, (float)((decodeUnit->rtpTimestamp - lastHostPts) / 90.0f));
+	if (lastHostPts != 0) {
+		const uint32_t delta90k = (uint32_t)(decodeUnit->rtpTimestamp - lastHostPts); // wrap-safe
+		ImGuiPlots::instance().observeFloat(PLOT_HOST_FRAMETIME, (float)(delta90k / 90.0f));
 	}
-	lastHostPts = decodeUnit->rtpTimestamp;
+	lastHostPts = (uint32_t)decodeUnit->rtpTimestamp;
 }
 
 // Time in milliseconds we spent decoding one frame, it is added up to later be divided by decodedFrames
@@ -266,7 +267,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 						ffmpeg.height,
 						stats.totalFps,
 						codecString);
-		if (ret < 0 || ret >= length - offset) {
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
 		}
@@ -288,7 +289,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   stats.receivedFps,
 					   stats.decodedFps,
 					   stats.renderedFps);
-		if (ret < 0 || ret >= length - offset) {
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
 		}
@@ -303,7 +304,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   (double)stats.minHostProcessingLatency / 10,
 					   (double)stats.maxHostProcessingLatency / 10,
 					   (double)stats.totalHostProcessingLatency / 10 / stats.framesWithHostProcessingLatency);
-		if (ret < 0 || ret >= length - offset) {
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
 		}
@@ -315,7 +316,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 		ret = snprintf(&output[offset],
 					   length - offset,
 					   "Host processing latency min/max/avg: -/-/- ms\n");
-		if (ret < 0 || ret >= length - offset) {
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
 		}
@@ -349,7 +350,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   stats.renderedFrames ? (double)stats.totalPacerTimeUs / 1000.0 / stats.renderedFrames : 0.0f,
 					   stats.renderedFrames ? (double)stats.totalPresentDisplayMs / stats.renderedFrames : 0.0f,
 					   stats.renderedFrames ? (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames : 0.0f);
-		if (ret < 0 || ret >= length - offset) {
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
 		}

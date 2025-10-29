@@ -7,6 +7,8 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavutil/frame.h>  // AVFrame
+#include <libavutil/pixfmt.h> // AVColorTransferCharacteristic
 }
 
 namespace moonlight_xbox_dx
@@ -30,7 +32,6 @@ namespace moonlight_xbox_dx
 		void Update(DX::StepTimer const& timer);
 		void scaleSourceToDestinationSurface(IRECT* src, IRECT* dst);
 		void screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, int viewportWidth, int viewportHeight);
-		void EnsureYuvTargets(ID3D11Device* dev, DXGI_FORMAT fmt, UINT w, UINT h);
 		bool Render(AVFrame* frame);
 		void bindColorConversion(AVFrame* frame);
 		void SetHDR(bool enabled);
@@ -39,6 +40,8 @@ namespace moonlight_xbox_dx
 
 
 	private:
+		void ensureYuvTargets(ID3D11Device* dev, DXGI_FORMAT fmt, UINT w, UINT h);
+
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
