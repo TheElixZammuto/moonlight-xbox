@@ -123,9 +123,10 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				if (Render()) {
 					Pacer::instance().waitUntilPresentTarget();
 
+					int64_t presentTimeQpc = QpcNow();
 					m_deviceResources->Present();
 
-					Pacer::instance().afterPresent();
+					Pacer::instance().afterPresent(presentTimeQpc);
 
 					int64_t afterPresent = QpcNow();
 					if (lastPresentTime > 0) {
@@ -536,12 +537,4 @@ void moonlight_xbox_dxMain::SetImGui(bool isVisible) {
 		m_deviceResources->SetShowImGui(isVisible);
 		Utils::Logf("ImGui graphs are now %d\n", isVisible ? 1 : 0);
 	});
-}
-
-void moonlight_xbox_dxMain::SetTearOffset(double offset) {
-	Pacer::instance().setTearOffset(offset);
-}
-
-double moonlight_xbox_dxMain::GetTearOffset() {
-	return Pacer::instance().getTearOffset();
 }

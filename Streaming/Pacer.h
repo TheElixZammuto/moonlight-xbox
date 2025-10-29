@@ -4,7 +4,6 @@
 #include <deque>
 #include <thread>
 #include "PacerRational.h"
-#include "PacerTearController.h"
 #include "Utils.hpp"
 #include "VideoRenderer.h"
 
@@ -22,9 +21,7 @@ class Pacer {
 	void waitForFrame();
 	bool renderOnMainThread(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
 	void waitUntilPresentTarget();
-	void afterPresent();
-	void setTearOffset(double offset);
-	double getTearOffset();
+	void afterPresent(int64_t presentTimeQpc);
 	void submitFrame(AVFrame *frame);
 
   private:
@@ -67,6 +64,5 @@ class Pacer {
 	std::mutex m_VsyncMutex;
 	std::condition_variable m_VsyncSignalled;
 	uint64_t m_VsyncSeq;
-
-	TearController m_TearCtl;
+	double m_AvgDriftMs;
 };

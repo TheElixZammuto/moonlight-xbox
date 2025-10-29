@@ -77,16 +77,17 @@ Pacer &Pacer::instance() {
 	return inst;
 }
 
-Pacer::Pacer() :
-	m_Running(false),
-	m_DeviceResources(),
-	m_VsyncThread(),
-    m_BackPacerThread(),
-    m_VsyncSeq(0),
-    m_VsyncNextDeadlineQpc(0),
-    m_Stopping(false),
-    m_StreamFps(0),
-    m_RefreshRate(0.0) {
+Pacer::Pacer()
+    : m_Running(false),
+      m_DeviceResources(),
+      m_VsyncThread(),
+      m_BackPacerThread(),
+      m_VsyncSeq(0),
+      m_VsyncNextDeadlineQpc(0),
+      m_Stopping(false),
+      m_StreamFps(0),
+      m_RefreshRate(0.0),
+      m_AvgDriftMs(1.2) {
 }
 
 void Pacer::deinit() {
@@ -208,8 +209,6 @@ void Pacer::vsyncEmulator() {
 
 	int64_t vsyncQpc = waitForVBlank();
 	m_VsyncPeriod.initFromHz(hzNum, hzDen, vsyncQpc);
-	m_TearCtl.initializeTiming(QpcToMs(m_VsyncPeriod.baseTicks), 0.10);
-	m_TearCtl.setTearOffset(0.0); // XXX use saved setting
 
 	Utils::Logf("Pacer: using emulated integer vsync timer %lu/%lu based on system refresh rate %.2f Hz\n",
 	            hzNum, hzDen, m_RefreshRate);
@@ -232,17 +231,6 @@ void Pacer::vsyncEmulator() {
 #endif
 			// Align to a real vblank edge
 			baseQpc = waitForVBlank();
-
-#ifdef FRAME_QUEUE_VERBOSE
-			// compare what our emulated deadline would have been with real vblank
-			// TODO: is there any value in running on the emulated timer for longer periods?
-			if (m_VsyncSeq > 0) {
-				int64_t jitterQpc = std::llabs(m_VsyncPeriod.nextDeadlineQpc - baseQpc);
-				Utils::Logf("emulation deadline jitter after %d cycles: %lld (%f)\n",
-					m_VsyncSeq - lastVblankSeq,
-					jitterQpc, QpcToMs(jitterQpc));
-			}
-#endif
 
 			m_VsyncPeriod.initFromHz(hzNum, hzDen, baseQpc);
 			FQLog("resync to hardware vsync, waited %.3fms\n", QpcToMs(baseQpc - pre));
@@ -328,8 +316,6 @@ void Pacer::vsyncHardware() {
 	// no tearing to worry about, we will just use it for timing
 	int64_t vsyncQpc = waitForVBlank();
 	m_VsyncPeriod.initFromHz(hzNum, hzDen, vsyncQpc);
-	m_TearCtl.initializeTiming(QpcToMs(m_VsyncPeriod.baseTicks), 0.10);
-	m_TearCtl.setTearOffset(0.0); //; always 0.0 in vsync mode
 
 	Utils::Logf("Pacer: using integer vsync timer %lu/%lu based on system refresh rate %.2f Hz\n",
 	            hzNum, hzDen, m_RefreshRate);
@@ -492,8 +478,12 @@ void Pacer::handleVsync(int64_t nextDeadlineQpc) {
 		auto *data = reinterpret_cast<MLFrameData *>(frame->opaque_ref->data);
 		data->presentVsyncQpc = nextDeadlineQpc;
 
-		// Adjust Present() timing
-		data->presentTargetQpc = m_TearCtl.targetPresentQpc(nextDeadlineQpc);
+		// Adjust Present() timing, goal is to present as close to nextDeadline without going over
+		static const int64_t safetyQpc = MsToQpc(0.3);
+		data->presentTargetQpc = nextDeadlineQpc - MsToQpc(m_AvgDriftMs) - safetyQpc;
+		if (data->presentTargetQpc > nextDeadlineQpc) {
+			data->presentTargetQpc = nextDeadlineQpc - safetyQpc;
+		}
 	}
 
 	lock.unlock();
@@ -635,41 +625,28 @@ void Pacer::waitUntilPresentTarget() {
 	FQLog("waitUntilPresentTarget(): waiting for %.3fms\n", QpcToMs(m_PresentTargetQpc - QpcNow()));
 
 	SleepUntilQpc(m_PresentTargetQpc);
-
-#ifdef FRAME_QUEUE_VERBOSE
-	int64_t now = QpcNow();
-	static int64_t last = 0;
-	if (QpcToMs(now - last) > 5000.0) {
-		Utils::Logf("wait for Present(): (t %fms) (v %fms)\n",
-		      QpcToMs(now - m_PresentTargetQpc),
-		      QpcToMs(now - m_PresentVsyncQpc));
-		last = now;
-	}
-#endif
 }
 
 // called by render thread
-void Pacer::afterPresent() {
+void Pacer::afterPresent(int64_t presentTimeQpc) {
 	if (!m_Running) return;
 
 	// Called immediately after Present(), check our timings and adjust future timings
-	const int64_t now = QpcNow();
-	const int64_t driftQpc = m_PresentTargetQpc - now;
+	const int64_t driftQpc = presentTimeQpc - m_PresentVsyncQpc;
 	double driftMs = QpcToMs(driftQpc);
 
 	{
 		std::scoped_lock<std::mutex> lock(m_FrameQueueLock);
-		// Measure drift for this frame relative to intended phase.
-		m_TearCtl.addDriftSample(driftMs);
+		// weighted moving average of drift
+		const double alpha = 0.05f;
+		m_AvgDriftMs = (driftMs * alpha) + (m_AvgDriftMs * (1.0 - alpha));
 	}
 
 	// technically present-to-slightly-before-display
 	FQLog("Present-to-present drift %.3fms\n", driftMs);
 
-	// For stats, we show the present-to-vsync latency, which is directly affected by the tear controller
-	double driftVsyncMs = QpcToMs(m_PresentVsyncQpc - now);
-	m_DeviceResources->GetStats()->SubmitPresentPacing(driftVsyncMs);
-	ImGuiPlots::instance().observeFloat(PLOT_PRESENT_PACING, (float)driftVsyncMs);
+	m_DeviceResources->GetStats()->SubmitPresentPacing(driftMs);
+	ImGuiPlots::instance().observeFloat(PLOT_PRESENT_PACING, (float)driftMs);
 }
 
 // end main thread
@@ -712,16 +689,4 @@ void Pacer::submitFrame(AVFrame *frame) {
 inline int64_t Pacer::waitForVBlank() {
 	m_DeviceResources->GetDXGIOutput()->WaitForVBlank();
 	return QpcNow();
-}
-
-// passthrough user choice for tear offset
-// 0.0 = least latency, present with a short safety buffer
-// 100.0 = ~1 frame of latency.
-// Somewhere in between may hide screen tearing, or it may not.
-void Pacer::setTearOffset(double offset) {
-	m_TearCtl.setTearOffset(offset);
-}
-
-double Pacer::getTearOffset() {
-	return m_TearCtl.getTearOffset();
 }

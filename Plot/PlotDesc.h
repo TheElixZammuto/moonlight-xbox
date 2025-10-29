@@ -36,7 +36,7 @@ struct PlotDesc {
 inline constexpr std::array<PlotDesc, PlotCount> kPlotDescs = {{
     {"Frametime",                      PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 41.0f},
     {"Host Frametime",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 41.0f},
-    {"Vsync interval",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 25.0f, 0.0f, 0.0f},
+    {"Vsync interval",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 0.0f},
     {"Dropped frames (network)",       PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
     {"Dropped frames (pacing)",        PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
     {"Present to display latency",     PLOT_LABEL_MIN_MAX_AVG, "ms", -10.0f, 25.0f, 0.0f, 0.0f},
