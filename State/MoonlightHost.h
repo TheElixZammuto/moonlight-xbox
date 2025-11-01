@@ -29,8 +29,6 @@ namespace moonlight_xbox_dx {
         bool enableSOPS = false;
         bool enableStats = false;
         bool enableGraphs = true;
-        bool enableVsync = true;
-        bool forceTearing = false;
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
@@ -253,27 +251,6 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->enableGraphs = value;
                 OnPropertyChanged("EnableGraphs");
-            }
-        }
-
-        property bool ForceTearing
-        {
-            bool get() { return this->forceTearing; }
-            void set(bool value) {
-                this->forceTearing = value;
-                OnPropertyChanged("ForceTearing");
-            }
-        }
-
-
-
-        // NOTE: vsync is currently forced ON until we can figure out how to get VRR working
-        property bool EnableVsync
-        {
-            bool get() { return this->enableVsync; }
-            void set(bool value) {
-                this->enableVsync = value;
-                OnPropertyChanged("EnableVsync");
             }
         }
     };

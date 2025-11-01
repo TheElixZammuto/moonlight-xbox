@@ -58,8 +58,12 @@ static const float k_CscMatrix_Bt2020Full[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
 
 #define OFFSETS_ELEMENT_COUNT 3
 
+// 8-bit offsets
 static const float k_Offsets_Lim[OFFSETS_ELEMENT_COUNT] = { 16.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f };
 static const float k_Offsets_Full[OFFSETS_ELEMENT_COUNT] = { 0.0f, 128.0f / 255.0f, 128.0f / 255.0f };
+// 10-bit offsets
+static const float k_Offsets_10bit_Lim[OFFSETS_ELEMENT_COUNT] = { 64.0f / 1023.0f, 512.0f / 1023.0f, 512.0f / 1023.0f };
+static const float k_Offsets_10bit_Full[OFFSETS_ELEMENT_COUNT] = { 0.0f, 512.0f / 1023.0f, 512.0f / 1023.0f };
 
 typedef struct _CSC_CONST_BUF
 {
@@ -99,127 +103,112 @@ void VideoRenderer::Update(DX::StepTimer const& timer)
 
 }
 
+void VideoRenderer::ensureYuvTargets(ID3D11Device* dev, DXGI_FORMAT fmt, UINT w, UINT h) {
+	if (m_yuvTexture && m_yuvFormat == fmt && m_yuvWidth == w && m_yuvHeight == h)
+		return;
+
+	m_yuvTexture.Reset();
+	m_srvY.Reset();
+	m_srvUV.Reset();
+
+	D3D11_TEXTURE2D_DESC d = {};
+	d.Width = w;
+	d.Height = h;
+	d.MipLevels = 1;
+	d.ArraySize = 1;
+	d.Format = fmt;
+	d.SampleDesc.Count = 1;
+	d.Usage = D3D11_USAGE_DEFAULT;
+	d.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	DX::ThrowIfFailed(dev->CreateTexture2D(&d, nullptr, &m_yuvTexture));
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC yDesc = {};
+	yDesc.Format = (fmt == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R8_UNORM;
+	yDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	yDesc.Texture2D.MostDetailedMip = 0;
+	yDesc.Texture2D.MipLevels = 1;
+	DX::ThrowIfFailed(dev->CreateShaderResourceView(m_yuvTexture.Get(), &yDesc, &m_srvY));
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC uvDesc = {};
+	uvDesc.Format = (fmt == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R8G8_UNORM;
+	uvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	uvDesc.Texture2D.MostDetailedMip = 0;
+	uvDesc.Texture2D.MipLevels = 1;
+	DX::ThrowIfFailed(dev->CreateShaderResourceView(m_yuvTexture.Get(), &uvDesc, &m_srvUV));
+
+	m_yuvFormat = fmt;
+	m_yuvWidth = w;
+	m_yuvHeight = h;
+}
+
 bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
-bool VideoRenderer::Render()
-{
+bool VideoRenderer::Render(AVFrame *frame) {
 	// Loading is asynchronous. Only draw geometry after it's loaded.
-	if (!m_loadingComplete)
-	{
+	if (!m_loadingComplete.load(std::memory_order_acquire)) {
 		return true;
 	}
-	//Create a rendering texture
-	FFMpegDecoder::getInstance()->shouldUnlock = false;
-	if (!FFMpegDecoder::getInstance()->SubmitDU()) {
-		return false;
-	}
-	AVFrame* frame = FFMpegDecoder::getInstance()->GetFrame();
-	if (frame == nullptr) {
-		return false;
-	}
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> renderTexture;
-	D3D11_BOX box;
-	box.left = 0;
-	box.top = 0;
-	box.right = renderTextureDesc.Width;
-	box.bottom = renderTextureDesc.Height;
-	box.front = 0;
-	box.back = 1;
-	if (frame->format != AV_PIX_FMT_D3D11) {
-		char msg[2048];
-		sprintf_s(msg, "Pixel format mismatch - got %d instead of D3D11!\n", frame->format);
-		Utils::Log(msg);
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
-	}
-	else {
-		FFMpegDecoder::getInstance()->mutex.lock();
-		FFMpegDecoder::getInstance()->shouldUnlock = true;
-		ID3D11Texture2D* ffmpegTexture = (ID3D11Texture2D*)(frame->data[0]);
-		D3D11_TEXTURE2D_DESC ffmpegDesc;
-		ffmpegTexture->GetDesc(&ffmpegDesc);
-		int index = (int)(frame->data[1]);
-		box.right = std::min(renderTextureDesc.Width, ffmpegDesc.Width);
-		box.bottom = std::min(renderTextureDesc.Height, ffmpegDesc.Height);
-		renderTextureDesc.Format = ffmpegDesc.Format;
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&renderTextureDesc, NULL, renderTexture.GetAddressOf()), "Render Texture Creation");
-		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(renderTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
-	}
 
-	auto context = m_deviceResources->GetD3DDeviceContext();
+	auto *ctx = m_deviceResources->GetD3DDeviceContext();
+	auto *dev = m_deviceResources->GetD3DDevice();
+
+	ID3D11Texture2D *ffmpegTexture = (ID3D11Texture2D *)(frame->data[0]);
+	D3D11_TEXTURE2D_DESC ffmpegDesc;
+	ffmpegTexture->GetDesc(&ffmpegDesc);
+	int index = (int)(frame->data[1]);
+
+	ensureYuvTargets(dev, ffmpegDesc.Format, frame->width, frame->height);
+
+	ID3D11ShaderResourceView *nullSrvs[2] = {nullptr, nullptr};
+	ctx->PSSetShaderResources(0, 2, nullSrvs);
+
+	D3D11_BOX box{};
+	box.right = frame->width;
+	box.bottom = frame->height;
+	box.back = 1;
+	ctx->CopySubresourceRegion(m_yuvTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
+
+	ID3D11ShaderResourceView *srvs[2] = {m_srvY.Get(), m_srvUV.Get()};
+	ctx->PSSetShaderResources(0, 2, srvs);
+
 	UINT stride = sizeof(VERTEX);
 	UINT offset = 0;
-	context->IASetIndexBuffer(m_indexBuffer.Get(),
-		DXGI_FORMAT_R32_UINT,
-		0);
-	context->IASetVertexBuffers(
-		0,
-		1,
-		m_vertexBuffer.GetAddressOf(),
-		&stride,
-		&offset
-	);
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->IASetInputLayout(m_inputLayout.Get());
+	ctx->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+	ctx->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+	ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	ctx->IASetInputLayout(m_inputLayout.Get());
 	// Attach our vertex shader.
-	context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+	ctx->VSSetShader(m_vertexShader.Get(), nullptr, 0);
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_luminance_shader_resource_view;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_chrominance_shader_resource_view;
-	D3D11_SHADER_RESOURCE_VIEW_DESC luminance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(
-		renderTexture.Get(),
-		D3D11_SRV_DIMENSION_TEXTURE2D,
-		(renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R8_UNORM
-	);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(
-		renderTexture.Get(), &luminance_desc, m_luminance_shader_resource_view.GetAddressOf()), "Luminance SRV Creation"
-	);
+	bindColorConversion(frame);
 
-	D3D11_SHADER_RESOURCE_VIEW_DESC chrominance_desc = CD3D11_SHADER_RESOURCE_VIEW_DESC(
-		renderTexture.Get(),
-		D3D11_SRV_DIMENSION_TEXTURE2D,
-		(renderTextureDesc.Format == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R8G8_UNORM
-	);
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(
-		renderTexture.Get(), &chrominance_desc, m_chrominance_shader_resource_view.GetAddressOf()), "Chrominance SRV Creation"
-	);
-	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(0, 1, m_luminance_shader_resource_view.GetAddressOf());
-	m_deviceResources->GetD3DDeviceContext()->PSSetShaderResources(1, 1, m_chrominance_shader_resource_view.GetAddressOf());
-
-	this->bindColorConversion(frame);
-
-	m_deviceResources->GetD3DDeviceContext()->DrawIndexed(6, 0, 0);
+	ctx->DrawIndexed(6, 0, 0);
 
 	if (frame->color_trc != m_LastColorTrc) {
 		DXGI_COLOR_SPACE_TYPE colorspace = {};
 
-        if (frame->color_trc == AVCOL_TRC_SMPTE2084) {
-            // Switch to Rec 2020 PQ (SMPTE ST 2084) colorspace for HDR10 rendering
+		if (frame->color_trc == AVCOL_TRC_SMPTE2084) {
+			// Switch to Rec 2020 PQ (SMPTE ST 2084) colorspace for HDR10 rendering
 			colorspace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
-        }
-        else {
-            // Restore default sRGB colorspace
+		} else {
+			// Restore default sRGB colorspace
 			colorspace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-        }
-
-		UINT colorSpaceSupport = 0;
-		if (colorspace
-			&& SUCCEEDED(m_deviceResources->GetSwapChain()->CheckColorSpaceSupport(colorspace, &colorSpaceSupport))
-			&& (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
-		{
-			DX::ThrowIfFailed(m_deviceResources->GetSwapChain()->SetColorSpace1(colorspace));
-			Utils::Logf("Colorspace changed to %s\n",
-				colorspace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
-				? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
-				: "DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709");
 		}
 
-        m_LastColorTrc = frame->color_trc;
-    }
+		UINT colorSpaceSupport = 0;
+		if (colorspace && SUCCEEDED(m_deviceResources->GetSwapChain()->CheckColorSpaceSupport(colorspace, &colorSpaceSupport)) && (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)) {
+			DX::ThrowIfFailed(m_deviceResources->GetSwapChain()->SetColorSpace1(colorspace));
+			Utils::Logf("Colorspace changed to %s\n",
+			            colorspace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
+			                ? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
+			                : "DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709");
+		}
+
+		m_LastColorTrc = frame->color_trc;
+	}
 
 	return true;
 }
-
-
 
 void VideoRenderer::CreateDeviceDependentResources()
 {
@@ -291,8 +280,8 @@ void VideoRenderer::CreateDeviceDependentResources()
 	auto createCubeTask = (createVSTask && createPSTaskGen && createPSTaskBT601 && createPSTaskBT2020).then([this]() {
 		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 		auto w = CoreWindow::GetForCurrentThread();
-		int m_DisplayWidth = w->Bounds.Width;
-		int m_DisplayHeight = w->Bounds.Height;
+		int m_DisplayWidth = (int)w->Bounds.Width;
+		int m_DisplayHeight = (int)w->Bounds.Height;
 		// HDR Setup
 		if (hdi) {
 			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
@@ -355,24 +344,6 @@ void VideoRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
 		});
 
-	D3D11_RASTERIZER_DESC rasterizerState;
-	ZeroMemory(&rasterizerState, sizeof(D3D11_RASTERIZER_DESC));
-
-	rasterizerState.AntialiasedLineEnable = false;
-	rasterizerState.CullMode = D3D11_CULL_NONE; // D3D11_CULL_FRONT or D3D11_CULL_NONE D3D11_CULL_BACK
-	rasterizerState.FillMode = D3D11_FILL_SOLID; // D3D11_FILL_SOLID  D3D11_FILL_WIREFRAME
-	rasterizerState.DepthBias = 0;
-	rasterizerState.DepthBiasClamp = 0.0f;
-	rasterizerState.DepthClipEnable = true;
-	rasterizerState.FrontCounterClockwise = false;
-	rasterizerState.MultisampleEnable = false;
-	rasterizerState.ScissorEnable = false;
-	rasterizerState.SlopeScaledDepthBias = 0.0f;
-	//rasterizerState.FillMode = D3D11_FILL_WIREFRAME;
-	ID3D11RasterizerState* m_pRasterState;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateRasterizerState(&rasterizerState, &m_pRasterState), "Rasterizer Creation");
-	m_deviceResources->GetD3DDeviceContext()->RSSetState(m_pRasterState);
-
 	D3D11_SAMPLER_DESC samplerDesc;
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -426,7 +397,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 			dialog->ShowAsync();
 			return;
 		}
-		m_loadingComplete = true;
+		m_loadingComplete.store(true, std::memory_order_release);
 		Utils::Log("Loading Complete!\n");
 		});
 }
@@ -434,7 +405,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 void VideoRenderer::ReleaseDeviceDependentResources()
 {
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
-	m_loadingComplete = false;
+	m_loadingComplete.store(false, std::memory_order_release);
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
 	m_pixelShaderGeneric.Reset();
@@ -447,8 +418,8 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 
 void VideoRenderer::scaleSourceToDestinationSurface(IRECT* src, IRECT* dst)
 {
-	int dstH = ceil((float)dst->w * src->h / src->w);
-	int dstW = ceil((float)dst->h * src->w / src->h);
+	int dstH = (int)ceil((float)dst->w * src->h / src->w);
+	int dstW = (int)ceil((float)dst->h * src->w / src->h);
 
 	if (dstH > dst->h) {
 		dst->x += (dst->w - dstW) / 2;
@@ -502,9 +473,7 @@ void VideoRenderer::bindColorConversion(AVFrame* frame)
 			return;
 		}
 
-		char msg[4096];
-		sprintf_s(msg, "Falling back to generic video pixel shader for %d (%s range)\n", colorspace, fullRange ? "full" : "limited");
-		Utils::Log(msg);
+		Utils::Logf("Falling back to generic video pixel shader for %d (%s range)\n", colorspace, fullRange ? "full" : "limited");
 
 		D3D11_BUFFER_DESC constDesc = {};
 		constDesc.ByteWidth = sizeof(CSC_CONST_BUF);
@@ -539,9 +508,13 @@ void VideoRenderer::bindColorConversion(AVFrame* frame)
 
 		// No adjustments are needed to the float[3] array of offsets, so it can just
 		// be copied with memcpy().
-		memcpy(constBuf.offsets,
-			fullRange ? k_Offsets_Full : k_Offsets_Lim,
-			sizeof(constBuf.offsets));
+		if (colorspace == COLORSPACE_REC_2020) {
+			// This is important to avoid tinting the image slightly
+			memcpy(constBuf.offsets, fullRange ? k_Offsets_10bit_Full : k_Offsets_10bit_Lim, sizeof(constBuf.offsets));
+		}
+		else {
+			memcpy(constBuf.offsets, fullRange ? k_Offsets_Full : k_Offsets_Lim, sizeof(constBuf.offsets));
+		}
 
 		D3D11_SUBRESOURCE_DATA constData = {};
 		constData.pSysMem = &constBuf;
@@ -566,15 +539,6 @@ void VideoRenderer::bindColorConversion(AVFrame* frame)
 
 void VideoRenderer::SetHDR(bool enabled)
 {
-	HRESULT hr;
-
-	// Do not try to render any frames while we're changing display modes
-	auto ffmpeg = FFMpegDecoder::getInstance();
-	if (ffmpeg != nullptr) {
-		ffmpeg->mutex.lock();
-		ffmpeg->shouldUnlock = false;
-	}
-
 	if (enabled) {
 		SS_HDR_METADATA sunshineHdrMetadata;
 
@@ -590,13 +554,9 @@ void VideoRenderer::SetHDR(bool enabled)
 		// toggle the display to the correct state
 		client->SetDisplayHDR(false, SS_HDR_METADATA{});
 	}
-
-	if (ffmpeg != nullptr) {
-		ffmpeg->shouldUnlock = true;
-		ffmpeg->mutex.unlock();
-	}
 }
 
 void VideoRenderer::Stop() {
 	// nothing to do
 }
+

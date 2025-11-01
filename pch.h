@@ -8,6 +8,7 @@
 #include <dxgi1_6.h>
 #include <dxgi1_4.h>
 #include <dxgi1_3.h>
+#include <d3d11_4.h>
 #include <d3d11_3.h>
 #include <d2d1_3.h>
 #include <d2d1effects_2.h>
@@ -42,37 +43,50 @@
 		)
 
 // Time helpers
-static uint64_t QpcToUs(uint64_t qpc) {
-	static LARGE_INTEGER qpcFreq = {0, 0};
-	if (qpcFreq.QuadPart == 0) {
-		QueryPerformanceFrequency(&qpcFreq);
+static inline int64_t QpcFreq() {
+	static int64_t f = [] {
+		LARGE_INTEGER li{};
+		QueryPerformanceFrequency(&li);
+		return li.QuadPart;
+	}();
+	return f;
+}
+
+static inline int64_t QpcNow() {
+	LARGE_INTEGER li{};
+	QueryPerformanceCounter(&li);
+	return li.QuadPart;
+}
+
+static inline int64_t UsToQpc(int64_t us) {
+	const int64_t f = QpcFreq();
+	return (us / INT64_C(1000000)) * f +
+	       (us % INT64_C(1000000)) * f / INT64_C(1000000);
+}
+
+static inline int64_t QpcToUs(int64_t qpc) {
+	const int64_t f = QpcFreq();
+	int64_t q = qpc / f;
+	int64_t r = qpc % f;
+	if (r < 0) {
+		--q;
+		r += f;
 	}
-
-	return (qpc / qpcFreq.QuadPart) * UINT64_C(1000000) +
-	       (qpc % qpcFreq.QuadPart) * UINT64_C(1000000) / qpcFreq.QuadPart;
+	return q * INT64_C(1000000) + (r * INT64_C(1000000)) / f;
 }
 
-static uint64_t QpcToNs(uint64_t qpc) {
-    // Convert QPC units (1/perf_freq seconds) to nanoseconds. This will work
-    // without overflow because the QPC value is guaranteed not to roll-over
-    // within 100 years, so perf_freq must be less than 2.9*10^9.
-	static LARGE_INTEGER qpcFreq = {0, 0};
-	if (qpcFreq.QuadPart == 0) {
-		QueryPerformanceFrequency(&qpcFreq);
-	}
-
-    return (qpc / qpcFreq.QuadPart) * UINT64_C(1000000000) +
-           (qpc % qpcFreq.QuadPart) * UINT64_C(1000000000) / qpcFreq.QuadPart;
+static inline double QpcToMsD(double qpc) {
+	return qpc * 1000.0 / (double)QpcFreq();
 }
 
-static uint64_t QpcNsNow() {
-    LARGE_INTEGER perf_count;
-    QueryPerformanceCounter(&perf_count);
-    return QpcToNs(perf_count.QuadPart);
+static inline double QpcToMs(int64_t qpc) {
+    return QpcToMsD(static_cast<double>(qpc));
 }
 
-static double QpcToMs(uint64_t qpc) {
-	return (double)QpcToUs(qpc) / 1000.0f;
+static inline int64_t MsToQpc(double ms) {
+	const double us_d = ms * 1000.0;
+	const int64_t us = static_cast<int64_t>(us_d >= 0.0 ? us_d + 0.5 : us_d - 0.5);
+    return UsToQpc(us);
 }
 
 // Log something only once, safe to use in hot areas of the code
@@ -85,3 +99,23 @@ static double QpcToMs(uint64_t qpc) {
             Utils::Logf(fmt, ##__VA_ARGS__);                 \
         });                                                  \
     } while (0)
+
+// Frame queue debugging, uncomment FRAME_QUEUE_VERBOSE
+// Note: When FQLog is enabled, the spam is intense, so it only logs data for a short time
+#if !defined(NDEBUG)
+//#define FRAME_QUEUE_VERBOSE
+#endif
+
+#ifdef FRAME_QUEUE_VERBOSE
+	#include <atomic>
+	static std::atomic<int> g_fqlog_counter{0};
+	#define FQLog(fmt, ...) \
+        if (++g_fqlog_counter > 200 && g_fqlog_counter < 1000) \
+		    moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+#else
+  	#if defined(_MSC_VER)
+    	#define FQLog(...) __noop
+  	#else
+		#define FQLog(fmt, ...) do {} while(0)
+	#endif
+#endif

@@ -257,6 +257,7 @@
     <Link>
       <AdditionalDependencies>$(ProjectDir)/libgamestream/build/$(Configuration)/gamestream.lib;$(ProjectDir)/third_party/DirectXTK/Bin/Windows10_2022/x64/$(Configuration)/DirectXTK.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib;d3d11.lib;dxgi.lib;windowscodecs.lib;dwrite.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg_installed\x64-uwp\lib;$(VCInstallDir)\lib\store\amd64;$(VCInstallDir)\lib\amd64;$(ProjectDir)third_party\moonlight-common-c\build\$(Configuration)\</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <ClCompile>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -344,6 +345,9 @@
     <ClInclude Include="Common\DeviceResources.h" />
     <ClInclude Include="Common\DirectXHelper.h" />
     <ClInclude Include="Common\StepTimer.h" />
+    <ClInclude Include="Streaming\Pacer.h" />
+    <ClInclude Include="Streaming\PacerCompat.h" />
+    <ClInclude Include="Streaming\PacerRational.h" />
     <ClInclude Include="Streaming\VideoRenderer.h" />
     <ClInclude Include="Streaming\LogRenderer.h" />
     <ClInclude Include="Streaming\ShaderStructures.h" />
@@ -477,6 +481,7 @@
     <ClCompile Include="State\StreamConfiguration.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="Streaming\LogRenderer.cpp" />
+    <ClCompile Include="Streaming\Pacer.cpp" />
     <ClCompile Include="Streaming\VideoRenderer.cpp" />
     <ClCompile Include="State\MDNSHandler.cpp" />
     <ClCompile Include="Pages\HostSettingsPage.xaml.cpp">

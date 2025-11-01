@@ -23,6 +23,7 @@ using Microsoft::WRL::ComPtr;
 
 using namespace DirectX;
 using namespace DX;
+using namespace moonlight_xbox_dx;
 
 TextConsole::TextConsole() noexcept
     : m_layout{},
@@ -199,6 +200,9 @@ void TextConsole::SetWindow(const RECT& layout)
     std::swap(rows, m_rows);
     std::swap(buffer, m_buffer);
     std::swap(lines, m_lines);
+
+    Utils::Logf("TextConsole initialized at (%d,%d) - (%d,%d) with %u rows, %u columns\n",
+                layout.left, layout.top, layout.right, layout.bottom, m_rows, m_columns);
 
     if ((m_currentColumn >= m_columns) || (m_currentLine >= m_rows))
     {

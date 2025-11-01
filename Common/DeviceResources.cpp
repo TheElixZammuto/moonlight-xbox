@@ -59,12 +59,11 @@ namespace ScreenRotation
 DX::DeviceResources::DeviceResources() :
 	m_backBufferFormat(DXGI_FORMAT_R10G10B10A2_UNORM), // 10-bit for HDR
 	m_screenViewport(),
-	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_10_0),
+	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_11_1),
 	m_d3dRenderTargetSize(),
 	m_dxgiFactoryFlags(0),
-	m_enableVsync(true),
-	m_swapchainVsync(true),
-	m_forceTearing(false),
+	m_enableVsync(false),
+	m_swapchainVsync(false),
 	m_outputSize(),
 	m_logicalSize(),
 	m_nativeOrientation(DisplayOrientations::None),
@@ -76,7 +75,8 @@ DX::DeviceResources::DeviceResources() :
 	m_deviceNotify(nullptr),
 	m_stats(nullptr),
 	m_imguiRunning(false),
-	m_showImGui(false)
+	m_showImGui(false),
+	m_frameLatencyWaitable()
 {
 	m_refreshRate = GetUWPRefreshRate();
 	GetUWPPixelDimensions(&m_pixelWidth, &m_pixelHeight);
@@ -188,6 +188,8 @@ void DX::DeviceResources::CreateDeviceResources()
 
 	if (FAILED(hr))
 	{
+		DX::ThrowIfFailed(hr);
+
 		// If the initialization fails, fall back to the WARP device.
 		// For more information on WARP, see:
 		// https://go.microsoft.com/fwlink/?LinkId=286690
@@ -224,35 +226,28 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	ID3D11RenderTargetView* nullViews[] = {nullptr};
 	m_d3dContext->OMSetRenderTargets(ARRAYSIZE(nullViews), nullViews, nullptr);
 	m_d3dRenderTargetView = nullptr;
-	m_d3dDepthStencilView = nullptr;
 	m_d3dContext->Flush1(D3D11_CONTEXT_TYPE_ALL, nullptr);
 
 	UpdateRenderTargetSize();
 
-	// The width and height of the swap chain must be based on the window's
-	// natively-oriented width and height. If the window is not in the native
-	// orientation, the dimensions must be reversed.
-	DXGI_MODE_ROTATION displayRotation = ComputeDisplayRotation();
-
-	bool swapDimensions = displayRotation == DXGI_MODE_ROTATION_ROTATE90 || displayRotation == DXGI_MODE_ROTATION_ROTATE270;
 	//Get the correct screen resolution and adapt the swapchain to 16:9 aspect ratio
-	float normalizedWidth = uwp_get_width();
-	float normalizedHeight = uwp_get_height();
+	float normalizedWidth = (float)uwp_get_width();
+	float normalizedHeight = (float)uwp_get_height();
 	m_d3dRenderTargetSize.Width = normalizedWidth;
 	m_d3dRenderTargetSize.Height = normalizedHeight;
 
-	if (m_swapChain != nullptr)
+	if (m_swapChain != nullptr && m_enableVsync == m_swapchainVsync)
 	{
 		// If the swap chain already exists, resize it.
+		int flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+		if (!m_enableVsync) flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		HRESULT hr = m_swapChain->ResizeBuffers(
-			2, // Double-buffered swap chain.
+			0, // Don't change the number of buffers
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
-			(m_enableVsync && !m_forceTearing) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+			flags
 			);
-
-		Utils::Logf("ResizeBuffers() ALLOW_TEARING=%d\n", (m_enableVsync && !m_forceTearing) ? 0 : 1);
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
 		{
@@ -281,9 +276,10 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.SampleDesc.Quality = 0;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
-		swapChainDesc.BufferCount = 5;
+		swapChainDesc.BufferCount = 3;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = (m_enableVsync && !m_forceTearing) ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+		if (!m_enableVsync) swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -297,6 +293,9 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		DX::ThrowIfFailed(
 			dxgiDevice->GetAdapter(&dxgiAdapter)
 			);
+
+		DX::ThrowIfFailed(
+		    dxgiAdapter->EnumOutputs(0, &m_dxgiOutput));
 
 		ComPtr<IDXGIFactory4> dxgiFactory;
 		DX::ThrowIfFailed(
@@ -314,29 +313,14 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			)
 		);
 
-		Utils::Logf("CreateSwapChainForComposition() ALLOW_TEARING=%d\n", (m_enableVsync && !m_forceTearing) ? 0 : 1);
-
-		// XXX This seems like the better type of swap chain with fullscreen support
-		// TODO: review https://github.com/ahmed605/imgui-uwp/blob/master/examples/example_uwp_directx11/main.cpp
-		// DX::ThrowIfFailed(
-		// 	dxgiFactory->CreateSwapChainForCoreWindow(
-		// 		m_d3dDevice.Get(),
-		// 		// reinterpret_cast<::IUnknown*>(winrt::get_abi(CoreWindow::GetForCurrentThread())), // compiles and crashes
-		// 		// reinterpret_cast<IUnknown*>(CoreWindow::GetForCurrentThread()), // this also compiles and crashes
-		//      winrt::get_unknown(CoreWindow::GetForCurrentThread()),
-		// 		&swapChainDesc,
-		// 		nullptr,
-		// 		&swapChain
-		// 	)
-		// );
+		Utils::Logf("Vsync: %s\n", m_enableVsync ? "enabled" : "disabled");
 
 		DX::ThrowIfFailed(
 			swapChain.As(&m_swapChain)
 		);
 
-		// We must not call this for flip swapchains. It will counterintuitively
-		// increase latency by forcing our Present() to block on DWM even when
-		// DX::ThrowIfFailed(dxgiDevice->SetMaximumFrameLatency(1));
+		m_swapChain->SetMaximumFrameLatency(1);
+		m_frameLatencyWaitable = m_swapChain->GetFrameLatencyWaitableObject();
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread
@@ -357,48 +341,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	// note the current state of the swapchain wrt ALLOW_TEARING. If this is changed, we have to recreate
 	// the swapchain.
 	m_swapchainVsync = m_enableVsync;
-
-	// Set the proper orientation for the swap chain, and generate 2D and
-	// 3D matrix transformations for rendering to the rotated swap chain.
-	// Note the rotation angle for the 2D and 3D transforms are different.
-	// This is due to the difference in coordinate spaces.  Additionally,
-	// the 3D matrix is specified explicitly to avoid rounding errors.
-
-	switch (displayRotation)
-	{
-	case DXGI_MODE_ROTATION_IDENTITY:
-		m_orientationTransform2D = Matrix3x2F::Identity();
-		m_orientationTransform3D = ScreenRotation::Rotation0;
-		break;
-
-	case DXGI_MODE_ROTATION_ROTATE90:
-		m_orientationTransform2D =
-			Matrix3x2F::Rotation(90.0f) *
-			Matrix3x2F::Translation(m_logicalSize.Height, 0.0f);
-		m_orientationTransform3D = ScreenRotation::Rotation270;
-		break;
-
-	case DXGI_MODE_ROTATION_ROTATE180:
-		m_orientationTransform2D =
-			Matrix3x2F::Rotation(180.0f) *
-			Matrix3x2F::Translation(m_logicalSize.Width, m_logicalSize.Height);
-		m_orientationTransform3D = ScreenRotation::Rotation180;
-		break;
-
-	case DXGI_MODE_ROTATION_ROTATE270:
-		m_orientationTransform2D =
-			Matrix3x2F::Rotation(270.0f) *
-			Matrix3x2F::Translation(0.0f, m_logicalSize.Width);
-		m_orientationTransform3D = ScreenRotation::Rotation90;
-		break;
-
-	default:
-		throw ref new FailureException();
-	}
-
-	DX::ThrowIfFailed(
-		m_swapChain->SetRotation(displayRotation)
-		);
 
 	// Setup inverse scale on the swap chain
 	DXGI_MATRIX_3X2_F inverseScale = { 0 };
@@ -427,34 +369,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			)
 		);
 
-	// Create a depth stencil view for use with 3D rendering if needed.
-	CD3D11_TEXTURE2D_DESC1 depthStencilDesc(
-		DXGI_FORMAT_D24_UNORM_S8_UINT,
-		lround(m_d3dRenderTargetSize.Width),
-		lround(m_d3dRenderTargetSize.Height),
-		1, // This depth stencil view has only one texture.
-		1, // Use a single mipmap level.
-		D3D11_BIND_DEPTH_STENCIL
-		);
-
-	ComPtr<ID3D11Texture2D1> depthStencil;
-	DX::ThrowIfFailed(
-		m_d3dDevice->CreateTexture2D1(
-			&depthStencilDesc,
-			nullptr,
-			&depthStencil
-			)
-		);
-
-	CD3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc(D3D11_DSV_DIMENSION_TEXTURE2D);
-	DX::ThrowIfFailed(
-		m_d3dDevice->CreateDepthStencilView(
-			depthStencil.Get(),
-			&depthStencilViewDesc,
-			&m_d3dDepthStencilView
-			)
-		);
-
 	// Set the 3D rendering viewport to target the entire window.
 	m_screenViewport = CD3D11_VIEWPORT(
 		0.0f,
@@ -471,13 +385,13 @@ void DX::DeviceResources::UpdateRenderTargetSize()
 {
 	auto state = GetApplicationState();
 	m_effectiveDpi = m_dpi;
-	double compositionScaleMultiplier = 1;
+	float compositionScaleMultiplier = 1.0f;
 
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	if (hdi) {
 		auto mode = hdi->GetCurrentDisplayMode();
-		if (mode->ResolutionWidthInRawPixels > 2560)compositionScaleMultiplier = 2;
-		else if (mode->ResolutionWidthInRawPixels > 1920)compositionScaleMultiplier = 1.33333333;
+		if (mode->ResolutionWidthInRawPixels > 2560) compositionScaleMultiplier = 2.0f;
+		else if (mode->ResolutionWidthInRawPixels > 1920) compositionScaleMultiplier = 1.33333333f;
 	}
 
 	m_effectiveCompositionScaleX = m_compositionScaleX * compositionScaleMultiplier;
@@ -524,13 +438,9 @@ void DX::DeviceResources::SetDpi(float dpi)
 {
 	if (dpi != m_dpi)
 	{
+		m_dpi = dpi;
 		CreateWindowSizeDependentResources();
 	}
-}
-
-void DX::DeviceResources::SetForceTearing(bool forceTearing)
-{
-	m_forceTearing = forceTearing;
 }
 
 // This method is called in the event handler for the OrientationChanged event.
@@ -553,6 +463,11 @@ void DX::DeviceResources::SetCompositionScale(float compositionScaleX, float com
 		m_compositionScaleY = compositionScaleY;
 		CreateWindowSizeDependentResources();
 	}
+}
+
+void DX::DeviceResources::SetVsync(bool enableVsync)
+{
+	m_enableVsync = enableVsync;
 }
 
 // This method is called in the event handler for the DisplayContentsInvalidated event.
@@ -651,8 +566,9 @@ void DX::DeviceResources::Present()
 {
 	HRESULT hr = E_FAIL;
 	DXGI_PRESENT_PARAMETERS parameters = { 0 };
+
 	if (m_enableVsync) {
-		// This will still use vsync due to the lack of DXGI_PRESENT_ALLOW_TEARING
+		// Composition swapchain
 		hr = m_swapChain->Present1(0, 0, &parameters);
 	}
 	else {
@@ -668,9 +584,6 @@ void DX::DeviceResources::Present()
 	// This is a valid operation only when the existing contents will be entirely
 	// overwritten. If dirty or scroll rects are used, this call should be modified.
 	m_d3dContext->DiscardView1(m_d3dRenderTargetView.Get(), nullptr, 0);
-
-	// Discard the contents of the depth stencil.
-	m_d3dContext->DiscardView1(m_d3dDepthStencilView.Get(), nullptr, 0);
 
 	// If the device was removed either by a disconnection or a driver upgrade, we
 	// must recreate all device resources.
@@ -693,68 +606,7 @@ void DX::DeviceResources::Present()
 	else {
 		DX::ThrowIfFailed(hr);
 	}
-
-	auto ffmpeg = moonlight_xbox_dx::FFMpegDecoder::getInstance();
-	if (ffmpeg != nullptr && ffmpeg->shouldUnlock) {
-		ffmpeg->mutex.unlock();
-	}
 }
-
-// This method determines the rotation between the display device's native orientation and the
-// current display orientation.
-DXGI_MODE_ROTATION DX::DeviceResources::ComputeDisplayRotation()
-{
-	DXGI_MODE_ROTATION rotation = DXGI_MODE_ROTATION_UNSPECIFIED;
-
-	// Note: NativeOrientation can only be Landscape or Portrait even though
-	// the DisplayOrientations enum has other values.
-	switch (m_nativeOrientation)
-	{
-	case DisplayOrientations::Landscape:
-		switch (m_currentOrientation)
-		{
-		case DisplayOrientations::Landscape:
-			rotation = DXGI_MODE_ROTATION_IDENTITY;
-			break;
-
-		case DisplayOrientations::Portrait:
-			rotation = DXGI_MODE_ROTATION_ROTATE270;
-			break;
-
-		case DisplayOrientations::LandscapeFlipped:
-			rotation = DXGI_MODE_ROTATION_ROTATE180;
-			break;
-
-		case DisplayOrientations::PortraitFlipped:
-			rotation = DXGI_MODE_ROTATION_ROTATE90;
-			break;
-		}
-		break;
-
-	case DisplayOrientations::Portrait:
-		switch (m_currentOrientation)
-		{
-		case DisplayOrientations::Landscape:
-			rotation = DXGI_MODE_ROTATION_ROTATE90;
-			break;
-
-		case DisplayOrientations::Portrait:
-			rotation = DXGI_MODE_ROTATION_IDENTITY;
-			break;
-
-		case DisplayOrientations::LandscapeFlipped:
-			rotation = DXGI_MODE_ROTATION_ROTATE270;
-			break;
-
-		case DisplayOrientations::PortraitFlipped:
-			rotation = DXGI_MODE_ROTATION_ROTATE180;
-			break;
-		}
-		break;
-	}
-	return rotation;
-}
-
 
 //Thank you tunip3 for https://github.com/libretro/RetroArch/pull/13406/files
 //Check if we are running on Xbox
@@ -762,6 +614,19 @@ bool is_running_on_xbox(void)
 {
 	Platform::String^ device_family = Windows::System::Profile::AnalyticsInfo::VersionInfo->DeviceFamily;
 	return (device_family == L"Windows.Xbox");
+}
+
+bool DX::DeviceResources::isXbox()
+{
+	GAMING_DEVICE_MODEL_INFORMATION info;
+	if (FAILED(GetGamingDeviceModelInformation(&info))) {
+		return false;
+	}
+
+	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+		return true;
+	}
+	return false;
 }
 
 int DX::DeviceResources::uwp_get_height()
@@ -803,15 +668,15 @@ void DX::DeviceResources::GetUWPPixelDimensions(uint32_t *width, uint32_t *heigh
 	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
 		// Running on an Xbox
 		auto mode = HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode();
-		*width  = std::max((uint32_t)1920, mode->ResolutionWidthInRawPixels);
+		*width = std::max((uint32_t)1920, mode->ResolutionWidthInRawPixels);
 		*height = std::max((uint32_t)1080, mode->ResolutionHeightInRawPixels);
 	}
 	else {
 		// Running in Windows
 		const LONG32 resolution_scale = static_cast<LONG32>(DisplayInformation::GetForCurrentView()->ResolutionScale);
 		auto surface_scale = static_cast<float>(resolution_scale) / 100.0f;
-		*width  = CoreWindow::GetForCurrentThread()->Bounds.Width * surface_scale;
-		*height = CoreWindow::GetForCurrentThread()->Bounds.Height * surface_scale;
+		*width = static_cast<uint32_t>(CoreWindow::GetForCurrentThread()->Bounds.Width * surface_scale);
+		*height = static_cast<uint32_t>(CoreWindow::GetForCurrentThread()->Bounds.Height * surface_scale);
 	}
 }
 
@@ -828,6 +693,7 @@ double DX::DeviceResources::GetUWPRefreshRate()
 	}
 	else {
 		// It seems difficult to get the refresh rate in Windows, TODO
+		refreshRate = 120.0;
 	}
 
 	return refreshRate;

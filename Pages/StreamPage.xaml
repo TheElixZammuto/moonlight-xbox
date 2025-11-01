@@ -45,18 +45,6 @@
                                 <FontIcon Glyph="&#xe706;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutSeparator></MenuFlyoutSeparator>
-                        <MenuFlyoutItem x:Name="frameDropTargetLabel" Text="Frame queue size: 2" IsEnabled="false" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" />
-                        <MenuFlyoutItem x:Name="increaseFrameDropTarget" Text="Increase frame queue (smoother)" Click="increaseFrameDropTarget_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xe971;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="decreaseFrameDropTarget" Text="Decrease frame queue (lower latency)" Click="decreaseFrameDropTarget_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xe972;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
                     </MenuFlyoutSubItem>
                     <MenuFlyoutSeparator></MenuFlyoutSeparator>
                     <MenuFlyoutItem x:Name="toggleStatsButton" Text="Show Stats" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">

@@ -79,7 +79,7 @@ std::size_t FloatBuffer::copyInto(float *outBuffer, std::size_t outSize, float &
 
 	out_min = min_;
 	out_max = max_;
-	return outLen;
+	return static_cast<int>(outLen);
 }
 
 void FloatBuffer::clear() noexcept

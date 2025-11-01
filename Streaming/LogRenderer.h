@@ -23,6 +23,7 @@ namespace moonlight_xbox_dx
 		std::mutex                           m_mutex;
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 		std::unique_ptr<DX::TextConsole>     m_console;
+		std::unique_ptr<DX::TextConsole>     m_warningConsole;
 		bool                                 m_visible;
 		uint32_t                             m_displayWidth;
 		uint32_t                             m_displayHeight;

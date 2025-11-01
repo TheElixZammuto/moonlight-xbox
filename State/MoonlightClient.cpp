@@ -12,6 +12,7 @@ extern "C" {
 #include <State\StreamConfiguration.h>
 #include <gamingdeviceinformation.h>
 #include <atomic>
+#include <cmath>
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
@@ -218,15 +219,34 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.width = sConfig->width;
 	config.height = sConfig->height;
 	config.bitrate = sConfig->bitrate;
-	if (res->GetRefreshRate() > 0.0) {
-		// request stream matching our exact fractional refresh rate
-		config.clientRefreshRateX100 = (int)(res->GetRefreshRate() * 100.0);
-		Utils::Logf("Requesting stream with clientRefreshRateX100=%d for %.2f\n", config.clientRefreshRateX100, res->GetRefreshRate());
+	config.fps = sConfig->FPS;
+	if (res->GetRefreshRate() > 0.0 && info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+		// Pass fractional refresh rate to host in case it's supported
+		double rr = res->GetRefreshRate();
+		switch (config.fps) {
+		case 120:
+			config.clientRefreshRateX100 = (int)std::lround(rr * 100.0);
+			break;
+		case 60:
+			if (rr >= 120.0) {
+				config.clientRefreshRateX100 = 6000;
+			} else if (rr >= 119.0) {
+				config.clientRefreshRateX100 = 5994;
+			} else {
+				config.clientRefreshRateX100 = (int)std::lround(rr * 100.0);
+			}
+			break;
+		default:
+			config.clientRefreshRateX100 = sConfig->FPS * 100;
+			break;
+		}
+
+		Utils::Logf("Requesting stream with clientRefreshRateX100=%d for %d FPS on %.2f Hz display\n",
+			config.clientRefreshRateX100, config.fps, rr);
 	}
 	config.colorRange = this->IsRGBFull() ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
 	config.colorSpace = COLORSPACE_REC_601;
 	config.encryptionFlags = 0;
-	config.fps = sConfig->FPS;
 	config.packetSize = 1024;
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
 	if (!isXboxOne) {
@@ -271,8 +291,10 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.setHdrMode = connection_set_hdr;
 	callbacks.rumble = connection_rumble;
 	//callbacks.rumbleTriggers = connection_trigger_rumble;
-	FFMpegDecoder::createDecoderInstance(res);
+
+	FFMpegDecoder::instance().CompleteInitialization(res, &config);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
+
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
 	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
 	sprintf(message, "LiStartConnection %d\n", k);

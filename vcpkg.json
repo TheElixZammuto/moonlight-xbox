@@ -1,19 +1,29 @@
 {
- "name": "moonlight-xbox",
+  "name": "moonlight-xbox",
+  "builtin-baseline": "120deac3062162151622ca4860575a33844ba10b",
   "dependencies": [
-  {
-    "name": "ffmpeg",
-    "default-features": false,
-    "features":  ["avcodec","avdevice","swscale","x264"]
-  },
-  "curl",
-  "openssl",
-  "expat",
-  "zlib",
-  "nlohmann-json",
-  "bzip2",
-  "freetype",
-  "opus",
-  "mdns"
+    {
+      "name": "ffmpeg",
+      "default-features": false,
+      "features": [
+        "avcodec",
+        "swscale"
+      ]
+    },
+    "curl",
+    "openssl",
+    "expat",
+    "zlib",
+    "nlohmann-json",
+    "bzip2",
+    "freetype",
+    "opus",
+    "mdns"
+  ],
+  "overrides": [
+    {
+      "name": "ffmpeg",
+      "version": "7.1.1"
+    }
   ]
 }

@@ -9,7 +9,7 @@ static const min16float3x3 cscMatrix =
 
 static const min16float3 offsets =
 {
-    16.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0
+    64.0 / 1023.0, 512.0 / 1023.0, 512.0 / 1023.0
 };
 
 #include "d3d11_video_pixel_end.hlsli"

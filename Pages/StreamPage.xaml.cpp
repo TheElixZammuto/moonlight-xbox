@@ -142,7 +142,13 @@ void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::X
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
 	SetStreamConfig(configuration);
-	m_deviceResources->SetForceTearing(configuration->forceTearing);
+
+	if (configuration->FPS > 60) {
+		m_deviceResources->SetVsync(false);
+	} else {
+		m_deviceResources->SetVsync(true);
+	}
+
 	if (configuration == nullptr)return;
 }
 
@@ -230,32 +236,11 @@ void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::
 	this->m_main->SendWinAltB();
 }
 
-void StreamPage::increaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-	int target = 2;
-	FFMpegDecoder* ffmpeg = FFMpegDecoder::getInstance();
-	if (ffmpeg) {
-		target = ffmpeg->ModifyFrameDropTarget(true); // true increases the value
-	}
-	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
-}
-
-void StreamPage::decreaseFrameDropTarget_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-	int target = 2;
-	FFMpegDecoder* ffmpeg = FFMpegDecoder::getInstance();
-	if (ffmpeg) {
-		target = ffmpeg->ModifyFrameDropTarget(false); // false decreases the value
-	}
-	this->frameDropTargetLabel->Text = Utils::StringPrintf("Frame queue size: %d", target);
-}
-
 void StreamPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &StreamPage::OnBackRequested);
 }
-
 
 void StreamPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {

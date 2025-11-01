@@ -11,11 +11,13 @@ using namespace Microsoft::WRL;
 
 LogRenderer::LogRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_console(std::make_unique<DX::TextConsole>()),
+	m_warningConsole(std::make_unique<DX::TextConsole>()),
 	m_deviceResources(deviceResources),
 	m_mutex(),
 	m_visible(false)
 {
 	m_console->SetForegroundColor(Colors::Yellow);
+	m_warningConsole->SetForegroundColor(Colors::Red);
 	//m_console->SetDebugOutput(true);
 
 	CreateDeviceDependentResources();
@@ -48,6 +50,7 @@ void LogRenderer::Render()
 	std::lock_guard<std::mutex> lock(m_mutex);
 	if (m_visible) {
 		m_console->Render();
+		m_warningConsole->Render();
 	}
 }
 
@@ -61,25 +64,36 @@ void LogRenderer::CreateDeviceDependentResources()
 	}
 
 	m_console->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), font);
+	m_warningConsole->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), L"Assets\\Font\\ModeSeven-24.spritefont");
 
 	// use much faster font rendering
 	m_console->SetFixedWidthFont(true);
+	m_warningConsole->SetFixedWidthFont(true);
 }
 
 void LogRenderer::CreateWindowSizeDependentResources()
 {
 	// The size of our text area (left, top, right, bottom)
-	RECT size = {m_displayWidth * 0.5, 0, m_displayWidth - 20, m_displayHeight - 20};
+	RECT size = {m_displayWidth * 0.5, 0, m_displayWidth - 20, m_displayHeight - 44};
 
 	m_console->SetWindow(size);
+
+	// The size of our text area (left, top, right, bottom)
+	RECT warningSize = {size.left, m_displayHeight - 44, size.right, m_displayHeight - 20};
+	m_warningConsole->SetWindow(warningSize);
 }
 
 void LogRenderer::ReleaseDeviceDependentResources()
 {
 	m_console->ReleaseDevice();
+	m_warningConsole->ReleaseDevice();
 }
 
 void LogRenderer::ToggleVisible() {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_visible = m_visible == true ? false : true;
+	if (m_visible) {
+		m_warningConsole->Clear();
+		m_warningConsole->Write(L"Warning: Viewing logs reduces performance");
+	}
 }

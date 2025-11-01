@@ -58,7 +58,8 @@ bool Stats::ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char
 //    Includes time spent in FEC reassembly
 // 3. Host processing latency (encode time)
 // 4. network packet loss (caller reports frame sequence number holes)
-void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT decodeUnit, uint32_t droppedFrames) {
+void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT decodeUnit, uint32_t droppedFrames)
+{
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_ActiveWndVideoStats.receivedFrames++;
 	m_ActiveWndVideoStats.totalFrames++;
@@ -75,8 +76,7 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT deco
 	if (frameHPL != 0) {
 		if (m_ActiveWndVideoStats.minHostProcessingLatency != 0) {
 			m_ActiveWndVideoStats.minHostProcessingLatency = std::min(m_ActiveWndVideoStats.minHostProcessingLatency, frameHPL);
-		}
-		else {
+		} else {
 			m_ActiveWndVideoStats.minHostProcessingLatency = frameHPL;
 		}
 		m_ActiveWndVideoStats.framesWithHostProcessingLatency += 1;
@@ -89,17 +89,15 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT deco
 		m_ActiveWndVideoStats.networkDroppedFrames += droppedFrames;
 		m_ActiveWndVideoStats.totalFrames += droppedFrames;
 	}
-	ImGuiPlots::instance().observeFloat(PLOT_DROPPED_NETWORK, droppedFrames);
+	ImGuiPlots::instance().observeFloat(PLOT_DROPPED_NETWORK, (float)droppedFrames);
 
-	// Host frametime graph
-	static unsigned int lastHostPts = 0;
-	if (lastHostPts > 0) {
-		ImGuiPlots::instance().observeFloat(PLOT_HOST_FRAMETIME, (float)(decodeUnit->presentationTimeMs - lastHostPts));
+	// Host frametime graph, uses raw 90kHz units to avoid rounding errors
+	static uint32_t lastHostPts = 0;
+	if (lastHostPts != 0) {
+		const uint32_t delta90k = (uint32_t)(decodeUnit->rtpTimestamp - lastHostPts); // wrap-safe
+		ImGuiPlots::instance().observeFloat(PLOT_HOST_FRAMETIME, (float)(delta90k / 90.0f));
 	}
-	lastHostPts = decodeUnit->presentationTimeMs;
-
-	// Queued frames for graph
-	ImGuiPlots::instance().observeFloat(PLOT_QUEUED_FRAMES, LiGetPendingVideoFrames());
+	lastHostPts = (uint32_t)decodeUnit->rtpTimestamp;
 }
 
 // Time in milliseconds we spent decoding one frame, it is added up to later be divided by decodedFrames
@@ -115,13 +113,22 @@ void Stats::SubmitDroppedFrame(int count) {
 	m_ActiveWndVideoStats.pacerDroppedFrames += count;
 }
 
-// Time in microseconds for all rendering, including Update(), Render(), and Present().
+// Time in microseconds we spent in the frame pacer, and time for rendering the frame.
 // Also increments the rendered frame count.
-void Stats::SubmitRenderTime(uint64_t renderTimeQpc) {
+void Stats::SubmitPacerTime(int64_t pacerTimeQpc, int64_t renderTimeQpc) {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	uint64_t renderTimeUs = QpcToUs(renderTimeQpc);
+	int64_t pacerTimeUs = QpcToUs(pacerTimeQpc);
+	m_ActiveWndVideoStats.totalPacerTimeUs += pacerTimeUs;
+
+	int64_t renderTimeUs = QpcToUs(renderTimeQpc);
 	m_ActiveWndVideoStats.totalRenderTimeUs += renderTimeUs;
 	m_ActiveWndVideoStats.renderedFrames++;
+}
+
+// Present to display latency (how close to hitting vblank we are)
+void Stats::SubmitPresentPacing(double presentDisplayMs) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_ActiveWndVideoStats.totalPresentDisplayMs += presentDisplayMs;
 }
 
 /// private methods
@@ -135,7 +142,9 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.pacerDroppedFrames += src.pacerDroppedFrames;
 	dst.totalReassemblyTime += src.totalReassemblyTime;
 	dst.totalDecodeTime += src.totalDecodeTime;
+	dst.totalPacerTimeUs += src.totalPacerTimeUs;
 	dst.totalRenderTimeUs += src.totalRenderTimeUs;
+	dst.totalPresentDisplayMs += src.totalPresentDisplayMs;
 
 	if (dst.minHostProcessingLatency == 0) {
 		dst.minHostProcessingLatency = src.minHostProcessingLatency;
@@ -174,11 +183,7 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 }
 
 void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, char* output, size_t length) {
-	FFMpegDecoder* ffmpeg = FFMpegDecoder::getInstance();
-	if (!ffmpeg) {
-		output[0] = 0;
-		return;
-	}
+	FFMpegDecoder& ffmpeg = FFMpegDecoder::instance();
 
 	int offset = 0;
 	const char* codecString;
@@ -187,7 +192,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 	// Start with an empty string
 	output[offset] = 0;
 
-	switch (ffmpeg->videoFormat)
+	switch (ffmpeg.videoFormat)
 	{
 	case VIDEO_FORMAT_H264:
 		codecString = "H.264";
@@ -255,21 +260,19 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 	}
 
 	if (stats.receivedFps > 0) {
-		if (ffmpeg != nullptr) {
-			ret = snprintf(&output[offset],
-						   length - offset,
-						   "Video stream: %dx%d %.2f FPS (Codec: %s)\n",
-						   ffmpeg->width,
-						   ffmpeg->height,
-						   stats.totalFps,
-						   codecString);
-			if (ret < 0 || ret >= length - offset) {
-				Utils::Log("Error: stringifyVideoStats length overflow\n");
-				return;
-			}
-
-			offset += ret;
+		ret = snprintf(&output[offset],
+						length - offset,
+						"Video stream: %dx%d %.2f FPS (Codec: %s)\n",
+						ffmpeg.width,
+						ffmpeg.height,
+						stats.totalFps,
+						codecString);
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
+			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			return;
 		}
+
+		offset += ret;
 
 		double avgVideoMbps = m_bwTracker.GetAverageMbps();
 		double peakVideoMbps = m_bwTracker.GetPeakMbps();
@@ -286,7 +289,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   stats.receivedFps,
 					   stats.decodedFps,
 					   stats.renderedFps);
-		if (ret < 0 || ret >= length - offset) {
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
 		}
@@ -301,7 +304,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   (double)stats.minHostProcessingLatency / 10,
 					   (double)stats.maxHostProcessingLatency / 10,
 					   (double)stats.totalHostProcessingLatency / 10 / stats.framesWithHostProcessingLatency);
-		if (ret < 0 || ret >= length - offset) {
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
 		}
@@ -313,7 +316,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 		ret = snprintf(&output[offset],
 					   length - offset,
 					   "Host processing latency min/max/avg: -/-/- ms\n");
-		if (ret < 0 || ret >= length - offset) {
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
 		}
@@ -337,14 +340,17 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   "Frames dropped due to network jitter: %.2f%%\n"
 					   "Average network latency: %s\n"
 					   "Average reassembly/decoding time: %.2f/%.2f ms\n"
+					   "Average frame queue/present delay: %.2f/%.2f ms\n"
 					   "Average render time: %.2f ms\n",
 					   stats.totalFrames ? (double)stats.networkDroppedFrames / stats.totalFrames * 100 : 0.0f,
 					   stats.totalFrames ? (double)stats.pacerDroppedFrames / stats.totalFrames * 100 : 0.0f,
 					   rttString,
 					   stats.decodedFrames ? (double)stats.totalReassemblyTime / stats.decodedFrames : 0.0f,
 					   stats.decodedFrames ? (double)stats.totalDecodeTime / stats.decodedFrames : 0.0f,
+					   stats.renderedFrames ? (double)stats.totalPacerTimeUs / 1000.0 / stats.renderedFrames : 0.0f,
+					   stats.renderedFrames ? (double)stats.totalPresentDisplayMs / stats.renderedFrames : 0.0f,
 					   stats.renderedFrames ? (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames : 0.0f);
-		if (ret < 0 || ret >= length - offset) {
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
 		}

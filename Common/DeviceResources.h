@@ -22,14 +22,16 @@ namespace DX
 		void SetCurrentOrientation(Windows::Graphics::Display::DisplayOrientations currentOrientation);
 		void SetDpi(float dpi);
 		void SetCompositionScale(float compositionScaleX, float compositionScaleY);
+		void SetVsync(bool enableVsync);
 		void ValidateDevice();
 		void HandleDeviceLost();
 		void RegisterDeviceNotify(IDeviceNotify* deviceNotify);
 		void Trim();
 		void Present();
+		void WaitOnSwapChain();
 		void GetUWPPixelDimensions(uint32_t *width, uint32_t *height);
 		double GetUWPRefreshRate();
-		void SetForceTearing(bool forceTearing);
+		bool isXbox();
 		static int uwp_get_width();
 		static int uwp_get_height();
 
@@ -60,10 +62,11 @@ namespace DX
 		ID3D11Device3*				GetD3DDevice() const					{ return m_d3dDevice.Get(); }
 		ID3D11DeviceContext3*		GetD3DDeviceContext() const				{ return m_d3dContext.Get(); }
 		IDXGISwapChain4*			GetSwapChain() const					{ return m_swapChain.Get(); }
+		IDXGIOutput*     			GetDXGIOutput() const					{ return m_dxgiOutput.Get(); }
+		HANDLE	    				GetFrameLatencyWaitable() const			{ return m_frameLatencyWaitable; }
 		auto                        GetDXGIFactory() const noexcept         { return m_dxgiFactory.Get(); }
 		D3D_FEATURE_LEVEL			GetDeviceFeatureLevel() const			{ return m_d3dFeatureLevel; }
 		ID3D11RenderTargetView1*	GetBackBufferRenderTargetView() const	{ return m_d3dRenderTargetView.Get(); }
-		ID3D11DepthStencilView*		GetDepthStencilView() const				{ return m_d3dDepthStencilView.Get(); }
 		DXGI_FORMAT                 GetBackBufferFormat() const noexcept    { return m_backBufferFormat; }
 		D3D11_VIEWPORT				GetScreenViewport() const				{ return m_screenViewport; }
 		DirectX::XMFLOAT4X4			GetOrientationTransform3D() const		{ return m_orientationTransform3D; }
@@ -75,7 +78,6 @@ namespace DX
 		void CreateDeviceResources();
 		void CreateWindowSizeDependentResources();
 		void UpdateRenderTargetSize();
-		DXGI_MODE_ROTATION ComputeDisplayRotation();
 
 		void ImGui_Init(const Microsoft::WRL::ComPtr<ISwapChainPanelNative>& panelNative, float dpi);
 		void ImGui_Deinit();
@@ -85,10 +87,11 @@ namespace DX
 		Microsoft::WRL::ComPtr<ID3D11Device3>			m_d3dDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext3>	m_d3dContext;
 		Microsoft::WRL::ComPtr<IDXGISwapChain4>			m_swapChain;
+		Microsoft::WRL::ComPtr<IDXGIOutput>             m_dxgiOutput;
+		HANDLE                                          m_frameLatencyWaitable;
 
 		// Direct3D rendering objects. Required for 3D.
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView1>	m_d3dRenderTargetView;
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	m_d3dDepthStencilView;
 		D3D11_VIEWPORT									m_screenViewport;
 
 		// Cached reference to the XAML panel.
@@ -125,7 +128,6 @@ namespace DX
 		DXGI_FORMAT                                     m_backBufferFormat;
 		bool                                            m_enableVsync;
 		bool                                            m_swapchainVsync;
-		bool                                            m_forceTearing;
 		bool                                            m_showImGui;
 		SyncMode                                        m_displayStatus;
 		std::shared_ptr<moonlight_xbox_dx::Stats>       m_stats;

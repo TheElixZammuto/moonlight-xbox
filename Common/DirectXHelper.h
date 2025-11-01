@@ -78,4 +78,5 @@ namespace DX
 		return SUCCEEDED(hr);
 	}
 #endif
+
 }

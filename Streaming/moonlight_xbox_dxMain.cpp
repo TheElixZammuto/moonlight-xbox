@@ -4,6 +4,7 @@
 #include "../Plot/ImGuiPlots.h"
 #include "Utils.hpp"
 #include <Pages/StreamPage.xaml.h>
+#include <Streaming\FFMpegDecoder.h>
 using namespace Windows::Gaming::Input;
 
 
@@ -40,7 +41,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
-	m_sceneRenderer = std::make_unique<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
+	m_sceneRenderer = std::make_shared<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
 
 	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
 
@@ -107,26 +108,31 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 	// Create a task that will be run on a background thread.
 	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action)
 		{
+			if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)) {
+        		Utils::Logf("Failed to set render thread priority: %d\n", GetLastError());
+    		}
+
+			int64_t lastPresentTime = 0;
+
 			// Calculate the updated frame and render once per vertical blanking interval.
 			while (action->Status == AsyncStatus::Started)
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
-				LARGE_INTEGER beforeRender, beforePresent;
 
 				Update();
-				QueryPerformanceCounter(&beforeRender);
 				if (Render()) {
-					QueryPerformanceCounter(&beforePresent);
-					m_stats->SubmitRenderTime(beforePresent.QuadPart - beforeRender.QuadPart);
+					Pacer::instance().waitUntilPresentTarget();
 
-					static uint64_t lastPresentTime = 0;
-					if (lastPresentTime > 0) {
-						double frametime = QpcToMs(beforePresent.QuadPart - lastPresentTime);
-						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, (float)frametime);
-					}
-					lastPresentTime = beforePresent.QuadPart;
-
+					int64_t presentTimeQpc = QpcNow();
 					m_deviceResources->Present();
+
+					Pacer::instance().afterPresent(presentTimeQpc);
+
+					int64_t afterPresent = QpcNow();
+					if (lastPresentTime > 0) {
+						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, (float)QpcToMs(afterPresent - lastPresentTime));
+					}
+					lastPresentTime = afterPresent;
 				}
 			}
 		});
@@ -136,10 +142,27 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 	}
 	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action)
 		{
+			// Target period = 1000hz
+			using clock = std::chrono::high_resolution_clock;
+			const auto period = std::chrono::microseconds(1000);
+			auto next = clock::now() + period;
+
 			// Calculate the updated frame and render once per vertical blanking interval.
 			while (action->Status == AsyncStatus::Started)
 			{
 				ProcessInput();
+
+				auto now = clock::now();
+				next += period;
+				if (now > next) {
+					// If we missed the deadline, catch up
+					auto late = now - next;
+					auto missed = (late + period - std::chrono::microseconds(1)) / period;
+					next += missed * period;
+				}
+				else {
+					std::this_thread::sleep_until(next);
+				}
 			}
 		});
 
@@ -349,7 +372,6 @@ void moonlight_xbox_dxMain::ProcessInput()
 			moonlightClient->SendGamepadReading(i, reading);
 		}
 		previousReading[i] = reading;
-		usleep(2000);
 	}
 }
 
@@ -375,7 +397,9 @@ bool moonlight_xbox_dxMain::Render()
 	}
 
 	// Render the scene objects.
-	bool shouldPresent = m_sceneRenderer->Render();
+	Pacer::instance().waitForFrame();
+	bool shouldPresent = Pacer::instance().renderOnMainThread(m_sceneRenderer);
+
 	m_LogRenderer->Render();
 	m_statsTextRenderer->Render(showImGui);
 
@@ -395,11 +419,9 @@ void moonlight_xbox_dxMain::Clear()
 
 	// Clear the views.
 	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
-	auto depthStencil = m_deviceResources->GetDepthStencilView();
 
 	context->ClearRenderTargetView(renderTarget[0], Colors::Black);
-	context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	context->OMSetRenderTargets(1, renderTarget, depthStencil);
+	context->OMSetRenderTargets(1, renderTarget, nullptr);
 
 	// Set the viewport.
 	const auto viewport = m_deviceResources->GetScreenViewport();

@@ -8,6 +8,7 @@
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
 #include <gamingdeviceinformation.h>
+#include <cmath> // sqrtf, lround
 using namespace Windows::UI::Core;
 
 using namespace moonlight_xbox_dx;
@@ -15,6 +16,7 @@ using namespace moonlight_xbox_dx;
 using namespace Platform;
 using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
+using namespace Windows::Graphics::Display::Core;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls::Primitives;
@@ -76,12 +78,27 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		}
 	}
 	AutoStartSelector->SelectedIndex = CurrentAppIndex;
-	//Old Xbox One can only use H264, remove from settings everything else
-	if ((info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE)) {
-		CodecComboBox->IsEnabled = false;
-		CodecComboBox->SelectedIndex = 0;
-		EnableHDRCheckbox->IsChecked = false;
-		EnableHDRCheckbox->IsEnabled = false;
+
+	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+		// Old Xbox One can only use H264, remove from settings everything else
+		if (info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE) {
+			CodecComboBox->IsEnabled = false;
+			CodecComboBox->SelectedIndex = 0;
+		}
+
+		// Disable HDR if console is not set to 4K
+		auto mode = HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode();
+		auto height = mode->ResolutionHeightInRawPixels;
+		if (height < 2160) {
+			EnableHDRCheckbox->IsEnabled = false;
+			EnableHDRCheckbox->IsChecked = false;
+			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Visible;
+		} else {
+			EnableHDRCheckbox->IsEnabled = true;
+			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Visible;
+			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+		}
 	}
 }
 
@@ -104,7 +121,27 @@ void HostSettingsPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::B
 
 void HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
-	host->Resolution = AvailableResolutions->GetAt(this->ResolutionSelector->SelectedIndex);
+	auto selectedResolution = AvailableResolutions->GetAt(this->ResolutionSelector->SelectedIndex);
+
+	// Default to a new bitrate if a new resolution was chosen
+	if (selectedResolution->Width != host->Resolution->Width) {
+		host->Bitrate = getDefaultBitrate(selectedResolution->Width, selectedResolution->Height, host->FPS);
+	}
+
+	host->Resolution = selectedResolution;
+}
+
+void HostSettingsPage::FPSSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	if (e->AddedItems->Size == 0) return;
+	int selectedFPS = (int)e->AddedItems->GetAt(0);
+
+	// Default to a new bitrate if a new FPS was chosen
+	if (selectedFPS != host->FPS) {
+		host->Bitrate = getDefaultBitrate(host->Resolution->Width, host->Resolution->Height, selectedFPS);
+	}
+
+	host->FPS = selectedFPS;
 }
 
 void HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
@@ -142,4 +179,53 @@ void HostSettingsPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::R
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
+}
+
+int HostSettingsPage::getDefaultBitrate(int width, int height, int fps)
+{
+    // Don't scale bitrate linearly beyond 60 FPS. It's definitely not a linear
+    // bitrate increase for frame rate once we get to values that high.
+    float frameRateFactor = (fps <= 60 ? fps : (std::sqrtf(fps / 60.f) * 60.f)) / 30.f;
+
+    // TODO: Collect some empirical data to see if these defaults make sense.
+    // We're just using the values that the Shield used, as we have for years.
+    static const struct resTable {
+        int pixels;
+        int factor;
+    } resTable[] {
+        { 1280 * 720, 5 },
+        { 1920 * 1080, 10 },
+        { 2560 * 1440, 20 },
+        { 3840 * 2160, 40 },
+        { -1, -1 },
+    };
+
+    // Calculate the resolution factor by linear interpolation of the resolution table
+    float resolutionFactor;
+    int pixels = width * height;
+    for (int i = 0;; i++) {
+        if (pixels == resTable[i].pixels) {
+            // We can bail immediately for exact matches
+            resolutionFactor = resTable[i].factor;
+            break;
+        }
+        else if (pixels < resTable[i].pixels) {
+            if (i == 0) {
+                // Never go below the lowest resolution entry
+                resolutionFactor = resTable[i].factor;
+            }
+            else {
+                // Interpolate between the entry greater than the chosen resolution (i) and the entry less than the chosen resolution (i-1)
+                resolutionFactor = ((float)(pixels - resTable[i-1].pixels) / (resTable[i].pixels - resTable[i-1].pixels)) * (resTable[i].factor - resTable[i-1].factor) + resTable[i-1].factor;
+            }
+            break;
+        }
+        else if (resTable[i].pixels == -1) {
+            // Never go above the highest resolution entry
+            resolutionFactor = resTable[i-1].factor;
+            break;
+        }
+    }
+
+    return std::lround(resolutionFactor * frameRateFactor) * 1000;
 }
