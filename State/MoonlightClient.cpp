@@ -490,6 +490,34 @@ std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 	return values;
 }
 
+static bool hasGamepadReadingChanged(GamepadReading a, GamepadReading b) {
+	if (a.Buttons != b.Buttons) {
+		return true;
+	}
+
+	short altX = (short)(a.LeftThumbstickX * 32767);
+	short altY = (short)(a.LeftThumbstickY * 32767);
+	short artX = (short)(a.RightThumbstickX * 32767);
+	short artY = (short)(a.RightThumbstickY * 32767);
+	short bltX = (short)(b.LeftThumbstickX * 32767);
+	short bltY = (short)(b.LeftThumbstickY * 32767);
+	short brtX = (short)(b.RightThumbstickX * 32767);
+	short brtY = (short)(b.RightThumbstickY * 32767);
+	if (altX != bltX || altY != bltY || artX != brtX || artY != brtY) {
+		return true;
+	}
+
+	unsigned char alTrig = (unsigned char)(round(a.LeftTrigger * 255.0f));
+	unsigned char arTrig = (unsigned char)(round(a.RightTrigger * 255.0f));
+	unsigned char blTrig = (unsigned char)(round(b.LeftTrigger * 255.0f));
+	unsigned char brTrig = (unsigned char)(round(b.RightTrigger * 255.0f));
+	if (alTrig != blTrig || arTrig != brTrig) {
+		return true;
+	}
+
+	return false;
+}
+
 void MoonlightClient::SendGamepadReading(short controllerNumber, GamepadReading reading) {
 	int buttonFlags = 0;
 	GamepadButtons buttons[] = { GamepadButtons::A,GamepadButtons::B,GamepadButtons::X,GamepadButtons::Y,GamepadButtons::DPadLeft,GamepadButtons::DPadRight,GamepadButtons::DPadUp,GamepadButtons::DPadDown,GamepadButtons::LeftShoulder,GamepadButtons::RightShoulder,GamepadButtons::Menu,GamepadButtons::View,GamepadButtons::LeftThumbstick,GamepadButtons::RightThumbstick };
@@ -501,7 +529,11 @@ void MoonlightClient::SendGamepadReading(short controllerNumber, GamepadReading 
 	}
 	unsigned char leftTrigger = (unsigned char)(round(reading.LeftTrigger * 255.0f));
 	unsigned char rightTrigger = (unsigned char)(round(reading.RightTrigger * 255.0f));
-	LiSendMultiControllerEvent(controllerNumber, activeGamepadMask, buttonFlags, leftTrigger, rightTrigger, (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
+
+	if (hasGamepadReadingChanged(reading, m_lastGamepadReading[controllerNumber])) {
+		LiSendMultiControllerEvent(controllerNumber, activeGamepadMask, buttonFlags, leftTrigger, rightTrigger, (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
+		m_lastGamepadReading[controllerNumber] = reading;
+	}
 }
 
 void MoonlightClient::SendGuide(int controllerNumber, bool s) {
