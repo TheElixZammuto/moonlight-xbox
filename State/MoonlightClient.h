@@ -60,5 +60,6 @@ namespace moonlight_xbox_dx {
 		int activeGamepadMask = 0;
 		bool m_isHDR;
 		bool m_isRGBFull;
+		Windows::Gaming::Input::GamepadReading m_lastGamepadReading[16];
 	};
 }

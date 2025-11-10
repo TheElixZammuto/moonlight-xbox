@@ -142,26 +142,20 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 	}
 	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action)
 		{
-			// Target period = 1000hz
-			using clock = std::chrono::high_resolution_clock;
-			const auto period = std::chrono::microseconds(1000);
-			auto next = clock::now() + period;
+			const int pollingHz = 500;
+			const int64_t pollIntervalQpc = MsToQpc(1000.0 / pollingHz);
+			int64_t lastProcessInput = 0;
 
-			// Calculate the updated frame and render once per vertical blanking interval.
 			while (action->Status == AsyncStatus::Started)
 			{
-				ProcessInput();
-
-				auto now = clock::now();
-				next += period;
-				if (now > next) {
-					// If we missed the deadline, catch up
-					auto late = now - next;
-					auto missed = (late + period - std::chrono::microseconds(1)) / period;
-					next += missed * period;
+				int64_t now = QpcNow();
+				if (now - lastProcessInput >= pollIntervalQpc) {
+					lastProcessInput = now;
+					ProcessInput();
 				}
 				else {
-					std::this_thread::sleep_until(next);
+					const int64_t nextPoll = lastProcessInput + pollIntervalQpc;
+					SleepUntilQpc(nextPoll, 500);
 				}
 			}
 		});
