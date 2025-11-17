@@ -2,8 +2,9 @@
 
 #include <atomic>
 #include <deque>
+#include <set>
 #include <thread>
-#include "PacerRational.h"
+#include <utility>
 #include "Utils.hpp"
 #include "VideoRenderer.h"
 
@@ -18,10 +19,9 @@ class Pacer {
 
 	void deinit();
 	void init(const std::shared_ptr<DX::DeviceResources> &res, int maxVideoFps, double refreshRate);
-	void waitForFrame();
+	void waitForFrame(double timeoutMs);
 	bool renderOnMainThread(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
-	void waitUntilPresentTarget();
-	void afterPresent(int64_t presentTimeQpc);
+	void waitBeforePresent();
 	void submitFrame(AVFrame *frame);
 
   private:
@@ -37,36 +37,27 @@ class Pacer {
 		return m_Running.load(std::memory_order_acquire);
 	}
 
-	void vsyncEmulator();
 	void vsyncHardware();
-	void backPacer();
-	void handleVsync(int64_t nextDeadlineQpc);
-	void enqueueFrameForRenderingAndUnlock(AVFrame *frame);
-	void frontPacer(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer, AVFrame *frame);
-	void dropFrameForEnqueue(std::deque<AVFrame *> &queue);
-	int64_t waitForVBlank();
+	void updateFrameStats();
+	int64_t getNextVBlankQpc(int64_t *now, int64_t *interval);
 
 	std::shared_ptr<DX::DeviceResources> m_DeviceResources;
 	std::thread m_VsyncThread;
-	std::thread m_BackPacerThread;
-	std::deque<AVFrame *> m_RenderQueue;
-	std::deque<AVFrame *> m_PacingQueue;
-	std::deque<int> m_RenderQueueHistory;
-	std::deque<int> m_PacingQueueHistory;
-	std::mutex m_FrameQueueLock;
-	std::condition_variable m_RenderQueueNotEmpty;
-	std::condition_variable m_PacingQueueNotEmpty;
 	std::atomic<bool> m_Running{false};
 	std::atomic<bool> m_Stopping{false};
 	int m_StreamFps;
 	double m_RefreshRate;
+	int64_t m_BeginFrameQpc = 0;
 
-	QpcRationalPeriod m_VsyncPeriod;
-	int64_t m_VsyncNextDeadlineQpc;
-	int64_t m_PresentTargetQpc;
-	int64_t m_PresentVsyncQpc;
-	std::mutex m_VsyncMutex;
-	std::condition_variable m_VsyncSignalled;
-	uint64_t m_VsyncSeq;
-	double m_AvgDriftMs;
+	static constexpr int VSYNC_HISTORY_SIZE = 512;
+	std::mutex m_FrameStatsLock;
+	UINT m_LastSyncRefreshCount;
+	int64_t m_LastSyncQpc;
+	int64_t m_VsyncIntervalQpc;
+	std::array<int64_t, VSYNC_HISTORY_SIZE> m_vhistory{};
+	int m_vhcount = 0;
+	int m_vhidx = 0;
+	int64_t m_vhsum = 0;
+	std::atomic<int64_t> m_LastSyncTarget{0};
+	double m_ewmaVsyncDriftQpc = 1;
 };

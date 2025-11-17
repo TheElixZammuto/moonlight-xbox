@@ -33,7 +33,9 @@ typedef struct _VIDEO_STATS {
 	uint32_t totalReassemblyTime;
 	double totalDecodeTime;
 	uint64_t totalPacerTimeUs;
+	uint64_t totalPreWaitTimeUs;
 	uint64_t totalRenderTimeUs;
+	uint64_t totalPresentTimeUs;
 	double totalPresentDisplayMs;
 	uint32_t lastRtt;
 	uint32_t lastRttVariance;
@@ -56,13 +58,10 @@ namespace moonlight_xbox_dx
 		void SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT decodeUnit, uint32_t droppedFrames);
 		void SubmitDecodeMs(double decodeMs);
 		void SubmitDroppedFrame(int count);
-		void SubmitPacerTime(int64_t pacerTimeQpc, int64_t renderTimeQpc);
+		void SubmitAvgQueueSize(float avgQueueSize);
+		void SubmitPacerTime(int64_t pacerTimeQpc);
 		void SubmitPresentPacing(double presentDisplayMs);
-
-		void SetDisplayStatus(SyncMode status) { m_displayStatus = status; }
-
-		FloatBuffer* GetBandwidthBuffer()  { return &m_bandwidthBuffer; }
-		FloatBuffer* GetDecodeTimeBuffer() { return &m_decodeTimeBuffer; }
+		void SubmitRenderStats(int64_t preWaitTimeUs, int64_t renderTimeUs, int64_t presentTimeUs);
 
 	private:
 		void addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst);
@@ -75,13 +74,7 @@ namespace moonlight_xbox_dx
 		VIDEO_STATS                          m_LastWndVideoStats;
 		VIDEO_STATS                          m_GlobalVideoStats;
 		BandwidthTracker                     m_bwTracker;
-		SyncMode                             m_displayStatus;
-
-		uint64_t							 m_PreviousPresentCount;
-		uint64_t                             m_PreviousRefreshCount;
-		uint32_t                             m_GlitchCount;
-
-		FloatBuffer                          m_bandwidthBuffer;
-		FloatBuffer                          m_decodeTimeBuffer;
+		float                                m_avgQueueSize;
+		double                               m_avgMbpsSmoothed;
 	};
 }

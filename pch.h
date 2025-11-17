@@ -22,6 +22,7 @@
 #include <agile.h>
 #include <concrt.h>
 #include <collection.h>
+#include <gamingdeviceinformation.h>
 #include "App.xaml.h"
 
 #define IMGUI_USER_CONFIG "Common\imconfig.moonlight.h"
@@ -125,15 +126,80 @@ static inline void SleepUntilQpc(int64_t targetQpc, int64_t sleepSlackUs = 1000)
 #endif
 
 #ifdef FRAME_QUEUE_VERBOSE
+	#define FQLog(fmt, ...) \
+		moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+#else
+# ifdef FRAME_QUEUE_VERBOSE_LIMITED
 	#include <atomic>
 	static std::atomic<int> g_fqlog_counter{0};
 	#define FQLog(fmt, ...) \
         if (++g_fqlog_counter > 200 && g_fqlog_counter < 1000) \
 		    moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
-#else
+# else
   	#if defined(_MSC_VER)
     	#define FQLog(...) __noop
   	#else
 		#define FQLog(fmt, ...) do {} while(0)
 	#endif
+# endif
 #endif
+
+// Xbox helpers
+// Any Xbox
+static inline bool IsXbox()
+{
+	static bool f = []{
+		GAMING_DEVICE_MODEL_INFORMATION info;
+		if (FAILED(GetGamingDeviceModelInformation(&info))) {
+			return false;
+		}
+
+		if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+			return true;
+		}
+		return false;
+	}();
+	return f;
+}
+
+// Xbox One/One X
+static inline bool IsXboxOne()
+{
+	static bool f = []{
+		GAMING_DEVICE_MODEL_INFORMATION info;
+		if (FAILED(GetGamingDeviceModelInformation(&info))) {
+			return false;
+		}
+
+		if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+			if (   info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE
+				|| info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE_S
+				|| info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE_X
+				|| info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE_X_DEVKIT
+			) {
+				return true;
+			}
+		}
+		return false;
+	}();
+	return f;
+}
+
+// Xbox VCR/One S
+static inline bool IsXboxOneVCR()
+{
+	static bool f = []{
+		GAMING_DEVICE_MODEL_INFORMATION info;
+		if (FAILED(GetGamingDeviceModelInformation(&info))) {
+			return false;
+		}
+
+		if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+			if (info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE) {
+				return true;
+			}
+		}
+		return false;
+	}();
+	return f;
+}

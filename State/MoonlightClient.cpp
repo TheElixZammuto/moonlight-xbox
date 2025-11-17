@@ -205,10 +205,6 @@ void MoonlightClient::StopApp() {
 	gs_quit_app(&serverData);
 }
 int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration^ sConfig) {
-	GAMING_DEVICE_MODEL_INFORMATION info = {};
-	GetGamingDeviceModelInformation(&info);
-	bool isXboxOne = (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT && info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE);
-
 	//Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
 	std::wstring fooW(sConfig->hostname->Begin());
 	std::string fooA(fooW.begin(), fooW.end());
@@ -220,12 +216,20 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.height = sConfig->height;
 	config.bitrate = sConfig->bitrate;
 	config.fps = sConfig->FPS;
-	if (res->GetRefreshRate() > 0.0 && info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+	if (res->GetRefreshRate() > 0.0 && IsXbox()) {
 		// Pass fractional refresh rate to host in case it's supported
 		double rr = res->GetRefreshRate();
 		switch (config.fps) {
 		case 120:
-			config.clientRefreshRateX100 = (int)std::lround(rr * 100.0);
+			if (rr >= 120.0) {
+				config.clientRefreshRateX100 = 12000;
+			} else if (rr >= 119.0) {
+				config.clientRefreshRateX100 = 11988;
+			} else {
+				// Allow sending 120fps to a 60hz client. It's what they asked for
+				// and how other clients behave.
+				config.clientRefreshRateX100 = config.fps * 100;
+			}
 			break;
 		case 60:
 			if (rr >= 120.0) {
@@ -236,8 +240,21 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 				config.clientRefreshRateX100 = (int)std::lround(rr * 100.0);
 			}
 			break;
+		case 30:
+			if (rr >= 120.0) {
+				config.clientRefreshRateX100 = 3000;
+			} else if (rr >= 119.0) {
+				config.clientRefreshRateX100 = 2997;
+			} else if (rr >= 60.0) {
+				config.clientRefreshRateX100 = 3000;
+			} else if (rr >= 59.0) {
+				config.clientRefreshRateX100 = 2997;
+			} else {
+				config.clientRefreshRateX100 = (int)std::lround(rr * 100.0);
+			}
+			break;
 		default:
-			config.clientRefreshRateX100 = sConfig->FPS * 100;
+			config.clientRefreshRateX100 = config.fps * 100;
 			break;
 		}
 
@@ -249,7 +266,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.encryptionFlags = 0;
 	config.packetSize = 1024;
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
-	if (!isXboxOne) {
+	if (!IsXboxOneVCR()) {
 		config.supportedVideoFormats |= VIDEO_FORMAT_H265;
 		config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
 	}

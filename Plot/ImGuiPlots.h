@@ -16,8 +16,12 @@ class ImGuiPlots
   public:
 	static ImGuiPlots &instance();
 
+	bool isEnabled()              { return m_isEnabled; }
+	void setEnabled(bool enabled) { m_isEnabled = enabled; }
+
 	void clearData();
 	void observeFloat(int plotId, float value);
+	float observeFloatReturnAvg(int plotId, float value);
 
 	Plot &get(int plotId)
 	{
@@ -42,4 +46,5 @@ class ImGuiPlots
 	~ImGuiPlots();
 
 	std::array<Plot, PlotCount> plots_;
+	bool m_isEnabled;
 };

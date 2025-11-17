@@ -143,12 +143,6 @@ void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArg
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
 	SetStreamConfig(configuration);
 
-	if (configuration->FPS > 60) {
-		m_deviceResources->SetVsync(false);
-	} else {
-		m_deviceResources->SetVsync(true);
-	}
-
 	if (configuration == nullptr)return;
 }
 
@@ -156,7 +150,6 @@ void StreamPage::toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::
 {
 	bool isVisible = m_main->ToggleStats();
 	this->toggleStatsButton->Text = isVisible ? "Hide Stats" : "Show Stats";
-	this->m_main->SetImGui(isVisible);
 }
 
 void StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
