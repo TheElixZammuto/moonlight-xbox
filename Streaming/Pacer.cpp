@@ -162,24 +162,6 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 
 // Vsync Emulator
 
-// Sleep until approximately targetQpc, then busy-wait to land precisely.
-// sleepSlackUs: how early (in microseconds) to stop sleeping and start spinning
-static inline void SleepUntilQpc(int64_t targetQpc, int64_t sleepSlackUs = 1000) {
-	const int64_t f = QpcFreq();
-	const int64_t slack = UsToQpc(sleepSlackUs);
-	for (;;) {
-		const int64_t now = QpcNow();
-		const int64_t remaining = targetQpc - now;
-		if (remaining <= 0) break;
-		if (remaining > slack) {
-			DWORD ms = (DWORD)(((remaining - slack) * 1000 + f / 2) / f);
-			if (ms > 0) Sleep(ms);
-			continue;
-		}
-		YieldProcessor();
-	}
-}
-
 void Pacer::vsyncEmulator() {
 	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)) {
 		Utils::Logf("Failed to set vsyncEmulator priority: %d\n", GetLastError());
