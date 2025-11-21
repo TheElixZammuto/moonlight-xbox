@@ -69,8 +69,8 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT deco
 	m_bwTracker.AddBytes(length);
 
 	// reassembly time
-	uint32_t reassemblyMs = (uint32_t)(decodeUnit->enqueueTimeMs - decodeUnit->receiveTimeMs);
-	m_ActiveWndVideoStats.totalReassemblyTime += reassemblyMs;
+	uint32_t reassemblyUs = (uint32_t)(decodeUnit->enqueueTimeUs - decodeUnit->receiveTimeUs);
+	m_ActiveWndVideoStats.totalReassemblyTimeUs += reassemblyUs;
 
 	// Host processing latency
 	uint16_t frameHPL = decodeUnit->frameHostProcessingLatency;
@@ -152,7 +152,7 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.totalFrames += src.totalFrames;
 	dst.networkDroppedFrames += src.networkDroppedFrames;
 	dst.pacerDroppedFrames += src.pacerDroppedFrames;
-	dst.totalReassemblyTime += src.totalReassemblyTime;
+	dst.totalReassemblyTimeUs += src.totalReassemblyTimeUs;
 	dst.totalDecodeTime += src.totalDecodeTime;
 	dst.totalPacerTimeUs += src.totalPacerTimeUs;
 	dst.totalRenderTimeUs += src.totalRenderTimeUs;
@@ -359,7 +359,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   stats.totalFrames ? (double)stats.networkDroppedFrames / stats.totalFrames * 100 : 0.0f,
 					   stats.totalFrames ? (double)stats.pacerDroppedFrames / stats.totalFrames * 100 : 0.0f,
 					   rttString,
-					   stats.decodedFrames ? (double)stats.totalReassemblyTime / stats.decodedFrames : 0.0f,
+					   stats.decodedFrames ? (double)stats.totalReassemblyTimeUs / 1000.0 / stats.decodedFrames : 0.0f,
 					   stats.decodedFrames ? (double)stats.totalDecodeTime / stats.decodedFrames : 0.0f,
 					   m_avgQueueSize,
 					   stats.renderedFrames ? (double)stats.totalPacerTimeUs / 1000.0 / stats.renderedFrames : 0.0f,
