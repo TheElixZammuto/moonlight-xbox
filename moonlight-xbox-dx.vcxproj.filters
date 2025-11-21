@@ -383,6 +383,9 @@
     <ClCompile Include="Streaming\Pacer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Streaming\FrameQueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="State\MoonlightClient.h">
@@ -472,7 +475,7 @@
     <ClInclude Include="Streaming\PacerCompat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Streaming\PacerRational.h">
+    <ClInclude Include="Streaming\FrameQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

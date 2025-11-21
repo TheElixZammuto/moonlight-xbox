@@ -34,7 +34,6 @@ namespace moonlight_xbox_dx
 		void SendWinAltB();
 		bool ToggleLogs();
 		bool ToggleStats();
-		void SetImGui(bool isVisible);
 	private:
 		void ProcessInput();
 		void Update();

@@ -21,14 +21,14 @@ ImGuiPlots::ImGuiPlots() :
     plots_{{
         Plot(kPlotDescs[PLOT_FRAMETIME]),
         Plot(kPlotDescs[PLOT_HOST_FRAMETIME]),
-        Plot(kPlotDescs[PLOT_VSYNC_INTERVAL]),
         Plot(kPlotDescs[PLOT_DROPPED_NETWORK]),
         Plot(kPlotDescs[PLOT_DROPPED_PACER]),
-        Plot(kPlotDescs[PLOT_PRESENT_PACING]),
+        Plot(kPlotDescs[PLOT_QUEUED_FRAMES]),
 
-        Plot(kPlotDescs[PLOT_OVERHEAD]),
+        Plot(kPlotDescs[PLOT_BANDWIDTH]),
         Plot(kPlotDescs[PLOT_ETC]),
-    }}
+    }},
+    m_isEnabled(true)
 {
 }
 
@@ -42,6 +42,15 @@ void ImGuiPlots::clearData()
 
 void ImGuiPlots::observeFloat(int plotId, float value)
 {
+    if (!m_isEnabled) return;
 	assert(plotId >= 0 && plotId < PlotCount);
 	plots_[static_cast<std::size_t>(plotId)].buffer.push(static_cast<float>(value));
+}
+
+float ImGuiPlots::observeFloatReturnAvg(int plotId, float value)
+{
+    // still runs even if !m_isEnabled, caller needs the return average
+    assert(plotId >= 0 && plotId < PlotCount);
+    plots_[static_cast<std::size_t>(plotId)].buffer.push(static_cast<float>(value));
+    return plots_[static_cast<std::size_t>(plotId)].buffer.average();
 }

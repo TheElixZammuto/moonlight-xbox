@@ -12,12 +12,12 @@ using namespace moonlight_xbox_dx;
 using namespace Microsoft::WRL;
 using namespace Windows::UI::Core;
 
-StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources> &deviceResources, const std::shared_ptr<Stats> &stats) :
-    m_console(std::make_unique<DX::TextConsole>()),
-    m_deviceResources(deviceResources),
-    m_mutex(),
-    m_visible(false),
-    m_stats(stats) {
+StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources> &deviceResources, const std::shared_ptr<Stats> &stats)
+    : m_console(std::make_unique<DX::TextConsole>()),
+      m_deviceResources(deviceResources),
+      m_mutex(),
+      m_visible(false),
+      m_stats(stats) {
 	m_console->SetForegroundColor(Colors::Yellow);
 	// m_console->SetDebugOutput(true);
 
@@ -62,13 +62,9 @@ static inline float clampGetter(void *data, int idx) {
 }
 
 void StatsRenderer::RenderGraphs() {
-	// Track graph CPU overhead per frame
-	int64_t plotStartQpc = QpcNow();
-
 	// we malloc a buffer for each stat only once and reuse it each frame
-	assert(PlotCount == 8);
-	static float *buffers[8] = {
-	    (float *)malloc(sizeof(float) * 512),
+	assert(PlotCount == 7);
+	static float *buffers[7] = {
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
 	    (float *)malloc(sizeof(float) * 512),
@@ -128,21 +124,21 @@ void StatsRenderer::RenderGraphs() {
 		}
 		float scaleMin = FLT_MAX;
 		float scaleMax = FLT_MAX;
-		if (plot.desc.scaleTarget) {
+		if (plot.desc.scaleTarget != NULL) {
 			// optionally center the graph on a target such as the ideal frametime
 			float ideal = (float)plot.desc.scaleTarget;
 			scaleMin = ideal - (2 * ideal);
 			scaleMax = ideal + (2 * ideal);
 		}
-		if (plot.desc.scaleMin)
+		if (plot.desc.scaleMin != NULL)
 			scaleMin = plot.desc.scaleMin;
-		if (plot.desc.scaleMax)
+		if (plot.desc.scaleMax != NULL)
 			scaleMax = plot.desc.scaleMax;
 
 		ImGui::PushID(i);
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.19f, 0.19f, 0.19f, opacity)); // dark
 		ImGui::PushStyleColor(ImGuiCol_PlotLines, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));     // green
-		if (plot.desc.clampMax > 0.0) {
+		if (plot.desc.clampMax != NULL) {
 			clampData ctx{buffers[i], plot.desc.clampMax};
 			ImGui::PlotLines("##xx", clampGetter, &ctx, countF, 0, (countF > 0 ? label : "no data"), scaleMin, scaleMax, ImVec2(width, height));
 		} else {
@@ -152,14 +148,14 @@ void StatsRenderer::RenderGraphs() {
 		ImGui::PopID();
 	};
 
-	const int row1[3] = {PLOT_FRAMETIME, PLOT_VSYNC_INTERVAL, PLOT_DROPPED_NETWORK};
+	const int row1[3] = {PLOT_FRAMETIME, PLOT_DROPPED_NETWORK, PLOT_QUEUED_FRAMES};
 	for (int c = 0; c < 3; ++c) {
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
 		draw_plot(row1[c], graphW, graphH);
 	}
 
 	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	const int row2[3] = {PLOT_HOST_FRAMETIME, PLOT_PRESENT_PACING, PLOT_DROPPED_PACER};
+	const int row2[3] = {PLOT_HOST_FRAMETIME, PLOT_DROPPED_PACER, PLOT_BANDWIDTH};
 	for (int c = 0; c < 3; ++c) {
 		if (c > 0) ImGui::SameLine(0.0f, itemSpacingX);
 		draw_plot(row2[c], graphW, graphH);
@@ -170,8 +166,6 @@ void StatsRenderer::RenderGraphs() {
 	// draw_plot(PLOT_ETC, graphW, graphH);
 
 	ImGui::End();
-
-	ImGuiPlots::instance().observeFloat(PLOT_OVERHEAD, (float)QpcToMs(QpcNow() - plotStartQpc));
 }
 
 void StatsRenderer::CreateDeviceDependentResources() {
@@ -193,6 +187,7 @@ void StatsRenderer::CreateWindowSizeDependentResources() {
 	int right = m_displayWidth / 3;
 	int bottom = 0;
 
+	// 13 lines of text
 	if (m_displayHeight >= 2160) { // 24pt font
 		left = 20;
 		right = m_displayWidth / 2;
@@ -202,8 +197,13 @@ void StatsRenderer::CreateWindowSizeDependentResources() {
 		bottom = 224;
 	} else {
 		left = 10;
-		bottom = 168;
+		bottom = 224;
 	}
+
+#if defined(_DEBUG)
+	// make room for 2 extra lines of stats
+	bottom += (m_displayHeight >= 2160) ? 70 : 35;
+#endif
 
 	// The size of our text area (left, top, right, bottom)
 	RECT size = {left, left, right, bottom};

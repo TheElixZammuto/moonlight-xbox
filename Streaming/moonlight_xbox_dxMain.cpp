@@ -19,20 +19,6 @@ extern "C" {
 #include<Limelight.h>
 }
 
-void moonlight_xbox_dx::usleep(unsigned int usec)
-{
-	HANDLE timer;
-	LARGE_INTEGER ft;
-
-	ft.QuadPart = -(10 * (__int64)usec);
-
-	timer = CreateWaitableTimer(NULL, TRUE, NULL);
-	if (timer == 0)return;
-	SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
-	WaitForSingleObject(timer, INFINITE);
-	CloseHandle(timer);
-}
-
 // Loads and initializes application assets when the application is loaded.
 moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, StreamPage^ streamPage, MoonlightClient* client, StreamConfiguration^ configuration) :
 
@@ -47,11 +33,20 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	// Setup stats object. DeviceResources keeps a reference so that various components such as FFMpegDecoder can get to it
 	m_stats = std::make_shared<Stats>();
-	m_stats->SetDisplayStatus(configuration->enableVsync ? VSYNC_ON : VSYNC_OFF);
 	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
 	m_statsTextRenderer->SetVisible(configuration->enableStats);
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
+	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
 	m_deviceResources->SetStats(m_stats);
+
+#if defined(_DEBUG)
+	// Disable graphs in debug mode on Xbox One consoles, they cost 4ms+ per frame
+	if (IsXboxOne() && configuration->enableGraphs) {
+		Utils::Logf("Disabling graphs on Xbox One console when running a debug build\n");
+		m_deviceResources->SetShowImGui(false);
+		ImGuiPlots::instance().setEnabled(false);
+	}
+#endif
 
 	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
@@ -76,7 +71,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	double refreshRate = m_deviceResources->GetUWPRefreshRate();
 	m_deviceResources->SetRefreshRate(refreshRate);
-	m_deviceResources->SetFrameRate((double)configuration->FPS);
+	m_deviceResources->SetFrameRate(configuration->FPS);
 }
 
 moonlight_xbox_dxMain::~moonlight_xbox_dxMain()
@@ -106,36 +101,69 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 	}
 
 	// Create a task that will be run on a background thread.
-	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action)
-		{
-			if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)) {
-        		Utils::Logf("Failed to set render thread priority: %d\n", GetLastError());
-    		}
+	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action) {
+		if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)) {
+			Utils::Logf("Failed to set render thread priority: %d\n", GetLastError());
+		}
 
-			int64_t lastPresentTime = 0;
+		int64_t lastPresentTime = 0;
 
-			// Calculate the updated frame and render once per vertical blanking interval.
-			while (action->Status == AsyncStatus::Started)
+		const int streamFps = m_deviceResources->GetFrameRate();
+		const double frameMs = 1000.0 / streamFps;
+		const double ewmaAlpha = 0.1;
+		double ewmaRenderMs = 3.0; // Initial guess for render cost
+
+		// Calculate the updated frame and render once per vertical blanking interval.
+		while (action->Status == AsyncStatus::Started) {
+			const int64_t t0 = QpcNow();
+
+			// Avoid negative wait time if render cost spikes.
+			const double waitBudgetMs = std::max(0.0, frameMs - ewmaRenderMs);
+			Pacer::instance().waitForFrame(waitBudgetMs);
+
+			const int64_t t1 = QpcNow();
+
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
 
 				Update();
-				if (Render()) {
-					Pacer::instance().waitUntilPresentTarget();
 
-					int64_t presentTimeQpc = QpcNow();
-					m_deviceResources->Present();
-
-					Pacer::instance().afterPresent(presentTimeQpc);
-
-					int64_t afterPresent = QpcNow();
-					if (lastPresentTime > 0) {
-						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, (float)QpcToMs(afterPresent - lastPresentTime));
-					}
-					lastPresentTime = afterPresent;
+				if (!Render()) {
+					FQLog("render skip, waited %.3fms\n", QpcToMs(t1 - t0));
+					continue;
 				}
+
+				const int64_t t2 = QpcNow();
+
+				Pacer::instance().waitBeforePresent();
+				m_deviceResources->Present();
+
+				const int64_t t3 = QpcNow();
+
+				if (lastPresentTime > 0) {
+					ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, static_cast<float>(QpcToMs(t3 - lastPresentTime)));
+				}
+				lastPresentTime = t3;
+
+				// Weighted avg of time spent in Render()
+				const double renderMs = QpcToMs(t2 - t1);
+				ewmaRenderMs = (renderMs * ewmaAlpha) + (ewmaRenderMs * (1.0 - ewmaAlpha));
+
+				// Track high-level render loop stats
+				m_deviceResources->GetStats()->SubmitRenderStats(
+				    QpcToUs(t1 - t0),
+				    QpcToUs(t2 - t1),
+				    QpcToUs(t3 - t2));
+
+				FQLog("render loop %.3fms (PreWait %.3fms + Render %.3fms (avg %.3f) + Present %.3fms)\n",
+				      QpcToMs(t3 - t0),
+				      QpcToMs(t1 - t0),
+				      renderMs,
+				      ewmaRenderMs,
+				      QpcToMs(t3 - t2));
 			}
-		});
+		}
+	});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
 	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == AsyncStatus::Started) {
 		return;
@@ -173,6 +201,12 @@ void moonlight_xbox_dxMain::StopRenderLoop()
 // Updates the application state once per frame.
 void moonlight_xbox_dxMain::Update()
 {
+	// ImGui setup and update handling (which we don't use)
+	if (m_deviceResources->GetShowImGui()) {
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplUwp_NewFrame(m_deviceResources->GetPixelWidth(), m_deviceResources->GetPixelHeight());
+		ImGui::NewFrame();
+	}
 
 	// Update scene objects.
 	m_timer.Tick([&]()
@@ -197,7 +231,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 	auto state = GetApplicationState();
 	//Position
 	double multiplier = ((double)state->MouseSensitivity) / ((double)4.0f);
-	for (int i = 0; i < gamepads->Size; i++) {
+	for (UINT i = 0; i < gamepads->Size; i++) {
 		Windows::Gaming::Input::Gamepad^ gamepad = gamepads->GetAt(i);
 		auto reading = gamepad->GetCurrentReading();
 		//If this combination is pressed on gamed we should handle some magic things :)
@@ -382,18 +416,10 @@ bool moonlight_xbox_dxMain::Render()
 
 	Clear();
 
-	// Start the Dear ImGui frame, limited to only running at 60fps
-	bool showImGui = m_deviceResources->GetShowImGui();
-	if (showImGui) {
-		ImGui_ImplDX11_NewFrame();
-		ImGui_ImplUwp_NewFrame(m_deviceResources->GetPixelWidth(), m_deviceResources->GetPixelHeight());
-		ImGui::NewFrame();
-	}
-
 	// Render the scene objects.
-	Pacer::instance().waitForFrame();
-	bool shouldPresent = Pacer::instance().renderOnMainThread(m_sceneRenderer);
+	bool showImGui = m_deviceResources->GetShowImGui();
 
+	bool shouldPresent = Pacer::instance().renderOnMainThread(m_sceneRenderer);
 	m_LogRenderer->Render();
 	m_statsTextRenderer->Render(showImGui);
 
@@ -524,11 +550,4 @@ bool moonlight_xbox_dxMain::ToggleStats() {
 	});
 
 	return visible ? false : true;
-}
-
-void moonlight_xbox_dxMain::SetImGui(bool isVisible) {
-	DISPATCH_UI([=], {
-		m_deviceResources->SetShowImGui(isVisible);
-		Utils::Logf("ImGui graphs are now %d\n", isVisible ? 1 : 0);
-	});
 }

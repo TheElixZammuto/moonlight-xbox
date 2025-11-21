@@ -92,8 +92,8 @@ namespace moonlight_xbox_dx {
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
 		avcodec_register_all();
 #endif
-		// Increase log level until the first frame is decoded
-		av_log_set_level(AV_LOG_DEBUG);
+
+		av_log_set_level(AV_LOG_ERROR);
 
 		av_log_set_callback(&ffmpeg_log_callback);
 #pragma warning(suppress : 4996)
@@ -184,7 +184,7 @@ namespace moonlight_xbox_dx {
 		Utils::Log("FFMpegDecoder::Cleanup\n");
 	}
 
-    static inline int frame_attach_userdata(AVFrame *frame, uint32_t presentationTimeMs, int64_t decodeEndQpc) {
+    static inline int frame_attach_userdata(AVFrame *frame, uint32_t presentationTimeUs, int64_t decodeEndQpc) {
 	    if (!frame) return AVERROR(EINVAL);
 
 	    if (frame->opaque_ref) {
@@ -195,7 +195,7 @@ namespace moonlight_xbox_dx {
 	    if (!buf) return AVERROR(ENOMEM);
 
 	    MLFrameData *data = (MLFrameData *)buf->data;
-	    data->presentationTimeMs = presentationTimeMs;
+	    data->presentationTimeUs = presentationTimeUs;
 	    data->decodeEndQpc = decodeEndQpc;
 	    frame->opaque_ref = buf;
 
@@ -266,17 +266,16 @@ namespace moonlight_xbox_dx {
 
 			// Capture a frame timestamp to measuring pacing delay
 			QueryPerformanceCounter(&decodeEnd);
-			frame_attach_userdata(frame, decodeUnit->presentationTimeMs, decodeEnd.QuadPart);
+			frame_attach_userdata(frame, decodeUnit->presentationTimeUs, decodeEnd.QuadPart);
 
-			// Queue the frame for rendering (or render now if pacer is disabled)
-			Pacer::instance().submitFrame(frame);
-
-			double decodeTimeMs = QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart);
-			FQLog("✓ Frame decoded [pts: %.3f] [in#: %d] [out#: %d] [lost: %d] decode time %.3f ms\n",
+			FQLog("✓ Frame decoded [pts: %.3fms] [in#: %d] [out#: %d] [lost: %d] decode time %.3fms\n",
 				frame->pts / 90.0,
 				decodeUnit->frameNumber, decoder_ctx->frame_num,
 				decodeUnit->frameNumber - decoder_ctx->frame_num,
 				QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart));
+
+			// Queue the frame for rendering. frame is now owned by Pacer.
+			Pacer::instance().submitFrame(frame);
 
 			// Even though we have a valid frame, the ffmpeg API needs us to loop and call avcodec_receive_frame()
 			// again where we expect to get AVERROR(EAGAIN) and break out.
@@ -284,11 +283,6 @@ namespace moonlight_xbox_dx {
 
 		if (decodeEnd.QuadPart > decodeStart.QuadPart) {
 			this->resources->GetStats()->SubmitDecodeMs(QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart));
-		}
-
-		// Restore default log level after a successful decode
-		if (av_log_get_level() > 0) {
-			av_log_set_level(AV_LOG_ERROR);
 		}
 
 		return DR_OK;
