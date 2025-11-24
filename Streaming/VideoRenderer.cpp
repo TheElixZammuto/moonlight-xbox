@@ -5,13 +5,17 @@
 #include <Streaming\FFMpegDecoder.h>
 #include <Utils.hpp>
 
+#include <d3d11shader.h>
+#include <d3dcompiler.h>
+
 extern "C" {
 #include "libgamestream/client.h"
 #include <Limelight.h>
 #include <libavcodec/avcodec.h>
-
+#include <libavutil/pixdesc.h>
 }
 
+using Microsoft::WRL::ComPtr;
 using namespace moonlight_xbox_dx;
 using namespace DirectX;
 using namespace Windows::Foundation;
@@ -24,57 +28,24 @@ typedef struct _VERTEX
 
 #define CSC_MATRIX_RAW_ELEMENT_COUNT 9
 #define CSC_MATRIX_PACKED_ELEMENT_COUNT 12
-
-static const float k_CscMatrix_Bt601Lim[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
-	1.1644f, 1.1644f, 1.1644f,
-	0.0f, -0.3917f, 2.0172f,
-	1.5960f, -0.8129f, 0.0f,
-};
-static const float k_CscMatrix_Bt601Full[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
-	1.0f, 1.0f, 1.0f,
-	0.0f, -0.3441f, 1.7720f,
-	1.4020f, -0.7141f, 0.0f,
-};
-static const float k_CscMatrix_Bt709Lim[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
-	1.1644f, 1.1644f, 1.1644f,
-	0.0f, -0.2132f, 2.1124f,
-	1.7927f, -0.5329f, 0.0f,
-};
-static const float k_CscMatrix_Bt709Full[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
-	1.0f, 1.0f, 1.0f,
-	0.0f, -0.1873f, 1.8556f,
-	1.5748f, -0.4681f, 0.0f,
-};
-static const float k_CscMatrix_Bt2020Lim[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
-	1.1644f, 1.1644f, 1.1644f,
-	0.0f, -0.1874f, 2.1418f,
-	1.6781f, -0.6505f, 0.0f,
-};
-static const float k_CscMatrix_Bt2020Full[CSC_MATRIX_RAW_ELEMENT_COUNT] = {
-	1.0f, 1.0f, 1.0f,
-	0.0f, -0.1646f, 1.8814f,
-	1.4746f, -0.5714f, 0.0f,
-};
-
 #define OFFSETS_ELEMENT_COUNT 3
-
-// 8-bit offsets
-static const float k_Offsets_Lim[OFFSETS_ELEMENT_COUNT] = { 16.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f };
-static const float k_Offsets_Full[OFFSETS_ELEMENT_COUNT] = { 0.0f, 128.0f / 255.0f, 128.0f / 255.0f };
-// 10-bit offsets
-static const float k_Offsets_10bit_Lim[OFFSETS_ELEMENT_COUNT] = { 64.0f / 1023.0f, 512.0f / 1023.0f, 512.0f / 1023.0f };
-static const float k_Offsets_10bit_Full[OFFSETS_ELEMENT_COUNT] = { 0.0f, 512.0f / 1023.0f, 512.0f / 1023.0f };
 
 typedef struct _CSC_CONST_BUF
 {
-	// CscMatrix value from above but packed appropriately
+	// CscMatrix value from above but packed and scaled
 	float cscMatrix[CSC_MATRIX_PACKED_ELEMENT_COUNT];
 
-	// YUV offset values from above
+	// YUV offset values
 	float offsets[OFFSETS_ELEMENT_COUNT];
 
-	// Padding float to be a multiple of 16 bytes
+	// Padding float to end 16-byte boundary
 	float padding;
+
+	// Chroma offset values
+	float chromaOffset[2];
+
+	// Max UV coordinates to avoid sampling alignment padding
+	float chromaUVMax[2];
 } CSC_CONST_BUF, * PCSC_CONST_BUF;
 static_assert(sizeof(CSC_CONST_BUF) % 16 == 0, "Constant buffer sizes must be a multiple of 16");
 
@@ -88,6 +59,11 @@ VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceR
 	configuration(sConfig)
 {
 	ZeroMemory(&m_lastHdr10, sizeof(DXGI_HDR_METADATA_HDR10));
+
+	m_DecoderParams.width = configuration->width;
+	m_DecoderParams.height = configuration->height;
+	m_DecoderParams.frameRate = configuration->FPS;
+
 	CreateDeviceDependentResources();
 	CreateWindowSizeDependentResources();
 }
@@ -103,42 +79,14 @@ void VideoRenderer::Update(DX::StepTimer const& timer)
 
 }
 
-void VideoRenderer::ensureYuvTargets(ID3D11Device* dev, DXGI_FORMAT fmt, UINT w, UINT h) {
-	if (m_yuvTexture && m_yuvFormat == fmt && m_yuvWidth == w && m_yuvHeight == h)
-		return;
-
-	m_yuvTexture.Reset();
-	m_srvY.Reset();
-	m_srvUV.Reset();
-
-	D3D11_TEXTURE2D_DESC d = {};
-	d.Width = w;
-	d.Height = h;
-	d.MipLevels = 1;
-	d.ArraySize = 1;
-	d.Format = fmt;
-	d.SampleDesc.Count = 1;
-	d.Usage = D3D11_USAGE_DEFAULT;
-	d.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	DX::ThrowIfFailed(dev->CreateTexture2D(&d, nullptr, &m_yuvTexture));
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC yDesc = {};
-	yDesc.Format = (fmt == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R8_UNORM;
-	yDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	yDesc.Texture2D.MostDetailedMip = 0;
-	yDesc.Texture2D.MipLevels = 1;
-	DX::ThrowIfFailed(dev->CreateShaderResourceView(m_yuvTexture.Get(), &yDesc, &m_srvY));
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC uvDesc = {};
-	uvDesc.Format = (fmt == DXGI_FORMAT_P010) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R8G8_UNORM;
-	uvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	uvDesc.Texture2D.MostDetailedMip = 0;
-	uvDesc.Texture2D.MipLevels = 1;
-	DX::ThrowIfFailed(dev->CreateShaderResourceView(m_yuvTexture.Get(), &uvDesc, &m_srvUV));
-
-	m_yuvFormat = fmt;
-	m_yuvWidth = w;
-	m_yuvHeight = h;
+static inline std::vector<DXGI_FORMAT> getVideoTextureSRVFormats(DXGI_FORMAT fmt)
+{
+	if (fmt == DXGI_FORMAT_P010) {
+		return { DXGI_FORMAT_R16_UNORM, DXGI_FORMAT_R16G16_UNORM };
+	}
+	else {
+		return { DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_R8G8_UNORM };
+	}
 }
 
 bool renderedOneFrame = false;
@@ -155,34 +103,49 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ID3D11Texture2D *ffmpegTexture = (ID3D11Texture2D *)(frame->data[0]);
 	D3D11_TEXTURE2D_DESC ffmpegDesc;
 	ffmpegTexture->GetDesc(&ffmpegDesc);
-	int index = (int)(frame->data[1]);
 
-	ensureYuvTargets(dev, ffmpegDesc.Format, frame->width, frame->height);
+	bool hasChanged = hasFrameFormatChanged(frame);
+	if (hasChanged) {
+		// Create our internal texture to copy and render
+		setupVideoTexture(ffmpegDesc);
+	}
 
-	ID3D11ShaderResourceView *nullSrvs[2] = {nullptr, nullptr};
-	ctx->PSSetShaderResources(0, 2, nullSrvs);
+	// Copy this frame into our video texture
+	ctx->CopySubresourceRegion1(m_VideoTexture.Get(), 0, 0, 0, 0,
+	                            (ID3D11Resource*)frame->data[0], (int)(intptr_t)frame->data[1],
+	                            nullptr, D3D11_COPY_DISCARD);
 
-	D3D11_BOX box{};
-	box.right = frame->width;
-	box.bottom = frame->height;
-	box.back = 1;
-	ctx->CopySubresourceRegion(m_yuvTexture.Get(), 0, 0, 0, 0, ffmpegTexture, index, &box);
+	// SRV 0 is always mapped to the video texture
+	UINT srvIndex = 0;
 
-	ID3D11ShaderResourceView *srvs[2] = {m_srvY.Get(), m_srvUV.Get()};
-	ctx->PSSetShaderResources(0, 2, srvs);
+	// Setup shader
+	ctx->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+	ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	ctx->IASetInputLayout(m_inputLayout.Get());
+	ctx->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+	ctx->PSSetShader(m_pixelShaderYUV420.Get(), nullptr, 0);
+
+	if (hasChanged) {
+		setupVertexBuffer(ffmpegDesc);
+		bindColorConversion(frame, ffmpegDesc);
+	}
 
 	UINT stride = sizeof(VERTEX);
 	UINT offset = 0;
+	ctx->IASetVertexBuffers(0, 1, m_VideoVertexBuffer.GetAddressOf(), &stride, &offset);
 	ctx->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-	ctx->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-	ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	ctx->IASetInputLayout(m_inputLayout.Get());
-	// Attach our vertex shader.
-	ctx->VSSetShader(m_vertexShader.Get(), nullptr, 0);
 
-	bindColorConversion(frame);
+	// Bind SRVs for this frame
+	ID3D11ShaderResourceView* frameSrvs[] = { m_VideoTextureResourceViews[srvIndex][0].Get(), m_VideoTextureResourceViews[srvIndex][1].Get() };
+	ctx->PSSetShaderResources(0, 2, frameSrvs);
+	ctx->PSSetConstantBuffers(0, 1, m_cscConstantBuffer.GetAddressOf());
 
+	// Draw the video
 	ctx->DrawIndexed(6, 0, 0);
+
+	// Unbind SRVs for this frame
+	ID3D11ShaderResourceView* nullSrvs[2] = {};
+	ctx->PSSetShaderResources(0, 2, nullSrvs);
 
 	if (frame->color_trc != m_LastColorTrc) {
 		DXGI_COLOR_SPACE_TYPE colorspace = {};
@@ -213,13 +176,14 @@ bool VideoRenderer::Render(AVFrame *frame) {
 void VideoRenderer::CreateDeviceDependentResources()
 {
 	Utils::Log("Started with creation of DXView\n");
-	// Load shaders asynchronously.
-	// After the vertex shader file is loaded, create the shader and input layout.
-	auto createVSTask = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_vertex.fxc").then([this](const std::vector<byte>& fileData) {
+
+	// Vertex shader
+	{
+		auto vertexShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_vertex.fxc");
 		DX::ThrowIfFailed(
 			m_deviceResources->GetD3DDevice()->CreateVertexShader(
-				&fileData[0],
-				fileData.size(),
+				vertexShaderBytecode.data(),
+				vertexShaderBytecode.size(),
 				nullptr,
 				&m_vertexShader
 			)
@@ -227,107 +191,65 @@ void VideoRenderer::CreateDeviceDependentResources()
 
 		static const D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 		{
-			 { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			 { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 
 		DX::ThrowIfFailed(
 			m_deviceResources->GetD3DDevice()->CreateInputLayout(
 				vertexDesc,
 				ARRAYSIZE(vertexDesc),
-				&fileData[0],
-				fileData.size(),
+				vertexShaderBytecode.data(),
+				vertexShaderBytecode.size(),
 				&m_inputLayout
 			)
 			, "Input Layout Creation");
-		});
+	}
 
-	// After the pixel shader file is loaded, create the shader and constant buffer.
-	auto createPSTaskGen = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_genyuv_pixel.fxc").then([this](const std::vector<byte>& fileData) {
+	// Pixel shader
+	{
+		auto pixelShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_yuv420_pixel.fxc");
 		DX::ThrowIfFailed(
 			m_deviceResources->GetD3DDevice()->CreatePixelShader(
-				&fileData[0],
-				fileData.size(),
+				pixelShaderBytecode.data(),
+				pixelShaderBytecode.size(),
 				nullptr,
-				&m_pixelShaderGeneric
+				&m_pixelShaderYUV420
 			)
 			, "Pixel Shader Creation");
-		});
+	}
 
-	auto createPSTaskBT601 = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_bt601lim_pixel.fxc").then([this](const std::vector<byte>& fileData) {
-		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreatePixelShader(
-				&fileData[0],
-				fileData.size(),
-				nullptr,
-				&m_pixelShaderBT601
-			)
-			, "Pixel Shader Creation");
-		});
+	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+	auto w = CoreWindow::GetForCurrentThread();
+	m_DisplayWidth = (int)w->Bounds.Width;
+	m_DisplayHeight = (int)w->Bounds.Height;
+	// HDR Setup
+	if (hdi) {
+		m_lastDisplayMode = hdi->GetCurrentDisplayMode();
+		m_currentDisplayMode = m_lastDisplayMode;
+		// Scale video to the window size while preserving aspect ratio
+		m_DisplayWidth = std::max(m_currentDisplayMode->ResolutionWidthInRawPixels, (UINT)1920);
+		m_DisplayHeight = std::max(m_currentDisplayMode->ResolutionHeightInRawPixels, (UINT)1080);
+	}
 
-	auto createPSTaskBT2020 = DX::ReadDataAsync(L"Assets\\Shader\\d3d11_bt2020lim_pixel.fxc").then([this](const std::vector<byte>& fileData) {
-		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreatePixelShader(
-				&fileData[0],
-				fileData.size(),
-				nullptr,
-				&m_pixelShaderBT2020
-			)
-			, "Pixel Shader Creation");
-		});
+	// We use a common sampler for all pixel shaders
+	{
+		D3D11_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.MipLODBias = 0.0f;
+		samplerDesc.MaxAnisotropy = 1;
+		samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+		samplerDesc.MinLOD = 0.0f;
+		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-	// Once both shaders are loaded, create the mesh.
-	auto createCubeTask = (createVSTask && createPSTaskGen && createPSTaskBT601 && createPSTaskBT2020).then([this]() {
-		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
-		auto w = CoreWindow::GetForCurrentThread();
-		int m_DisplayWidth = (int)w->Bounds.Width;
-		int m_DisplayHeight = (int)w->Bounds.Height;
-		// HDR Setup
-		if (hdi) {
-			m_lastDisplayMode = hdi->GetCurrentDisplayMode();
-			m_currentDisplayMode = m_lastDisplayMode;
-			// Scale video to the window size while preserving aspect ratio
-			m_DisplayWidth = std::max(m_currentDisplayMode->ResolutionWidthInRawPixels, (UINT)1920);
-			m_DisplayHeight = std::max(m_currentDisplayMode->ResolutionHeightInRawPixels, (UINT)1080);
-		}
-		IRECT src, dst;
-		src.x = src.y = 0;
-		src.w = this->configuration->width;
-		src.h = this->configuration->height;
-		dst.x = dst.y = 0;
-		dst.w = m_DisplayWidth;
-		dst.h = m_DisplayHeight;
-		scaleSourceToDestinationSurface(&src, &dst);
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc,  &m_samplerState));
+	}
 
-		// Convert screen space to normalized device coordinates
-		FRECT renderRect;
-		screenSpaceToNormalizedDeviceCoords(&dst, &renderRect, m_DisplayWidth, m_DisplayHeight);
-		VERTEX verts[] =
-		{
-			{renderRect.x, renderRect.y, 0, 1.0f},
-			{renderRect.x, renderRect.y + renderRect.h, 0, 0},
-			{renderRect.x + renderRect.w, renderRect.y, 1.0f, 1.0f},
-			{renderRect.x + renderRect.w, renderRect.y + renderRect.h, 1.0f, 0},
-		};
-
-		D3D11_BUFFER_DESC vbDesc = {};
-		vbDesc.ByteWidth = sizeof(verts);
-		vbDesc.Usage = D3D11_USAGE_IMMUTABLE;
-		vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		vbDesc.CPUAccessFlags = 0;
-		vbDesc.MiscFlags = 0;
-		vbDesc.StructureByteStride = sizeof(VERTEX);
-
-		D3D11_SUBRESOURCE_DATA vbData = {};
-		vbData.pSysMem = verts;
-		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreateBuffer(
-				&vbDesc,
-				&vbData,
-				&m_vertexBuffer
-			)
-			, "Vertex Buffer Creation");
-
+	// We use a common index buffer for all geometry
+	{
 		const int indexes[] = { 0, 1, 2, 3, 2, 1 };
 		D3D11_BUFFER_DESC indexBufferDesc = {};
 		indexBufferDesc.ByteWidth = sizeof(indexes);
@@ -342,64 +264,38 @@ void VideoRenderer::CreateDeviceDependentResources()
 		indexBufferData.SysMemPitch = sizeof(int);
 
 		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
-		});
+	}
 
-	D3D11_SAMPLER_DESC samplerDesc;
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.MipLODBias = 0.0f;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	samplerDesc.MinLOD = -FLT_MAX;
-	samplerDesc.MaxLOD = FLT_MAX;
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc, &samplerState), "Sampler Creation");
-	m_deviceResources->GetD3DDeviceContext()->PSSetSamplers(0, 1, samplerState.GetAddressOf());
-	renderTextureDesc = { 0 };
 	int width = configuration->width;
 	int height = configuration->height;
-	renderTextureDesc.Width = width;
-	renderTextureDesc.Height = height;
-	renderTextureDesc.ArraySize = 1;
-	renderTextureDesc.Format = DXGI_FORMAT_NV12;
-	renderTextureDesc.Usage = D3D11_USAGE_DEFAULT;
-	renderTextureDesc.MipLevels = 1;
-	renderTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	renderTextureDesc.SampleDesc.Quality = 0;
-	renderTextureDesc.SampleDesc.Count = 1;
-	renderTextureDesc.CPUAccessFlags = 0;
-	renderTextureDesc.MiscFlags = 0;
-	Microsoft::WRL::ComPtr<IDXGIResource1> dxgiResource;
-	createCubeTask.then([this, width, height]() {
-		int status = client->StartStreaming(m_deviceResources, configuration);
-		if (status != 0) {
-			Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			Utils::logMutex.lock();
-			std::wstring m_text = L"";
-			std::vector<std::wstring> lines = Utils::GetLogLines();
-			for (int i = 0; i < lines.size(); i++) {
-				//Get only the last 24 lines
-				if (lines.size() - i < 24) {
-					m_text += lines[i];
-				}
+
+	int status = client->StartStreaming(m_deviceResources, configuration);
+	if (status != 0) {
+		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+		Utils::logMutex.lock();
+		std::wstring m_text = L"";
+		std::vector<std::wstring> lines = Utils::GetLogLines();
+		for (int i = 0; i < lines.size(); i++) {
+			//Get only the last 24 lines
+			if (lines.size() - i < 24) {
+				m_text += lines[i];
 			}
-			Utils::logMutex.unlock();
-			Utils::showLogs = true;
-			auto sv = ref new Windows::UI::Xaml::Controls::ScrollViewer();
-			sv->VerticalScrollMode = Windows::UI::Xaml::Controls::ScrollMode::Enabled;
-			sv->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Visible;
-			auto tb = ref new Windows::UI::Xaml::Controls::TextBlock();
-			tb->Text = ref new Platform::String(m_text.c_str());
-			sv->Content = tb;
-			dialog->Content = sv;
-			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
-			return;
 		}
-		m_loadingComplete.store(true, std::memory_order_release);
-		Utils::Log("Loading Complete!\n");
-		});
+		Utils::logMutex.unlock();
+		Utils::showLogs = true;
+		auto sv = ref new Windows::UI::Xaml::Controls::ScrollViewer();
+		sv->VerticalScrollMode = Windows::UI::Xaml::Controls::ScrollMode::Enabled;
+		sv->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Visible;
+		auto tb = ref new Windows::UI::Xaml::Controls::TextBlock();
+		tb->Text = ref new Platform::String(m_text.c_str());
+		sv->Content = tb;
+		dialog->Content = sv;
+		dialog->CloseButtonText = L"OK";
+		dialog->ShowAsync();
+		return;
+	}
+	m_loadingComplete.store(true, std::memory_order_release);
+	Utils::Log("Loading Complete!\n");
 }
 
 void VideoRenderer::ReleaseDeviceDependentResources()
@@ -408,11 +304,10 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_loadingComplete.store(false, std::memory_order_release);
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
-	m_pixelShaderGeneric.Reset();
-	m_pixelShaderBT601.Reset();
-	m_pixelShaderBT2020.Reset();
-	m_constantBuffer.Reset();
-	m_vertexBuffer.Reset();
+	m_pixelShaderYUV420.Reset();
+	m_cscConstantBuffer.Reset();
+	m_VideoVertexBuffer.Reset();
+	m_samplerState.Reset();
 	m_indexBuffer.Reset();
 }
 
@@ -439,102 +334,327 @@ void VideoRenderer::screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, 
 	dst->h = (float)src->h / (viewportHeight / 2.0f);
 }
 
-void VideoRenderer::bindColorConversion(AVFrame* frame)
+bool VideoRenderer::setupVideoTexture(D3D11_TEXTURE2D_DESC frameDesc)
 {
-	bool fullRange = frame->color_range == AVCOL_RANGE_JPEG;
-	int colorspace = COLORSPACE_REC_601;
+	m_TextureWidth = frameDesc.Width;
+	m_TextureHeight = frameDesc.Height;
+	m_TextureFormat = frameDesc.Format;
+	assert(m_TextureWidth > 0 && m_TextureHeight > 0);
+
+	D3D11_TEXTURE2D_DESC texDesc = {};
+
+	texDesc.Width = m_TextureWidth;
+	texDesc.Height = m_TextureHeight;
+	texDesc.MipLevels = 1;
+	texDesc.ArraySize = 1;
+	texDesc.Format = m_TextureFormat;
+	texDesc.SampleDesc.Quality = 0;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.Usage = D3D11_USAGE_DEFAULT;
+	texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	texDesc.CPUAccessFlags = 0;
+	texDesc.MiscFlags = 0;
+
+	m_VideoTexture.Reset();
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&texDesc, nullptr, &m_VideoTexture));
+
+	// Create SRVs for the texture
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = 1;
+	size_t srvIndex = 0;
+	for (DXGI_FORMAT srvFormat : getVideoTextureSRVFormats(frameDesc.Format)) {
+		assert(srvIndex < m_VideoTextureResourceViews[0].size());
+
+		m_VideoTextureResourceViews[0][srvIndex].Reset();
+
+		srvDesc.Format = srvFormat;
+		DX::ThrowIfFailed(
+		    m_deviceResources->GetD3DDevice()->CreateShaderResourceView(m_VideoTexture.Get(), &srvDesc, &m_VideoTextureResourceViews[0][srvIndex]));
+
+		srvIndex++;
+	}
+
+	return true;
+}
+
+// Create our fixed vertex buffer for video rendering
+void VideoRenderer::setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc)
+{
+	// Scale video to the window size while preserving aspect ratio
+	IRECT src, dst;
+	src.x = src.y = 0;
+	src.w = configuration->width;
+	src.h = configuration->height;
+	dst.x = dst.y = 0;
+	dst.w = m_DisplayWidth;
+	dst.h = m_DisplayHeight;
+	scaleSourceToDestinationSurface(&src, &dst);
+
+	// Convert screen space to normalized device coordinates
+	FRECT renderRect;
+	screenSpaceToNormalizedDeviceCoords(&dst, &renderRect, m_DisplayWidth, m_DisplayHeight);
+
+	m_TextureWidth = frameDesc.Width;
+	m_TextureHeight = frameDesc.Height;
+	assert(m_TextureWidth > 0 && m_TextureHeight > 0);
+
+	float uMax = m_TextureWidth > 0 ? (float)m_DecoderParams.width / m_TextureWidth : 1.0f;
+	float vMax = m_TextureHeight > 0 ? (float)m_DecoderParams.height / m_TextureHeight : 1.0f;
+
+	Utils::Logf("Setup vertex shader params: uMax %f, vMax %f\n", uMax, vMax);
+
+	VERTEX verts[] =
+	{
+		{renderRect.x, renderRect.y, 0, vMax},
+		{renderRect.x, renderRect.y + renderRect.h, 0, 0},
+		{renderRect.x + renderRect.w, renderRect.y, uMax, vMax},
+		{renderRect.x + renderRect.w, renderRect.y + renderRect.h, uMax, 0},
+	};
+
+	D3D11_BUFFER_DESC vbDesc = {};
+	vbDesc.ByteWidth = sizeof(verts);
+	vbDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vbDesc.CPUAccessFlags = 0;
+	vbDesc.MiscFlags = 0;
+	vbDesc.StructureByteStride = sizeof(VERTEX);
+
+	D3D11_SUBRESOURCE_DATA vbData = {};
+	vbData.pSysMem = verts;
+	DX::ThrowIfFailed(
+		m_deviceResources->GetD3DDevice()->CreateBuffer(
+			&vbDesc,
+			&vbData,
+			&m_VideoVertexBuffer
+		)
+		, "Vertex Buffer Creation");
+}
+
+
+static inline bool isFrameFullRange(const AVFrame* frame) {
+	// This handles the case where the color range is unknown,
+	// so that we use Limited color range which is the default
+	// behavior for Moonlight.
+	return frame->color_range == AVCOL_RANGE_JPEG;
+}
+
+static inline int getFrameColorspace(const AVFrame* frame) {
+	// Prefer the colorspace field on the AVFrame itself
 	switch (frame->colorspace) {
 	case AVCOL_SPC_SMPTE170M:
 	case AVCOL_SPC_BT470BG:
-		colorspace = COLORSPACE_REC_601;
-		break;
+		return COLORSPACE_REC_601;
 	case AVCOL_SPC_BT709:
-		colorspace = COLORSPACE_REC_709;
-		break;
+		return COLORSPACE_REC_709;
 	case AVCOL_SPC_BT2020_NCL:
 	case AVCOL_SPC_BT2020_CL:
-		colorspace = COLORSPACE_REC_2020;
+		return COLORSPACE_REC_2020;
+	default:
+		// If the colorspace is not populated, assume the encoder
+		// is sending the colorspace that we requested.
+		return COLORSPACE_REC_601;
+	}
+}
+
+static inline AVPixelFormat getFrameSwPixelFormat(const AVFrame* frame) {
+	// For hwaccel formats, we want to get the real underlying format
+	if (frame->hw_frames_ctx) {
+		return ((AVHWFramesContext*)frame->hw_frames_ctx->data)->sw_format;
+	}
+	else {
+		return (AVPixelFormat)frame->format;
+	}
+}
+
+static inline int getFrameBitsPerChannel(const AVFrame* frame) {
+	const AVPixFmtDescriptor* formatDesc = av_pix_fmt_desc_get(getFrameSwPixelFormat(frame));
+	if (!formatDesc) {
+		// This shouldn't be possible but handle it anyway
+		assert(formatDesc);
+		return 8;
+	}
+
+	// This assumes plane 0 is exclusively the Y component
+	return formatDesc->comp[0].depth;
+}
+
+void VideoRenderer::getFramePremultipliedCscConstants(const AVFrame* frame, std::array<float, 9> &cscMatrix, std::array<float, 3> &offsets) {
+	static const std::array<float, 9> k_CscMatrix_Bt601 = {
+		1.0f, 1.0f, 1.0f,
+		0.0f, -0.3441f, 1.7720f,
+		1.4020f, -0.7141f, 0.0f,
+	};
+	static const std::array<float, 9> k_CscMatrix_Bt709 = {
+		1.0f, 1.0f, 1.0f,
+		0.0f, -0.1873f, 1.8556f,
+		1.5748f, -0.4681f, 0.0f,
+	};
+	static const std::array<float, 9> k_CscMatrix_Bt2020 = {
+		1.0f, 1.0f, 1.0f,
+		0.0f, -0.1646f, 1.8814f,
+		1.4746f, -0.5714f, 0.0f,
+	};
+
+	bool fullRange = isFrameFullRange(frame);
+	int bitsPerChannel = getFrameBitsPerChannel(frame);
+	int channelRange = (1 << bitsPerChannel);
+	double yMin = (fullRange ? 0 : (16 << (bitsPerChannel - 8)));
+	double yMax = (fullRange ? (channelRange - 1) : (235 << (bitsPerChannel - 8)));
+	double yScale = (channelRange - 1) / (yMax - yMin);
+	double uvMin = (fullRange ? 0 : (16 << (bitsPerChannel - 8)));
+	double uvMax = (fullRange ? (channelRange - 1) : (240 << (bitsPerChannel - 8)));
+	double uvScale = (channelRange - 1) / (uvMax - uvMin);
+
+	// Calculate YUV offsets
+	offsets[0] = yMin / (double)(channelRange - 1);
+	offsets[1] = (channelRange / 2) / (double)(channelRange - 1);
+	offsets[2] = (channelRange / 2) / (double)(channelRange - 1);
+
+	// Start with the standard full range color matrix
+	switch (getFrameColorspace(frame)) {
+	default:
+	case COLORSPACE_REC_601:
+		cscMatrix = k_CscMatrix_Bt601;
+		break;
+	case COLORSPACE_REC_709:
+		cscMatrix = k_CscMatrix_Bt709;
+		break;
+	case COLORSPACE_REC_2020:
+		cscMatrix = k_CscMatrix_Bt2020;
 		break;
 	}
 
-	// We have purpose-built shaders for the common Rec 601 (SDR) and Rec 2020 (HDR) cases
-	if (!fullRange && colorspace == COLORSPACE_REC_601) {
-		m_deviceResources->GetD3DDeviceContext()->PSSetShader(m_pixelShaderBT601.Get(), nullptr, 0);
+	// Scale the color matrix according to the color range
+	for (int i = 0; i < 3; i++) {
+		cscMatrix[i] *= yScale;
 	}
-	else if (!fullRange && colorspace == COLORSPACE_REC_2020) {
-		m_deviceResources->GetD3DDeviceContext()->PSSetShader(m_pixelShaderBT2020.Get(), nullptr, 0);
+	for (int i = 3; i < 9; i++) {
+		cscMatrix[i] *= uvScale;
 	}
-	else {
-		// We'll need to use the generic shader for this colorspace and color range combo
-		m_deviceResources->GetD3DDeviceContext()->PSSetShader(m_pixelShaderGeneric.Get(), nullptr, 0);
+}
 
-		// If nothing has changed since last frame, we're done
-		if (colorspace == m_LastColorSpace && fullRange == m_LastFullRange) {
-			return;
-		}
-
-		Utils::Logf("Falling back to generic video pixel shader for %d (%s range)\n", colorspace, fullRange ? "full" : "limited");
-
-		D3D11_BUFFER_DESC constDesc = {};
-		constDesc.ByteWidth = sizeof(CSC_CONST_BUF);
-		constDesc.Usage = D3D11_USAGE_IMMUTABLE;
-		constDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		constDesc.CPUAccessFlags = 0;
-		constDesc.MiscFlags = 0;
-
-		CSC_CONST_BUF constBuf = {};
-		const float* rawCscMatrix;
-		switch (colorspace) {
-		case COLORSPACE_REC_601:
-			rawCscMatrix = fullRange ? k_CscMatrix_Bt601Full : k_CscMatrix_Bt601Lim;
-			break;
-		case COLORSPACE_REC_709:
-			rawCscMatrix = fullRange ? k_CscMatrix_Bt709Full : k_CscMatrix_Bt709Lim;
-			break;
-		case COLORSPACE_REC_2020:
-			rawCscMatrix = fullRange ? k_CscMatrix_Bt2020Full : k_CscMatrix_Bt2020Lim;
-			break;
-		default:
-			return;
-		}
-
-		// We need to adjust our raw CSC matrix to be column-major and with float3 vectors
-		// padded with a float in between each of them to adhere to HLSL requirements.
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				constBuf.cscMatrix[i * 4 + j] = rawCscMatrix[j * 3 + i];
-			}
-		}
-
-		// No adjustments are needed to the float[3] array of offsets, so it can just
-		// be copied with memcpy().
-		if (colorspace == COLORSPACE_REC_2020) {
-			// This is important to avoid tinting the image slightly
-			memcpy(constBuf.offsets, fullRange ? k_Offsets_10bit_Full : k_Offsets_10bit_Lim, sizeof(constBuf.offsets));
-		}
-		else {
-			memcpy(constBuf.offsets, fullRange ? k_Offsets_Full : k_Offsets_Lim, sizeof(constBuf.offsets));
-		}
-
-		D3D11_SUBRESOURCE_DATA constData = {};
-		constData.pSysMem = &constBuf;
-
-		ID3D11Buffer* constantBuffer;
-		HRESULT hr = m_deviceResources->GetD3DDevice()->CreateBuffer(&constDesc, &constData, &constantBuffer);
-		if (SUCCEEDED(hr)) {
-			m_deviceResources->GetD3DDeviceContext()->PSSetConstantBuffers(0, 1, &constantBuffer);
-			constantBuffer->Release();
-		}
-		else {
-			/*SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-				"ID3D11Device::CreateBuffer() failed: %x",
-				hr);*/
-			return;
-		}
+void VideoRenderer::getFrameChromaCositingOffsets(const AVFrame* frame, std::array<float, 2> &chromaOffsets) {
+	const AVPixFmtDescriptor* formatDesc = av_pix_fmt_desc_get(getFrameSwPixelFormat(frame));
+	if (!formatDesc) {
+		assert(formatDesc);
+		chromaOffsets.fill(0);
+		return;
 	}
 
-	m_LastColorSpace = colorspace;
-	m_LastFullRange = fullRange;
+	assert(formatDesc->log2_chroma_w <= 1);
+	assert(formatDesc->log2_chroma_h <= 1);
+
+	switch (frame->chroma_location) {
+	default:
+	case AVCHROMA_LOC_LEFT:
+		chromaOffsets[0] = 0.5;
+		chromaOffsets[1] = 0;
+		break;
+	case AVCHROMA_LOC_CENTER:
+		chromaOffsets[0] = 0;
+		chromaOffsets[1] = 0;
+		break;
+	case AVCHROMA_LOC_TOPLEFT:
+		chromaOffsets[0] = 0.5;
+		chromaOffsets[1] = 0.5;
+		break;
+	case AVCHROMA_LOC_TOP:
+		chromaOffsets[0] = 0;
+		chromaOffsets[1] = 0.5;
+		break;
+	case AVCHROMA_LOC_BOTTOMLEFT:
+		chromaOffsets[0] = 0.5;
+		chromaOffsets[1] = -0.5;
+		break;
+	case AVCHROMA_LOC_BOTTOM:
+		chromaOffsets[0] = 0;
+		chromaOffsets[1] = -0.5;
+		break;
+	}
+
+	// Force the offsets to 0 if chroma is not subsampled in that dimension
+	if (formatDesc->log2_chroma_w == 0) {
+		chromaOffsets[0] = 0;
+	}
+	if (formatDesc->log2_chroma_h == 0) {
+		chromaOffsets[1] = 0;
+	}
+}
+
+// Returns if the frame format has changed since the last call to this function
+bool VideoRenderer::hasFrameFormatChanged(const AVFrame* frame) {
+	AVPixelFormat format = getFrameSwPixelFormat(frame);
+	if (frame->width == m_LastFrameWidth &&
+		frame->height == m_LastFrameHeight &&
+		format == m_LastFramePixelFormat &&
+		frame->color_range == m_LastColorRange &&
+		frame->color_primaries == m_LastColorPrimaries &&
+		frame->colorspace == m_LastColorSpace &&
+		frame->chroma_location == m_LastChromaLocation) {
+		return false;
+	}
+
+	// m_LastColorTrc is checked elsewhere for calling SetColorSpace1()
+
+	m_LastFrameWidth = frame->width;
+	m_LastFrameHeight = frame->height;
+	m_LastFramePixelFormat = format;
+	m_LastColorRange = frame->color_range;
+	m_LastColorPrimaries = frame->color_primaries;
+	m_LastColorSpace = frame->colorspace;
+	m_LastChromaLocation = frame->chroma_location;
+	return true;
+}
+
+void VideoRenderer::bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC frameDesc)
+{
+	D3D11_BUFFER_DESC constDesc = {};
+	constDesc.ByteWidth = sizeof(CSC_CONST_BUF);
+	constDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	constDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constDesc.CPUAccessFlags = 0;
+	constDesc.MiscFlags = 0;
+
+	CSC_CONST_BUF constBuf = {};
+	std::array<float, 9> cscMatrix;
+	std::array<float, 3> yuvOffsets;
+	getFramePremultipliedCscConstants(frame, cscMatrix, yuvOffsets);
+
+	std::copy(yuvOffsets.cbegin(), yuvOffsets.cend(), constBuf.offsets);
+
+	// We need to adjust our CSC matrix to be column-major and with float3 vectors
+	// padded with a float in between each of them to adhere to HLSL requirements.
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			constBuf.cscMatrix[i * 4 + j] = cscMatrix[j * 3 + i];
+		}
+	}
+
+	m_TextureWidth = frameDesc.Width;
+	m_TextureHeight = frameDesc.Height;
+	assert(m_TextureWidth > 0 && m_TextureHeight > 0);
+
+	std::array<float, 2> chromaOffset;
+	getFrameChromaCositingOffsets(frame, chromaOffset);
+	constBuf.chromaOffset[0] = chromaOffset[0] / m_TextureWidth;
+	constBuf.chromaOffset[1] = chromaOffset[1] / m_TextureHeight;
+
+	// Limit chroma texcoords to avoid sampling from alignment texels
+	constBuf.chromaUVMax[0] = m_DecoderParams.width != (int)m_TextureWidth ?
+	                              ((float)(m_DecoderParams.width - 1) / m_TextureWidth) : 1.0f;
+	constBuf.chromaUVMax[1] = m_DecoderParams.height != (int)m_TextureHeight ?
+	                              ((float)(m_DecoderParams.height - 1) / m_TextureHeight) : 1.0f;
+
+	D3D11_SUBRESOURCE_DATA constData = {};
+	constData.pSysMem = &constBuf;
+
+	Utils::Logf("Setup pixel shader params: chromaOffset[0] %f, chromaOffset[1] %f, chromaUVMax[0] %f, chromaUVMax[1] %f\n",
+				constBuf.chromaOffset[0], constBuf.chromaOffset[1],
+				constBuf.chromaUVMax[0], constBuf.chromaUVMax[1]);
+
+	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&constDesc, &constData, &m_cscConstantBuffer));
 }
 
 void VideoRenderer::SetHDR(bool enabled)

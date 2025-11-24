@@ -17,7 +17,6 @@ extern "C" {
 #define MAX_BUFFER 1024 * 1024
 
 typedef struct MLFrameData {
-	uint32_t presentationTimeUs; // host's pts
 	int64_t decodeEndQpc;        // when we finished decoding
 	int64_t presentTargetQpc;    // timestamp when frame should be presented (slightly earlier than vsync)
 	int64_t presentVsyncQpc;     // hard vsync deadline
@@ -49,7 +48,7 @@ class FFMpegDecoder {
 	AVD3D11VADeviceContext *d3d11va_device_ctx;
 	unsigned char *ffmpeg_buffer;
 	int ffmpeg_buffer_size;
-	std::shared_ptr<DX::DeviceResources> resources;
+	std::shared_ptr<DX::DeviceResources> m_deviceResources;
 	int m_LastFrameNumber;
 };
 } // namespace moonlight_xbox_dx
