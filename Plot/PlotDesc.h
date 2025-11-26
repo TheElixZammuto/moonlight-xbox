@@ -6,12 +6,11 @@
 enum PlotType {
 	PLOT_FRAMETIME = 0,
 	PLOT_HOST_FRAMETIME,
-	PLOT_VSYNC_INTERVAL,
 	PLOT_DROPPED_NETWORK,
 	PLOT_DROPPED_PACER,
-	PLOT_PRESENT_PACING,
+	PLOT_QUEUED_FRAMES,
+	PLOT_BANDWIDTH,
 
-	PLOT_OVERHEAD,
 	PLOT_ETC,
 	PlotCount
 };
@@ -34,14 +33,13 @@ struct PlotDesc {
 
 // clang-format off
 inline constexpr std::array<PlotDesc, PlotCount> kPlotDescs = {{
-    {"Frametime",                      PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 41.0f},
-    {"Host Frametime",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 41.0f},
-    {"Vsync interval",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 0.0f},
-    {"Dropped frames (network)",       PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
-    {"Dropped frames (pacing)",        PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, 0.0f, 0.0f},
-    {"Present to display latency",     PLOT_LABEL_MIN_MAX_AVG, "ms", -10.0f, 25.0f, 0.0f, 0.0f},
-    {"Graph overhead",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 6.0f, 0.0f, 0.0f},
-	{"Etc...",                         PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, 0.0f, 49.9f},
+    {"Frametime",                      PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 65.0f, NULL, 64.0f},
+    {"Host Frametime",                 PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 65.0f, NULL, 64.0f},
+    {"Dropped frames (network)",       PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, NULL, NULL},
+    {"Dropped frames (pacing)",        PLOT_LABEL_TOTAL_INT,     "", -1.0f, 3.0f, NULL, NULL},
+	{"Frames queued",                  PLOT_LABEL_MIN_MAX_AVG_INT, "", -1.0f, 6.0f, NULL, NULL},
+    {"Video stream",                   PLOT_LABEL_MIN_MAX_AVG, "Mbps", -0.1f, 200.0f, NULL, NULL},
+	{"Etc...",                         PLOT_LABEL_MIN_MAX_AVG, "ms", -0.1f, 50.0f, NULL, 49.0f},
 }};
 
 static_assert(kPlotDescs.size() == PlotCount, "Plot descriptors out of sync with PlotType enum");

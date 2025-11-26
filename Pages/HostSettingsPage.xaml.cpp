@@ -191,13 +191,13 @@ int HostSettingsPage::getDefaultBitrate(int width, int height, int fps)
     // We're just using the values that the Shield used, as we have for years.
     static const struct resTable {
         int pixels;
-        int factor;
+        float factor;
     } resTable[] {
-        { 1280 * 720, 5 },
-        { 1920 * 1080, 10 },
-        { 2560 * 1440, 20 },
-        { 3840 * 2160, 40 },
-        { -1, -1 },
+        { 1280 * 720, 5.0f },
+        { 1920 * 1080, 10.0f },
+        { 2560 * 1440, 20.0f },
+        { 3840 * 2160, 40.0f },
+        { -1, -1.0f },
     };
 
     // Calculate the resolution factor by linear interpolation of the resolution table

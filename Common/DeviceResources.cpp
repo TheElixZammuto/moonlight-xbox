@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
-#include <gamingdeviceinformation.h>
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <winrt/Windows.UI.Core.h>
 #include <Pages/StreamPage.xaml.h>
@@ -62,8 +61,6 @@ DX::DeviceResources::DeviceResources() :
 	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_11_1),
 	m_d3dRenderTargetSize(),
 	m_dxgiFactoryFlags(0),
-	m_enableVsync(false),
-	m_swapchainVsync(false),
 	m_outputSize(),
 	m_logicalSize(),
 	m_nativeOrientation(DisplayOrientations::None),
@@ -75,8 +72,7 @@ DX::DeviceResources::DeviceResources() :
 	m_deviceNotify(nullptr),
 	m_stats(nullptr),
 	m_imguiRunning(false),
-	m_showImGui(false),
-	m_frameLatencyWaitable()
+	m_showImGui(false)
 {
 	m_refreshRate = GetUWPRefreshRate();
 	GetUWPPixelDimensions(&m_pixelWidth, &m_pixelHeight);
@@ -128,29 +124,6 @@ void DX::DeviceResources::CreateDeviceResources()
 #endif
 
 	DX::ThrowIfFailed(CreateDXGIFactory2(m_dxgiFactoryFlags, IID_PPV_ARGS(m_dxgiFactory.ReleaseAndGetAddressOf())));
-
-	// Determines whether tearing support is available for fullscreen borderless windows.
-	if (!m_enableVsync) {
-		BOOL allowTearing = FALSE;
-
-		ComPtr<IDXGIFactory5> factory5;
-		HRESULT hr = m_dxgiFactory.As(&factory5);
-		if (SUCCEEDED(hr)) {
-			hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
-		}
-
-		Utils::Logf("CheckFeatureSupport(ALLOW_TEARING): %d\n", allowTearing ? 1 : 0);
-
-		if (FAILED(hr) || !allowTearing) {
-			//m_displayStatus &= ~VRR_SUPPORTED;
-			Utils::Log("Warning: Variable Refresh Rate display was not detected, vsync will be forced.\n");
-			m_enableVsync = true;
-		}
-		else {
-			Utils::Log("Warning: Variable Refresh Rate display detected, but VRR is not yet working. You will experience tearing.\n");
-			//m_displayStatus |= VRR_SUPPORTED;
-		}
-	}
 
 	// This array defines the set of DirectX hardware feature levels this app will support.
 	// Note the ordering should be preserved.
@@ -236,18 +209,19 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 	m_d3dRenderTargetSize.Width = normalizedWidth;
 	m_d3dRenderTargetSize.Height = normalizedHeight;
 
-	if (m_swapChain != nullptr && m_enableVsync == m_swapchainVsync)
+	if (m_swapChain != nullptr)
 	{
 		// If the swap chain already exists, resize it.
-		int flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
-		if (!m_enableVsync) flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		HRESULT hr = m_swapChain->ResizeBuffers(
 			0, // Don't change the number of buffers
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
-			flags
+			0
 			);
+
+		Utils::Logf("m_swapChain->ResizeBuffers(%d x %d)\n",
+			lround(m_d3dRenderTargetSize.Width), lround(m_d3dRenderTargetSize.Height));
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
 		{
@@ -276,10 +250,9 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.SampleDesc.Quality = 0;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
-		swapChainDesc.BufferCount = 3;
+		swapChainDesc.BufferCount = 5;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
-		if (!m_enableVsync) swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+		swapChainDesc.Flags = 0;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -313,14 +286,12 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			)
 		);
 
-		Utils::Logf("Vsync: %s\n", m_enableVsync ? "enabled" : "disabled");
+		Utils::Logf("CreateSwapChainForComposition(%d x %d)\n",
+			lround(m_d3dRenderTargetSize.Width), lround(m_d3dRenderTargetSize.Height));
 
 		DX::ThrowIfFailed(
-			swapChain.As(&m_swapChain)
+			swapChain.As<IDXGISwapChain4>(&m_swapChain)
 		);
-
-		m_swapChain->SetMaximumFrameLatency(1);
-		m_frameLatencyWaitable = m_swapChain->GetFrameLatencyWaitableObject();
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread
@@ -338,21 +309,13 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		}, CallbackContext::Any));
 	}
 
-	// note the current state of the swapchain wrt ALLOW_TEARING. If this is changed, we have to recreate
-	// the swapchain.
-	m_swapchainVsync = m_enableVsync;
-
 	// Setup inverse scale on the swap chain
 	DXGI_MATRIX_3X2_F inverseScale = { 0 };
 	inverseScale._11 = 1.0f / m_effectiveCompositionScaleX;
 	inverseScale._22 = 1.0f / m_effectiveCompositionScaleY;
-	ComPtr<IDXGISwapChain4> spSwapChain2;
-	DX::ThrowIfFailed(
-		m_swapChain.As<IDXGISwapChain4>(&spSwapChain2)
-		);
 
 	DX::ThrowIfFailed(
-		spSwapChain2->SetMatrixTransform(&inverseScale)
+		m_swapChain->SetMatrixTransform(&inverseScale)
 		);
 
 	// Create a render target view of the swap chain back buffer.
@@ -465,11 +428,6 @@ void DX::DeviceResources::SetCompositionScale(float compositionScaleX, float com
 	}
 }
 
-void DX::DeviceResources::SetVsync(bool enableVsync)
-{
-	m_enableVsync = enableVsync;
-}
-
 // This method is called in the event handler for the DisplayContentsInvalidated event.
 void DX::DeviceResources::ValidateDevice()
 {
@@ -564,21 +522,7 @@ void DX::DeviceResources::Trim()
 // Present the contents of the swap chain to the screen.
 void DX::DeviceResources::Present()
 {
-	HRESULT hr = E_FAIL;
-	DXGI_PRESENT_PARAMETERS parameters = { 0 };
-
-	if (m_enableVsync) {
-		// Composition swapchain
-		hr = m_swapChain->Present1(0, 0, &parameters);
-	}
-	else {
-		// Recommended to always use tearing if supported when using a sync interval of 0.
-		// This call requires VRR to be set to Always On on Xbox
-		hr = m_swapChain->Present1(0, DXGI_PRESENT_ALLOW_TEARING, &parameters);
-		if (hr == DXGI_ERROR_INVALID_CALL) {
-			Utils::Logf("Present1() vsync: disabled, DXGI_ERROR_INVALID_CALL\n");
-		}
-	}
+	HRESULT hr = m_swapChain->Present(0, 0);
 
 	// Discard the contents of the render target.
 	// This is a valid operation only when the existing contents will be entirely
@@ -597,10 +541,9 @@ void DX::DeviceResources::Present()
 #endif
 		HandleDeviceLost();
 	}
-	else if (hr == DXGI_ERROR_INVALID_CALL && m_enableVsync != m_swapchainVsync) {
-		// Swap chain vsync mismatch, try to reset
-		Utils::Logf("Present() failed due to swapchain vsync mismatch (enableVsync=%d != swapchainVsync=%d)\n",
-			m_enableVsync, m_swapchainVsync);
+	else if (hr == DXGI_ERROR_INVALID_CALL) {
+		// Try to reset
+		Utils::Logf("Present() failed with DXGI_ERROR_INVALID_CALL\n");
 		HandleDeviceLost();
 	}
 	else {
@@ -608,30 +551,9 @@ void DX::DeviceResources::Present()
 	}
 }
 
-//Thank you tunip3 for https://github.com/libretro/RetroArch/pull/13406/files
-//Check if we are running on Xbox
-bool is_running_on_xbox(void)
-{
-	Platform::String^ device_family = Windows::System::Profile::AnalyticsInfo::VersionInfo->DeviceFamily;
-	return (device_family == L"Windows.Xbox");
-}
-
-bool DX::DeviceResources::isXbox()
-{
-	GAMING_DEVICE_MODEL_INFORMATION info;
-	if (FAILED(GetGamingDeviceModelInformation(&info))) {
-		return false;
-	}
-
-	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
-		return true;
-	}
-	return false;
-}
-
 int DX::DeviceResources::uwp_get_height()
 {
-	if (is_running_on_xbox())
+	if (IsXbox())
 	{
 		const Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 		if (hdi)
@@ -645,7 +567,7 @@ int DX::DeviceResources::uwp_get_height()
 
 int DX::DeviceResources::uwp_get_width()
 {
-	if (is_running_on_xbox())
+	if (IsXbox())
 	{
 		const Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 		if (hdi)
@@ -659,14 +581,10 @@ int DX::DeviceResources::uwp_get_width()
 
 void DX::DeviceResources::GetUWPPixelDimensions(uint32_t *width, uint32_t *height)
 {
-	GAMING_DEVICE_MODEL_INFORMATION info = {};
-	GetGamingDeviceModelInformation(&info);
-
 	*width = 1920;
 	*height = 1080;
 
-	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
-		// Running on an Xbox
+	if (IsXbox()) {
 		auto mode = HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode();
 		*width = std::max((uint32_t)1920, mode->ResolutionWidthInRawPixels);
 		*height = std::max((uint32_t)1080, mode->ResolutionHeightInRawPixels);
@@ -682,13 +600,9 @@ void DX::DeviceResources::GetUWPPixelDimensions(uint32_t *width, uint32_t *heigh
 
 double DX::DeviceResources::GetUWPRefreshRate()
 {
-	GAMING_DEVICE_MODEL_INFORMATION info = {};
-	GetGamingDeviceModelInformation(&info);
-
 	double refreshRate = 0.0f;
 
-	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
-		// Running on Xbox
+	if (IsXbox()) {
 		refreshRate = HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode()->RefreshRate;
 	}
 	else {
