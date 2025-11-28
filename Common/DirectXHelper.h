@@ -51,6 +51,57 @@ namespace DX
 		});
 	}
 
+	inline std::vector<byte> ReadData(const std::wstring &relativePath)
+    {
+        using namespace Windows::ApplicationModel;
+
+        // Build full path to the file inside the app package
+        auto installedFolder = Package::Current->InstalledLocation;
+        std::wstring fullPath = installedFolder->Path->Data();
+
+        if (!fullPath.empty() && fullPath.back() != L'\\')
+        {
+            fullPath.push_back(L'\\');
+        }
+
+        fullPath.append(relativePath);
+
+        // Open the file
+        HANDLE file = CreateFile2(
+            fullPath.c_str(),
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            OPEN_EXISTING,
+            nullptr
+        );
+
+        if (file == INVALID_HANDLE_VALUE)
+        {
+            throw ref new Platform::FailureException(L"Failed to open file");
+        }
+
+        LARGE_INTEGER fileSize = {};
+        if (!GetFileSizeEx(file, &fileSize))
+        {
+            CloseHandle(file);
+            throw ref new Platform::FailureException(L"Failed to get file size");
+        }
+
+        std::vector<byte> data;
+        data.resize(static_cast<size_t>(fileSize.QuadPart));
+
+        DWORD bytesRead = 0;
+        if (!ReadFile(file, data.data(), static_cast<DWORD>(data.size()), &bytesRead, nullptr) ||
+            bytesRead != data.size())
+        {
+            CloseHandle(file);
+            throw ref new Platform::FailureException(L"Failed to read file");
+        }
+
+        CloseHandle(file);
+        return data;
+    }
+
 	// Converts a length in device-independent pixels (DIPs) to a length in physical pixels.
 	inline float ConvertDipsToPixels(float dips, float dpi)
 	{
