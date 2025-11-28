@@ -53,6 +53,34 @@ void logDisplayMode(const char *str, HdmiDisplayMode^ mode) {
 	Utils::Log(modeStr);
 }
 
+bool MoonlightClient::IsHDRSupported() {
+	HdmiDisplayInformation^ hdmi = HdmiDisplayInformation::GetForCurrentView();
+	if (!hdmi) {
+		return false;
+	}
+
+	HdmiDisplayMode^ current = hdmi->GetCurrentDisplayMode();
+	if (!current) {
+		return false;
+	}
+	if (current->IsSmpte2084Supported) {
+		return true;
+	}
+
+	for (auto mode : hdmi->GetSupportedDisplayModes()) {
+		if (mode->IsSmpte2084Supported != current->IsSmpte2084Supported &&
+			mode->ResolutionHeightInRawPixels == current->ResolutionHeightInRawPixels &&
+			mode->ResolutionWidthInRawPixels == current->ResolutionWidthInRawPixels &&
+			mode->StereoEnabled == false &&
+			std::fabs(mode->RefreshRate - current->RefreshRate) <= 0.00001)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 // Based on CWIN32Util::ToggleWindowsHDR from xbmc
 // switches to the HDR or SDR version of the current display mode, per the enabled argument
 // Returns false if the requested state was not set for some reason.
@@ -286,7 +314,10 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	//Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
 	this->SetGamepadCount(std::max((UINT)1, gamepads->Size));
-	int a = gs_start_app(&serverData, &config, sConfig->appID, sConfig->enableSOPS, sConfig->playAudioOnPC, activeGamepadMask);
+
+	bool isHDRSupported = IsHDRSupported();
+
+	int a = gs_start_app(&serverData, &config, sConfig->appID, sConfig->enableSOPS, sConfig->playAudioOnPC, activeGamepadMask, isHDRSupported);
 	if (a != 0) {
 		char message[2048];
 		sprintf(message, "gs_startapp failed with status code %d\n", a);
