@@ -21,6 +21,11 @@
                     <SymbolIcon Symbol="Stop" />
                 </MenuFlyoutItem.Icon>
             </MenuFlyoutItem>
+            <MenuFlyoutItem x:Name="closeAndStartButton"  Click="closeAndStartButton_Click"  Text="Close Current App and Start" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Next" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
         </MenuFlyout>
     </FlyoutBase.AttachedFlyout>
     <Grid>
@@ -46,7 +51,7 @@
                 </Button>
             </StackPanel>
         </Grid>
-        <GridView Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind Host.Apps}" IsRightTapEnabled="True" IsItemClickEnabled="True" ItemClick="AppsGrid_ItemClick" RightTapped="HostsGrid_RightTapped" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <GridView Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind Host.Apps}" IsRightTapEnabled="True" IsItemClickEnabled="True" ItemClick="AppsGrid_ItemClick" RightTapped="AppsGrid_RightTapped" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal"

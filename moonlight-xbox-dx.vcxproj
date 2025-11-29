@@ -335,6 +335,9 @@
     <ClInclude Include="KeyboardControl.xaml.h">
       <DependentUpon>KeyboardControl.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Common\ModalDialog.xaml.h">
+      <DependentUpon>Common\ModalDialog.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Keyboard\KeyboardCommon.h" />
     <ClInclude Include="Plot\ImGuiPlots.h" />
     <ClInclude Include="Plot\PlotDesc.h" />
@@ -473,6 +476,9 @@
     </ClCompile>
     <ClCompile Include="MoonlightWelcome.xaml.cpp">
       <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Common\ModalDialog.xaml.cpp">
+      <DependentUpon>Common\ModalDialog.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Plot\ImGuiPlots.cpp" />
     <ClCompile Include="State\BandwidthTracker.cpp" />
@@ -659,6 +665,7 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Pages\StreamPage.xaml" />
+    <Page Include="Common\ModalDialog.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libgamestream\build\gamestream.vcxproj">

@@ -1,6 +1,9 @@
 //https://github.com/reactos/reactos/blob/master/sdk/include/ndk/kbd.h
 #pragma once
 #include "pch.h"
+
+/* Only define VK_* values if they aren't already defined by system headers */
+#ifndef VK_LBUTTON
 #define VK_LBUTTON	1
 #define VK_RBUTTON	2
 #define VK_CANCEL	3
@@ -156,6 +159,7 @@
 #define VK_OEM_CLEAR	0xFE
 
 #define VK_EMPTY  0xff   /* The non-existent VK */
+#endif
 
 	/* Virtual key flags */
 #define KBDEXT     0x100  /* Extended key code */

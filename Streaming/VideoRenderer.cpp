@@ -4,6 +4,7 @@
 #include "..\Common\DirectXHelper.h"
 #include <Streaming\FFMpegDecoder.h>
 #include <Utils.hpp>
+#include "..\Common\ModalDialog.xaml.h"
 
 extern "C" {
 #include "libgamestream/client.h"
@@ -394,7 +395,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 			sv->Content = tb;
 			dialog->Content = sv;
 			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
+			concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
 			return;
 		}
 		m_loadingComplete.store(true, std::memory_order_release);

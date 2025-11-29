@@ -68,8 +68,9 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT deco
 	// bandwidth
 	m_bwTracker.AddBytes(length);
 
-	// reassembly time
-	uint32_t reassemblyUs = (uint32_t)(decodeUnit->enqueueTimeUs - decodeUnit->receiveTimeUs);
+	// reassembly time (decodeUnit provides ms fields; convert to microseconds)
+	uint64_t reassemblyDiffMs = decodeUnit->enqueueTimeMs - decodeUnit->receiveTimeMs;
+	uint32_t reassemblyUs = (uint32_t)(reassemblyDiffMs * 1000ULL);
 	m_ActiveWndVideoStats.totalReassemblyTimeUs += reassemblyUs;
 
 	// Host processing latency
