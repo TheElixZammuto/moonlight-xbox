@@ -1,26 +1,25 @@
-#include "pch.h"
 #include "MoonlightClient.h"
+#include "pch.h"
 
 extern "C" {
 #include <Limelight.h>
 #include <libgamestream/client.h>
 #include <libgamestream/errors.h>
 }
-#include "Streaming\FFMpegDecoder.h"
+#include <State\StreamConfiguration.h>
 #include <Streaming\AudioPlayer.h>
 #include <Utils.hpp>
-#include <State\StreamConfiguration.h>
-#include <gamingdeviceinformation.h>
 #include <atomic>
 #include <cmath>
+#include <gamingdeviceinformation.h>
+#include "Streaming\FFMpegDecoder.h"
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
 using namespace Windows::Graphics::Display;
 using namespace Windows::Graphics::Display::Core;
 
-
-void log_message(const char* fmt, ...);
+void log_message(const char *fmt, ...);
 void connection_started();
 void connection_status_update(int status);
 void connection_status_completed(int status);
@@ -30,40 +29,40 @@ void stage_failed(int stage, int err);
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 void connection_trigger_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor);
 
-void logDisplayMode(const char *str, HdmiDisplayMode^ mode) {
+void logDisplayMode(const char *str, HdmiDisplayMode ^ mode) {
 	if (mode == nullptr) return;
 
 	char modeStr[256];
 	snprintf(modeStr, sizeof(modeStr), "%s: %s %ux%u @ %.2fhz, %u bpp, %s, %s\n",
-		str,
-		mode->IsSmpte2084Supported ? "HDR" : "   ",
-		mode->ResolutionWidthInRawPixels, mode->ResolutionHeightInRawPixels,
-		mode->RefreshRate,
-		mode->BitsPerPixel,
-		mode->ColorSpace == HdmiDisplayColorSpace::RgbLimited ? "RgbLimited"
-			: mode->ColorSpace == HdmiDisplayColorSpace::RgbFull ? "RgbFull"
-			: mode->ColorSpace == HdmiDisplayColorSpace::BT709 ? "BT709"
-			: mode->ColorSpace == HdmiDisplayColorSpace::BT2020 ? "BT2020"
-			: "Unknown",
-		mode->PixelEncoding == HdmiDisplayPixelEncoding::Rgb444 ? "Rgb444"
-			: mode->PixelEncoding == HdmiDisplayPixelEncoding::Ycc444 ? "Ycc444"
-			: mode->PixelEncoding == HdmiDisplayPixelEncoding::Ycc422 ? "Ycc422"
-			: mode->PixelEncoding == HdmiDisplayPixelEncoding::Ycc420 ? "Ycc420"
-			: "Unknown");
+	         str,
+	         mode->IsSmpte2084Supported ? "HDR" : "   ",
+	         mode->ResolutionWidthInRawPixels, mode->ResolutionHeightInRawPixels,
+	         mode->RefreshRate,
+	         mode->BitsPerPixel,
+	         mode->ColorSpace == HdmiDisplayColorSpace::RgbLimited ? "RgbLimited"
+	         : mode->ColorSpace == HdmiDisplayColorSpace::RgbFull  ? "RgbFull"
+	         : mode->ColorSpace == HdmiDisplayColorSpace::BT709    ? "BT709"
+	         : mode->ColorSpace == HdmiDisplayColorSpace::BT2020   ? "BT2020"
+	                                                               : "Unknown",
+	         mode->PixelEncoding == HdmiDisplayPixelEncoding::Rgb444   ? "Rgb444"
+	         : mode->PixelEncoding == HdmiDisplayPixelEncoding::Ycc444 ? "Ycc444"
+	         : mode->PixelEncoding == HdmiDisplayPixelEncoding::Ycc422 ? "Ycc422"
+	         : mode->PixelEncoding == HdmiDisplayPixelEncoding::Ycc420 ? "Ycc420"
+	                                                                   : "Unknown");
 	Utils::Log(modeStr);
 }
 
 // Based on CWIN32Util::ToggleWindowsHDR from xbmc
 // switches to the HDR or SDR version of the current display mode, per the enabled argument
 // Returns false if the requested state was not set for some reason.
-bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshineHdrMetadata) {
-	HdmiDisplayInformation^ hdmi = HdmiDisplayInformation::GetForCurrentView();
+bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA &sunshineHdrMetadata) {
+	HdmiDisplayInformation ^ hdmi = HdmiDisplayInformation::GetForCurrentView();
 	if (!hdmi) {
 		return false;
 	}
 
 	bool resendCurrentMode = false;
-	HdmiDisplayMode^ current = hdmi->GetCurrentDisplayMode();
+	HdmiDisplayMode ^ current = hdmi->GetCurrentDisplayMode();
 	logDisplayMode("SetDisplayHDR(): current display mode", current);
 
 	if (current->IsSmpte2084Supported) {
@@ -73,8 +72,7 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 			Utils::Log("SetDisplayHDR(true): display is already in HDR mode\n");
 			resendCurrentMode = true;
 		}
-	}
-	else {
+	} else {
 		// HDR is disabled
 		m_isHDR = false;
 		if (!enabled) {
@@ -86,7 +84,7 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 	// this method is only run on Series S/X, so we can bail out if the system is not set to 4K
 	if (current->ResolutionWidthInRawPixels < 3840) {
 		Utils::Log("Warning: HDR may be unavailable when Xbox is not set to 4K resolution\n");
-		//return false;
+		// return false;
 	}
 
 	// convert the HDR metadata format to HdmiDisplayHdr2086Metadata
@@ -111,14 +109,13 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 	}
 
 	// Choose new mode that is the same as current except for HDR status
-	HdmiDisplayMode^ newMode = {};
+	HdmiDisplayMode ^ newMode = {};
 	for (auto mode : hdmi->GetSupportedDisplayModes()) {
 		if (mode->IsSmpte2084Supported != current->IsSmpte2084Supported &&
-			mode->ResolutionHeightInRawPixels == current->ResolutionHeightInRawPixels &&
-			mode->ResolutionWidthInRawPixels == current->ResolutionWidthInRawPixels &&
-			mode->StereoEnabled == false &&
-			std::fabs(mode->RefreshRate - current->RefreshRate) <= 0.00001)
-		{
+		    mode->ResolutionHeightInRawPixels == current->ResolutionHeightInRawPixels &&
+		    mode->ResolutionWidthInRawPixels == current->ResolutionWidthInRawPixels &&
+		    mode->StereoEnabled == false &&
+		    std::fabs(mode->RefreshRate - current->RefreshRate) <= 0.00001) {
 			newMode = mode;
 			break;
 		}
@@ -139,18 +136,16 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 	if (enabled) {
 		logDisplayMode("SetDisplayHDR(true): switching to HDR mode", newMode);
 		Utils::Logf("Sending HDR10 metadata: Min/MaxLuminance %.0f / %u\n",
-			hdrMetadata.MinMasteringLuminance / 10000.0, hdrMetadata.MaxMasteringLuminance);
+		            hdrMetadata.MinMasteringLuminance / 10000.0, hdrMetadata.MaxMasteringLuminance);
 		hdrOption = HdmiDisplayHdrOption::Eotf2084;
-	}
-	else {
+	} else {
 		logDisplayMode("SetDisplayHDR(false): switching to SDR mode", newMode);
 		hdrOption = HdmiDisplayHdrOption::None;
 	}
 
 	// Change the display mode
 	auto modeChange = Concurrency::create_task(
-		hdmi->RequestSetCurrentDisplayModeAsync(newMode, hdrOption, hdrMetadata)
-	);
+	    hdmi->RequestSetCurrentDisplayModeAsync(newMode, hdrOption, hdrMetadata));
 
 	// wait for async bool result of display mode change
 	if (modeChange.get()) {
@@ -162,28 +157,25 @@ bool MoonlightClient::SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshin
 		if (enabled && current->IsSmpte2084Supported) {
 			m_isHDR = true;
 			return true;
-		}
-		else if (!enabled && !current->IsSmpte2084Supported) {
+		} else if (!enabled && !current->IsSmpte2084Supported) {
 			m_isHDR = false;
 			return true;
 		}
-	}
-	else {
+	} else {
 		Utils::Log("SetDisplayHDR(): Error switching display mode.\n");
 	}
 
 	return false;
 }
 
-MoonlightClient* connectedInstance;
+MoonlightClient *connectedInstance;
 
-MoonlightClient::MoonlightClient() :
-	m_isHDR(false),
-	m_isRGBFull(false)
-{
-	HdmiDisplayInformation^ hdmi = HdmiDisplayInformation::GetForCurrentView();
+MoonlightClient::MoonlightClient()
+    : m_isHDR(false),
+      m_isRGBFull(false) {
+	HdmiDisplayInformation ^ hdmi = HdmiDisplayInformation::GetForCurrentView();
 	if (hdmi) {
-		HdmiDisplayMode^ current = hdmi->GetCurrentDisplayMode();
+		HdmiDisplayMode ^ current = hdmi->GetCurrentDisplayMode();
 		if (current->IsSmpte2084Supported) {
 			m_isHDR = true;
 		}
@@ -204,11 +196,11 @@ MoonlightClient::~MoonlightClient() {
 void MoonlightClient::StopApp() {
 	gs_quit_app(&serverData);
 }
-int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration^ sConfig) {
-	//Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
+int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration ^ sConfig) {
+	// Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
 	std::wstring fooW(sConfig->hostname->Begin());
 	std::string fooA(fooW.begin(), fooW.end());
-	const char* charStr = fooA.c_str();
+	const char *charStr = fooA.c_str();
 	this->Connect(charStr);
 	STREAM_CONFIGURATION config;
 	LiInitializeStreamConfiguration(&config);
@@ -259,7 +251,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 		}
 
 		Utils::Logf("Requesting stream with clientRefreshRateX100=%d for %d FPS on %.2f Hz display\n",
-			config.clientRefreshRateX100, config.fps, rr);
+		            config.clientRefreshRateX100, config.fps, rr);
 	}
 	config.colorRange = this->IsRGBFull() ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
 	config.colorSpace = COLORSPACE_REC_601;
@@ -284,7 +276,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	sprintf(message, "Inserted App ID %d\n", sConfig->appID);
 	Utils::Log(message);
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
-	//Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
+	// Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
 	this->SetGamepadCount(std::max((UINT)1, gamepads->Size));
 	int a = gs_start_app(&serverData, &config, sConfig->appID, sConfig->enableSOPS, sConfig->playAudioOnPC, activeGamepadMask);
 	if (a != 0) {
@@ -294,7 +286,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 		Utils::Log(gs_error);
 		return a;
 	}
-	//Sleep(10000);
+	// Sleep(10000);
 	connectedInstance = this;
 	CONNECTION_LISTENER_CALLBACKS callbacks;
 	LiInitializeConnectionCallbacks(&callbacks);
@@ -307,7 +299,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.stageComplete = connection_status_completed;
 	callbacks.setHdrMode = connection_set_hdr;
 	callbacks.rumble = connection_rumble;
-	//callbacks.rumbleTriggers = connection_trigger_rumble;
+	// callbacks.rumbleTriggers = connection_trigger_rumble;
 
 	FFMpegDecoder::instance().CompleteInitialization(res, &config);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
@@ -323,7 +315,7 @@ void MoonlightClient::StopStreaming() {
 	LiStopConnection();
 }
 
-void log_message(const char* fmt, ...) {
+void log_message(const char *fmt, ...) {
 	va_list argp;
 	va_start(argp, fmt);
 	char message[2048];
@@ -344,7 +336,6 @@ void connection_status_update(int status) {
 	char message[4096];
 	sprintf(message, "Stage %d started\n", status);
 	Utils::Log(message);
-
 }
 
 void connection_status_completed(int status) {
@@ -360,7 +351,6 @@ void connection_set_hdr(bool enable) {
 	if (connectedInstance->SetHDR != nullptr) {
 		connectedInstance->SetHDR(enable);
 	}
-
 }
 
 void connection_terminated(int status) {
@@ -378,26 +368,26 @@ void stage_failed(int stage, int err) {
 	sprintf(message, "%s failed with error %d.\n Check Firewall and Connections to port: %s\n", LiGetStageName(stage), err, failingPorts);
 	Utils::Log(message);
 	if (connectedInstance->OnFailed != nullptr) {
-		connectedInstance->OnFailed(stage, err,message);
+		connectedInstance->OnFailed(stage, err, message);
 	}
 }
 
 void connection_rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
-	if (Windows::Gaming::Input::Gamepad::Gamepads->Size <= controllerNumber)return;
+	if (Windows::Gaming::Input::Gamepad::Gamepads->Size <= controllerNumber) return;
 	auto gp = Windows::Gaming::Input::Gamepad::Gamepads->GetAt(controllerNumber);
 	float normalizedHigh = highFreqMotor / (float)(256 * 256);
 	float normalizedLow = lowFreqMotor / (float)(256 * 256);
 	Windows::Gaming::Input::GamepadVibration v = gp->Vibration;
-	//v.LeftTrigger = normalizedHigh;
-	//v.RightTrigger = normalizedHigh;
-	//https://learn.microsoft.com/en-us/gaming/gdk/_content/gc/reference/input/xinputongameinput/structs/xinput_vibration#remarks
+	// v.LeftTrigger = normalizedHigh;
+	// v.RightTrigger = normalizedHigh;
+	// https://learn.microsoft.com/en-us/gaming/gdk/_content/gc/reference/input/xinputongameinput/structs/xinput_vibration#remarks
 	v.LeftMotor = normalizedLow;
 	v.RightMotor = normalizedHigh;
 	gp->Vibration = v;
 }
 
 void connection_trigger_rumble(unsigned short controllerNumber, unsigned short leftTriggerMotor, unsigned short rightTriggerMotor) {
-	if (Windows::Gaming::Input::Gamepad::Gamepads->Size <= controllerNumber)return;
+	if (Windows::Gaming::Input::Gamepad::Gamepads->Size <= controllerNumber) return;
 	auto gp = Windows::Gaming::Input::Gamepad::Gamepads->GetAt(controllerNumber);
 	float normalizedLeft = leftTriggerMotor / (float)(256 * 256);
 	float normalizedRight = rightTriggerMotor / (float)(256 * 256);
@@ -407,8 +397,8 @@ void connection_trigger_rumble(unsigned short controllerNumber, unsigned short l
 	gp->Vibration = v;
 }
 
-int MoonlightClient::Connect(const char* hostname) {
-	this->hostname = (char*)malloc(2048 * sizeof(char));
+int MoonlightClient::Connect(const char *hostname) {
+	this->hostname = (char *)malloc(2048 * sizeof(char));
 	strcpy_s(this->hostname, 2048, hostname);
 	if (strchr(this->hostname, ':') != 0) {
 		char portStr[2048];
@@ -417,7 +407,7 @@ int MoonlightClient::Connect(const char* hostname) {
 		*strchr(this->hostname, ':') = '\0';
 	}
 
-	Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+	Platform::String ^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
 	folderString = folderString->Concat(folderString, "\\");
 	char folder[2048];
 	wcstombs_s(NULL, folder, folderString->Data(), 2047);
@@ -439,35 +429,35 @@ bool MoonlightClient::IsPaired() {
 	return serverData.paired;
 }
 
-char* MoonlightClient::GeneratePIN() {
+char *MoonlightClient::GeneratePIN() {
 	srand(time(NULL));
-	if (connectionPin == NULL)connectionPin = (char*)malloc(5 * sizeof(char));
+	if (connectionPin == NULL) connectionPin = (char *)malloc(5 * sizeof(char));
 	sprintf(connectionPin, "%d%d%d%d", rand() % 10, rand() % 10, rand() % 10, rand() % 10);
 	return connectionPin;
 }
 
 int MoonlightClient::Pair() {
-	if (serverData.paired)return -7;
+	if (serverData.paired) return -7;
 	int status;
 	if ((status = gs_pair(&serverData, &connectionPin[0])) != 0) {
-		//TODO: Handle gs WRONG STATE
+		// TODO: Handle gs WRONG STATE
 		gs_unpair(&serverData);
 		return status;
 	}
 	return 0;
 }
 
-std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
+std::vector<MoonlightApp ^> MoonlightClient::GetApplications(bool fetchAssets) {
 	PAPP_LIST list;
 	struct app {
 		int Id;
-		Platform::String^ Name;
+		Platform::String ^ Name;
 	};
 	std::vector<struct app> tempValues;
-	std::vector<MoonlightApp^> values;
+	std::vector<MoonlightApp ^> values;
 	int status = gs_applist(&serverData, &list);
-	if (list == NULL)return values;
-	if (status != 0)return values;
+	if (list == NULL) return values;
+	if (status != 0) return values;
 	while (list != NULL) {
 		struct app a;
 		a.Id = list->id;
@@ -475,34 +465,35 @@ std::vector<MoonlightApp^> MoonlightClient::GetApplications() {
 		tempValues.push_back(a);
 		list = list->next;
 	}
-	std::sort(begin(tempValues), end(tempValues), [](struct app& lhs, struct app& rhs)
-		{
-			if (lhs.Name->Data()[0] == '_' && rhs.Name->Data()[0] != '_')return true;
-			if (rhs.Name->Data()[0] == '_' && lhs.Name->Data()[0] != '_')return false;
-			return lhs.Name < rhs.Name;
-		});
+	std::sort(begin(tempValues), end(tempValues), [](struct app &lhs, struct app &rhs) {
+		if (lhs.Name->Data()[0] == '_' && rhs.Name->Data()[0] != '_') return true;
+		if (rhs.Name->Data()[0] == '_' && lhs.Name->Data()[0] != '_') return false;
+		return lhs.Name < rhs.Name;
+	});
 	for (auto s : tempValues) {
-		MoonlightApp^ a = ref new MoonlightApp();
+		MoonlightApp ^ a = ref new MoonlightApp();
 		a->Id = s.Id;
 		a->Name = s.Name;
 		values.push_back(a);
 	}
-	Platform::String^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+	Platform::String ^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
 	folderString = folderString->Concat(folderString, "\\images\\");
 	char folder[2048];
 	wcstombs_s(NULL, folder, folderString->Data(), 2047);
 	CreateDirectory(folderString->Data(), NULL);
-	Concurrency::create_task([folder, folderString, values, this]() {
-		for (auto a : values) {
-			auto imgPath = folderString->Concat(folderString, a->Id + ".png");
-			// https://stackoverflow.com/a/6218957
-			DWORD dwAttrib = GetFileAttributes(imgPath->Data());
-			if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
-				gs_appasset(&serverData, folder, a->Id);
+	if (fetchAssets) {
+		Concurrency::create_task([folder, folderString, values, this]() {
+			for (auto a : values) {
+				auto imgPath = folderString->Concat(folderString, a->Id + ".png");
+				// https://stackoverflow.com/a/6218957
+				DWORD dwAttrib = GetFileAttributes(imgPath->Data());
+				if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
+					gs_appasset(&serverData, folder, a->Id);
+				}
+				a->ImagePath = imgPath;
 			}
-			a->ImagePath = imgPath;
-		}
 		});
+	}
 
 	return values;
 }
@@ -537,8 +528,8 @@ static bool hasGamepadReadingChanged(GamepadReading a, GamepadReading b) {
 
 void MoonlightClient::SendGamepadReading(short controllerNumber, GamepadReading reading) {
 	int buttonFlags = 0;
-	GamepadButtons buttons[] = { GamepadButtons::A,GamepadButtons::B,GamepadButtons::X,GamepadButtons::Y,GamepadButtons::DPadLeft,GamepadButtons::DPadRight,GamepadButtons::DPadUp,GamepadButtons::DPadDown,GamepadButtons::LeftShoulder,GamepadButtons::RightShoulder,GamepadButtons::Menu,GamepadButtons::View,GamepadButtons::LeftThumbstick,GamepadButtons::RightThumbstick };
-	int LiButtonFlags[] = { A_FLAG,B_FLAG,X_FLAG,Y_FLAG,LEFT_FLAG,RIGHT_FLAG,UP_FLAG,DOWN_FLAG,LB_FLAG,RB_FLAG,PLAY_FLAG,BACK_FLAG,LS_CLK_FLAG,RS_CLK_FLAG };
+	GamepadButtons buttons[] = {GamepadButtons::A, GamepadButtons::B, GamepadButtons::X, GamepadButtons::Y, GamepadButtons::DPadLeft, GamepadButtons::DPadRight, GamepadButtons::DPadUp, GamepadButtons::DPadDown, GamepadButtons::LeftShoulder, GamepadButtons::RightShoulder, GamepadButtons::Menu, GamepadButtons::View, GamepadButtons::LeftThumbstick, GamepadButtons::RightThumbstick};
+	int LiButtonFlags[] = {A_FLAG, B_FLAG, X_FLAG, Y_FLAG, LEFT_FLAG, RIGHT_FLAG, UP_FLAG, DOWN_FLAG, LB_FLAG, RB_FLAG, PLAY_FLAG, BACK_FLAG, LS_CLK_FLAG, RS_CLK_FLAG};
 	for (int i = 0; i < 14; i++) {
 		if ((reading.Buttons & buttons[i]) == buttons[i]) {
 			buttonFlags |= LiButtonFlags[i];
@@ -556,7 +547,6 @@ void MoonlightClient::SendGamepadReading(short controllerNumber, GamepadReading 
 void MoonlightClient::SendGuide(int controllerNumber, bool s) {
 	LiSendMultiControllerEvent(controllerNumber, activeGamepadMask, s ? SPECIAL_FLAG : 0, 0, 0, 0, 0, 0, 0);
 }
-
 
 void MoonlightClient::SendMousePosition(float deltaX, float deltaY) {
 	LiSendMouseMoveEvent(deltaX, deltaY);
@@ -594,22 +584,22 @@ void MoonlightClient::Unpair() {
 	int status = gs_unpair(&serverData);
 }
 
-Platform::String^ MoonlightClient::GetInstanceID() {
+Platform::String ^ MoonlightClient::GetInstanceID() {
 	return Utils::StringFromChars(serverData.uniqueId);
 }
 
-Platform::String^ MoonlightClient::GetComputerName() {
+Platform::String ^ MoonlightClient::GetComputerName() {
 	return Utils::StringFromChars(serverData.serverName);
 }
 
-Platform::String^ MoonlightClient::GetServerAddress() {
+Platform::String ^ MoonlightClient::GetServerAddress() {
 	if (!serverData.serverInfo.address) {
 		return nullptr;
 	}
-	return Utils::StringFromChars((char*)serverData.serverInfo.address);
+	return Utils::StringFromChars((char *)serverData.serverInfo.address);
 }
 
-Platform::String^ MoonlightClient::GetServerMacAddress() {
+Platform::String ^ MoonlightClient::GetServerMacAddress() {
 	if (!serverData.macAddress) {
 		return nullptr;
 	}

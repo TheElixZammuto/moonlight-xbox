@@ -16,6 +16,7 @@ namespace moonlight_xbox_dx {
         bool paired;
         bool connected;
         bool loading = true;
+        bool wolPolling = false;
         bool playAudioOnPC = false;
         MoonlightClient* client;
         int currentlyRunningAppId;
@@ -39,10 +40,11 @@ namespace moonlight_xbox_dx {
             resolution = ref new ScreenResolution(1920, 1080);
             loading = true;
         }
-        void UpdateHostInfo();
+    void UpdateHostInfo(bool showLoading);
         int Connect();
         void Unpair();
         void UpdateApps();
+    void UpdateAppRunningStates();
         property Platform::String^ InstanceId
         {
             Platform::String^ get() { return this->instanceId; }
@@ -126,11 +128,32 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->loading = value;
                 OnPropertyChanged("Loading");
+                OnPropertyChanged("LoadingVisibility");
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("NotConnected");
                 OnPropertyChanged("NotPaired");
                 OnPropertyChanged("Paired");
             }
+        }
+
+        property Windows::UI::Xaml::Visibility LoadingVisibility
+        {
+            Windows::UI::Xaml::Visibility get() { return this->loading ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed; }
+        }
+
+        property bool WolPolling
+        {
+            bool get() { return this->wolPolling; }
+            void set(bool value) {
+                this->wolPolling = value;
+                OnPropertyChanged("WolPolling");
+                OnPropertyChanged("WolPollingVisibility");
+            }
+        }
+
+        property Windows::UI::Xaml::Visibility WolPollingVisibility
+        {
+            Windows::UI::Xaml::Visibility get() { return this->wolPolling ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed; }
         }
 
         property int CurrentlyRunningAppId

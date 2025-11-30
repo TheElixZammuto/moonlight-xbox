@@ -7,6 +7,7 @@
 
 #include "Pages\AppPage.g.h"
 #include "State\MoonlightApp.h"
+#include <atomic>
 
 namespace moonlight_xbox_dx
 {
@@ -20,6 +21,8 @@ namespace moonlight_xbox_dx
 		MoonlightHost^ host;
 		MoonlightApp^ currentApp;
 		Windows::Foundation::EventRegistrationToken m_back_cookie;
+		std::atomic<bool> continueAppFetch{ false };
+		std::atomic<bool> wasConnected{ false };
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
  		void Connect(int app);
@@ -33,12 +36,14 @@ namespace moonlight_xbox_dx
 		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
 	private:
 		void AppsGrid_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
-		void HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
+		void AppsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
 		void resumeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void closeAndStartButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void ExecuteCloseAndStart();
 		void backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void settingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-	};
-}
+ 	 };
+ }
