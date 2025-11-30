@@ -266,9 +266,7 @@ namespace moonlight_xbox_dx {
 
 			// Capture a frame timestamp to measuring pacing delay
 			QueryPerformanceCounter(&decodeEnd);
-			// decodeUnit holds presentationTimeMs (milliseconds); convert to microseconds
-			uint32_t presentationTimeUs = (uint32_t)(decodeUnit->presentationTimeMs * 1000ULL);
-			frame_attach_userdata(frame, presentationTimeUs, decodeEnd.QuadPart);
+		    frame_attach_userdata(frame, decodeUnit->presentationTimeUs, decodeEnd.QuadPart);
 
 			FQLog("✓ Frame decoded [pts: %.3fms] [in#: %d] [out#: %d] [lost: %d] decode time %.3fms\n",
 				frame->pts / 90.0,
