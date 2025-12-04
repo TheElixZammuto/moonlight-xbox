@@ -58,6 +58,16 @@ namespace moonlight_xbox_dx {
 		m_LastFrameNumber(0) {
 	}
 
+	void lock_context(void *user) {
+		auto me = (FFMpegDecoder*)user;
+		me->m_mutex.lock();
+	}
+
+	void unlock_context(void *user) {
+		auto me = (FFMpegDecoder*)user;
+		me->m_mutex.unlock();
+	}
+
 	void ffmpeg_log_callback(void *ptr, int level, const char *fmt, va_list vl) {
 		char lineBuffer[1024];
 		static int printPrefix = 1;
@@ -75,7 +85,7 @@ namespace moonlight_xbox_dx {
 		Utils::Logf(shouldPrefixThisMessage ? "[ffmpeg] %s" : "%s", lineBuffer);
 	}
 
-	void FFMpegDecoder::CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config) {
+    void FFMpegDecoder::CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config) {
 		m_deviceResources = res;
 		Pacer::instance().init(res, config->fps, res->GetRefreshRate());
 	}
@@ -124,6 +134,9 @@ namespace moonlight_xbox_dx {
 		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
 		d3d11va_device_ctx->device = m_deviceResources->GetD3DDevice();
 		d3d11va_device_ctx->device_context = m_deviceResources->GetD3DDeviceContext();
+		d3d11va_device_ctx->lock = lock_context;
+		d3d11va_device_ctx->unlock = unlock_context;
+		d3d11va_device_ctx->lock_ctx = this;
 		int err2;
 		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
 			Utils::Logf("Failed to create specified DirectX Video device: %d\n", err2);
@@ -139,7 +152,7 @@ namespace moonlight_xbox_dx {
 		decoder_ctx->width = width;
 		decoder_ctx->height = height;
 
-	    int err = avcodec_open2(decoder_ctx, decoder, NULL);
+		int err = avcodec_open2(decoder_ctx, decoder, NULL);
 		if (err < 0) {
 			char msg[2048];
 			sprintf(msg, "Failed to create FFMpeg Codec: %d\n", err);
@@ -157,13 +170,6 @@ namespace moonlight_xbox_dx {
 			return -1;
 		}
 
-		// Put D3D11 in multithread-friendly mode
-		ID3D11Multithread *pMultithread = nullptr;
-		HRESULT hr = d3d11va_device_ctx->device->QueryInterface(__uuidof(ID3D11Multithread), (void **)&pMultithread);
-		if (SUCCEEDED(hr)) {
-			pMultithread->SetMultithreadProtected(TRUE);
-			pMultithread->Release();
-		}
 		return 0;
 	}
 

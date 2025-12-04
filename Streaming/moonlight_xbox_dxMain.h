@@ -39,7 +39,6 @@ namespace moonlight_xbox_dx
 		void Update();
 		bool Render();
 		void RenderImGui();
-		void Clear();
 
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;

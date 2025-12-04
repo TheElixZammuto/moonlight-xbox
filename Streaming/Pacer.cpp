@@ -46,6 +46,7 @@ Pacer::Pacer()
       m_Stopping(false),
       m_StreamFps(0),
       m_RefreshRate(0.0),
+      m_LastSyncRefreshCount(0),
       m_LastSyncQpc(0),
       m_VsyncIntervalQpc(0) {
 }
@@ -193,10 +194,8 @@ void Pacer::updateFrameStats() {
 void Pacer::waitForFrame(double timeoutMs) {
 	if (!running()) return;
 
-	// mark frame begin for use by afterPresent
-	m_BeginFrameQpc = QpcNow();
-
 	// Wait for a decoded frame to be available
+	int64_t t0 = QpcNow();
 	int queueHas = 1;
 	FrameQueue::instance().waitForEnqueue(queueHas, timeoutMs);
 }
@@ -214,7 +213,9 @@ bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 
 	// Render it
 	FQLog("> Frame rendered [pts: %.3f]\n", frame->pts / 90.0);
-	sceneRenderer->Render(frame);
+	if (!sceneRenderer->Render(frame)) {
+		return false; // something went wrong rendering the frame
+	}
 
 	if (frame->opaque_ref) {
 		// Count time spent in FrameQueue
@@ -227,26 +228,23 @@ bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 }
 
 // called by render thread
-void Pacer::waitBeforePresent() {
+void Pacer::waitBeforePresent(int64_t deadline) {
 	if (!running()) return;
 
 	// Wait until vsync
-	int64_t now, interval = 0;
-	int64_t target = getNextVBlankQpc(&now, &interval);
-
-	if (IsXbox() && m_StreamFps == 120 && m_RefreshRate > 119.0) {
-		// 120hz on Xbox requires us to present each frame at half-vsync intervals
-		int64_t half = interval / 2;
-		if (target - half > now) {
-			// we're currently in the first half of a vblank, sleep till the halfway mark
-			target -= half;
-		}
+	int64_t now = 0;
+	int64_t target = getNextVBlankQpc(&now);
+	if (deadline && deadline != target) {
+		// we missed the deadline
+		target = deadline;
 	}
 
 	m_LastSyncTarget.store(target, std::memory_order_release);
 
-	FQLog("waitBeforePresent(): waiting %.3fms to target %lld\n", QpcToMs(target - now), target);
-	SleepUntilQpc(target);
+	if (target > now) {
+		FQLog("waitBeforePresent(): waiting %.3fms\n", QpcToMs(target - now));
+		SleepUntilQpc(target);
+	}
 }
 
 // end main thread
@@ -267,23 +265,34 @@ void Pacer::submitFrame(AVFrame *frame) {
 
 // Caller often needs now and the vsync interval, since this needs locking
 // the logic is confined to this function.
-int64_t Pacer::getNextVBlankQpc(int64_t *now, int64_t *interval) {
+int64_t Pacer::getNextVBlankQpc(int64_t *now) {
 	std::scoped_lock<std::mutex> lock(m_FrameStatsLock);
+	int64_t target, interval = 0;
+	*now = QpcNow();
 
 	if (m_LastSyncQpc == 0 || m_VsyncIntervalQpc == 0) {
 		// Fallback until vsyncHardware spins up
-		*now = QpcNow();
 		double rr = m_RefreshRate > 0.0 ? m_RefreshRate : 60.0;
-		*interval = MsToQpc(1000.0 / rr);
-		return *now + *interval;
+		interval = MsToQpc(1000.0 / rr);
+		target = *now + interval;
+	} else {
+		interval = m_VsyncIntervalQpc;
+		int64_t next = m_LastSyncQpc;
+
+		while (next < *now) {
+			next += interval;
+		}
+		target = next + static_cast<int64_t>(m_ewmaVsyncDriftQpc);
 	}
 
-	*now = QpcNow();
-	*interval = m_VsyncIntervalQpc;
-	int64_t next = m_LastSyncQpc;
-
-	while (next < *now) {
-		next += *interval;
+	if (IsXbox() && m_StreamFps == 120 && m_RefreshRate > 119.0) {
+		// 120hz on Xbox requires us to present each frame at half-vsync intervals
+		int64_t half = interval / 2;
+		if (target - half > *now) {
+			// we're currently in the first half of a vblank, sleep till the halfway mark
+			target -= half;
+		}
 	}
-	return next + static_cast<int64_t>(m_ewmaVsyncDriftQpc);
+
+	return target;
 }

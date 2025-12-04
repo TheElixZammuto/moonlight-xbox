@@ -90,24 +90,6 @@ static inline int64_t MsToQpc(double ms) {
     return UsToQpc(us);
 }
 
-// Sleep until approximately targetQpc, then busy-wait to land precisely.
-// sleepSlackUs: how early (in microseconds) to stop sleeping and start spinning
-static inline void SleepUntilQpc(int64_t targetQpc, int64_t sleepSlackUs = 1000) {
-	const int64_t f = QpcFreq();
-	const int64_t slack = UsToQpc(sleepSlackUs);
-	for (;;) {
-		const int64_t now = QpcNow();
-		const int64_t remaining = targetQpc - now;
-		if (remaining <= 0) break;
-		if (remaining > slack) {
-			DWORD ms = (DWORD)(((remaining - slack) * 1000 + f / 2) / f);
-			if (ms > 0) Sleep(ms);
-			continue;
-		}
-		YieldProcessor();
-	}
-}
-
 // Log something only once, safe to use in hot areas of the code
 #define CONCAT(a, b)   CONCAT2(a, b)
 #define CONCAT2(a, b)  a##b
@@ -162,6 +144,28 @@ static inline bool IsXbox()
 	return f;
 }
 
+// Xbox Series S/X
+static inline bool IsXboxSeries()
+{
+	static bool f = []{
+		GAMING_DEVICE_MODEL_INFORMATION info;
+		if (FAILED(GetGamingDeviceModelInformation(&info))) {
+			return false;
+		}
+
+		if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
+			if (   info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_SERIES_S
+				|| info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_SERIES_X
+				|| info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_SERIES_X_DEVKIT
+			) {
+				return true;
+			}
+		}
+		return false;
+	}();
+	return f;
+}
+
 // Xbox One/One X
 static inline bool IsXboxOne()
 {
@@ -202,4 +206,22 @@ static inline bool IsXboxOneVCR()
 		return false;
 	}();
 	return f;
+}
+
+// Sleep until approximately targetQpc, then busy-wait to land precisely.
+// sleepSlackUs: how early (in microseconds) to stop sleeping and start spinning
+static inline void SleepUntilQpc(int64_t targetQpc, int64_t sleepSlackUs = 1000) {
+	const int64_t f = QpcFreq();
+	const int64_t slack = UsToQpc(sleepSlackUs);
+	for (;;) {
+		const int64_t now = QpcNow();
+		const int64_t remaining = targetQpc - now;
+		if (remaining <= 0) break;
+		if (remaining > slack) {
+			DWORD ms = (DWORD)(((remaining - slack) * 1000 + f / 2) / f);
+			if (ms > 0) Sleep(ms);
+			continue;
+		}
+		YieldProcessor();
+	}
 }

@@ -276,7 +276,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 	if (stats.receivedFps > 0) {
 		ret = snprintf(&output[offset],
 						length - offset,
-						"Video stream: %dx%d %.2f FPS (Codec: %s)\n",
+						"Video stream: %dx%d %.2f FPS (%s)\n",
 						ffmpeg.width,
 						ffmpeg.height,
 						stats.totalFps,
@@ -355,7 +355,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   "Average network latency: %s\n"
 					   "Average reassembly/decoding time: %.2f/%.2f ms\n"
 					   "Average frames in queue: %.1f\n"
-					   "Average frame queue/render/present time: %.2f/%.2f/%.2f ms\n",
+					   "Average frame queue/render/present: %.2f/%.2f/%.2f ms\n",
 					   stats.totalFrames ? (double)stats.networkDroppedFrames / stats.totalFrames * 100 : 0.0f,
 					   stats.totalFrames ? (double)stats.pacerDroppedFrames / stats.totalFrames * 100 : 0.0f,
 					   rttString,

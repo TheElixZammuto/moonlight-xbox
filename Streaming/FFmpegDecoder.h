@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 #include <queue>
 #include "../Common/StepTimer.h"
 #include "Pacer.h"
@@ -17,9 +18,9 @@ extern "C" {
 #define MAX_BUFFER 1024 * 1024
 
 typedef struct MLFrameData {
-	int64_t decodeEndQpc;        // when we finished decoding
-	int64_t presentTargetQpc;    // timestamp when frame should be presented (slightly earlier than vsync)
-	int64_t presentVsyncQpc;     // hard vsync deadline
+	int64_t decodeEndQpc;     // when we finished decoding
+	int64_t presentTargetQpc; // timestamp when frame should be presented (slightly earlier than vsync)
+	int64_t presentVsyncQpc;  // hard vsync deadline
 } MLFrameData;
 
 namespace moonlight_xbox_dx {
@@ -36,6 +37,28 @@ class FFMpegDecoder {
 	static FFMpegDecoder *getInstance();
 	static DECODER_RENDERER_CALLBACKS getDecoder();
 	int videoFormat, width, height;
+	std::recursive_mutex m_mutex;
+
+	// locking helper
+	class LockGuard {
+	  public:
+		explicit LockGuard(FFMpegDecoder &ff)
+		    : m_ff(ff) {
+			m_ff.m_mutex.lock();
+		}
+		~LockGuard() {
+			m_ff.m_mutex.unlock();
+		}
+		LockGuard(const LockGuard &) = delete;
+		LockGuard &operator=(const LockGuard &) = delete;
+
+	  private:
+		FFMpegDecoder &m_ff;
+	};
+
+	[[nodiscard]] static LockGuard Lock() {
+		return LockGuard(instance());
+	}
 
   private:
 	FFMpegDecoder();

@@ -101,23 +101,33 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	auto *ctx = m_deviceResources->GetD3DDeviceContext();
 	auto *dev = m_deviceResources->GetD3DDevice();
 
+	// Clear the back buffer
+	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
+	ctx->ClearRenderTargetView(renderTarget[0], Colors::Black);
+
+	// Bind the back buffer. This needs to be done each time,
+	// because the render target view will be unbound by Present().
+	ctx->OMSetRenderTargets(1, renderTarget, nullptr);
+
 	ID3D11Texture2D *ffmpegTexture = (ID3D11Texture2D *)(frame->data[0]);
+	if (!ffmpegTexture) {
+		// This sometimes happens when reconnecting
+		return false;
+	}
 	D3D11_TEXTURE2D_DESC ffmpegDesc;
 	ffmpegTexture->GetDesc(&ffmpegDesc);
 
 	bool hasChanged = hasFrameFormatChanged(frame);
 	if (hasChanged) {
-		// Create our internal texture to copy and render
 		setupVideoTexture(ffmpegDesc);
 	}
 
-	// Copy this frame into our video texture
-	ctx->CopySubresourceRegion1(m_VideoTexture.Get(), 0, 0, 0, 0,
-	                            (ID3D11Resource*)frame->data[0], (int)(intptr_t)frame->data[1],
-	                            nullptr, D3D11_COPY_DISCARD);
-
 	// SRV 0 is always mapped to the video texture
 	UINT srvIndex = 0;
+	// Copy this frame into our video texture
+	ctx->CopySubresourceRegion1(m_VideoTexture.Get(), 0, 0, 0, 0,
+	                            (ID3D11Resource *)frame->data[0], (int)(intptr_t)frame->data[1],
+	                            nullptr, D3D11_COPY_DISCARD);
 
 	// Setup shader
 	ctx->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());

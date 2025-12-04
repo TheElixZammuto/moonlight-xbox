@@ -21,7 +21,8 @@ class Pacer {
 	void init(const std::shared_ptr<DX::DeviceResources> &res, int maxVideoFps, double refreshRate);
 	void waitForFrame(double timeoutMs);
 	bool renderOnMainThread(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
-	void waitBeforePresent();
+	void waitBeforePresent(int64_t deadline);
+	int64_t getNextVBlankQpc(int64_t *now);
 	void submitFrame(AVFrame *frame);
 
   private:
@@ -39,7 +40,6 @@ class Pacer {
 
 	void vsyncHardware();
 	void updateFrameStats();
-	int64_t getNextVBlankQpc(int64_t *now, int64_t *interval);
 
 	std::shared_ptr<DX::DeviceResources> m_DeviceResources;
 	std::thread m_VsyncThread;
@@ -47,7 +47,6 @@ class Pacer {
 	std::atomic<bool> m_Stopping{false};
 	int m_StreamFps;
 	double m_RefreshRate;
-	int64_t m_BeginFrameQpc = 0;
 
 	static constexpr int VSYNC_HISTORY_SIZE = 512;
 	std::mutex m_FrameStatsLock;
