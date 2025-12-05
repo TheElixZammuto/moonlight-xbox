@@ -27,17 +27,19 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
+	// Setup stats object. DeviceResources keeps a reference so that various components such as FFMpegDecoder can get to it
+	m_stats = std::make_shared<Stats>();
+	m_deviceResources->SetStats(m_stats);
+
 	m_sceneRenderer = std::make_shared<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
 
 	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
 
-	// Setup stats object. DeviceResources keeps a reference so that various components such as FFMpegDecoder can get to it
-	m_stats = std::make_shared<Stats>();
 	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
 	m_statsTextRenderer->SetVisible(configuration->enableStats);
+
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
-	m_deviceResources->SetStats(m_stats);
 
 #if defined(_DEBUG)
 	// Disable graphs in debug mode on Xbox One consoles, they cost 4ms+ per frame
