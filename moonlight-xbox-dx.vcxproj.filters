@@ -677,5 +677,6 @@
     <Page Include="Pages\StreamPage.xaml" />
     <Page Include="KeyboardControl.xaml" />
     <Page Include="MoonlightWelcome.xaml" />
+    <Page Include="Common\ModalDialog.xaml" />
   </ItemGroup>
 </Project>

@@ -4,6 +4,7 @@
 #include "..\Common\DirectXHelper.h"
 #include <Streaming\FFMpegDecoder.h>
 #include <Utils.hpp>
+#include "..\Common\ModalDialog.xaml.h"
 
 #include <d3d11shader.h>
 #include <d3dcompiler.h>
