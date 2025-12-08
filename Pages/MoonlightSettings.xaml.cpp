@@ -6,6 +6,7 @@
 #include "pch.h"
 #include "MoonlightSettings.xaml.h"
 #include "MoonlightWelcome.xaml.h"
+#include "PreReleaseSignupPage.xaml.h"
 #include "Utils.hpp"
 #include "Keyboard/KeyboardCommon.h"
 using namespace Windows::UI::Core;
@@ -91,6 +92,11 @@ void MoonlightSettings::OnBackRequested(Platform::Object^ e, Windows::UI::Core::
 void MoonlightSettings::WelcomeButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
+}
+
+void MoonlightSettings::PreReleaseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(PreReleaseSignupPage::typeid));
 }
 
 void MoonlightSettings::LayoutSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
