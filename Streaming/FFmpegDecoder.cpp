@@ -54,7 +54,7 @@ namespace moonlight_xbox_dx {
 		d3d11va_device_ctx(nullptr),
 		ffmpeg_buffer(nullptr),
 		ffmpeg_buffer_size(0),
-		resources(nullptr),
+		m_deviceResources(nullptr),
 		m_LastFrameNumber(0) {
 	}
 
@@ -76,7 +76,7 @@ namespace moonlight_xbox_dx {
 	}
 
 	void FFMpegDecoder::CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config) {
-		this->resources = res;
+		m_deviceResources = res;
 		Pacer::instance().init(res, config->fps, res->GetRefreshRate());
 	}
 
@@ -114,7 +114,7 @@ namespace moonlight_xbox_dx {
 
 		decoder_ctx = avcodec_alloc_context3(decoder);
 		if (decoder_ctx == NULL) {
-			Utils::Log("Couldn't allocate context");
+			Utils::Log("Couldn't allocate context\n");
 			return -1;
 		}
 		decoder_ctx->opaque = this;
@@ -122,25 +122,22 @@ namespace moonlight_xbox_dx {
 		AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
 		device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
 		d3d11va_device_ctx = reinterpret_cast<AVD3D11VADeviceContext*>(device_ctx->hwctx);
-		d3d11va_device_ctx->device = this->resources->GetD3DDevice();
-		d3d11va_device_ctx->device_context = this->resources->GetD3DDeviceContext();
+		d3d11va_device_ctx->device = m_deviceResources->GetD3DDevice();
+		d3d11va_device_ctx->device_context = m_deviceResources->GetD3DDeviceContext();
 		int err2;
 		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
-			char msg[2048];
-			sprintf(msg, "Failed to create specified DirectX Video device: %d\n", err2);
-			Utils::Log(msg);
+			Utils::Logf("Failed to create specified DirectX Video device: %d\n", err2);
 			return err2;
-
 		}
 
-	    decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-	    av_buffer_unref(&hw_device_ctx);
-	    decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
-	    decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
-	    decoder_ctx->pkt_timebase.num = 1;
-	    decoder_ctx->pkt_timebase.den = 90000;
-	    decoder_ctx->width = width;
-	    decoder_ctx->height = height;
+		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+		av_buffer_unref(&hw_device_ctx);
+		decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
+		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
+		decoder_ctx->pkt_timebase.num = 1;
+		decoder_ctx->pkt_timebase.den = 90000;
+		decoder_ctx->width = width;
+		decoder_ctx->height = height;
 
 	    int err = avcodec_open2(decoder_ctx, decoder, NULL);
 		if (err < 0) {
@@ -184,7 +181,7 @@ namespace moonlight_xbox_dx {
 		Utils::Log("FFMpegDecoder::Cleanup\n");
 	}
 
-    static inline int frame_attach_userdata(AVFrame *frame, uint32_t presentationTimeUs, int64_t decodeEndQpc) {
+    static inline int frame_attach_userdata(AVFrame *frame, int64_t decodeEndQpc) {
 	    if (!frame) return AVERROR(EINVAL);
 
 	    if (frame->opaque_ref) {
@@ -195,7 +192,6 @@ namespace moonlight_xbox_dx {
 	    if (!buf) return AVERROR(ENOMEM);
 
 	    MLFrameData *data = (MLFrameData *)buf->data;
-	    data->presentationTimeUs = presentationTimeUs;
 	    data->decodeEndQpc = decodeEndQpc;
 	    frame->opaque_ref = buf;
 
@@ -230,7 +226,7 @@ namespace moonlight_xbox_dx {
 		m_LastFrameNumber = decodeUnit->frameNumber;
 
 		// track stats for a variety of things we can track at the same time
-		this->resources->GetStats()->SubmitVideoBytesAndReassemblyTime(length, decodeUnit, droppedFramesNetwork);
+		m_deviceResources->GetStats()->SubmitVideoBytesAndReassemblyTime(length, decodeUnit, droppedFramesNetwork);
 
 		// ffmpeg_decode
 		AVPacket *pkt = av_packet_alloc();
@@ -266,7 +262,7 @@ namespace moonlight_xbox_dx {
 
 			// Capture a frame timestamp to measuring pacing delay
 			QueryPerformanceCounter(&decodeEnd);
-			frame_attach_userdata(frame, decodeUnit->presentationTimeUs, decodeEnd.QuadPart);
+			frame_attach_userdata(frame, decodeEnd.QuadPart);
 
 			FQLog("✓ Frame decoded [pts: %.3fms] [in#: %d] [out#: %d] [lost: %d] decode time %.3fms\n",
 				frame->pts / 90.0,
@@ -282,7 +278,7 @@ namespace moonlight_xbox_dx {
 		}
 
 		if (decodeEnd.QuadPart > decodeStart.QuadPart) {
-			this->resources->GetStats()->SubmitDecodeMs(QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart));
+			m_deviceResources->GetStats()->SubmitDecodeMs(QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart));
 		}
 
 		return DR_OK;

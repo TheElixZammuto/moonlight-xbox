@@ -33,14 +33,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Streaming\YUVRGBPixelShader.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Streaming\YUVRGBVertexShader.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
   </ItemGroup>
   <ItemGroup>
@@ -668,17 +660,14 @@
     <None Include="Assets\qrSupport.svg">
       <Filter>Assets</Filter>
     </None>
-    <None Include="Assets\Shader\d3d11_bt2020lim_pixel.fxc" />
-    <None Include="Assets\Shader\d3d11_bt601lim_pixel.fxc" />
-    <None Include="Assets\Shader\d3d11_genyuv_pixel.fxc" />
-    <None Include="Assets\Shader\d3d11_overlay_pixel.fxc" />
-    <None Include="Assets\Shader\d3d11_vertex.fxc" />
     <None Include="Assets\Font\ModeSeven-24.spritefont">
       <Filter>Assets</Filter>
     </None>
     <None Include="Assets\Font\ModeSeven-12.spritefont">
       <Filter>Assets</Filter>
     </None>
+    <None Include="Assets\Shader\d3d11_vertex.fxc" />
+    <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="Pages\AppPage.xaml" />

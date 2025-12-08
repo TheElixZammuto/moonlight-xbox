@@ -192,6 +192,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 	// Run task on a dedicated high priority background thread.
 	m_inputLoopWorker = ThreadPool::RunAsync(inputItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
+
+	moonlightClient->OnCompleted(); // hide Initializing spinny
 }
 
 void moonlight_xbox_dxMain::StopRenderLoop()
