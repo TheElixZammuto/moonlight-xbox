@@ -397,11 +397,22 @@ void HostSelectorPage::hostDetailsButton_Click(Platform::Object^ sender, Windows
 void HostSelectorPage::testConnectionButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
     if (currentHost == nullptr) return;
 
-    std::string hostname = Utils::PlatformStringToStdString(currentHost->LastHostname);
-    auto pos = hostname.find(':');
-    std::string hostOnly = (pos == std::string::npos) ? hostname : hostname.substr(0, pos);
+	std::string hostname = Utils::PlatformStringToStdString(currentHost->LastHostname);
+	std::string hostOnly;
+	int port = 0;
+	try {
+		auto split = GetApplicationState()->Split_IP_Address(hostname, ':');
+		hostOnly = split.first;
+		port = split.second;
+	}
+	catch (...) {
+		// If parsing fails for any reason, fall back to original behaviour
+		auto pos = hostname.find(':');
+		hostOnly = (pos == std::string::npos) ? hostname : hostname.substr(0, pos);
+		port = 0;
+	}
 
-    concurrency::create_task([hostOnly]() {
+	concurrency::create_task([hostOnly, port]() {
         WSADATA wsaData;
         std::string resultMsg = "Unknown";
         if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0) {
@@ -414,7 +425,9 @@ void HostSelectorPage::testConnectionButton_Click(Platform::Object^ sender, Wind
             hints.ai_socktype = SOCK_STREAM;
             hints.ai_protocol = IPPROTO_TCP;
 
-            int gai = getaddrinfo(hostOnly.c_str(), "47989", &hints, &res);
+			// If port is known (non-zero) use it, otherwise default to 47989
+			std::string portStorage = (port > 0) ? std::to_string(port) : std::string("47989");
+			int gai = getaddrinfo(hostOnly.c_str(), portStorage.c_str(), &hints, &res);
             if (gai != 0) {
                 resultMsg = std::string("DNS lookup failed: ") + std::to_string(gai);
             } else {
