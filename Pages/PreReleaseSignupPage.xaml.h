@@ -12,8 +12,7 @@ namespace moonlight_xbox_dx
         void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void backButton_Click(Platform::Object^ sender, Windows::UI::Core::BackRequestedEventArgs^ e);
         void OptInButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-        void ManageButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-
         Windows::Foundation::EventRegistrationToken m_back_token;
+        bool m_isMember;
     };
 }

@@ -13,7 +13,6 @@
         <TextBlock x:Name="StatusText" Text="Checking enrollment status..." Margin="0,8,0,8" />
         <StackPanel Orientation="Horizontal" Margin="0,8,0,8">
             <Button x:Name="OptInButton" Click="OptInButton_Click" Content="Sign up for Prerelease" IsEnabled="False" />
-            <Button x:Name="ManageButton" Click="ManageButton_Click" Content="Manage in Store" Margin="8,0,0,0" Visibility="Collapsed" />
         </StackPanel>
         <TextBlock x:Name="InfoText" Text="Join the prerelease to get early access to features." TextWrapping="Wrap" />
     </StackPanel>
