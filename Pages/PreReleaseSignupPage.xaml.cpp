@@ -41,8 +41,6 @@ namespace {
                     {
                         auto result = asyncOp->GetResults();
 
-
-
                         Platform::String^ response = nullptr;
                         try {
                             response = result->Response;
@@ -89,28 +87,7 @@ namespace {
         return false;
 #endif
     }
-
-    void OpenStoreFallback(Platform::String^ statusMessage, Windows::UI::Xaml::Controls::TextBlock^ statusText)
-    {
-        try
-        {
-            auto uri = ref new Windows::Foundation::Uri(L"ms-windows-store://home");
-            auto _launchOp = Windows::System::Launcher::LaunchUriAsync(uri);
-            if (statusText)
-            {
-                statusText->Text = statusMessage;
-            }
-        }
-        catch (Platform::Exception^ ex)
-        {
-            auto msg = moonlight_xbox_dx::Utils::PlatformStringToStdString(ex->Message);
-            moonlight_xbox_dx::Utils::Log(std::string("OpenStoreFallback exception: ") + msg + "\n");
-            if (statusText)
-            {
-                statusText->Text = "Failed to open Store.";
-            }
-        }
-    }
+    
     static std::wstring EscapeForJsonString(const std::wstring& s)
     {
         std::wstring r;
