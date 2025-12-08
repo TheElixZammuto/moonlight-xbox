@@ -27,17 +27,19 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
+	// Setup stats object. DeviceResources keeps a reference so that various components such as FFMpegDecoder can get to it
+	m_stats = std::make_shared<Stats>();
+	m_deviceResources->SetStats(m_stats);
+
 	m_sceneRenderer = std::make_shared<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
 
 	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
 
-	// Setup stats object. DeviceResources keeps a reference so that various components such as FFMpegDecoder can get to it
-	m_stats = std::make_shared<Stats>();
 	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
 	m_statsTextRenderer->SetVisible(configuration->enableStats);
+
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
-	m_deviceResources->SetStats(m_stats);
 
 #if defined(_DEBUG)
 	// Disable graphs in debug mode on Xbox One consoles, they cost 4ms+ per frame
@@ -190,6 +192,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 	// Run task on a dedicated high priority background thread.
 	m_inputLoopWorker = ThreadPool::RunAsync(inputItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
+
+	moonlightClient->OnCompleted(); // hide Initializing spinny
 }
 
 void moonlight_xbox_dxMain::StopRenderLoop()
@@ -224,7 +228,6 @@ inline bool isPressed(Windows::Gaming::Input::GamepadButtons b, Windows::Gaming:
 // Process all input from the user before updating game state
 void moonlight_xbox_dxMain::ProcessInput()
 {
-
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	if (gamepads->Size == 0)return;
 	moonlightClient->SetGamepadCount(gamepads->Size);
@@ -250,12 +253,23 @@ void moonlight_xbox_dxMain::ProcessInput()
 			}
 		}
 		if (isCurrentlyPressed) {
-			m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
+			DISPATCH_UI([this], {
 				Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_streamPage->m_flyoutButton);
-				}));
+			});
+
+			// send an empty controller packet, otherwise Sunshine may see View being kept held down,
+			// triggering the "Home/Guide Button Emulation Timeout" to send a Guide button press after a few seconds.
+			static Windows::Gaming::Input::GamepadReading emptyReading{};
+			ZeroMemory(&emptyReading, sizeof(GamepadReading));
+			moonlightClient->SendGamepadReading(i, emptyReading);
+
+			// disable all input until the flyout is closed
 			insideFlyout = true;
 		}
-		if (insideFlyout)return;
+		if (insideFlyout) {
+			return;
+		}
+
 		//If mouse mode is enabled the gamepad acts as a mouse, instead we pass the raw events to the host
 		if (keyboardMode) {
 			//B to close

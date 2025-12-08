@@ -136,7 +136,7 @@
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <AppxPackageDir>C:\Progetti\moonlight-xbox-dx\AppPackages\moonlight-xbox-dx\</AppxPackageDir>
-    <PackageCertificateKeyFile>moonlight-xbox-dx_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateThumbprint>12EF20E0A548743F0540AA6555D4E4D12DD7E9B3</PackageCertificateThumbprint>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
@@ -561,14 +561,6 @@
     </AppxManifest>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Streaming\YUVRGBPixelShader.hlsl">
-      <ShaderType>Pixel</ShaderType>
-    </FxCompile>
-    <FxCompile Include="Streaming\YUVRGBVertexShader.hlsl">
-      <ShaderType>Vertex</ShaderType>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
       <SubType>Designer</SubType>
     </ApplicationDefinition>
@@ -620,23 +612,11 @@
     <None Include="Assets\qrSupport.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="Assets\Shader\d3d11_bt2020lim_pixel.fxc">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
-    <None Include="Assets\Shader\d3d11_bt601lim_pixel.fxc">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
-    <None Include="Assets\Shader\d3d11_genyuv_pixel.fxc">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
-    <None Include="Assets\Shader\d3d11_overlay_pixel.fxc">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
     <None Include="Assets\Shader\d3d11_vertex.fxc">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>
