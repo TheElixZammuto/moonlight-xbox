@@ -524,7 +524,8 @@ void VideoRenderer::getFramePremultipliedCscConstants(const AVFrame* frame, std:
 	offsets[2] = (channelRange / 2) / (double)(channelRange - 1);
 
 	// Start with the standard full range color matrix
-	switch (getFrameColorspace(frame)) {
+	int colorspace = getFrameColorspace(frame);
+	switch (colorspace) {
 	default:
 	case COLORSPACE_REC_601:
 		cscMatrix = k_CscMatrix_Bt601;
@@ -544,6 +545,15 @@ void VideoRenderer::getFramePremultipliedCscConstants(const AVFrame* frame, std:
 	for (int i = 3; i < 9; i++) {
 		cscMatrix[i] *= uvScale;
 	}
+
+	Utils::Logf("Shader config: %s %d-bit %s, (AVColorSpace %d, AVChromaLocation %d)\n",
+	            colorspace == COLORSPACE_REC_601   ? "Rec. 601"
+	            : colorspace == COLORSPACE_REC_709 ? "Rec. 709"
+	                                               : "Rec. 2020",
+	            bitsPerChannel,
+	            fullRange ? "full range" : "limited/standard range",
+				frame->colorspace,
+	            frame->chroma_location);
 }
 
 void VideoRenderer::getFrameChromaCositingOffsets(const AVFrame* frame, std::array<float, 2> &chromaOffsets) {
