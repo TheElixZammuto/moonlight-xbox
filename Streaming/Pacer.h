@@ -5,6 +5,7 @@
 #include <set>
 #include <thread>
 #include <utility>
+#include "FrameCadence.h"
 #include "Utils.hpp"
 #include "VideoRenderer.h"
 
@@ -18,10 +19,11 @@ class Pacer {
 	static Pacer &instance();
 
 	void deinit();
-	void init(const std::shared_ptr<DX::DeviceResources> &res, int maxVideoFps, double refreshRate);
+	void init(const std::shared_ptr<DX::DeviceResources> &res, int maxVideoFps, double refreshRate, bool framePacingImmediate);
 	void waitForFrame(double timeoutMs);
 	bool renderOnMainThread(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
 	void waitBeforePresent(int64_t deadline);
+	int64_t getCurrentFramePts();
 	int64_t getNextVBlankQpc(int64_t *now);
 	void submitFrame(AVFrame *frame);
 
@@ -38,6 +40,8 @@ class Pacer {
 		return m_Running.load(std::memory_order_acquire);
 	}
 
+	bool renderModeImmediate(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
+	bool renderModeDisplayLocked(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
 	void vsyncHardware();
 	void updateFrameStats();
 
@@ -47,6 +51,10 @@ class Pacer {
 	std::atomic<bool> m_Stopping{false};
 	int m_StreamFps;
 	double m_RefreshRate;
+	bool m_FramePacingImmediate;
+
+	FrameCadence m_FrameCadence;
+	AVFrame* m_CurrentFrame = nullptr;
 
 	static constexpr int VSYNC_HISTORY_SIZE = 512;
 	std::mutex m_FrameStatsLock;

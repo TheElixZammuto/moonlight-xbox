@@ -25,7 +25,7 @@ FrameQueue::FrameQueue()
       _count(0),
       _droppedLast(false),
       _maxCapacity(5), // should not exceed swapchain BufferCount
-      _highWaterMark(2),
+      _highWaterMark(3),
       _paused(true) {    // caller will call start()
 
 	_capacity = _maxCapacity;
@@ -176,7 +176,7 @@ int FrameQueue::unsafeEnqueue(AVFrame *frame, int frameDropTarget) {
 // Enqueue with simple alternate-drop logic
 int FrameQueue::enqueue(AVFrame *frame) {
 	std::lock_guard<std::mutex> lock(_mutex);
-	return unsafeEnqueue(frame, _highWaterMark + 1); // allow 1 frame of slack
+	return unsafeEnqueue(frame, _highWaterMark);
 }
 
 // Allows the render loop to wait if the queue is empty

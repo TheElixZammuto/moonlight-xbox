@@ -31,6 +31,9 @@
 // Calls to FQLog() and functions called within FQLog() are no-op unless you define FRAME_QUEUE_VERBOSE in pch.h
 // and build in Debug mode.
 
+constexpr int FRAME_QUEUE_LOW = 2;
+constexpr int FRAME_QUEUE_HIGH = 3;
+
 using steady_clock = std::chrono::steady_clock;
 using namespace moonlight_xbox_dx;
 
@@ -46,6 +49,7 @@ Pacer::Pacer()
       m_Stopping(false),
       m_StreamFps(0),
       m_RefreshRate(0.0),
+      m_FrameCadence(),
       m_LastSyncRefreshCount(0),
       m_LastSyncQpc(0),
       m_VsyncIntervalQpc(0) {
@@ -65,14 +69,22 @@ void Pacer::deinit() {
 
 	m_DeviceResources = nullptr;
 
+	if (m_CurrentFrame) {
+		av_frame_free(&m_CurrentFrame);
+		m_CurrentFrame = nullptr;
+    }
+
 	Utils::Logf("Pacer: deinit\n");
 }
 
-void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps, double refreshRate) {
+void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps, double refreshRate, bool framePacingImmediate) {
 	m_Stopping.store(false, std::memory_order_release);
 	m_DeviceResources = res;
 	m_StreamFps = streamFps;
 	m_RefreshRate = refreshRate;
+	m_FramePacingImmediate = framePacingImmediate;
+
+	m_FrameCadence.init(m_RefreshRate > 0.0 ? m_RefreshRate : 60.0, static_cast<double>(streamFps));
 
 	m_vhsum = 0;
 	m_vhcount = 0;
@@ -83,7 +95,7 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 	m_ewmaVsyncDriftQpc = MsToQpc(0.0001);
 
 	// Start FrameQueue so it's ready to receive new frames
-	// XXX user pref for high water mark
+	FrameQueue::instance().setHighWaterMark(FRAME_QUEUE_HIGH);
 	FrameQueue::instance().start();
 
 	if (!m_VsyncThread.joinable()) {
@@ -195,8 +207,7 @@ void Pacer::waitForFrame(double timeoutMs) {
 	if (!running()) return;
 
 	// Wait for a decoded frame to be available
-	int64_t t0 = QpcNow();
-	int queueHas = 1;
+	const int queueHas = 1;
 	FrameQueue::instance().waitForEnqueue(queueHas, timeoutMs);
 }
 
@@ -204,39 +215,113 @@ void Pacer::waitForFrame(double timeoutMs) {
 bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 	if (!running()) return false;
 
-	AVFrame *frame = FrameQueue::instance().dequeue();
-	if (!frame) {
+	if (m_FramePacingImmediate) {
+		return renderModeImmediate(sceneRenderer);
+	} else {
+		return renderModeDisplayLocked(sceneRenderer);
+	}
+}
+
+// Dequeue a new frame if available and immediately render it. When no new frame is available
+// skips Present and relies on the system to continue showing the previous frame.
+// Pros: lowest latency, output framerate matches input framerate
+// Cons: only works well on Xbox Series for some reason
+bool Pacer::renderModeImmediate(std::shared_ptr<VideoRenderer> &sceneRenderer) {
+	AVFrame *newFrame = FrameQueue::instance().dequeue();
+	if (!newFrame) {
 		return false; // no frame, don't Present()
+	}
+
+	if (m_CurrentFrame) {
+		av_frame_free(&m_CurrentFrame);
+	}
+	m_CurrentFrame = newFrame;
+
+	int64_t beforeRenderQpc = QpcNow();
+
+	// Render it
+	FQLog("> Frame rendered [pts: %.3f] [%.2ffps] [%.2fhz] [queued %d]\n",
+		m_CurrentFrame->pts / 90.0, m_FrameCadence.streamFps(), m_FrameCadence.displayHz(), FrameQueue::instance().count());
+
+	if (!sceneRenderer->Render(m_CurrentFrame)) {
+		return false; // something went wrong rendering the frame
+	}
+
+	if (m_CurrentFrame->opaque_ref) {
+		// Count time spent in FrameQueue
+		auto *data = reinterpret_cast<MLFrameData *>(m_CurrentFrame->opaque_ref->data);
+		m_DeviceResources->GetStats()->SubmitPacerTime(beforeRenderQpc - data->decodeEndQpc);
+	}
+
+	// Keep m_CurrentFrame alive until next frame, it's used to calculate frametime
+	return true; // ok to Present()
+}
+
+// Attempt to pace rendering based on observed framerate from host pts data
+// Pros: always presents at max refresh rate, using either a new frame or a cached previous frame
+//       Prevents most artifacts/tearing on Xbox One.
+//       May do a better job with e.g. 24fps needing 3:2 pulldown
+// Cons: higher latency
+//       more difficult to control queue size, requires additional frame drop logic
+bool Pacer::renderModeDisplayLocked(std::shared_ptr<VideoRenderer> &sceneRenderer) {
+	// Consume frame(s) according to cadence
+	int advanceCount = m_FrameCadence.decideAdvanceCount();
+
+	// if the queue has too many frames in it, break the cadence and render or drop one extra
+	int queueDepth = FrameQueue::instance().count();
+	if (queueDepth > FRAME_QUEUE_LOW) {
+		advanceCount++;
+	}
+
+	for (int i = 0; i < advanceCount; ++i) {
+		AVFrame *newFrame = FrameQueue::instance().dequeue();
+		if (!newFrame) {
+			break;
+		}
+
+		if (m_CurrentFrame) {
+			if (i > 0) {
+				// advanceCount was > 1, so this is a dropped frame
+				ImGuiPlots::instance().observeFloat(PLOT_DROPPED_PACER, 1.0);
+			}
+			av_frame_free(&m_CurrentFrame);
+		}
+		m_CurrentFrame = newFrame;
+	}
+
+	if (!m_CurrentFrame) {
+		// No frame available yet
+		return false;
 	}
 
 	int64_t beforeRenderQpc = QpcNow();
 
 	// Render it
-	FQLog("> Frame rendered [pts: %.3f]\n", frame->pts / 90.0);
-	if (!sceneRenderer->Render(frame)) {
+	FQLog("> Frame rendered [pts: %.3f] [%.2ffps] [%.2fhz] [advanceCount %d] [queued %d]\n",
+	      m_CurrentFrame->pts / 90.0, m_FrameCadence.streamFps(), m_FrameCadence.displayHz(),
+	      advanceCount, queueDepth);
+
+	if (!sceneRenderer->Render(m_CurrentFrame)) {
 		return false; // something went wrong rendering the frame
 	}
 
-	if (frame->opaque_ref) {
+	if (m_CurrentFrame->opaque_ref) {
 		// Count time spent in FrameQueue
-		auto *data = reinterpret_cast<MLFrameData *>(frame->opaque_ref->data);
+		auto *data = reinterpret_cast<MLFrameData *>(m_CurrentFrame->opaque_ref->data);
 		m_DeviceResources->GetStats()->SubmitPacerTime(beforeRenderQpc - data->decodeEndQpc);
 	}
 
-	av_frame_free(&frame);
+	// Keep m_CurrentFrame alive in case we need to reuse it on the next present
 	return true; // ok to Present()
 }
 
 // called by render thread
-void Pacer::waitBeforePresent(int64_t deadline) {
+void Pacer::waitBeforePresent(int64_t target) {
 	if (!running()) return;
 
-	// Wait until vsync
-	int64_t now = 0;
-	int64_t target = getNextVBlankQpc(&now);
-	if (deadline && deadline != target) {
-		// we missed the deadline
-		target = deadline;
+	int64_t now = QpcNow();
+	if (target <= 0) {
+		target = getNextVBlankQpc(&now);
 	}
 
 	m_LastSyncTarget.store(target, std::memory_order_release);
@@ -247,10 +332,23 @@ void Pacer::waitBeforePresent(int64_t deadline) {
 	}
 }
 
+// called by render thread
+int64_t Pacer::getCurrentFramePts() {
+	if (m_CurrentFrame) {
+		return m_CurrentFrame->pts;
+	}
+	return 0;
+}
+
 // end main thread
 
 // called by decoder thread
 void Pacer::submitFrame(AVFrame *frame) {
+	// Update cadence from pts if available
+	if (frame->pts) {
+		m_FrameCadence.observeFramePts(frame->pts);
+	}
+
 	int dropCount = FrameQueue::instance().enqueue(frame);
 	if (dropCount) {
 		m_DeviceResources->GetStats()->SubmitDroppedFrame(1);
@@ -267,7 +365,7 @@ void Pacer::submitFrame(AVFrame *frame) {
 // the logic is confined to this function.
 int64_t Pacer::getNextVBlankQpc(int64_t *now) {
 	std::scoped_lock<std::mutex> lock(m_FrameStatsLock);
-	int64_t target, interval = 0;
+	int64_t target = 0, interval = 0;
 	*now = QpcNow();
 
 	if (m_LastSyncQpc == 0 || m_VsyncIntervalQpc == 0) {
@@ -277,22 +375,29 @@ int64_t Pacer::getNextVBlankQpc(int64_t *now) {
 		target = *now + interval;
 	} else {
 		interval = m_VsyncIntervalQpc;
-		int64_t next = m_LastSyncQpc;
+		int64_t next = m_LastSyncQpc + static_cast<int64_t>(m_ewmaVsyncDriftQpc);
 
 		while (next < *now) {
 			next += interval;
 		}
-		target = next + static_cast<int64_t>(m_ewmaVsyncDriftQpc);
+		target = next;
 	}
 
 	if (IsXbox() && m_StreamFps == 120 && m_RefreshRate > 119.0) {
 		// 120hz on Xbox requires us to present each frame at half-vsync intervals
+		m_FrameCadence.setDisplayHz(1000.0 / QpcToMs(interval / 2));
+
 		int64_t half = interval / 2;
 		if (target - half > *now) {
 			// we're currently in the first half of a vblank, sleep till the halfway mark
 			target -= half;
 		}
+	} else {
+		// Keep true refresh rate synced with cadence
+		m_FrameCadence.setDisplayHz(1000.0 / QpcToMs(interval));
 	}
+
+	assert(target > *now);
 
 	return target;
 }

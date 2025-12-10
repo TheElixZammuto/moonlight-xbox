@@ -30,7 +30,7 @@ class FFMpegDecoder {
 	// Singleton accessor
 	static FFMpegDecoder &instance();
 
-	void CompleteInitialization(const std::shared_ptr<DX::DeviceResources> &res, STREAM_CONFIGURATION *config);
+	void CompleteInitialization(const std::shared_ptr<DX::DeviceResources> &res, STREAM_CONFIGURATION *config, bool framePacingImmediate);
 	int Init(int videoFormat, int width, int height, int redrawRate, void *context, int drFlags);
 	void Cleanup();
 	int SubmitDecodeUnit(PDECODE_UNIT decodeUnit);

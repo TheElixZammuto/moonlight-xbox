@@ -38,6 +38,12 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
 	m_statsTextRenderer->SetVisible(configuration->enableStats);
 
+	// Force disable graphs on Xbox One at 4K, they run too slowly
+	// XXX can we run them at a lower resolution?
+	if (IsXboxOne() && m_deviceResources->GetPixelHeight() >= 2160) {
+		configuration->enableGraphs = false;
+	}
+
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
 
@@ -100,8 +106,9 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 		}
 
 		int64_t t0 = 0, t1 = 0, t2 = 0, t3 = 0;
-		int64_t lastPresentTime = 0;
-		const double bufferMs  = 1.0;  // safety wait time to avoid missing deadline
+		int64_t lastFramePts = 0, lastPresentTime = 0;
+		double frametimeMs = 0.0;
+		const double bufferMs  = 1.5;  // safety wait time to avoid missing deadline
 		const double alphaUp   = 0.25; // react faster when renderMs spikes upward
 		const double alphaDown = 0.05; // decay slowly when renderMs drops
 		double ewmaRenderMs = 3.0; // Initial guess for render cost
@@ -132,6 +139,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				// Whether we rendered a new frame or not, wait until vblank for pacing
 				// This is out of the lock and won't block the decoder
 				Pacer::instance().waitBeforePresent(deadline);
+				t3 = QpcNow();
 
 				if (!rendered) {
 					// we're receiving a lower framerate so no frame was available,
@@ -143,16 +151,21 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 					// lock is required around Present
 					auto guard = FFMpegDecoder::Lock();
 					m_deviceResources->Present();
-					t3 = QpcNow();
 				}
 
-				if (lastPresentTime > 0) {
-					ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, static_cast<float>(QpcToMs(t3 - lastPresentTime)));
+				// Graph frametime only for new frames
+				int64_t currentFramePts = Pacer::instance().getCurrentFramePts();
+				if (currentFramePts != lastFramePts) {
+					if (lastPresentTime > 0) {
+						frametimeMs = QpcToMs(t3 - lastPresentTime);
+						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, static_cast<float>(frametimeMs));
+					}
+					lastPresentTime = t3;
+					lastFramePts = currentFramePts;
 				}
-				lastPresentTime = t3;
 
 				// Weighted avg of time spent in Render(), more weight given to a slower render time
-				const double renderMs = QpcToMs(t2 - t1);
+				double renderMs = std::clamp(QpcToMs(t2 - t1), 0.0, QpcToMs(deadline - t0));
 				double alpha = (renderMs > ewmaRenderMs) ? alphaUp : alphaDown;
 				ewmaRenderMs = (renderMs * alpha) + (ewmaRenderMs * (1.0 - alpha));
 
@@ -162,8 +175,9 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				    QpcToUs(t2 - t1),
 				    QpcToUs(t3 - t2));
 
-				FQLog("render loop %.3fms (PreWait %.3fms + Render %.3fms (avg %.3f) + Present %.3fms)\n",
+				FQLog("render loop %.3fms frametime %.3fms (PreWait %.3fms + Render %.3fms (avg %.3f) + Present %.3fms)\n",
 				      QpcToMs(t3 - t0),
+				      frametimeMs,
 				      QpcToMs(t1 - t0),
 				      renderMs,
 				      ewmaRenderMs,
