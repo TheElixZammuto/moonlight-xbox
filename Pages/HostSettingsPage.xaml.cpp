@@ -81,6 +81,14 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 	AutoStartSelector->SelectedIndex = CurrentAppIndex;
 
+	// Set frame pacing selection based on saved preference
+	for (int i = 0; i < AvailableFramePacing->Size; i++) {
+		if (host->FramePacing == AvailableFramePacing->GetAt(i)) {
+			FramePacingComboBox->SelectedIndex = i;
+			break;
+		}
+	}
+
 	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
 		// Old Xbox One can only use H264, remove from settings everything else
 		if (info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE) {
@@ -100,14 +108,6 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 			EnableHDRCheckbox->IsEnabled = true;
 			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Visible;
 			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-		}
-
-		// Default frame pacing per console
-		if (IsXboxOne()) {
-			FramePacingComboBox->SelectedIndex = 1;
-		} else {
-			// immediate mode is better, so only switch for Xbox One
-			FramePacingComboBox->SelectedIndex = 0;
 		}
 
 		// Disable graphs at 4K on Xbox One
