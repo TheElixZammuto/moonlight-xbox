@@ -140,6 +140,7 @@ namespace moonlight_xbox_dx {
 		int err2;
 		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
 			Utils::Logf("Failed to create specified DirectX Video device: %d\n", err2);
+			Cleanup();
 			return err2;
 		}
 

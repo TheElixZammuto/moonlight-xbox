@@ -114,7 +114,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 		double ewmaRenderMs = 3.0; // Initial guess for render cost
 
 		// Calculate the updated frame and render once per vertical blanking interval.
-		while (action->Status == AsyncStatus::Started) {
+		while (action->Status == AsyncStatus::Started && !moonlightClient->IsConnectionTerminated()) {
 			// Get overall deadline we must hit by the Present for this frame
 			int64_t deadline = Pacer::instance().getNextVBlankQpc(&t0);
 
@@ -184,6 +184,18 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				      QpcToMs(t3 - t2));
 			}
 		}
+
+		// we've lost the connection, clean up
+		StopRenderLoop(); // also stops input
+		Disconnect();
+
+		// Navigate back to home
+		DISPATCH_UI([&],{
+			auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);
+			if (rootFrame) {
+				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+			}
+		});
 	});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
 	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == AsyncStatus::Started) {

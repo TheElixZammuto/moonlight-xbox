@@ -22,6 +22,7 @@ namespace moonlight_xbox_dx {
         bool SetDisplayHDR(bool enabled, const SS_HDR_METADATA& sunshineHdrMetadata);
         int StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration ^config);
         int Connect(const char* hostname);
+        bool IsConnectionTerminated();
         bool IsHDR();
         bool IsPaired();
         bool IsRGBFull();
