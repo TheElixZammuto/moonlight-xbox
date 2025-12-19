@@ -31,7 +31,7 @@
 // Calls to FQLog() and functions called within FQLog() are no-op unless you define FRAME_QUEUE_VERBOSE in pch.h
 // and build in Debug mode.
 
-constexpr int FRAME_QUEUE_LOW = 2;
+constexpr int FRAME_QUEUE_LOW = 1;
 constexpr int FRAME_QUEUE_HIGH = 3;
 
 using steady_clock = std::chrono::steady_clock;
@@ -230,6 +230,17 @@ bool Pacer::renderModeImmediate(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 	AVFrame *newFrame = FrameQueue::instance().dequeue();
 	if (!newFrame) {
 		return false; // no frame, don't Present()
+	}
+
+	// if we're a frame behind, catch up
+	int queueDepth = FrameQueue::instance().count();
+	if (queueDepth > FRAME_QUEUE_LOW) {
+		AVFrame *newFrame2 = FrameQueue::instance().dequeue();
+		if (newFrame2) {
+			av_frame_free(&newFrame);
+			newFrame = newFrame2;
+			ImGuiPlots::instance().observeFloat(PLOT_DROPPED_PACER, 1.0);
+		}
 	}
 
 	if (m_CurrentFrame) {
