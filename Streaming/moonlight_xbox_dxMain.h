@@ -34,6 +34,8 @@ namespace moonlight_xbox_dx
 		void SendWinAltB();
 		bool ToggleLogs();
 		bool ToggleStats();
+
+		MoonlightClient* moonlightClient;
 	private:
 		void ProcessInput();
 		void Update();
@@ -61,7 +63,6 @@ namespace moonlight_xbox_dx
 		bool insideFlyout = false;
 		Windows::Gaming::Input::GamepadReading previousReading[8];
 		StreamPage^ m_streamPage;
-		MoonlightClient* moonlightClient;
 	};
 	void usleep(unsigned int usec);
 }

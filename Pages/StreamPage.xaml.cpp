@@ -157,9 +157,9 @@ void StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xa
 {
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
-	this->m_main->StopRenderLoop();
-	this->m_main->Disconnect();
-	this->Frame->GoBack();
+
+	// trigger the server disconnected flow
+	this->m_main->moonlightClient->SetConnectionTerminated();
 }
 
 void StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
@@ -190,39 +190,42 @@ void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Cor
 
 }
 
+void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
+	if (this->m_main) {
+		// trigger the server disconnected flow which will cleanly exit the loop and call StopRenderLoop()
+		this->m_main->moonlightClient->SetConnectionTerminated();
+	}
 
-void StreamPage::disconnectAndCloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-    Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
-    Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
-    if (this->m_main) {
-        this->m_main->StopRenderLoop();
-    }
+	auto that = this;
 
-    auto that = this;
+	auto progressToken = ::moonlight_xbox_dx::ModalDialog::ShowProgressDialogToken(nullptr, Utils::StringFromStdString("Closing..."));
 
-    auto progressToken = ::moonlight_xbox_dx::ModalDialog::ShowProgressDialogToken(nullptr, Utils::StringFromStdString("Closing..."));
-
-    concurrency::create_task(concurrency::create_async([that, progressToken]() {
-        try {
-            if (that->m_main) {
-				that->m_main->Disconnect();
+	concurrency::create_task(concurrency::create_async([that, progressToken]() {
+		try {
+			if (that->m_main) {
 				that->m_main->CloseApp();
-            }
-        } catch (...) { }
-    })).then([that, progressToken](concurrency::task<void> t) {
-        try { t.get(); } catch (...) { }
-        Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
-            Windows::UI::Core::CoreDispatcherPriority::Normal,
-            ref new Windows::UI::Core::DispatchedHandler([that, progressToken]() {
-                try {
-                    ::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
-                    if (that->Frame != nullptr && that->Frame->CanGoBack) {
-                        that->Frame->GoBack();
-                    }
-                } catch (...) {}
-            }));
-    });
+			}
+		} catch (...) {
+		}
+	})).then([that, progressToken](concurrency::task<void> t) {
+		try {
+			t.get();
+		} catch (...) {
+		}
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+		    Windows::UI::Core::CoreDispatcherPriority::Normal,
+		    ref new Windows::UI::Core::DispatchedHandler([that, progressToken]() {
+			    try {
+				    ::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
+				    if (that->Frame != nullptr && that->Frame->CanGoBack) {
+					    that->Frame->GoBack();
+				    }
+			    } catch (...) {
+			    }
+		    }));
+	});
 }
 
 void StreamPage::Keyboard_OnKeyDown(KeyboardControl^ sender, KeyEvent^ e)

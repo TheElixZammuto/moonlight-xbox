@@ -190,7 +190,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 		Disconnect();
 
 		// Navigate back to home
-		DISPATCH_UI([&],{
+		DISPATCH_UI([],{
 			auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);
 			if (rootFrame) {
 				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));

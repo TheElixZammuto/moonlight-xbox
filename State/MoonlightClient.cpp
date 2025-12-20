@@ -427,6 +427,10 @@ bool MoonlightClient::IsConnectionTerminated() {
 	return g_connectionTerminated.load(std::memory_order_acquire);
 }
 
+void MoonlightClient::SetConnectionTerminated() {
+	g_connectionTerminated.store(true, std::memory_order_release);
+}
+
 bool MoonlightClient::IsHDR() {
 	return m_isHDR;
 }
