@@ -40,6 +40,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("fps"))h->FPS = a["fps"];
 					if (a.contains("audioConfig"))h->AudioConfig = Utils::StringFromStdString(a["audioConfig"].get<std::string>());
 					if (a.contains("videoCodec"))h->VideoCodec = Utils::StringFromStdString(a["videoCodec"].get<std::string>());
+					if (a.contains("framePacing"))h->FramePacing = Utils::StringFromStdString(a["framePacing"].get<std::string>());
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
 					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
 					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
@@ -100,6 +101,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["fps"] = host->FPS;
 			hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
 			hostJson["videoCodec"] = Utils::PlatformStringToStdString(host->VideoCodec);
+			hostJson["framePacing"] = Utils::PlatformStringToStdString(host->FramePacing);
 			hostJson["autoStartID"] = host->AutostartID;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
 			hostJson["enable_hdr"] = host->EnableHDR;

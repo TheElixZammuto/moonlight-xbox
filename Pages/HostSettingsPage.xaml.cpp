@@ -56,6 +56,8 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	AvailableAudioConfigs->Append("Stereo");
 	AvailableAudioConfigs->Append("Surround 5.1");
 	AvailableAudioConfigs->Append("Surround 7.1");
+	AvailableFramePacing->Append("Immediate");
+	AvailableFramePacing->Append("Display-locked");
 	CurrentResolutionIndex = 0;
 	for (int i = 0; i < AvailableResolutions->Size; i++) {
 		if (host->Resolution->Width == AvailableResolutions->GetAt(i)->Width &&
@@ -79,6 +81,14 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 	AutoStartSelector->SelectedIndex = CurrentAppIndex;
 
+	// Set frame pacing selection based on saved preference
+	for (int i = 0; i < AvailableFramePacing->Size; i++) {
+		if (host->FramePacing == AvailableFramePacing->GetAt(i)) {
+			FramePacingComboBox->SelectedIndex = i;
+			break;
+		}
+	}
+
 	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
 		// Old Xbox One can only use H264, remove from settings everything else
 		if (info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE) {
@@ -98,6 +108,17 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 			EnableHDRCheckbox->IsEnabled = true;
 			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Visible;
 			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+		}
+
+		// Disable graphs at 4K on Xbox One
+		if (IsXboxOne() && height >= 2160) {
+			EnableGraphsCheckbox->IsEnabled = false;
+			EnableGraphsCheckbox->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+			XboxOneGraphsNote->Visibility = Windows::UI::Xaml::Visibility::Visible;
+		} else {
+			EnableGraphsCheckbox->IsEnabled = true;
+			EnableGraphsCheckbox->Visibility = Windows::UI::Xaml::Visibility::Visible;
+			XboxOneGraphsNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 		}
 	}
 }
@@ -155,6 +176,20 @@ void HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ send
 	}
 }
 
+void HostSettingsPage::FramePacing_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	auto selectedFramePacing = AvailableFramePacing->GetAt(this->FramePacingComboBox->SelectedIndex);
+
+	if (selectedFramePacing == "Immediate") {
+		FramePacingImmediateDesc->Visibility = Windows::UI::Xaml::Visibility::Visible;
+		FramePacingDisplayLockedDesc->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+	} else {
+		FramePacingImmediateDesc->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+		FramePacingDisplayLockedDesc->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	}
+
+	host->FramePacing = selectedFramePacing;
+}
 
 void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {

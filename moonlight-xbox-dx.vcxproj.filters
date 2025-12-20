@@ -378,6 +378,9 @@
     <ClCompile Include="Streaming\FrameQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Streaming\FrameCadence.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="State\MoonlightClient.h">
@@ -468,6 +471,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\FrameQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\FrameCadence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

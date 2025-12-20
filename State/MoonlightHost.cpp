@@ -4,7 +4,18 @@
 #include <ppltasks.h>
 
 namespace moonlight_xbox_dx {
-	void MoonlightHost::UpdateHostInfo() {
+	MoonlightHost::MoonlightHost(Platform::String ^host) {
+		lastHostname = host;
+		resolution = ref new ScreenResolution(1920, 1080);
+		loading = true;
+
+		if (framePacing == "") {
+			// default initial value based on system type
+			framePacing = IsXboxOne() ? "Display-locked" : "Immediate";
+		}
+	}
+
+    void MoonlightHost::UpdateHostInfo() {
 		this->Loading = true;
 		bool status = this->Connect() == 0;
 		this->Connected = status;

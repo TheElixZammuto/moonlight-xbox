@@ -72,6 +72,7 @@ void AppPage::Connect(int appId) {
 	config->playAudioOnPC = host->PlayAudioOnPC;
 	config->enableHDR = host->EnableHDR;
 	config->enableSOPS = host->EnableSOPS;
+	config->framePacing = host->FramePacing;
 	config->enableStats = host->EnableStats;
 	config->enableGraphs = host->EnableGraphs;
 	if (config->enableHDR) {

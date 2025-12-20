@@ -156,9 +156,9 @@ void StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xa
 {
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
-	this->m_main->StopRenderLoop();
-	this->m_main->Disconnect();
-	this->Frame->GoBack();
+
+	// trigger the server disconnected flow
+	this->m_main->moonlightClient->SetConnectionTerminated();
 }
 
 void StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
@@ -194,10 +194,15 @@ void StreamPage::disconnectAndCloseButton_Click(Platform::Object^ sender, Window
 {
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
-	this->m_main->StopRenderLoop();
-	this->m_main->Disconnect();
-	this->m_main->CloseApp();
-	this->Frame->GoBack();
+
+	// trigger the server disconnected flow
+	this->m_main->moonlightClient->SetConnectionTerminated();
+
+	// wait a bit and then close the app
+	concurrency::create_async([this]() {
+		Sleep(2000);
+		this->m_main->CloseApp();
+	});
 }
 
 void StreamPage::Keyboard_OnKeyDown(KeyboardControl^ sender, KeyEvent^ e)
