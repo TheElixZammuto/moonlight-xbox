@@ -381,6 +381,9 @@
     <ClCompile Include="Streaming\FrameCadence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="State\GamepadComboDetector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="State\MoonlightClient.h">
@@ -474,6 +477,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\FrameCadence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="State\GamepadComboDetector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
