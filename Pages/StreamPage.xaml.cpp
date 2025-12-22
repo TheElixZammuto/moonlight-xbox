@@ -20,6 +20,7 @@ using namespace Windows::System::Threading;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Input;
 using namespace Windows::UI::ViewManagement;
+using namespace Windows::UI::ViewManagement::Core;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls::Primitives;
@@ -166,7 +167,6 @@ void StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object
 	if(m_main != nullptr) m_main->SetFlyoutOpened(false);
 }
 
-
 void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	SetMouseMode(!this->m_mouseMode);
@@ -176,6 +176,21 @@ void StreamPage::SetMouseMode(bool enabled)
 {
 	this->MouseMode = enabled;
 	if (m_main) m_main->mouseMode = this->MouseMode;
+}
+
+void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	if (GetApplicationState()->EnableKeyboard) {
+		m_main->keyboardMode = true;
+
+		this->Dispatcher->RunAsync(
+			Windows::UI::Core::CoreDispatcherPriority::Normal,
+			ref new Windows::UI::Core::DispatchedHandler([this]() {
+				this->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+			}));
+	} else {
+		CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+	}
 }
 
 void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

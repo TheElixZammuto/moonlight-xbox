@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Common\StepTimer.h"
+#include "State\GamepadComboDetector.h"
 #include "Streaming\VideoRenderer.h"
 #include "Streaming\LogRenderer.h"
 #include "Streaming\StatsRenderer.h"
@@ -63,7 +64,7 @@ namespace moonlight_xbox_dx
 		float m_pointerLocationX;
 		bool insideFlyout = false;
 		Windows::Gaming::Input::GamepadReading previousReading[8];
+		GamepadComboDetector m_comboDetector;
 		StreamPage^ m_streamPage;
 	};
-	void usleep(unsigned int usec);
 }

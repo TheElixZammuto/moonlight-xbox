@@ -343,6 +343,7 @@
     <ClInclude Include="Plot\ImGuiPlots.h" />
     <ClInclude Include="Plot\PlotDesc.h" />
     <ClInclude Include="State\BandwidthTracker.h" />
+    <ClInclude Include="State\GamepadComboDetector.h" />
     <ClInclude Include="State\MoonlightClient.h" />
     <ClInclude Include="State\Stats.h" />
     <ClInclude Include="State\StreamConfiguration.h" />
@@ -485,6 +486,7 @@
     </ClCompile>
     <ClCompile Include="Plot\ImGuiPlots.cpp" />
     <ClCompile Include="State\BandwidthTracker.cpp" />
+    <ClCompile Include="State\GamepadComboDetector.cpp" />
     <ClCompile Include="State\MoonlightClient.cpp" />
     <ClCompile Include="State\Stats.cpp" />
     <ClCompile Include="State\StreamConfiguration.cpp" />

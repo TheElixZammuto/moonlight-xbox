@@ -25,7 +25,7 @@
                     Looking to change Resolution, FPS or Bitrate? Use the settings button in the app grid to change the settings of your host
                 </TextBlock>
             </StackPanel>
-            
+
         </Border>
         <Grid RowSpacing="8">
             <Grid.ColumnDefinitions>
@@ -58,11 +58,7 @@
                 <ComboBox XYFocusLeft="{x:Bind KeyboardEnable}" Grid.Column="7" Grid.Row="0" x:Name="KeyboardLayoutSelector" SelectionChanged="LayoutSelector_SelectionChanged"></ComboBox>
                 <TextBlock>Layout</TextBlock>
             </StackPanel>
-            <TextBlock Grid.Row="7">Use Alternate Menu Combination</TextBlock>
-            <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal">
-                <CheckBox IsChecked="{x:Bind State.AlternateCombination,Mode=TwoWay}" XYFocusRight="{x:Bind KeyboardLayoutSelector}">Use LT+RT+LB+RB instead of Menu+View to show the menu</CheckBox>
-            </StackPanel>
-            <Button x:Name="WelcomeButton" Grid.Row="8" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
+            <Button x:Name="WelcomeButton" Grid.Row="7" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
         </Grid>
     </StackPanel>
 </Page>
