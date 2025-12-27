@@ -8,6 +8,7 @@
 #include "../Streaming/FFMpegDecoder.h"
 #include <Utils.hpp>
 #include <KeyboardControl.xaml.h>
+#include "../Common/ModalDialog.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -192,12 +193,36 @@ void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Cor
 
 void StreamPage::disconnectAndCloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
-	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
-	this->m_main->StopRenderLoop();
-	this->m_main->Disconnect();
-	this->m_main->CloseApp();
-	this->Frame->GoBack();
+    Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
+    Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
+    if (this->m_main) {
+        this->m_main->StopRenderLoop();
+    }
+
+    auto that = this;
+
+    auto progressToken = ::moonlight_xbox_dx::ModalDialog::ShowProgressDialogToken(nullptr, Utils::StringFromStdString("Closing..."));
+
+    concurrency::create_task(concurrency::create_async([that, progressToken]() {
+        try {
+            if (that->m_main) {
+				that->m_main->Disconnect();
+				that->m_main->CloseApp();
+            }
+        } catch (...) { }
+    })).then([that, progressToken](concurrency::task<void> t) {
+        try { t.get(); } catch (...) { }
+        Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+            Windows::UI::Core::CoreDispatcherPriority::Normal,
+            ref new Windows::UI::Core::DispatchedHandler([that, progressToken]() {
+                try {
+                    ::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
+                    if (that->Frame != nullptr && that->Frame->CanGoBack) {
+                        that->Frame->GoBack();
+                    }
+                } catch (...) {}
+            }));
+    });
 }
 
 void StreamPage::Keyboard_OnKeyDown(KeyboardControl^ sender, KeyEvent^ e)
