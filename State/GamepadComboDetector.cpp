@@ -30,7 +30,7 @@ static inline GamepadReading EmptyReading() {
 	return r;
 }
 
-GamepadComboDetector::ComboResult GamepadComboDetector::GetComboResult(int gamepadIndex, int comboTimeoutMs = 125) {
+GamepadComboDetector::ComboResult GamepadComboDetector::GetComboResult(int gamepadIndex, int comboTimeoutMs) {
 	ComboResult result{};
 	result.comboTriggered = false;
 	result.currentReading = EmptyReading();
