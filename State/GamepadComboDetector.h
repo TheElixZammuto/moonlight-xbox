@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 class GamepadComboDetector {
   public:
 	struct ComboResult {
@@ -9,7 +11,7 @@ class GamepadComboDetector {
 	};
 
 	GamepadComboDetector() = default;
-	ComboResult GetComboResult(int gamepadIndex, int comboTimeout);
+	ComboResult GetComboResult(int gamepadIndex, int comboTimeout = 125);
 
   private:
 	enum class ComboState {
@@ -20,10 +22,10 @@ class GamepadComboDetector {
 	};
 
 	struct GamepadComboState {
-		bool viewPressed;
-		bool menuPressed;
-		int64_t startTime;
-		ComboState comboState;
+		bool viewPressed = false;
+		bool menuPressed = false;
+		int64_t startTime = 0;
+		ComboState comboState = ComboState::None;
 	};
 	std::array<GamepadComboState, 8> m_comboStates;
 };
