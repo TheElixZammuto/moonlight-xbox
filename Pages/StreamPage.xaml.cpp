@@ -212,19 +212,15 @@ void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windo
 	})).then([that, progressToken](concurrency::task<void> t) {
 		try {
 			t.get();
+
+			// UI is sent back to HostSelectorPage in StartRenderLoop(), after the loop exits
+			// All we need to do is close the progress dialog
+
+			DISPATCH_UI([progressToken], {
+				::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
+			});
 		} catch (...) {
 		}
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
-		    Windows::UI::Core::CoreDispatcherPriority::Normal,
-		    ref new Windows::UI::Core::DispatchedHandler([that, progressToken]() {
-			    try {
-				    ::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
-				    if (that->Frame != nullptr && that->Frame->CanGoBack) {
-					    that->Frame->GoBack();
-				    }
-			    } catch (...) {
-			    }
-		    }));
 	});
 }
 
