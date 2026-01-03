@@ -34,12 +34,13 @@ namespace moonlight_xbox_dx
 		void SendWinAltB();
 		bool ToggleLogs();
 		bool ToggleStats();
+
+		MoonlightClient* moonlightClient;
 	private:
 		void ProcessInput();
 		void Update();
 		bool Render();
 		void RenderImGui();
-		void Clear();
 
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
@@ -62,7 +63,6 @@ namespace moonlight_xbox_dx
 		bool insideFlyout = false;
 		Windows::Gaming::Input::GamepadReading previousReading[8];
 		StreamPage^ m_streamPage;
-		MoonlightClient* moonlightClient;
 	};
 	void usleep(unsigned int usec);
 }

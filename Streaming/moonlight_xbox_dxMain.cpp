@@ -38,17 +38,14 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
 	m_statsTextRenderer->SetVisible(configuration->enableStats);
 
+	// Force disable graphs on Xbox One at 4K, they run too slowly
+	// XXX can we run them at a lower resolution?
+	if (IsXboxOne() && m_deviceResources->GetPixelHeight() >= 2160) {
+		configuration->enableGraphs = false;
+	}
+
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
-
-#if defined(_DEBUG)
-	// Disable graphs in debug mode on Xbox One consoles, they cost 4ms+ per frame
-	if (IsXboxOne() && configuration->enableGraphs) {
-		Utils::Logf("Disabling graphs on Xbox One console when running a debug build\n");
-		m_deviceResources->SetShowImGui(false);
-		ImGuiPlots::instance().setEnabled(false);
-	}
-#endif
 
 	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
@@ -108,48 +105,69 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			Utils::Logf("Failed to set render thread priority: %d\n", GetLastError());
 		}
 
-		int64_t lastPresentTime = 0;
-
-		const int streamFps = m_deviceResources->GetFrameRate();
-		const double frameMs = 1000.0 / streamFps;
-		const double ewmaAlpha = 0.1;
+		int64_t t0 = 0, t1 = 0, t2 = 0, t3 = 0;
+		int64_t lastFramePts = 0, lastPresentTime = 0;
+		double frametimeMs = 0.0;
+		const double bufferMs  = 1.5;  // safety wait time to avoid missing deadline
+		const double alphaUp   = 0.25; // react faster when renderMs spikes upward
+		const double alphaDown = 0.05; // decay slowly when renderMs drops
 		double ewmaRenderMs = 3.0; // Initial guess for render cost
 
 		// Calculate the updated frame and render once per vertical blanking interval.
-		while (action->Status == AsyncStatus::Started) {
-			const int64_t t0 = QpcNow();
+		while (action->Status == AsyncStatus::Started && !moonlightClient->IsConnectionTerminated()) {
+			// Get overall deadline we must hit by the Present for this frame
+			int64_t deadline = Pacer::instance().getNextVBlankQpc(&t0);
 
-			// Avoid negative wait time if render cost spikes.
-			const double waitBudgetMs = std::max(0.0, frameMs - ewmaRenderMs);
-			Pacer::instance().waitForFrame(waitBudgetMs);
-
-			const int64_t t1 = QpcNow();
+			// wait for a frame + avg render time + safety buffer
+			double maxWaitMs = std::max(0.0, QpcToMs(deadline - t0) - ewmaRenderMs - bufferMs);
+			Pacer::instance().waitForFrame(maxWaitMs);
 
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
 
+				t1 = QpcNow();
 				Update();
 
-				if (!Render()) {
-					FQLog("render skip, waited %.3fms\n", QpcToMs(t1 - t0));
+				bool rendered = false;
+				{
+					// ffmpeg and Render both use the same D3D context
+					auto guard = FFMpegDecoder::Lock();
+					rendered = Render();
+					t2 = QpcNow();
+				}
+
+				// Whether we rendered a new frame or not, wait until vblank for pacing
+				// This is out of the lock and won't block the decoder
+				Pacer::instance().waitBeforePresent(deadline);
+				t3 = QpcNow();
+
+				if (!rendered) {
+					// we're receiving a lower framerate so no frame was available,
+					// we don't call Present here and the previous frame is re-displayed
 					continue;
 				}
 
-				const int64_t t2 = QpcNow();
-
-				Pacer::instance().waitBeforePresent();
-				m_deviceResources->Present();
-
-				const int64_t t3 = QpcNow();
-
-				if (lastPresentTime > 0) {
-					ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, static_cast<float>(QpcToMs(t3 - lastPresentTime)));
+				{
+					// lock is required around Present
+					auto guard = FFMpegDecoder::Lock();
+					m_deviceResources->Present();
 				}
-				lastPresentTime = t3;
 
-				// Weighted avg of time spent in Render()
-				const double renderMs = QpcToMs(t2 - t1);
-				ewmaRenderMs = (renderMs * ewmaAlpha) + (ewmaRenderMs * (1.0 - ewmaAlpha));
+				// Graph frametime only for new frames
+				int64_t currentFramePts = Pacer::instance().getCurrentFramePts();
+				if (currentFramePts != lastFramePts) {
+					if (lastPresentTime > 0) {
+						frametimeMs = QpcToMs(t3 - lastPresentTime);
+						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, static_cast<float>(frametimeMs));
+					}
+					lastPresentTime = t3;
+					lastFramePts = currentFramePts;
+				}
+
+				// Weighted avg of time spent in Render(), more weight given to a slower render time
+				double renderMs = std::clamp(QpcToMs(t2 - t1), 0.0, QpcToMs(deadline - t0));
+				double alpha = (renderMs > ewmaRenderMs) ? alphaUp : alphaDown;
+				ewmaRenderMs = (renderMs * alpha) + (ewmaRenderMs * (1.0 - alpha));
 
 				// Track high-level render loop stats
 				m_deviceResources->GetStats()->SubmitRenderStats(
@@ -157,14 +175,27 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				    QpcToUs(t2 - t1),
 				    QpcToUs(t3 - t2));
 
-				FQLog("render loop %.3fms (PreWait %.3fms + Render %.3fms (avg %.3f) + Present %.3fms)\n",
+				FQLog("render loop %.3fms frametime %.3fms (PreWait %.3fms + Render %.3fms (avg %.3f) + Present %.3fms)\n",
 				      QpcToMs(t3 - t0),
+				      frametimeMs,
 				      QpcToMs(t1 - t0),
 				      renderMs,
 				      ewmaRenderMs,
 				      QpcToMs(t3 - t2));
 			}
 		}
+
+		// we've lost the connection, clean up
+		StopRenderLoop(); // also stops input
+		Disconnect();
+
+		// Navigate back to home
+		DISPATCH_UI([],{
+			auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);
+			if (rootFrame) {
+				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+			}
+		});
 	});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
 	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == AsyncStatus::Started) {
@@ -205,13 +236,6 @@ void moonlight_xbox_dxMain::StopRenderLoop()
 // Updates the application state once per frame.
 void moonlight_xbox_dxMain::Update()
 {
-	// ImGui setup and update handling (which we don't use)
-	if (m_deviceResources->GetShowImGui()) {
-		ImGui_ImplDX11_NewFrame();
-		ImGui_ImplUwp_NewFrame(m_deviceResources->GetPixelWidth(), m_deviceResources->GetPixelHeight());
-		ImGui::NewFrame();
-	}
-
 	// Update scene objects.
 	m_timer.Tick([&]()
 		{
@@ -428,38 +452,34 @@ bool moonlight_xbox_dxMain::Render()
 		return false;
 	}
 
-	Clear();
-
 	// Render the scene objects.
 	bool showImGui = m_deviceResources->GetShowImGui();
 
+	// ImGui setup and update handling (which we don't use)
+	if (showImGui) {
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplUwp_NewFrame(m_deviceResources->GetPixelWidth(), m_deviceResources->GetPixelHeight());
+		ImGui::NewFrame();
+	}
+
 	bool shouldPresent = Pacer::instance().renderOnMainThread(m_sceneRenderer);
-	m_LogRenderer->Render();
-	m_statsTextRenderer->Render(showImGui);
+	if (shouldPresent) {
+		// avoid useless rendering without an underlying frame change
+		m_LogRenderer->Render();
+		m_statsTextRenderer->Render(showImGui);
+	}
 
 	if (showImGui) {
-		RenderImGui();
-		ImGui::Render();
-		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+		ImGui::EndFrame();
+
+		if (shouldPresent) {
+			RenderImGui();
+			ImGui::Render();
+			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+		}
 	}
 
 	return shouldPresent;
-}
-
-// Helper method to clear the back buffers.
-void moonlight_xbox_dxMain::Clear()
-{
-	auto context = m_deviceResources->GetD3DDeviceContext();
-
-	// Clear the views.
-	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
-
-	context->ClearRenderTargetView(renderTarget[0], Colors::Black);
-	context->OMSetRenderTargets(1, renderTarget, nullptr);
-
-	// Set the viewport.
-	const auto viewport = m_deviceResources->GetScreenViewport();
-	context->RSSetViewports(1, &viewport);
 }
 
 // Set this to true to use the ImGui demo/debug tools.

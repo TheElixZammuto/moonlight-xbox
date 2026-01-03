@@ -19,7 +19,9 @@ using namespace Windows::Gaming::Input;
 using namespace Windows::Graphics::Display;
 using namespace Windows::Graphics::Display::Core;
 
-void log_message(const char *fmt, ...);
+std::atomic<bool> g_connectionTerminated{false};
+
+void log_message(const char* fmt, ...);
 void connection_started();
 void connection_status_update(int status);
 void connection_status_completed(int status);
@@ -196,8 +198,10 @@ MoonlightClient::~MoonlightClient() {
 void MoonlightClient::StopApp() {
 	gs_quit_app(&serverData);
 }
-int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration ^ sConfig) {
-	// Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
+int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration^ sConfig) {
+	g_connectionTerminated.store(false, std::memory_order_release);
+
+	//Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
 	std::wstring fooW(sConfig->hostname->Begin());
 	std::string fooA(fooW.begin(), fooW.end());
 	const char *charStr = fooA.c_str();
@@ -301,7 +305,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.rumble = connection_rumble;
 	// callbacks.rumbleTriggers = connection_trigger_rumble;
 
-	FFMpegDecoder::instance().CompleteInitialization(res, &config);
+	FFMpegDecoder::instance().CompleteInitialization(res, &config, sConfig->framePacing == "Immediate");
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
@@ -357,6 +361,8 @@ void connection_terminated(int status) {
 	char message[4096];
 	sprintf(message, "Connection terminated with status %d\n", status);
 	Utils::Log(message);
+
+	g_connectionTerminated.store(true, std::memory_order_release);
 }
 
 void stage_failed(int stage, int err) {
@@ -415,6 +421,14 @@ int MoonlightClient::Connect(const char *hostname) {
 	int status = 0;
 	status = gs_init(&serverData, this->hostname, port, folder, 3, true);
 	return status;
+}
+
+bool MoonlightClient::IsConnectionTerminated() {
+	return g_connectionTerminated.load(std::memory_order_acquire);
+}
+
+void MoonlightClient::SetConnectionTerminated() {
+	g_connectionTerminated.store(true, std::memory_order_release);
 }
 
 bool MoonlightClient::IsHDR() {

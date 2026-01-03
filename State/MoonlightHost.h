@@ -26,6 +26,7 @@ namespace moonlight_xbox_dx {
         int autostartID = -1;
         Platform::String^ videoCodec = "H.265";
         Platform::String^ audioConfig = "Stereo";
+        Platform::String^ framePacing = "";
         bool enableHDR = false;
         bool enableSOPS = false;
         bool enableStats = false;
@@ -35,12 +36,9 @@ namespace moonlight_xbox_dx {
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
         void OnPropertyChanged(Platform::String^ propertyName);
-        MoonlightHost(Platform::String ^host) {
-            lastHostname = host;
-            resolution = ref new ScreenResolution(1920, 1080);
-            loading = true;
-        }
-    void UpdateHostInfo(bool showLoading);
+        MoonlightHost(Platform::String ^host);
+
+        void UpdateHostInfo(bool showLoading);
         int Connect();
         void Unpair();
         void UpdateApps();
@@ -202,7 +200,7 @@ namespace moonlight_xbox_dx {
             }
         }
 
-          property Platform::String^ VideoCodec
+        property Platform::String^ VideoCodec
         {
             Platform::String^ get() { return this->videoCodec; }
             void set(Platform::String^ value) {
@@ -219,6 +217,16 @@ namespace moonlight_xbox_dx {
                 if (audioConfig == value)return;
                 this->audioConfig = value;
                 OnPropertyChanged("AudioConfig");
+            }
+        }
+
+        property Platform::String^ FramePacing
+        {
+            Platform::String^ get() { return this->framePacing; }
+            void set(Platform::String^ value) {
+                if (framePacing == value)return;
+                this->framePacing = value;
+                OnPropertyChanged("FramePacing");
             }
         }
 

@@ -524,11 +524,6 @@ void DX::DeviceResources::Present()
 {
 	HRESULT hr = m_swapChain->Present(0, 0);
 
-	// Discard the contents of the render target.
-	// This is a valid operation only when the existing contents will be entirely
-	// overwritten. If dirty or scroll rects are used, this call should be modified.
-	m_d3dContext->DiscardView1(m_d3dRenderTargetView.Get(), nullptr, 0);
-
 	// If the device was removed either by a disconnection or a driver upgrade, we
 	// must recreate all device resources.
 	if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)

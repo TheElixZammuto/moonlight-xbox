@@ -14,8 +14,8 @@
 
 #pragma once
 
-// Gamepad events can crash UWP backend
-#define IMGUI_IMPL_UWP_DISABLE_GAMEPAD
+#define IMGUI_DISABLE_UWP_DEFAULT_CLIPBOARD_FUNCTIONS     // Don't implement default WinRT clipboard handler.
+#define IMGUI_IMPL_UWP_DISABLE_GAMEPAD                    // Don't implement default XInput gamepad handler.
 
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block so it can be used as a single statement.

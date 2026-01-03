@@ -285,9 +285,9 @@ static bool ImGui_ImplUwp_InitEx(ABI::Windows::UI::Core::ICoreWindow* core_windo
                         ComPtr<ABI::Windows::UI::Core::ICoreWindow> window = ImGui_ImplUwp_GetCoreWindowForCurrentThread();
                         if (window.Get())
                         {
-                            window->add_KeyDown(Callback<WindowKeyDown_Callback>(KeyDown).Get(), &bd->KeyDownToken);
-                            window->add_KeyUp(Callback<WindowKeyDown_Callback>(KeyUp).Get(), &bd->KeyUpToken);
-                            window->add_CharacterReceived(Callback<WindowCharacterReceived_Callback>(CharacterReceived).Get(), &bd->CharacterReceivedToken);
+                            // window->add_KeyDown(Callback<WindowKeyDown_Callback>(KeyDown).Get(), &bd->KeyDownToken);
+                            // window->add_KeyUp(Callback<WindowKeyDown_Callback>(KeyUp).Get(), &bd->KeyUpToken);
+                            // window->add_CharacterReceived(Callback<WindowCharacterReceived_Callback>(CharacterReceived).Get(), &bd->CharacterReceivedToken);
                         }
                     }
                 }
@@ -362,9 +362,9 @@ void ImGui_ImplUwp_Shutdown()
         ComPtr<ABI::Windows::UI::Core::ICoreWindow> window = ImGui_ImplUwp_GetCoreWindowForCurrentThread();
         if (window.Get())
         {
-            window->remove_KeyDown(bd->KeyDownToken);
-            window->remove_KeyUp(bd->KeyUpToken);
-            window->remove_CharacterReceived(bd->CharacterReceivedToken);
+            // window->remove_KeyDown(bd->KeyDownToken);
+            // window->remove_KeyUp(bd->KeyUpToken);
+            // window->remove_CharacterReceived(bd->CharacterReceivedToken);
         }
 
 		bd->PointerInputSource->Release();
