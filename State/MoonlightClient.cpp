@@ -264,7 +264,9 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
 	if (!IsXboxOneVCR()) {
 		config.supportedVideoFormats |= VIDEO_FORMAT_H265;
-		config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
+		if (sConfig->enableHDR) {
+			config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
+		}
 	}
 
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
