@@ -585,3 +585,16 @@ bool moonlight_xbox_dxMain::ToggleStats() {
 
 	return visible ? false : true;
 }
+
+void moonlight_xbox_dx::usleep(unsigned int usec) {
+	HANDLE timer;
+	LARGE_INTEGER ft;
+
+	ft.QuadPart = -(10 * (__int64)usec);
+
+	timer = CreateWaitableTimer(NULL, TRUE, NULL);
+	if (timer == 0) return;
+	SetWaitableTimer(timer, &ft, 0, NULL, NULL, 0);
+	WaitForSingleObject(timer, INFINITE);
+	CloseHandle(timer);
+}

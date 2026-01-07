@@ -266,7 +266,10 @@ namespace moonlight_xbox_dx {
 				av_frame_free(&frame);
 				return DR_NEED_IDR;
 			}
-
+		    // Not the best way to handle this. BUT IT DOES FIX XBOX ONE TEARING!!!!
+		    // Honestly this did take too much time of my life (and AndyG life too) to care to make a better version
+		    // If you want to fix this, have fun! (And hopefully you have Microsoft blessing/tools/support for that)
+		    if (LiGetPendingVideoFrames() < 2 && IsXboxOne()) moonlight_xbox_dx::usleep(12000);
 			// Capture a frame timestamp to measuring pacing delay
 			QueryPerformanceCounter(&decodeEnd);
 			frame_attach_userdata(frame, decodeEnd.QuadPart);
