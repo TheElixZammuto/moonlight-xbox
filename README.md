@@ -7,7 +7,9 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 **This application is still in early stages of development. Expect things to not work or working badly**
 
 ## Installation and Usage
+
 ### For Retail Mode (you probably want to use this)
+
 1. Open Microsoft Edge and click the "Get it from Microsoft" Button above 
 2. Downlad Moonlight UWP from the Microsoft Store
 3. Open Moonlight on Xbox and, if not already, your host app
@@ -16,9 +18,10 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 6. Choose from the list below the application you want to run
 7. ???
 8. Profit!
+
 ### For Dev Mode
+
 **Looking for the Standard Dev Mode Builds? Can be found here:** [Link](https://github.com/TheElixZammuto/moonlight-xbox/releases)
-**Looking for the Bleeding Edge Builds? Can be found here:** [Link](https://github.com/TheElixZammuto/moonlight-xbox/actions)
 1. Enable the Dev Mode on your Xbox https://docs.microsoft.com/en-us/windows/uwp/xbox-apps/devkit-activation
 2. Using the Device Portal, install the Application (moonlight-xbox-dx.msixbundle) and, in the following step, add the required dependencies (Microsoft.UI.Xaml.2.7.appx and Microsoft.VCLibs.x64.14.00.appx)
 3. Open Moonlight on Xbox and, if not already, your host app
@@ -40,6 +43,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - HDR
 
 ## What does NOT work
+
 - Hardware Mouse (UWP limitations sadly)
 - Everything else not listed above
 
