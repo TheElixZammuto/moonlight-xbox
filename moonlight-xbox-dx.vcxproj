@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -136,7 +136,7 @@
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <AppxPackageDir>C:\Progetti\moonlight-xbox-dx\AppPackages\moonlight-xbox-dx\</AppxPackageDir>
-    <PackageCertificateThumbprint>12EF20E0A548743F0540AA6555D4E4D12DD7E9B3</PackageCertificateThumbprint>
+	<PackageCertificateThumbprint>12EF20E0A548743F0540AA6555D4E4D12DD7E9B3</PackageCertificateThumbprint>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
@@ -657,6 +657,9 @@
     <ProjectReference Include="third_party\moonlight-common-c\build\moonlight-common-c.vcxproj">
       <Project>{93ddfc16-8c7b-3ac5-ae38-b87854639da8}</Project>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+    <ProjectReference Include="third_party\DirectXTK\DirectXTK_Windows10_2022.vcxproj">
+      <Project>{F4776924-619C-42C7-88B2-82C947CCC9E7}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
