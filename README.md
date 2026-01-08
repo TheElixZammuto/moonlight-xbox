@@ -40,8 +40,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - HDR
 
 ## What does NOT work
-- Hardware Mouse (UWP Limitations sadly)
-- 120FPS (Never tested, let me know if it works)
+- Hardware Mouse (UWP limitations sadly)
 - Everything else not listed above
 
 ## Building
@@ -53,12 +52,6 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 
 ### Steps to build
 
-1. Clone this repository (`moonlight-xbox`) with submodules enabled!
-2. Install [VCPKG](https://vcpkg.io/en/index.html) and all dependencies:
-    1. Run `git submodule update --init --recursive`
-    2. Run `vcpkg\bootstrap-vcpkg.bat`
-    3. Install dependencies: `.\vcpkg\vcpkg.exe install --triplet x64-uwp`
-3. Run x64 Visual Studio Prompt (Tools → Command Line → Developer Command Prompt)
-    1. Run `generate-thirdparty-projects.bat` to generate `moonlight-common-c` VS project
-    2. Go to `libgamestream` and run `build-uwp.bat` to generate `libgamestream` VS project
-4. After all the actions above, you finally can open and build solution.
+1. Clone this repository
+1. Run `./setup-dev.ps1`
+1. Have fun!
