@@ -133,10 +133,22 @@ void Stats::SubmitPresentPacing(double presentDisplayMs) {
 }
 
 // High-level render loop timings
-void Stats::SubmitRenderStats(int64_t preWaitTimeUs, int64_t renderTimeUs, int64_t presentTimeUs) {
+void Stats::SubmitRenderStats(int64_t preWaitTimeUs, int64_t renderTimeUs, int64_t presentTimeUs, bool hitDeadline) {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_ActiveWndVideoStats.totalRenderTimeUs += renderTimeUs;
 	m_ActiveWndVideoStats.renderedFrames++;
+
+	if (hitDeadline) {
+		m_ActiveWndVideoStats.hitDeadlines++;
+	} else {
+		m_ActiveWndVideoStats.missedDeadlines++;
+
+#if defined(_DEBUG)
+		Utils::Logf("missed deadline: preWait + render: %.2f + %.2f = %.2f ms\n",
+			(double)preWaitTimeUs / 1000.0, (double)renderTimeUs / 1000.0,
+			(double)(preWaitTimeUs + renderTimeUs) / 1000.0);
+#endif
+	}
 
 	// Only shown in debug builds
 	m_ActiveWndVideoStats.totalPreWaitTimeUs += preWaitTimeUs;
@@ -152,6 +164,8 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.totalFrames += src.totalFrames;
 	dst.networkDroppedFrames += src.networkDroppedFrames;
 	dst.pacerDroppedFrames += src.pacerDroppedFrames;
+	dst.hitDeadlines += src.hitDeadlines;
+	dst.missedDeadlines += src.missedDeadlines;
 	dst.totalReassemblyTimeUs += src.totalReassemblyTimeUs;
 	dst.totalDecodeTime += src.totalDecodeTime;
 	dst.totalPacerTimeUs += src.totalPacerTimeUs;
@@ -373,23 +387,24 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 		offset += ret;
 	}
 
-// #if defined(_DEBUG)
-// 	// Developer-only stats that might be too confusing
-// 	// If you add lines here, add more height pixels in StatsRenderer::CreateWindowSizeDependentResources()
-// 	if (stats.renderedFrames != 0) {
-// 		ret = snprintf(&output[offset],
-// 					   length - offset,
-// 					   "------\n"
-// 					   "PreWait/Render/Present: %.2f / %.2f / %.2f ms\n",
-// 					   (double)stats.totalPreWaitTimeUs / 1000.0 / stats.renderedFrames,
-// 					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames,
-// 					   (double)stats.totalPresentTimeUs / 1000.0 / stats.renderedFrames);
-// 		if (ret < 0 || (size_t)ret >= (length - offset)) {
-// 			Utils::Log("Error: stringifyVideoStats length overflow\n");
-// 			return;
-// 		}
+#if defined(_DEBUG)
+	// Developer-only stats that might be too confusing
+	// If you add lines here, add more height pixels in StatsRenderer::CreateWindowSizeDependentResources()
+	if (stats.renderedFrames != 0) {
+		ret = snprintf(&output[offset],
+					   length - offset,
+					   "------\n"
+					   "Missed present rate: %.2f%%\n"
+					   "PreWait/Render: %.2f/%.2f ms\n",
+					   stats.hitDeadlines ? ((double)stats.missedDeadlines / (stats.missedDeadlines + stats.hitDeadlines)) * 100 : 0.0f,
+					   (double)stats.totalPreWaitTimeUs / 1000.0 / stats.renderedFrames,
+					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames);
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
+			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			return;
+		}
 
-// 		offset += ret;
-// 	}
-// #endif
+		offset += ret;
+	}
+#endif
 }
