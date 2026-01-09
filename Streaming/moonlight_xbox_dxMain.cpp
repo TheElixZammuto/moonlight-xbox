@@ -24,6 +24,8 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	m_deviceResources(deviceResources), m_pointerLocationX(0.0f), m_streamPage(streamPage), moonlightClient(client)
 {
+	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
@@ -46,8 +48,6 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
-
-	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
 	client->OnStatusUpdate = ([streamPage](int status) {
 		const char* msg = LiGetStageName(status);

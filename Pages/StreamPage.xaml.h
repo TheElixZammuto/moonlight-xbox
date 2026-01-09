@@ -73,13 +73,15 @@ namespace moonlight_xbox_dx
 		// Track our independent input on a background worker thread.
 		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;
 		Windows::UI::Core::CoreIndependentInputSource^ m_coreInput;
-		Windows::Foundation::EventRegistrationToken m_back_cookie;
+	    Windows::Foundation::EventRegistrationToken m_back_cookie;
 
 		// Resources used to render the DirectX content in the XAML page background.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 		std::unique_ptr<moonlight_xbox_dxMain> m_main;
 		bool m_windowVisible;
-		void Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+	    void Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e);
+	    void Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e);
+
 		void OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
 		void flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e);
@@ -97,8 +99,6 @@ namespace moonlight_xbox_dx
 		void guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }
 
