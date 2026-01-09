@@ -1,12 +1,11 @@
 #include "pch.h"
 #include "ApplicationState.h"
+#include "../Utils/NetworkUtils.h"
 #include <Utils.hpp>
 #include <nlohmann/json.hpp>
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <WinSock2.h>
-#include <WS2tcpip.h>
-#include <sstream>
 #include <algorithm>
 
 using namespace Windows::Storage;
@@ -32,7 +31,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
-					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
+				    if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
+				    if (a.contains("mdns_instance_name")) h->MdnsInstanceName = Utils::StringFromStdString(a["mdns_instance_name"].get<std::string>());
 					if (a.contains("width") && a.contains("height")) {
 						h->Resolution = ref new ScreenResolution(a["width"], a["height"]);
 					}
@@ -57,20 +57,109 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 		});
 }
 
-bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
-	MoonlightHost^ host = ref new MoonlightHost(hostname);
+bool moonlight_xbox_dx::ApplicationState::AddHost(
+    Platform::String ^ hostname,
+    Platform::String ^ mdnsInstanceName) {
+	MoonlightHost ^ host = ref new MoonlightHost(hostname);
+
+	// Carry over the mDNS instance identity if provided
+	host->MdnsInstanceName = mdnsInstanceName;
+
 	host->UpdateHostInfo(false);
-	if (!host->Connected)return false;
+	if (!host->Connected)
+		return false;
+
+	// Deduplicate by mDNS instance name if present, otherwise by InstanceId
+	std::string newInstanceId = Utils::PlatformStringToStdString(host->InstanceId);
+	std::string newMdnsInstance =
+	    mdnsInstanceName != nullptr ? Utils::PlatformStringToStdString(mdnsInstanceName) : "";
+
 	for (auto h : SavedHosts) {
-		if (host->InstanceId == h->InstanceId) {
+		std::string existingId =
+		    Utils::PlatformStringToStdString(h->InstanceId);
+		std::string existingMdns =
+		    (h->MdnsInstanceName != nullptr)
+		        ? Utils::PlatformStringToStdString(h->MdnsInstanceName)
+		        : "";
+
+		bool sameByMdns =
+		    !newMdnsInstance.empty() && !existingMdns.empty() &&
+		    existingMdns == newMdnsInstance;
+
+		bool sameById =
+		    !newInstanceId.empty() && !existingId.empty() &&
+		    existingId == newInstanceId;
+
+		if (sameByMdns || sameById) {
+			// Existing host: update LastHostname, and ensure MdnsInstanceName is set
 			h->LastHostname = host->LastHostname;
+			h->MdnsInstanceName = host->MdnsInstanceName;
 			UpdateFile();
 			return true;
 		}
 	}
-	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,host]() {
-		SavedHosts->Append(host);
-	}));
+
+	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+	    Windows::UI::Core::CoreDispatcherPriority::High,
+	    ref new Windows::UI::Core::DispatchedHandler([this, host]() {
+
+		    Utils::Logf("[AddHost] NEW HOST: InstanceId='%s' MdnsInstance='%s' LastHostname='%s'\n",
+		                Utils::PlatformStringToStdString(host->InstanceId).c_str(),
+		                host->MdnsInstanceName ? Utils::PlatformStringToStdString(host->MdnsInstanceName).c_str() : "(null)",
+		                Utils::PlatformStringToStdString(host->LastHostname).c_str());
+
+		    SavedHosts->Append(host);
+	    }));
+
+	UpdateFile();
+	return true;
+}
+
+bool moonlight_xbox_dx::ApplicationState::UpdateHostAddressForInstance(
+    Platform::String ^ mdnsInstanceName,
+    Platform::String ^ newHostPort) {
+	if (mdnsInstanceName == nullptr || newHostPort == nullptr)
+		return false;
+
+	std::string instanceStd = Utils::PlatformStringToStdString(mdnsInstanceName);
+	std::string newHostPortStd = Utils::PlatformStringToStdString(newHostPort);
+	std::string newIp = NetworkUtils::ExtractIpFromHostPort(newHostPortStd);
+
+	// Find existing host by MdnsInstanceName
+	MoonlightHost ^ target = nullptr;
+	for (auto h : SavedHosts) {
+		if (h->MdnsInstanceName != nullptr &&
+		    Utils::PlatformStringToStdString(h->MdnsInstanceName) == instanceStd) {
+			target = h;
+			break;
+		}
+	}
+
+	if (target == nullptr) {
+		// No match; let AddHost handle new host scenarios.
+		return false;
+	}
+
+	std::string oldHostPortStd = Utils::PlatformStringToStdString(target->LastHostname);
+	std::string oldIp = NetworkUtils::ExtractIpFromHostPort(oldHostPortStd);
+
+	int oldScore = NetworkUtils::IpPriority(oldIp);
+	int newScore = NetworkUtils::IpPriority(newIp);
+
+	if (newScore <= oldScore) {
+		// Do not regress or change to equal-priority IP
+		return false;
+	}
+
+	// Silent upgrade: update stored address and IP, no reconnect
+
+	Utils::Logf("[UpdateHostAddress] UPDATING HOST: existing LastHostname='%s' NewHostName='%s'\n",
+	            Utils::PlatformStringToStdString(target->LastHostname).c_str(),
+	            Utils::PlatformStringToStdString(newHostPort).c_str());
+
+	target->LastHostname = newHostPort;
+	target->ServerAddress = Utils::StringFromStdString(newIp);
+
 	UpdateFile();
 	return true;
 }
@@ -94,6 +183,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
 			hostJson["instance_id"] = Utils::PlatformStringToStdString(host->InstanceId);
+			hostJson["mdns_instance_name"] = Utils::PlatformStringToStdString(host->MdnsInstanceName);
 			hostJson["computername"] = Utils::PlatformStringToStdString(host->ComputerName);
 			hostJson["width"] = host->Resolution->Width;
 			hostJson["height"] = host->Resolution->Height;
@@ -159,9 +249,9 @@ bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 	auto addressList = Build_Unique_Addresses(host);
 
 	std::vector<int> ports = {
-		9, // Standard WOL port (privileged port)
-		47009, // Port opened by Moonlight Internet Hosting Tool for WoL (non-privileged port)
-		47998, 47999, 48000, 48002, 48010 // Ports opened by GFE
+		9,									// Standard WOL port (privileged port)
+		47009,								// Port opened by Moonlight Internet Hosting Tool for WoL (non-privileged port)
+		47998, 47999, 48000, 48002, 48010	// Ports opened by GFE
 	};
 
 	bool result = Send_Payload(descriptor, wolPayload, "255.255.255.255", 0);
@@ -257,17 +347,19 @@ std::vector<std::string> moonlight_xbox_dx::ApplicationState::Build_Unique_Addre
 
 	if (host->LastHostname)
 	{
-		auto hostnameSplit = Split_IP_Address(Utils::PlatformStringToStdString(host->LastHostname), ':');
+		auto hostnameSplit = NetworkUtils::SplitIPAddress(Utils::PlatformStringToStdString(host->LastHostname), ':');
 		std::string hostIp = hostnameSplit.first;
 		addresses.push_back(hostIp);
 	}
 
 	if (inet_addr(Utils::PlatformStringToStdString(host->ServerAddress).c_str()) != -1)
 	{
-		std::string broadcastIP = Get_Broadcast_IP(Utils::PlatformStringToStdString(host->ServerAddress));
-		if (broadcastIP != "")
+		std::string broadcastIP = NetworkUtils::GetBroadcastIP(Utils::PlatformStringToStdString(host->ServerAddress));
+		if (broadcastIP != "") 
 		{
 			addresses.push_back(broadcastIP);
+		} else {
+			Utils::Log("Could not determine subnet mask from IP address.\n");
 		}
 	}
 
@@ -298,83 +390,6 @@ bool moonlight_xbox_dx::ApplicationState::Send_Payload(int descriptor, std::stri
 	std::string msg = std::string() + "Wake-On-Lan packet sent to " + address.c_str() + ":" + Utils::PlatformStringToStdString(port.ToString()) + "\n";
 	Utils::Log(msg.c_str());
 	return true;
-}
-
-std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ipAddress)
-{
-	uint32_t subnetMask;
-	uint32_t ipAddress_int;
-	struct in_addr ip_addr;
-
-	auto splitIP = Split_IP_Address(ipAddress, '/');
-	if (inet_pton(AF_INET, splitIP.first.c_str(), &ip_addr) != 1) {
-		throw std::invalid_argument("The given IP address was invalid.\n");
-	}
-
-	if (splitIP.second > 0)
-	{
-		struct sockaddr_in sa;
-		inet_pton(AF_INET, splitIP.first.c_str(), &(sa.sin_addr));
-		ipAddress_int = sa.sin_addr.s_addr;
-		uint32_t mask = htonl(~((1 << (32 - splitIP.second)) - 1));
-		uint32_t ip_num = ipAddress_int | ~mask;
-		sa.sin_addr.s_addr = ip_num;
-		char ip_stra[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &(sa.sin_addr), ip_stra, INET_ADDRSTRLEN);
-		return std::string(ip_stra);
-	}
-
-	ipAddress_int = ntohl(ip_addr.s_addr);
-	if ((ipAddress_int & 0xF0000000) == 0x00000000) { // Class A
-		subnetMask = 4278190080; // 255.0.0.0
-	}
-	else if ((ipAddress_int & 0xE0000000) == 0x80000000) { // Class B
-		subnetMask = 4294901760; // 255.255.0.0
-	}
-	else if ((ipAddress_int & 0xC0000000) == 0xC0000000) { // Class C
-		subnetMask = 4294967040; // 255.255.255.0
-	}
-	else {
-		Utils::Log("Could not determine subnet mask from IP address.\n");
-		WSACleanup();
-		return "";
-	}
-
-	auto broadcastInt = ipAddress_int | (~subnetMask);
-
-	std::stringstream ss3;
-	for (int i = 3; i >= 0; --i) {
-		ss3 << ((broadcastInt >> (8 * i)) & 0xFF);
-		if (i > 0) {
-			ss3 << ".";
-		}
-	}
-
-	return ss3.str();
-}
-
-std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::Split_IP_Address(const std::string& address, char deliminator)
-{
-	std::stringstream ss(address);
-	std::string ip_address;
-	std::string port_str;
-
-	if (std::getline(ss, ip_address, deliminator) && std::getline(ss, port_str)) {
-
-		try {
-			int port = std::stoi(port_str);
-			return { ip_address, port };
-		}
-		catch (const std::invalid_argument& e) {
-			throw std::invalid_argument("Invalid port number format");
-		}
-		catch (const std::out_of_range& e) {
-			throw std::out_of_range("Port number out of range");
-		}
-	}
-	else {
-		return { address, 0 };
-	}
 }
 
 void moonlight_xbox_dx::ApplicationState::Throw_Error(std::string message)

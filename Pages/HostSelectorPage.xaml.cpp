@@ -9,6 +9,7 @@
 #include <State\MoonlightClient.h>
 #include "HostSettingsPage.xaml.h"
 #include "Utils.hpp"
+#include "..\Utils\NetworkUtils.h"
 #include "MoonlightSettings.xaml.h"
 #include "State\MDNSHandler.h"
 #include "MoonlightWelcome.xaml.h"
@@ -59,7 +60,7 @@ void HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::
 	Platform::String^ hostname = dialogHostnameTextBox->Text;
 	auto def = args->GetDeferral();
 	Concurrency::create_task([def, hostname, this, args, sender]() {
-		bool status = state->AddHost(hostname);
+		bool status = state->AddHost(hostname, nullptr);
 		if (!status) {
 			Platform::WeakReference weakThis(this);
 			concurrency::create_task(Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([sender, weakThis, hostname, def, args]() {
@@ -260,13 +261,14 @@ void HostSelectorPage::Connect(MoonlightHost^ host) {
 	}
 	state->shouldAutoConnect = true;
 	continueFetch.store(false);
-		bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
 }
 
 void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 	continueFetch.store(true);
 	Concurrency::create_task([this] {
+		init_mdns();
 		while (continueFetch.load()) {
 			query_mdns();
 			for (auto a : GetApplicationState()->SavedHosts) {
@@ -401,7 +403,7 @@ void HostSelectorPage::testConnectionButton_Click(Platform::Object^ sender, Wind
 	std::string hostOnly;
 	int port = 0;
 	try {
-		auto split = GetApplicationState()->Split_IP_Address(hostname, ':');
+		auto split = NetworkUtils::SplitIPAddress(hostname, ':');
 		hostOnly = split.first;
 		port = split.second;
 	}
