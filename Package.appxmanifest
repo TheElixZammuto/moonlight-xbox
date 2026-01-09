@@ -46,7 +46,8 @@
 
   <Capabilities>
     <Capability Name="internetClient" />
-    <Capability Name="privateNetworkClientServer"/>
+    <Capability Name="privateNetworkClientServer" />
+    <Capability Name="internetClientServer" />
     <rescap:Capability Name="hevcPlayback" />
   </Capabilities>
 </Package>

@@ -9,6 +9,7 @@ namespace moonlight_xbox_dx {
     {
     private:
         Platform::String^ instanceId;
+	    Platform::String ^ mdnsInstanceName;
         Platform::String^ lastHostname;
         Platform::String^ computerName;
         Platform::String^ serverAddress;
@@ -49,6 +50,14 @@ namespace moonlight_xbox_dx {
             void set(Platform::String^ value) {
                 this->instanceId = value;
                 OnPropertyChanged("InstanceId");
+            }
+        }
+        property Platform::String^ MdnsInstanceName
+        {
+            Platform::String^ get() { return this->mdnsInstanceName; }
+            void set(Platform::String^ value) {
+			    this->mdnsInstanceName = value;
+                OnPropertyChanged("MdnsInstanceName");
             }
         }
         property Platform::String^ LastHostname
