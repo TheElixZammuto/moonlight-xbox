@@ -26,6 +26,8 @@ typedef struct _VIDEO_STATS {
 	uint32_t totalFrames;
 	uint32_t networkDroppedFrames;
 	uint32_t pacerDroppedFrames;
+	uint32_t hitDeadlines;
+	uint32_t missedDeadlines;
 	uint16_t minHostProcessingLatency;
 	uint16_t maxHostProcessingLatency;
 	uint32_t totalHostProcessingLatency;
@@ -61,7 +63,7 @@ namespace moonlight_xbox_dx
 		void SubmitAvgQueueSize(float avgQueueSize);
 		void SubmitPacerTime(int64_t pacerTimeQpc);
 		void SubmitPresentPacing(double presentDisplayMs);
-		void SubmitRenderStats(int64_t preWaitTimeUs, int64_t renderTimeUs, int64_t presentTimeUs);
+		void SubmitRenderStats(int64_t preWaitTimeUs, int64_t renderTimeUs, int64_t presentTimeUs, bool hitDeadline);
 
 	private:
 		void addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst);
