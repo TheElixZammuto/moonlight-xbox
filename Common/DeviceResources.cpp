@@ -254,7 +254,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.Flags = 0;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
+		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
 		// This sequence obtains the DXGI factory that was used to create the Direct3D device above.
 		ComPtr<IDXGIDevice3> dxgiDevice;
@@ -341,14 +341,6 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		);
 
 	m_d3dContext->RSSetViewports(1, &m_screenViewport);
-
-	// One-time clear to transparent so XAML children (ProgressView) will composite on top.
-	if (m_d3dRenderTargetView)
-	{
-		const FLOAT clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f }; // transparent
-		m_d3dContext->ClearRenderTargetView(m_d3dRenderTargetView.Get(), clearColor);
-		Present();
-	}
 }
 
 // Determine the dimensions of the render target and whether it will be scaled down.

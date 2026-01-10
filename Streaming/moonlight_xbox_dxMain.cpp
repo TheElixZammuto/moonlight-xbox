@@ -22,9 +22,7 @@ extern "C" {
 // Loads and initializes application assets when the application is loaded.
 moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, StreamPage^ streamPage, MoonlightClient* client, StreamConfiguration^ configuration) :
 
-	m_deviceResources(deviceResources), m_pointerLocationX(0.0f), m_streamPage(streamPage), moonlightClient(client)
-{
-	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	m_deviceResources(deviceResources), m_pointerLocationX(0.0f), m_streamPage(streamPage), moonlightClient(client) {
 	
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
@@ -55,12 +53,15 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 		});
 
 	client->OnCompleted = ([streamPage]() {
+		// Give stream a moment to stabilize before hiding progress view
+		Sleep(500);
+		streamPage->m_progressRing->IsActive = false;
 		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-		});
+	});
 
 	client->OnFailed = ([streamPage](int status, int error, char* message) {
 		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(message));
-		});
+	});
 
 	client->SetHDR = ([this](bool v) {
 		this->m_sceneRenderer->SetHDR(v);
@@ -272,8 +273,8 @@ void moonlight_xbox_dxMain::ProcessInput()
 		}
 		for (auto k : magicKey) {
 			if ((reading.Buttons & k) != k) {
-				isCurrentlyPressed = false;
-				break;
+			 isCurrentlyPressed = false;
+			 break;
 			}
 		}
 		if (isCurrentlyPressed) {
@@ -415,7 +416,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 				if (GetApplicationState()->EnableKeyboard) {
 					m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
 						m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
-						}));
+					}));
 					keyboardMode = true;
 				}
 				else {

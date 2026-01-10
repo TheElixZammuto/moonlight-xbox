@@ -43,9 +43,15 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-		property StackPanel^ m_progressView {
-			StackPanel^ get() {
+		property Grid^ m_progressView {
+			Grid^ get() {
 				return this->ProgressView;
+			}
+		}
+
+		property Microsoft::UI::Xaml::Controls::ProgressRing^ m_progressRing {
+		    Microsoft::UI::Xaml::Controls::ProgressRing ^ get() {
+				return this->MainProgressRing;
 			}
 		}
 

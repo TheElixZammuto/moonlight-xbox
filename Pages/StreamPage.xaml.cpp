@@ -43,10 +43,6 @@ StreamPage::StreamPage():
 }
 
 
-StreamPage::~StreamPage()
-{
-	// Stop rendering and processing events on destruction.
-}
 
 void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequestedEventArgs^ args)
 {
@@ -57,6 +53,9 @@ void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequ
 }
 
 void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+
+	this->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	this->m_progressRing->IsActive = true;
 
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs ^>(this, &StreamPage::OnBackRequested);
@@ -78,12 +77,19 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 	auto ignore = this->Dispatcher->RunAsync(CoreDispatcherPriority::Low, ref new DispatchedHandler([weakThis]() {
 		auto that = weakThis.Resolve<StreamPage>();
 		if (that == nullptr) return;
-
 		try {
 			that->m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(that->m_deviceResources, that, new MoonlightClient(), that->configuration));
-			that->m_main->CreateDeviceDependentResources();
-			that->m_main->CreateWindowSizeDependentResources();
-			that->m_main->StartRenderLoop();
+			
+			DISPATCH_UI([that], {
+				try {
+					that->m_main->CreateDeviceDependentResources();
+					that->m_main->CreateWindowSizeDependentResources();
+					that->m_main->StartRenderLoop();
+				} catch (...) {
+					Utils::Log("StreamPage: init failed\n");
+				}
+			});
+
 		} catch (const std::exception &ex) {
 			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 			dialog->Content = Utils::StringPrintf(ex.what());
@@ -114,6 +120,27 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
+
+	if (this->m_main) {
+
+		Utils::Log("StreamPage::Page_Unloaded stopping m_main render loop\n");
+
+		try {
+			this->m_main->StopRenderLoop();
+		} catch (...) {
+			Utils::Log("StreamPage::Page_Unloaded StopRenderLoop threw an exception\n");
+		}
+
+		this->m_main.reset();
+		Utils::Log("StreamPage::Page_Unloaded m_main reset\n");
+	}
+
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
+}
+
+StreamPage::~StreamPage()
+{
 }
 
 void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e)
