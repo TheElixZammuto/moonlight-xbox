@@ -40,16 +40,9 @@ StreamPage::StreamPage():
 	swapChainPanel->SizeChanged +=
 		ref new SizeChangedEventHandler(this, &StreamPage::OnSwapChainPanelSizeChanged);
 	m_deviceResources = std::make_shared<DX::DeviceResources>();
-
-	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &StreamPage::OnLoaded);
-	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &StreamPage::OnUnloaded);
 }
 
 
-StreamPage::~StreamPage()
-{
-	// Stop rendering and processing events on destruction.
-}
 
 void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequestedEventArgs^ args)
 {
@@ -59,49 +52,95 @@ void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequ
 	args->Handled = true;
 }
 
-void StreamPage::Page_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+
+	this->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	this->m_progressRing->IsActive = true;
+
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs ^>(this, &StreamPage::OnBackRequested);
+
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
+
+	keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyDown));
+	keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyUp));
+	
 	try {
-		Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
-		keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &StreamPage::OnKeyDown));
-		keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow^, Windows::UI::Core::KeyEventArgs^>(this, &StreamPage::OnKeyUp));
-		// At this point we have access to the device.
-		// We can create the device-dependent resources.
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
-		m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(m_deviceResources,this,new MoonlightClient(),configuration));
-		m_main->CreateDeviceDependentResources();
-		m_main->CreateWindowSizeDependentResources();
-		m_main->StartRenderLoop();
+	} catch (...) {
+		Utils::Log("StreamPage::Page_Loaded: SetSwapChainPanel failed\n");
 	}
-	catch (const std::exception & ex) {
-		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-		dialog->Content = Utils::StringPrintf(ex.what());
-		dialog->CloseButtonText = L"OK";
-		dialog->ShowAsync();
+
+	// Defer heavy initialization so the handler returns and the UI can present.
+	// Use a low-priority dispatch so the framework can complete the first frame.
+	Platform::WeakReference weakThis(this);
+	auto ignore = this->Dispatcher->RunAsync(CoreDispatcherPriority::Low, ref new DispatchedHandler([weakThis]() {
+		auto that = weakThis.Resolve<StreamPage>();
+		if (that == nullptr) return;
+		try {
+			that->m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(that->m_deviceResources, that, new MoonlightClient(), that->configuration));
+			
+			DISPATCH_UI([that], {
+				try {
+					that->m_main->CreateDeviceDependentResources();
+					that->m_main->CreateWindowSizeDependentResources();
+					that->m_main->StartRenderLoop();
+				} catch (...) {
+					Utils::Log("StreamPage: init failed\n");
+				}
+			});
+
+		} catch (const std::exception &ex) {
+			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			dialog->Content = Utils::StringPrintf(ex.what());
+			dialog->CloseButtonText = L"OK";
+			dialog->ShowAsync();
+		} catch (const std::string &string) {
+			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			dialog->Content = Utils::StringPrintf(string.c_str());
+			dialog->CloseButtonText = L"OK";
+			dialog->ShowAsync();
+		} catch (Platform::Exception ^ e) {
+			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			Platform::String ^ errorMsg = ref new Platform::String();
+			errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
+			errorMsg = errorMsg->Concat(errorMsg, Utils::StringPrintf("%x", e->HResult));
+			dialog->Content = errorMsg;
+			dialog->CloseButtonText = L"OK";
+			dialog->ShowAsync();
+		} catch (...) {
+			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			dialog->Content = L"Generic Exception";
+			dialog->CloseButtonText = L"OK";
+			dialog->ShowAsync();
+		}
+	}));
+}
+
+void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+	navigation->BackRequested -= m_back_cookie;
+
+	if (this->m_main) {
+
+		Utils::Log("StreamPage::Page_Unloaded stopping m_main render loop\n");
+
+		try {
+			this->m_main->StopRenderLoop();
+		} catch (...) {
+			Utils::Log("StreamPage::Page_Unloaded StopRenderLoop threw an exception\n");
+		}
+
+		this->m_main.reset();
+		Utils::Log("StreamPage::Page_Unloaded m_main reset\n");
 	}
-	catch (const std::string & string) {
-		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-		dialog->Content = Utils::StringPrintf(string.c_str());
-		dialog->CloseButtonText = L"OK";
-		dialog->ShowAsync();
-	}
-	catch (Platform::Exception ^ e) {
-		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-		Platform::String^ errorMsg = ref new Platform::String();
-		errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
-		errorMsg = errorMsg->Concat(errorMsg,Utils::StringPrintf("%x",e->HResult));
-		dialog->Content = errorMsg;
-		dialog->CloseButtonText = L"OK";
-		dialog->ShowAsync();
-	}
-	catch (...) {
-		std::exception_ptr eptr;
-		eptr = std::current_exception(); // capture
-		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-		dialog->Content = L"Generic Exception";
-		dialog->CloseButtonText = L"OK";
-		dialog->ShowAsync();
-	}
+
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
+}
+
+StreamPage::~StreamPage()
+{
 }
 
 void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e)
@@ -251,16 +290,4 @@ void StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xa
 void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->m_main->SendWinAltB();
-}
-
-void StreamPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &StreamPage::OnBackRequested);
-}
-
-void StreamPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	navigation->BackRequested -= m_back_cookie;
 }
