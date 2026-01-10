@@ -108,11 +108,10 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 		int64_t t0 = 0, t1 = 0, t2 = 0, t3 = 0;
 		int64_t lastFramePts = 0, lastPresentTime = 0;
 		double frametimeMs = 0.0;
-		const double bufferMs  = 2.5;  // safety wait time to avoid missing deadline
+		const double bufferMs  = 1.5;  // safety wait time to avoid missing deadline
 		const double alphaUp   = 0.25; // react faster when renderMs spikes upward
 		const double alphaDown = 0.05; // decay slowly when renderMs drops
 		double ewmaRenderMs = 3.0; // Initial guess for render cost
-		int hits = 0, misses = 0; // deadline timing stats
 
 		// Calculate the updated frame and render once per vertical blanking interval.
 		while (action->Status == AsyncStatus::Started && !moonlightClient->IsConnectionTerminated()) {

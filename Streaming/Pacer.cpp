@@ -86,6 +86,9 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 
 	m_FrameCadence.init(m_RefreshRate > 0.0 ? m_RefreshRate : 60.0, static_cast<double>(streamFps));
 
+	Utils::Logf("Frame Pacer init: mode %s, streamFps %d, refreshRate %.2f\n",
+		m_FramePacingImmediate ? "immediate" : "display-locked", m_StreamFps, m_RefreshRate);
+
 	m_vhsum = 0;
 	m_vhcount = 0;
 	m_vhidx = 0;
