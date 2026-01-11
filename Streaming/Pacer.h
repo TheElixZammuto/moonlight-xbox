@@ -22,7 +22,7 @@ class Pacer {
 	void init(const std::shared_ptr<DX::DeviceResources> &res, int maxVideoFps, double refreshRate, bool framePacingImmediate);
 	void waitForFrame(double timeoutMs);
 	bool renderOnMainThread(std::shared_ptr<moonlight_xbox_dx::VideoRenderer> &sceneRenderer);
-	void waitBeforePresent(int64_t deadline);
+	bool waitBeforePresent(int64_t deadline);
 	int64_t getCurrentFramePts();
 	int64_t getNextVBlankQpc(int64_t *now);
 	void submitFrame(AVFrame *frame);

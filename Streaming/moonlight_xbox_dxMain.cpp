@@ -138,7 +138,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 				// Whether we rendered a new frame or not, wait until vblank for pacing
 				// This is out of the lock and won't block the decoder
-				Pacer::instance().waitBeforePresent(deadline);
+				bool hitDeadline = Pacer::instance().waitBeforePresent(deadline);
 				t3 = QpcNow();
 
 				if (!rendered) {
@@ -173,7 +173,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				m_deviceResources->GetStats()->SubmitRenderStats(
 				    QpcToUs(t1 - t0),
 				    QpcToUs(t2 - t1),
-				    QpcToUs(t3 - t2));
+				    QpcToUs(t3 - t2),
+				    hitDeadline);
 
 				FQLog("render loop %.3fms frametime %.3fms (PreWait %.3fms + Render %.3fms (avg %.3f) + Present %.3fms)\n",
 				      QpcToMs(t3 - t0),

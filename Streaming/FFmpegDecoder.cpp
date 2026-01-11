@@ -86,7 +86,8 @@ namespace moonlight_xbox_dx {
 	}
 
     void FFMpegDecoder::CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config, bool framePacingImmediate) {
-		m_deviceResources = res;
+		this->m_deviceResources = res;
+		this->fps = config->fps;
 		Pacer::instance().init(res, config->fps, res->GetRefreshRate(), framePacingImmediate);
 	}
 
@@ -94,6 +95,7 @@ namespace moonlight_xbox_dx {
 		this->videoFormat = videoFormat;
 		this->width = width;
 		this->height = height;
+		this->fps = 60; // correctly set in CompleteInitialization
 
 		this->m_LastFrameNumber = 0;
 		this->ffmpeg_buffer_size = 0;
@@ -266,10 +268,7 @@ namespace moonlight_xbox_dx {
 				av_frame_free(&frame);
 				return DR_NEED_IDR;
 			}
-		    // Not the best way to handle this. BUT IT DOES FIX XBOX ONE TEARING!!!!
-		    // Honestly this did take too much time of my life (and AndyG life too) to care to make a better version
-		    // If you want to fix this, have fun! (And hopefully you have Microsoft blessing/tools/support for that)
-		    if (LiGetPendingVideoFrames() < 2 && IsXboxOne()) moonlight_xbox_dx::usleep(12000);
+
 			// Capture a frame timestamp to measuring pacing delay
 			QueryPerformanceCounter(&decodeEnd);
 			frame_attach_userdata(frame, decodeEnd.QuadPart);
@@ -287,9 +286,21 @@ namespace moonlight_xbox_dx {
 			// again where we expect to get AVERROR(EAGAIN) and break out.
 		}
 
+		double decodeTimeMs = QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart);
 		if (decodeEnd.QuadPart > decodeStart.QuadPart) {
-			m_deviceResources->GetStats()->SubmitDecodeMs(QpcToMs(decodeEnd.QuadPart - decodeStart.QuadPart));
+			m_deviceResources->GetStats()->SubmitDecodeMs(decodeTimeMs);
 		}
+
+		// Not the best way to handle this. BUT IT DOES FIX XBOX ONE TEARING!!!!
+		// Honestly this did take too much time of my life (and AndyG life too) to care to make a better version
+		// If you want to fix this, have fun! (And hopefully you have Microsoft blessing/tools/support for that)
+		// if (IsXboxOne()) {
+		// 	float remainingMs = (1000.0f / fps) - decodeTimeMs - 2.0; // 2ms buffer time
+		// 	if (remainingMs > 0.0) {
+		// 		//Utils::Logf("SubmitDecodeUnit sleeping %.3fms\n", remainingMs);
+		// 		SleepUntilQpc(QpcNow() + MsToQpc(remainingMs));
+		// 	}
+		// }
 
 		return DR_OK;
 	}
