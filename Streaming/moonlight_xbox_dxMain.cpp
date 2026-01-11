@@ -4,6 +4,8 @@
 #include "../Plot/ImGuiPlots.h"
 #include "Utils.hpp"
 #include <Pages/StreamPage.xaml.h>
+#include <Pages/AppPage.xaml.h>
+#include <Pages/HostSelectorPage.xaml.h>
 #include <Streaming\FFMpegDecoder.h>
 using namespace Windows::Gaming::Input;
 
@@ -189,12 +191,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 		StopRenderLoop(); // also stops input
 		Disconnect();
 
-		// Navigate back to home
-		DISPATCH_UI([],{
-			auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);
-			if (rootFrame) {
-				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
-			}
+		DISPATCH_UI([this],{
+			ExitStreamPage();
 		});
 	});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
@@ -531,6 +529,51 @@ void moonlight_xbox_dxMain::CloseApp() {
 	moonlightClient->StopApp();
 }
 
+void moonlight_xbox_dxMain::ExitStreamPage() {
+	try {
+		auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame ^>(Windows::UI::Xaml::Window::Current->Content);
+		if (!rootFrame) return;
+
+		bool reachedAppPage = false;
+		try {
+			// If we can go back, pop entries until we land on an AppPage or exhaust the back stack
+			unsigned int maxSteps = 0;
+			try {
+				maxSteps = rootFrame->BackStack->Size;
+			} catch (...) {
+				maxSteps = 0;
+			}
+
+			for (unsigned int step = 0; step < maxSteps && rootFrame->CanGoBack; ++step) {
+				auto current = dynamic_cast<AppPage ^>(rootFrame->Content);
+				if (current != nullptr) {
+					reachedAppPage = true;
+					break;
+				}
+				try {
+					rootFrame->GoBack();
+				} catch (...) {
+					break;
+				}
+			}
+
+			// Check one last time after popping
+			if (!reachedAppPage) {
+				if (dynamic_cast<AppPage ^>(rootFrame->Content) != nullptr) reachedAppPage = true;
+			}
+		} catch (...) {
+		}
+
+		if (!reachedAppPage) {
+			try {
+				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+			} catch (...) {
+				rootFrame->Content = nullptr;
+			}
+		}
+	} catch (...) {
+	}
+}
 
 void moonlight_xbox_dxMain::OnKeyDown(unsigned short virtualKey, char modifiers)
 {
