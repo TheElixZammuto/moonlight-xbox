@@ -8,69 +8,74 @@
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-    Loaded="Page_Loaded">
+    Loaded="Page_Loaded"
+    Unloaded="Page_Unloaded">
 
-    <SwapChainPanel x:Name="swapChainPanel" Margin="{x:Bind State.ScreenMargin}">
-        <StackPanel x:Name="ProgressView" HorizontalAlignment="Center" VerticalAlignment="Center"  Orientation="Vertical">
-            <muxc:ProgressRing Width="64" Height="64" IsActive="True" Margin="0,0,0,16" ></muxc:ProgressRing>
-            <TextBlock x:Name="StatusText">Initializing Moonlight...</TextBlock>
-        </StackPanel>
-        <StackPanel HorizontalAlignment="Stretch" x:Name="KeyboardView" Visibility="Collapsed" VerticalAlignment="Bottom" Margin="64,0,64,16" Padding="8,8,8,8">
-            <StackPanel.Background>
-                <SolidColorBrush Color="{ThemeResource SystemColorBackgroundColor}" Opacity="0.75" />
-            </StackPanel.Background>
-            <local:KeyboardControl OnKeyDown="Keyboard_OnKeyDown" OnKeyUp="Keyboard_OnKeyUp" x:Name="Keyboard"/>
-        </StackPanel>
-        <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1" Opacity="0">
-            <FlyoutBase.AttachedFlyout>
-                <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
-                    <MenuFlyoutItem x:Name="toggleMouseButton" Text="Enable Mouse Mode" Click="toggleMouseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE962;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                    <MenuFlyoutSubItem Text="Other Actions">
-                        <MenuFlyoutItem x:Name="guideButtonShort" Text="Guide Button (short)" Click="guideButtonShort_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+    <Grid>
+        <SwapChainPanel x:Name="swapChainPanel" Margin="{x:Bind State.ScreenMargin}">
+            <StackPanel HorizontalAlignment="Stretch" x:Name="KeyboardView" Visibility="Collapsed" VerticalAlignment="Bottom" Margin="64,0,64,16" Padding="8,8,8,8">
+                <StackPanel.Background>
+                    <SolidColorBrush Color="{ThemeResource SystemColorBackgroundColor}" Opacity="0.75" />
+                </StackPanel.Background>
+                <local:KeyboardControl OnKeyDown="Keyboard_OnKeyDown" OnKeyUp="Keyboard_OnKeyUp" x:Name="Keyboard"/>
+            </StackPanel>
+            <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1" Opacity="0">
+                <FlyoutBase.AttachedFlyout>
+                    <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
+                        <MenuFlyoutItem x:Name="toggleMouseButton" Text="Enable Mouse Mode" Click="toggleMouseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                             <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xe80f;" />
+                                <FontIcon Glyph="&#xE962;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="guideButtonLong" Text="Guide Button (long)" Click="guideButtonLong_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                        <MenuFlyoutSubItem Text="Other Actions">
+                            <MenuFlyoutItem x:Name="guideButtonShort" Text="Guide Button (short)" Click="guideButtonShort_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xe80f;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="guideButtonLong" Text="Guide Button (long)" Click="guideButtonLong_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xe80f;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="toggleHDR_WinAltB" Text="Toggle HDR (Win-Alt-B)" Click="toggleHDR_WinAltB_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xe706;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyoutSubItem>
+                        <MenuFlyoutSeparator></MenuFlyoutSeparator>
+                        <MenuFlyoutItem x:Name="toggleStatsButton" Text="Show Stats" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">
                             <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xe80f;" />
+                                <FontIcon Glyph="&#xEC48;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="toggleHDR_WinAltB" Text="Toggle HDR (Win-Alt-B)" Click="toggleHDR_WinAltB_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                        <MenuFlyoutItem x:Name="toggleLogsButton" Text="Show Logs" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >
                             <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xe706;" />
+                                <FontIcon Glyph="&#xF0B5;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                    </MenuFlyoutSubItem>
-                    <MenuFlyoutSeparator></MenuFlyoutSeparator>
-                    <MenuFlyoutItem x:Name="toggleStatsButton" Text="Show Stats" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xEC48;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                    <MenuFlyoutItem x:Name="toggleLogsButton" Text="Show Logs" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xF0B5;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                    <MenuFlyoutSeparator></MenuFlyoutSeparator>
-                    <MenuFlyoutItem x:Name="disonnectButton" Text="Disconnect" Click="disonnectButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE72D;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                    <MenuFlyoutItem x:Name="disconnectAndCloseButton" Text="Disconnect and Close" Click="disconnectAndCloseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE71A;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                </MenuFlyout>
-            </FlyoutBase.AttachedFlyout>
-        </Button>
-    </SwapChainPanel>
+                        <MenuFlyoutSeparator></MenuFlyoutSeparator>
+                        <MenuFlyoutItem x:Name="disonnectButton" Text="Disconnect" Click="disonnectButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE72D;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="disconnectAndCloseButton" Text="Disconnect and Close" Click="disconnectAndCloseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE71A;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </FlyoutBase.AttachedFlyout>
+            </Button>
+        </SwapChainPanel>
+        <Grid x:Name="ProgressView" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+            <StackPanel x:Name="ProgressStack" HorizontalAlignment="Center" VerticalAlignment="Center"  Orientation="Vertical">
+                <muxc:ProgressRing x:Name="MainProgressRing" Width="64" Height="64" IsActive="True" Margin="0,0,0,16" />
+                <TextBlock x:Name="StatusText" Text="Initializing Moonlight..."/>
+            </StackPanel>
+        </Grid>
+    </Grid>
 
 </Page>
