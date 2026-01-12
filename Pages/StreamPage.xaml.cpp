@@ -186,7 +186,6 @@ void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::X
 
 void StreamPage::SetShowLogs(bool enabled) {
 	this->ShowLogs = enabled;
-	if (m_main) m_main->showLogs = this->ShowLogs;
 }
 
 void StreamPage::toggleStatsButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
@@ -196,7 +195,6 @@ void StreamPage::toggleStatsButton_Click(Platform::Object ^ sender, Windows::UI:
 
 void StreamPage::SetShowStats(bool enabled) {
 	this->ShowStats = enabled;
-	if (m_main) m_main->showStats = this->ShowStats;
 }
 
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {

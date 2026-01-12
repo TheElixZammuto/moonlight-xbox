@@ -35,8 +35,6 @@ namespace moonlight_xbox_dx
 		bool ToggleStats();
 
 		bool mouseMode = false;
-		bool showLogs = false;
-		bool showStats = false;
 		
 		MoonlightClient* moonlightClient;
 	private:
