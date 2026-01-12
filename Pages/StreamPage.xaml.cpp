@@ -130,27 +130,47 @@ void StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object
 
 void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	m_main->mouseMode = !m_main->mouseMode;
-	this->toggleMouseButton->Text = m_main->mouseMode ? "Exit Mouse Mode" : "Toggle Mouse Mode";
+	SetMouseMode(!this->m_mouseMode);
+}
+
+void StreamPage::SetMouseMode(bool enabled)
+{
+	this->MouseMode = enabled;
+	if (m_main) m_main->mouseMode = this->MouseMode;
 }
 
 void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	bool isVisible = m_main->ToggleLogs();
-	this->toggleLogsButton->Text = isVisible ? "Hide Logs" : "Show Logs";
+	SetShowLogs(isVisible);
+}
+
+void StreamPage::SetShowLogs(bool enabled) {
+	this->ShowLogs = enabled;
+	if (m_main) m_main->showLogs = this->ShowLogs;
+}
+
+void StreamPage::toggleStatsButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	bool isVisible = m_main->ToggleStats();
+	SetShowStats(isVisible);
+}
+
+void StreamPage::SetShowStats(bool enabled) {
+	this->ShowStats = enabled;
+	if (m_main) m_main->showStats = this->ShowStats;
 }
 
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
 	SetStreamConfig(configuration);
 
 	if (configuration == nullptr)return;
-}
 
-void StreamPage::toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-	bool isVisible = m_main->ToggleStats();
-	this->toggleStatsButton->Text = isVisible ? "Hide Stats" : "Show Stats";
+	SetMouseMode(false);
+	SetShowLogs(false);
+	SetShowStats(configuration->enableStats);
+
 }
 
 void StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -257,6 +277,11 @@ void StreamPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEve
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &StreamPage::OnBackRequested);
+}
+
+void StreamPage::OnPropertyChanged(Platform::String^ propertyName)
+{
+	PropertyChanged(this, ref new Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 }
 
 void StreamPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
