@@ -10,6 +10,7 @@
 #include "Common\DeviceResources.h"
 #include "Streaming\moonlight_xbox_dxMain.h"
 #include "KeyboardControl.xaml.h"
+#include "Converters\BoolToTextConverter.h"
 
 using namespace Microsoft::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls;
@@ -20,11 +21,48 @@ namespace moonlight_xbox_dx
 	/// </summary>
 
 	class moonlight_xbox_dxMain;
-	public ref class StreamPage sealed
+	public ref class StreamPage sealed : Windows::UI::Xaml::Data::INotifyPropertyChanged
 	{
 	public:
 		StreamPage();
 		virtual ~StreamPage();
+		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
+		void OnPropertyChanged(Platform::String^ propertyName);
+
+		property bool MouseMode {
+			bool get() { return m_mouseMode; }
+			void set(bool value) {
+				if (m_mouseMode != value) {
+					m_mouseMode = value;
+					OnPropertyChanged("MouseMode");
+				}
+			}
+	    }
+
+	    property bool ShowLogs {
+		    bool get() {
+			    return m_showLogs;
+		    }
+		    void set(bool value) {
+			    if (m_showLogs != value) {
+				    m_showLogs = value;
+				    OnPropertyChanged("ShowLogs");
+			    }
+		    }
+	    }
+
+	    property bool ShowStats {
+		    bool get() {
+			    return m_showStats;
+		    }
+		    void set(bool value) {
+			    if (m_showStats != value) {
+				    m_showStats = value;
+				    OnPropertyChanged("ShowStats");
+			    }
+		    }
+	    }
+
 		void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
 		property ApplicationState^ State {
 			ApplicationState^ get() {
@@ -92,9 +130,12 @@ namespace moonlight_xbox_dx
 		void flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e);
 		void toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+	    void SetMouseMode(bool enabled);
 		void toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+	    void SetShowLogs(bool show);
 		StreamConfiguration^ configuration;
 		void toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+	    void SetShowStats(bool show);
 		void disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
 		void OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
@@ -105,6 +146,10 @@ namespace moonlight_xbox_dx
 		void guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+
+        bool m_mouseMode = false;
+	    bool m_showLogs = false;
+	    bool m_showStats = false;
 	};
 }
 

@@ -21,7 +21,6 @@ namespace moonlight_xbox_dx
 		void StopRenderLoop();
 		void SetFlyoutOpened(bool value);
 		Concurrency::critical_section& GetCriticalSection() { return m_criticalSection; }
-		bool mouseMode = false;
 		bool keyboardMode = false;
 		void OnKeyDown(unsigned short virtualKey, char modifiers);
 		void OnKeyUp(unsigned short virtualKey, char modifiers);
@@ -35,6 +34,10 @@ namespace moonlight_xbox_dx
 		bool ToggleLogs();
 		bool ToggleStats();
 
+		bool mouseMode = false;
+		bool showLogs = false;
+		bool showStats = false;
+		
 		MoonlightClient* moonlightClient;
 	private:
 		void ProcessInput();
