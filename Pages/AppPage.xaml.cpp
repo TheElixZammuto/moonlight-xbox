@@ -76,8 +76,10 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 										that2->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that2]() {
 											try {
 												that2->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+										    } catch (const std::exception &e) {
+											    Utils::Logf("[AppPage] Failed to navigate to HostSelectorPage after disconnect. Exception: %s\n", e.what());
 											} catch (...) {
-											    Utils::Log("[AppPage] Failed to navigate to HostSelectorPage after disconnect\n");
+											    Utils::Log("[AppPage] Failed to navigate to HostSelectorPage after disconnect. Unknown Exception.\n");
 											}
 										}));
 									});
@@ -90,8 +92,10 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 						that->wasConnected.store(true);
 					}
 				}
+			} catch (const std::exception &e) {
+				Utils::Logf("[AppPage] Failed to show disconnect dialog. Exception: %s\n", e.what());
 			} catch (...) {
-			    Utils::Log("[AppPage] Failed to show disconnect dialog\n");
+			    Utils::Log("[AppPage] Failed to show disconnect dialog. Unknown Exception.\n");
 			}
 			Sleep(3000);
 		}
