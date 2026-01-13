@@ -530,38 +530,26 @@ void moonlight_xbox_dxMain::CloseApp() {
 }
 
 void moonlight_xbox_dxMain::ExitStreamPage() {
+	
+	bool reachedAppPage = false;
+
 	try {
 		auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame ^>(Windows::UI::Xaml::Window::Current->Content);
 		if (!rootFrame) return;
 
-		bool reachedAppPage = false;
+		auto current = dynamic_cast<AppPage ^>(rootFrame->Content);
+		if (current != nullptr) {
+			reachedAppPage = true;
+		}
+
 		try {
-			// If we can go back, pop entries until we land on an AppPage or exhaust the back stack
-			unsigned int maxSteps = 0;
-			try {
-				maxSteps = rootFrame->BackStack->Size;
-			} catch (...) {
-				maxSteps = 0;
-			}
-
-			for (unsigned int step = 0; step < maxSteps && rootFrame->CanGoBack; ++step) {
-				auto current = dynamic_cast<AppPage ^>(rootFrame->Content);
-				if (current != nullptr) {
-					reachedAppPage = true;
-					break;
-				}
-				try {
-					rootFrame->GoBack();
-				} catch (...) {
-					break;
-				}
-			}
-
-			// Check one last time after popping
-			if (!reachedAppPage) {
-				if (dynamic_cast<AppPage ^>(rootFrame->Content) != nullptr) reachedAppPage = true;
-			}
+			rootFrame->GoBack();
 		} catch (...) {
+			Utils::Log("ExitStreamPage: Failed to GoBack()\n");
+		}
+
+		if (!reachedAppPage) {
+			if (dynamic_cast<AppPage ^>(rootFrame->Content) != nullptr) reachedAppPage = true;
 		}
 
 		if (!reachedAppPage) {
@@ -569,9 +557,11 @@ void moonlight_xbox_dxMain::ExitStreamPage() {
 				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
 			} catch (...) {
 				rootFrame->Content = nullptr;
+				Utils::Log("ExitStreamPage: Failed to return to HostSelectorPage\n");
 			}
 		}
 	} catch (...) {
+		Utils::Log("ExitStreamPage: An error occurred\n");
 	}
 }
 
