@@ -82,9 +82,11 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 											    Utils::Log("[AppPage] Failed to navigate to HostSelectorPage after disconnect. Unknown Exception.\n");
 											}
 										}));
-									});
+								    });
+							    } catch (const std::exception &e) {
+								    Utils::Logf("[AppPage] Failed to show disconnect dialog. Exception: %s\n", e.what());
 								} catch (...) {
-								    Utils::Log("[AppPage] Failed to show disconnect dialog\n");
+								    Utils::Log("[AppPage] Failed to show disconnect dialog. Unknown Exception.\n");
 								}
 							}));
 					}
@@ -93,9 +95,9 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 					}
 				}
 			} catch (const std::exception &e) {
-				Utils::Logf("[AppPage] Failed to show disconnect dialog. Exception: %s\n", e.what());
+				Utils::Logf("[AppPage] Failed to poll app and host running state. Exception: %s\n", e.what());
 			} catch (...) {
-			    Utils::Log("[AppPage] Failed to show disconnect dialog. Unknown Exception.\n");
+			    Utils::Log("[AppPage] Failed to poll app and host running state. Unknown Exception.\n");
 			}
 			Sleep(3000);
 		}
