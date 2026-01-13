@@ -35,9 +35,7 @@ AppPage::AppPage()
 
 void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
-	if (mhost == nullptr) {
-		return;
-	}
+	if (mhost == nullptr) return;
 	host = mhost;
 	host->UpdateHostInfo(true);
 	host->UpdateApps();
@@ -45,9 +43,13 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 	// Start background polling for app running state and connectivity
 	continueAppFetch.store(true);
 	wasConnected.store(host->Connected);
-	auto that = this;
-	create_task([that]() {
-		while (that->continueAppFetch.load()) {
+
+	Platform::WeakReference weakThis(this);
+	create_task([weakThis]() {
+		while (true) {
+			auto that = weakThis.Resolve<AppPage>();
+			if (that == nullptr) break;
+			if (!that->continueAppFetch.load()) break;
 			try {
 				if (that->host != nullptr) {
 					that->host->UpdateAppRunningStates();
@@ -55,27 +57,42 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 					try { connected = (that->host->Connect() == 0); } catch (...) { connected = false; }
 					if (that->wasConnected.load() && !connected) {
 						that->wasConnected.store(false);
-						Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
-							try {
-								auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-								dialog->Title = Utils::StringFromStdString("Disconnected");
-								dialog->Content = Utils::StringFromStdString("Connection to host was lost.");
-								dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
-								concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then([that](Windows::UI::Xaml::Controls::ContentDialogResult result) {
-									that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
-										try {
-											that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
-										} catch (...) {}
-									}));
-								});
-							} catch (...) {}
-						}));
+
+						// Show the disconnect dialog only if page instance still exists (no visible-page checks)
+						Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+							Windows::UI::Core::CoreDispatcherPriority::High,
+							ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+								auto inner = weakThis.Resolve<AppPage>();
+								if (inner == nullptr) return;
+
+								try {
+									auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+									dialog->Title = Utils::StringFromStdString("Disconnected");
+									dialog->Content = Utils::StringFromStdString("Connection to host was lost.");
+									dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
+									concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then([weakThis](Windows::UI::Xaml::Controls::ContentDialogResult result) {
+										auto that2 = weakThis.Resolve<AppPage>();
+										if (that2 == nullptr) return;
+										that2->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that2]() {
+											try {
+												that2->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+											} catch (...) {
+											    Utils::Log("[AppPage] Failed to navigate to HostSelectorPage after disconnect\n");
+											}
+										}));
+									});
+								} catch (...) {
+								    Utils::Log("[AppPage] Failed to show disconnect dialog\n");
+								}
+							}));
 					}
 					else if (!that->wasConnected.load() && connected) {
 						that->wasConnected.store(true);
 					}
 				}
-			} catch (...) {}
+			} catch (...) {
+			    Utils::Log("[AppPage] Failed to show disconnect dialog\n");
+			}
 			Sleep(3000);
 		}
 	});
@@ -88,6 +105,10 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 			}));
 	}
 	GetApplicationState()->shouldAutoConnect = false;
+}
+
+void AppPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	continueAppFetch.store(false);
 }
 
 void AppPage::AppsGrid_ItemClick(Platform::Object ^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs ^ e) {
@@ -108,6 +129,9 @@ void AppPage::AppsGrid_ItemClick(Platform::Object ^ sender, Windows::UI::Xaml::C
 }
 
 void AppPage::Connect(int appId) {
+
+	continueAppFetch.store(false);
+
 	StreamConfiguration ^ config = ref new StreamConfiguration();
 	config->hostname = host->LastHostname;
 	config->appID = appId;
@@ -320,17 +344,15 @@ void AppPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackReques
 	}
                                                         }
 
-void AppPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-                        {
+void AppPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &AppPage::OnBackRequested);
-                        }
+}
 
-void AppPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-                        {
+void AppPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
 	// stop background polling loop
 	continueAppFetch.store(false);
-                        }
+}
 

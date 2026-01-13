@@ -25,6 +25,7 @@ namespace moonlight_xbox_dx
 		std::atomic<bool> wasConnected{ false };
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
+		virtual void OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
  		void Connect(int app);
 	public:
 		AppPage();
