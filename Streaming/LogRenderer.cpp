@@ -64,7 +64,7 @@ void LogRenderer::CreateDeviceDependentResources()
 	}
 
 	m_console->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), font);
-	m_warningConsole->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), L"Assets\\Font\\ModeSeven-24.spritefont");
+	m_warningConsole->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), font);
 
 	// use much faster font rendering
 	m_console->SetFixedWidthFont(true);
