@@ -49,6 +49,7 @@ Pacer::Pacer()
       m_Stopping(false),
       m_StreamFps(0),
       m_RefreshRate(0.0),
+      m_FramePacingImmediate(true),
       m_FrameCadence(),
       m_LastSyncRefreshCount(0),
       m_LastSyncQpc(0),
@@ -72,7 +73,7 @@ void Pacer::deinit() {
 	if (m_CurrentFrame) {
 		av_frame_free(&m_CurrentFrame);
 		m_CurrentFrame = nullptr;
-    }
+	}
 
 	Utils::Logf("Pacer: deinit\n");
 }
@@ -82,12 +83,12 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 	m_DeviceResources = res;
 	m_StreamFps = streamFps;
 	m_RefreshRate = refreshRate;
-	m_FramePacingImmediate = framePacingImmediate;
+	m_FramePacingImmediate.store(framePacingImmediate, std::memory_order_release);
 
 	m_FrameCadence.init(m_RefreshRate > 0.0 ? m_RefreshRate : 60.0, static_cast<double>(streamFps));
 
 	Utils::Logf("Frame Pacer init: mode %s, streamFps %d, refreshRate %.2f\n",
-		m_FramePacingImmediate ? "immediate" : "display-locked", m_StreamFps, m_RefreshRate);
+	            framePacingImmediate ? "immediate" : "display-locked", m_StreamFps, m_RefreshRate);
 
 	m_vhsum = 0;
 	m_vhcount = 0;
@@ -106,6 +107,14 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 	}
 
 	m_Running.store(true, std::memory_order_release);
+}
+
+bool Pacer::getPacingImmediate() {
+	return m_FramePacingImmediate.load(std::memory_order_acquire);
+}
+
+void Pacer::setPacingImmediate(bool framePacingImmediate) {
+	m_FramePacingImmediate.store(framePacingImmediate, std::memory_order_release);
 }
 
 void Pacer::vsyncHardware() {
@@ -218,7 +227,7 @@ void Pacer::waitForFrame(double timeoutMs) {
 bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 	if (!running()) return false;
 
-	if (m_FramePacingImmediate) {
+	if (m_FramePacingImmediate.load(std::memory_order_acquire)) {
 		return renderModeImmediate(sceneRenderer);
 	} else {
 		return renderModeDisplayLocked(sceneRenderer);
@@ -255,7 +264,7 @@ bool Pacer::renderModeImmediate(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 
 	// Render it
 	FQLog("> Frame rendered [pts: %.3f] [%.2ffps] [%.2fhz] [queued %d]\n",
-		m_CurrentFrame->pts / 90.0, m_FrameCadence.streamFps(), m_FrameCadence.displayHz(), FrameQueue::instance().count());
+	      m_CurrentFrame->pts / 90.0, m_FrameCadence.streamFps(), m_FrameCadence.displayHz(), FrameQueue::instance().count());
 
 	if (!sceneRenderer->Render(m_CurrentFrame)) {
 		return false; // something went wrong rendering the frame

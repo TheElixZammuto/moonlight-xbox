@@ -3,6 +3,7 @@
 // clang-format on
 #include "FrameQueue.h"
 #include "Utils.hpp"
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <thread>
@@ -192,17 +193,20 @@ void FrameQueue::waitForEnqueue(int num) {
 
 void FrameQueue::waitForEnqueue(int num, double timeoutMs) {
 	std::unique_lock<std::mutex> lock(_mutex);
-	if (_paused.load(std::memory_order_acquire)) {
-		return;
-	}
-
-	auto deadline = std::chrono::steady_clock::now() + std::chrono::microseconds(
-	                                                       static_cast<long long>(timeoutMs * 1000.0));
+	auto deadline = std::chrono::steady_clock::now() +
+	                std::chrono::microseconds(static_cast<long long>(timeoutMs * 1000.0));
 
 	while (_count < num && !_paused.load(std::memory_order_acquire)) {
-		if (_cv.wait_until(lock, deadline) == std::cv_status::timeout) {
-			break;
-		}
+		auto now = std::chrono::steady_clock::now();
+		if (now >= deadline) break;
+
+		// wait_for overshoots a lot, so wait in small chunks
+		auto remaining = std::chrono::duration_cast<std::chrono::microseconds>(deadline - now);
+		auto chunk = remaining / 4;
+		if (chunk > std::chrono::microseconds(1000)) chunk = std::chrono::microseconds(1000);
+		if (chunk < std::chrono::microseconds(250))  chunk = std::chrono::microseconds(250);
+
+		_cv.wait_for(lock, chunk);
 	}
 }
 
