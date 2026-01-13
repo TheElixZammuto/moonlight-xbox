@@ -1,4 +1,4 @@
-# moonlight-xbox 
+﻿# moonlight-xbox 
 
 [![Download](https://get.microsoft.com/images/en-us%20dark.svg)](https://apps.microsoft.com/store/detail/9MW1BS08ZBTH?launch=true&mode=full)
 
@@ -22,6 +22,9 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 ### For Dev Mode
 
 **Looking for the Standard Dev Mode Builds? Can be found here:** [Link](https://github.com/TheElixZammuto/moonlight-xbox/releases)
+
+**Looking for the Bleeding Edge Builds? Can be found here:** [Link](https://github.com/TheElixZammuto/moonlight-xbox/actions)
+
 1. Enable the Dev Mode on your Xbox https://docs.microsoft.com/en-us/windows/uwp/xbox-apps/devkit-activation
 2. Using the Device Portal, install the Application (moonlight-xbox-dx.msixbundle) and, in the following step, add the required dependencies (Microsoft.UI.Xaml.2.7.appx and Microsoft.VCLibs.x64.14.00.appx)
 3. Open Moonlight on Xbox and, if not already, your host app
@@ -55,6 +58,20 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Visual Studio 2022
 
 ### Steps to build
+
+**You have two options:**
+
+1. Clone this repository (`moonlight-xbox`) with submodules enabled!
+1. Install [VCPKG](https://vcpkg.io/en/index.html) and all dependencies:
+    1. Run `git submodule update --init --recursive`
+    1. Run `vcpkg\bootstrap-vcpkg.bat`
+    1. Install dependencies: `.\vcpkg\vcpkg.exe install --triplet x64-uwp`
+1. Run x64 Visual Studio Prompt (Tools → Command Line → Developer Command Prompt)
+    1. Run `generate-thirdparty-projects.bat` to generate `moonlight-common-c` VS project
+    1. Go to `libgamestream` and run `build-uwp.bat` to generate `libgamestream` VS project
+1. After all the actions above, you finally can open and build solution.
+
+**Or**
 
 1. Clone this repository
 1. Run `./setup-dev.ps1`

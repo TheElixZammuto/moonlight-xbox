@@ -14,6 +14,7 @@ $WindowsSDK = "10.0"
 $ForceGenerator = $null   # Default: "Visual Studio 17 2022"
 
 # Certificate
+$CertFileName = "moonlight-xbox-dx_TemporaryKey.pfx"
 $CertSubject = "CN=MoonlightXbox"
 $CertPassword = "moonlight"
 
@@ -44,12 +45,67 @@ function Try-Step {
     }
 }
 
+function Run-IfNeeded {
+    param(
+        [string]$Name,
+        [scriptblock]$IsNeeded,
+        [scriptblock]$Action
+    )
+
+    Step $Name
+
+    try {
+        $needed = & $IsNeeded
+    }
+    catch {
+        # If the check fails for any reason, be conservative and run the step.
+        $needed = $true
+    }
+
+    if (-not $needed) {
+        Write-Host "Skipping — step not necessary." -ForegroundColor Yellow
+        return
+    }
+
+    try {
+        & $Action
+    }
+    catch {
+        Record-Failure "$Name failed: $($_.Exception.Message)"
+    }
+}
+
+# Simple yes/no prompt. Returns $true for yes, $false for no.
+function Ask-YesNo {
+    param(
+        [string]$Question,
+        [bool]$DefaultYes = $true
+    )
+
+    $yesNo = if ($DefaultYes) { "Y/n" } else { "y/N" }
+    while ($true) {
+        $resp = Read-Host "$Question [$yesNo]"
+        if ([string]::IsNullOrWhiteSpace($resp)) { return $DefaultYes }
+        switch ($resp.ToLower()) {
+            'y' { return $true }
+            'yes' { return $true }
+            'n' { return $false }
+            'no' { return $false }
+            default { Write-Host "Please answer 'y' or 'n'." -ForegroundColor Yellow }
+        }
+    }
+}
+
+$script:RefreshCert = $false
+$script:NeedsVSRefresh = $false
+
 # --- VISUAL STUDIO DETECTION --------------------------------------------------
 
 function Detect-VS {
     Step "Detecting Visual Studio installation"
 
-    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    $programFilesX86 = [System.Environment]::GetEnvironmentVariable("ProgramFiles(x86)")
+    $vswhere = Join-Path $programFilesX86 "Microsoft Visual Studio\Installer\vswhere.exe"
     if (-not (Test-Path $vswhere)) {
         Record-Failure "vswhere.exe not found — Visual Studio Installer missing"
         return $null
@@ -114,11 +170,11 @@ function Detect-VS {
             return "Visual Studio 17 2022"
         }
 
-        "2025" {
-            Write-Host "`n⚠ Visual Studio 2025 detected" -ForegroundColor Yellow
-            Write-Host "   CMake does not yet provide a VS2025 generator." -ForegroundColor Yellow
+        "2026" {
+            Write-Host "`n⚠ Visual Studio 2026 detected" -ForegroundColor Yellow
+            Write-Host "   CMake does not yet provide a VS2026 generator." -ForegroundColor Yellow
             Write-Host "   This is normal — the MSVC toolchain is fully compatible." -ForegroundColor Yellow
-            Write-Host "   Using the VS2022 generator to target the VS2025 toolchain." -ForegroundColor Yellow
+            Write-Host "   Using the VS2022 generator to target the VS2026 toolchain." -ForegroundColor Yellow
             return "Visual Studio 17 2022"
         }
 
@@ -150,28 +206,44 @@ Try-Step "Validating environment" {
 
 # --- STEP 2: Update submodules ------------------------------------------------
 
-Try-Step "Updating git submodules" {
+Run-IfNeeded "Updating git submodules" {
+    # Needed if any submodule is uninitialized or needs updating.
+    $out = git submodule status --recursive 2>&1
+    if ($LASTEXITCODE -ne 0) { return $true }
+    if (-not $out) { return $false }
+    if ($out -match '^-|^\+') { return $true }
+    return $false
+} {
     git submodule update --init --recursive
     if ($LASTEXITCODE -ne 0) { throw "git submodule update failed" }
 }
 
 # --- STEP 3: Bootstrap vcpkg --------------------------------------------------
 
-Try-Step "Bootstrapping vcpkg" {
+Run-IfNeeded "Bootstrapping vcpkg" {
+    return -not (Test-Path ".\vcpkg\vcpkg.exe")
+} {
     & .\vcpkg\bootstrap-vcpkg.bat
     if ($LASTEXITCODE -ne 0) { throw "vcpkg bootstrap failed" }
 }
 
 # --- STEP 4: Install vcpkg packages ------------------------------------------
 
-Try-Step "Installing vcpkg packages for $Triplet" {
+Run-IfNeeded "Installing vcpkg packages for $Triplet" {
+    $installed1 = Test-Path ".\vcpkg_installed\$Triplet"
+    $installed2 = Test-Path ".\vcpkg\installed\$Triplet"
+    return -not ($installed1 -or $installed2)
+} {
     & .\vcpkg\vcpkg.exe install --triplet $Triplet --clean-after-build
     if ($LASTEXITCODE -ne 0) { throw "vcpkg install failed" }
 }
 
 # --- STEP 5: Generate third‑party projects ------------------------------------
 
-Try-Step "Configuring moonlight-common-c" {
+Run-IfNeeded "Configuring moonlight-common-c" {
+    return -not (Test-Path "third_party/moonlight-common-c/build/CMakeCache.txt")
+} {
+    $script:NeedsVSRefresh = $true
     cmake -B "third_party/moonlight-common-c/build" `
           -S "third_party/moonlight-common-c" `
           -DCMAKE_TOOLCHAIN_FILE="$PSScriptRoot/vcpkg/scripts/buildsystems/vcpkg.cmake" `
@@ -185,7 +257,10 @@ Try-Step "Configuring moonlight-common-c" {
     if ($LASTEXITCODE -ne 0) { throw "moonlight-common-c CMake configuration failed" }
 }
 
-Try-Step "Configuring libgamestream" {
+Run-IfNeeded "Configuring libgamestream" {
+    return -not (Test-Path "libgamestream/build/CMakeCache.txt")
+} {
+    $script:NeedsVSRefresh = $true
     cmake -B "libgamestream/build" `
           -S "libgamestream" `
           -DCMAKE_TOOLCHAIN_FILE="$PSScriptRoot/vcpkg/scripts/buildsystems/vcpkg.cmake" `
@@ -202,8 +277,13 @@ Try-Step "Configuring libgamestream" {
 
 # --- STEP 6: Refresh Visual Studio project cache ------------------------------
 
-Try-Step "Refreshing Visual Studio project cache" {
-
+Run-IfNeeded "Refreshing Visual Studio project cache" {
+    $vsRunning = Get-Process devenv -ErrorAction SilentlyContinue
+    if (-not $script:NeedsVSRefresh) { 
+        return $false
+    }
+    return (Test-Path ".vs") -or $vsRunning
+} {
     $vsRunning = Get-Process devenv -ErrorAction SilentlyContinue
 
     if ($vsRunning) {
@@ -223,25 +303,119 @@ Try-Step "Refreshing Visual Studio project cache" {
 
 # --- STEP 7: Generate UWP signing certificate ---------------------------------
 
-Try-Step "Generating UWP signing certificate" {
+Run-IfNeeded "Generating UWP signing certificate" {
+    $hasPfx = Test-Path "$PSScriptRoot\$CertFileName"
+    $hasCert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -eq $CertSubject }
+
+    if ($hasPfx -or $hasCert) {
+        # Ask user whether they want to refresh the existing cert
+        if (Ask-YesNo "A signing certificate already exists. Refresh it?" $false) {
+            $script:RefreshCert = $true
+            return $true
+        }
+        return $false
+    }
+
+    return $true
+} {
     $cert = New-SelfSignedCertificate `
         -Type CodeSigningCert `
         -Subject $CertSubject `
         -CertStoreLocation "Cert:\CurrentUser\My"
 
-    $pwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
+    $securePwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
 
     Export-PfxCertificate `
         -Cert $cert `
-        -FilePath "$PSScriptRoot\SigningCert.pfx" `
-        -Password $pwd
+        -FilePath "$PSScriptRoot\$CertFileName" `
+        -Password $securePwd
 }
 
 # --- STEP 8: Patch vcxproj ---------------------------------------------------
 
-Try-Step "Updating .vcxproj with certificate info" {
+Run-IfNeeded "Updating .vcxproj with certificate info" {
+    if (-not $script:RefreshCert) { return $false }
+    $proj = Get-ChildItem -Recurse -Filter *.vcxproj | Select-Object -First 1
+    if (-not $proj) { return $true }
+    $content = Get-Content $proj.FullName -Raw
+    if ($content -match '<PackageCertificateKeyFile>$CertFileName</PackageCertificateKeyFile>' -and $content -match '<PackageCertificatePassword>moonlight</PackageCertificatePassword>') {
+        return $false
+    }
+    return $true
+} {
     $proj = Get-ChildItem -Recurse -Filter *.vcxproj | Select-Object -First 1
     if (-not $proj) { throw "Could not find .vcxproj" }
+
+    $pfxPath = "$PSScriptRoot\$CertFileName"
+    $projXmlRaw = Get-Content $proj.FullName -Raw
+    $existingKeyFile = $null
+    if ($projXmlRaw -match '<PackageCertificateKeyFile>([^<]+)</PackageCertificateKeyFile>') { $existingKeyFile = $matches[1] }
+    if ($existingKeyFile) {
+        $existingKeyFull = Join-Path $PSScriptRoot $existingKeyFile
+        if (Test-Path $existingKeyFull) {
+            try {
+                $securePwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
+                $imported = Import-PfxCertificate -FilePath $existingKeyFull -CertStoreLocation Cert:\CurrentUser\My -Password $securePwd
+                if ($imported) {
+                    Write-Host "Imported existing keyfile $existingKeyFile into certificate store" -ForegroundColor Green
+                    $cert = $imported
+                }
+            }
+            catch {
+                Record-Failure "Failed to import existing keyfile ${existingKeyFile}: $($_.Exception.Message)"
+            }
+        }
+    }
+    
+    $pfxCert = $null
+    if (Test-Path $pfxPath) {
+        try {
+            $pfxCert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($pfxPath, $CertPassword)
+        } catch { $pfxCert = $null }
+    }
+
+    $storeCert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -eq $CertSubject } | Select-Object -First 1
+
+    if ($script:RefreshCert) {
+        if (Test-Path $pfxPath) {
+            $securePwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
+            $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePwd
+        }
+        elseif (-not $storeCert) {
+            throw "No certificate or PFX available to import"
+        }
+        else {
+            $cert = $storeCert
+        }
+    }
+    else {
+        if ($projXmlRaw -match '<PackageCertificateThumbprint>([^<]+)</PackageCertificateThumbprint>') { $existingThumb = $matches[1] }
+        if ($pfxCert -and $storeCert) {
+            if ($pfxCert.Thumbprint -ne $storeCert.Thumbprint) {
+                if (Ask-YesNo "PFX file exists but does not match the certificate in the store. Import the PFX and update the project?" $false) {
+                    $securePwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
+                    $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePwd
+                }
+                else {
+                    Record-Failure "Skipped updating .vcxproj due to PFX/store mismatch"
+                    return
+                }
+            }
+            else {
+                $cert = $storeCert
+            }
+        }
+        elseif ($pfxCert -and -not $storeCert) {
+            $securePwd = ConvertTo-SecureString $CertPassword -AsPlainText -Force
+            $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePwd
+        }
+        elseif ($storeCert -and -not $pfxCert) {
+            $cert = $storeCert
+        }
+        else {
+            throw "No signing certificate found"
+        }
+    }
 
     [xml]$xml = Get-Content $proj.FullName
 
@@ -263,7 +437,18 @@ Try-Step "Updating .vcxproj with certificate info" {
         $keyFileNode = $xml.CreateElement("PackageCertificateKeyFile", $nsmgr.LookupNamespace("msb"))
         $pg.AppendChild($keyFileNode) | Out-Null
     }
-    $keyFileNode.InnerText = "SigningCert.pfx"
+        if (Test-Path $pfxPath) {
+            try { $pfxCert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($pfxPath, $CertPassword) } catch { $pfxCert = $null }
+            if ($pfxCert -and ($pfxCert.Thumbprint -eq $cert.Thumbprint)) {
+                $keyFileNode.InnerText = "$CertFileName"
+            }
+        else {
+            $keyFileNode.InnerText = ""
+        }
+    }
+    else {
+        $keyFileNode.InnerText = ""
+    }
 
     $pwdNode = $pg.SelectSingleNode("msb:PackageCertificatePassword", $nsmgr)
     if (-not $pwdNode) {
@@ -277,7 +462,16 @@ Try-Step "Updating .vcxproj with certificate info" {
 
 # --- STEP 9: Patch appxmanifest ----------------------------------------------
 
-Try-Step "Updating appxmanifest with certificate info" {
+Run-IfNeeded "Updating appxmanifest with certificate info" {
+    if (-not $script:RefreshCert) { return $false }
+    $manifestPath = "$PSScriptRoot\Package.appxmanifest"
+    if (-not (Test-Path $manifestPath)) { return $false }
+    [xml]$manifest = Get-Content $manifestPath
+    $pub = $manifest.Package.Identity.Publisher
+    $display = $manifest.Package.Properties.PublisherDisplayName
+    if (($pub -eq $CertSubject) -and ($display -eq 'MoonlightXbox')) { return $false }
+    return $true
+} {
     $manifestPath = "$PSScriptRoot\Package.appxmanifest"
     if (Test-Path $manifestPath) {
         [xml]$manifest = Get-Content $manifestPath
