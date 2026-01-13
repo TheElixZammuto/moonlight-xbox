@@ -2,6 +2,7 @@
 #include "AppPage.Xaml.h"
 #include "Common\ModalDialog.xaml.h"
 #include "HostSettingsPage.xaml.h"
+#include "HostSelectorPage.xaml.h"
 #include "State\MoonlightClient.h"
 #include "StreamPage.xaml.h"
 #include "Utils.hpp"
@@ -34,10 +35,44 @@ AppPage::AppPage()
 }
 
 void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
+
 	if (mhost == nullptr) {
+		try {
+			Utils::Log("[AppPage] OnNavigatedTo: mhost is null - attempting redirect to HostSelectorPage\n");
+			if (this->Frame != nullptr) {
+				bool navRes = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+				if (!navRes) {
+					Utils::Log("[AppPage] OnNavigatedTo: Navigate returned false - scheduling deferred navigation\n");
+					Platform::WeakReference weakThis(this);
+					this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+						try {
+							auto that = weakThis.Resolve<AppPage>();
+							if (that != nullptr && that->Frame != nullptr) {
+								bool r = that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+								Utils::Logf("[AppPage] Deferred Navigate returned %d\n", r);
+							} else {
+								Utils::Log("[AppPage] Deferred Navigate: Page or Frame no longer available\n");
+							}
+						} catch (const std::exception &ex) {
+							Utils::Logf("[AppPage] Deferred navigation threw an exception. Exception: %s\n", ex.what());
+						} catch (...) {
+							Utils::Log("[AppPage] Deferred navigation threw an exception. Unknown Exception.\n");
+						}
+					}));
+				}
+			} else {
+				Utils::Log("[AppPage] OnNavigatedTo: this->Frame is null\n");
+			}
+		} catch (const std::exception &ex) {
+			Utils::Logf("[AppPage] OnNavigatedTo: Failed to navigate to HostSelectorPage. Exception: %s\n", ex.what());
+		} catch (...) {
+			Utils::Log("[AppPage] OnNavigatedTo: Failed to navigate to HostSelectorPage. Unknown Exception.\n");
+		}
 		return;
 	}
+
 	host = mhost;
 	host->UpdateHostInfo(true);
 	host->UpdateApps();
@@ -321,16 +356,16 @@ void AppPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackReques
                                                         }
 
 void AppPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-                        {
+{
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &AppPage::OnBackRequested);
-                        }
+}
 
 void AppPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-                        {
+{
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
 	// stop background polling loop
 	continueAppFetch.store(false);
-                        }
+}
 
