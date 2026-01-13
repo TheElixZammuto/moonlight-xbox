@@ -64,7 +64,7 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 
 	keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyDown));
 	keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyUp));
-	
+
 	try {
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
 	} catch (...) {
@@ -79,7 +79,7 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 		if (that == nullptr) return;
 		try {
 			that->m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(that->m_deviceResources, that, new MoonlightClient(), that->configuration));
-			
+
 			DISPATCH_UI([that], {
 				try {
 					that->m_main->CreateDeviceDependentResources();
@@ -308,6 +308,13 @@ void StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xa
 void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->m_main->SendWinAltB();
+}
+
+void StreamPage::toggleFramePacing_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	// thread safe atomic bool
+	bool isImmediate = Pacer::instance().getPacingImmediate();
+	Pacer::instance().setPacingImmediate(isImmediate ? false : true);
 }
 
 void StreamPage::OnPropertyChanged(Platform::String^ propertyName)
