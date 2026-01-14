@@ -43,6 +43,11 @@
                                     <FontIcon Glyph="&#xe706;" />
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="toggleFramePacing" Text="Switch frame pacing mode" Click="toggleFramePacing_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8B9;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
                         </MenuFlyoutSubItem>
                         <MenuFlyoutSeparator></MenuFlyoutSeparator>
                         <MenuFlyoutItem x:Name="toggleStatsButton" Text="Show Stats" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">
