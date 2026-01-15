@@ -60,7 +60,7 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 
 						// Show the disconnect dialog only if page instance still exists (no visible-page checks)
 						Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
-							Windows::UI::Core::CoreDispatcherPriority::High,
+							Windows::UI::Core::CoreDispatcherPriority::Normal,
 							ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
 								auto inner = weakThis.Resolve<AppPage>();
 								if (inner == nullptr) return;
