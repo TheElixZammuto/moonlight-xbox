@@ -53,9 +53,7 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 			try {
 				if (that->host != nullptr) {
 					that->host->UpdateAppRunningStates();
-					bool connected = false;
-					try { connected = (that->host->Connect() == 0); } catch (...) { connected = false; }
-					if (that->wasConnected.load() && !connected) {
+					if (that->wasConnected.load() && !that->host->Connected) {
 						that->wasConnected.store(false);
 
 						// Show the disconnect dialog only if page instance still exists (no visible-page checks)
@@ -90,7 +88,7 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 								}
 							}));
 					}
-					else if (!that->wasConnected.load() && connected) {
+					else if (!that->wasConnected.load() && that->host->Connected) {
 						that->wasConnected.store(true);
 					}
 				}
