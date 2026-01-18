@@ -11,6 +11,10 @@
     Loaded="Page_Loaded"
     Unloaded="Page_Unloaded">
 
+    <Page.Resources>
+        <local:BoolToTextConverter x:Key="BoolToTextConverter" TrueText="On" FalseText="Off" />
+    </Page.Resources>
+
     <Grid>
         <SwapChainPanel x:Name="swapChainPanel" Margin="{x:Bind State.ScreenMargin}">
             <StackPanel HorizontalAlignment="Stretch" x:Name="KeyboardView" Visibility="Collapsed" VerticalAlignment="Bottom" Margin="64,0,64,16" Padding="8,8,8,8">
@@ -22,7 +26,7 @@
             <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1" Opacity="0">
                 <FlyoutBase.AttachedFlyout>
                     <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
-                        <MenuFlyoutItem x:Name="toggleMouseButton" Text="Enable Mouse Mode" Click="toggleMouseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                        <MenuFlyoutItem x:Name="toggleMouseButton" Text="{x:Bind MouseMode, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Exit Mouse Mode|Enter Mouse Mode'}" Click="toggleMouseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE962;" />
                             </MenuFlyoutItem.Icon>
@@ -45,12 +49,12 @@
                             </MenuFlyoutItem>
                         </MenuFlyoutSubItem>
                         <MenuFlyoutSeparator></MenuFlyoutSeparator>
-                        <MenuFlyoutItem x:Name="toggleStatsButton" Text="Show Stats" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">
+                        <MenuFlyoutItem x:Name="toggleStatsButton" Text="{x:Bind ShowStats, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Hide Stats|Show Stats'}" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xEC48;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="toggleLogsButton" Text="Show Logs" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >
+                        <MenuFlyoutItem x:Name="toggleLogsButton" Text="{x:Bind ShowLogs, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Hide Logs|Show Logs'}" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xF0B5;" />
                             </MenuFlyoutItem.Icon>
