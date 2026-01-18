@@ -73,5 +73,6 @@ class FFMpegDecoder {
 	int ffmpeg_buffer_size;
 	std::shared_ptr<DX::DeviceResources> m_deviceResources;
 	int m_LastFrameNumber;
+	int64_t m_StreamEpochQpc;
 };
 } // namespace moonlight_xbox_dx

@@ -99,6 +99,7 @@ namespace moonlight_xbox_dx {
 
 		this->m_LastFrameNumber = 0;
 		this->ffmpeg_buffer_size = 0;
+		this->m_StreamEpochQpc = 0;
 
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
@@ -214,6 +215,8 @@ namespace moonlight_xbox_dx {
 		int length = 0;
 		QueryPerformanceCounter(&decodeStart);
 
+		if (m_StreamEpochQpc == 0) m_StreamEpochQpc = decodeStart.QuadPart;
+
 		if (!ensure_buf_size(&ffmpeg_buffer, &ffmpeg_buffer_size, decodeUnit->fullLength + AV_INPUT_BUFFER_PADDING_SIZE)) {
 			Utils::Logf("Couldn't realloc ffmpeg_buffer\n");
 			return DR_NEED_IDR;
@@ -233,6 +236,14 @@ namespace moonlight_xbox_dx {
 			droppedFramesNetwork = decodeUnit->frameNumber - (m_LastFrameNumber + 1);
 		}
 		m_LastFrameNumber = decodeUnit->frameNumber;
+
+		if (!decodeUnit->rtpTimestamp) {
+			// Estimate for hosts that don't send timestamps (e.g. Wolf)
+			LogOnce("Warning: host is not sending RTP timestamps, this may hurt frame pacing\n");
+			double ptsMs = QpcToMs(QpcNow() - m_StreamEpochQpc);
+			decodeUnit->rtpTimestamp = (uint32_t)(ptsMs * 90.0);
+			decodeUnit->presentationTimeUs = (uint64_t)(ptsMs * 1000.0);
+		}
 
 		// track stats for a variety of things we can track at the same time
 		m_deviceResources->GetStats()->SubmitVideoBytesAndReassemblyTime(length, decodeUnit, droppedFramesNetwork);
