@@ -4,6 +4,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "moonlight-xbox-dx", "moonlight-xbox-dx.vcxproj", "{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{842AAF8B-4505-3D3B-AAE5-CFF297F90298} = {842AAF8B-4505-3D3B-AAE5-CFF297F90298}
+		{873D03B2-B99F-3917-AFDC-9FB954F9962E} = {873D03B2-B99F-3917-AFDC-9FB954F9962E}
+		{E025A414-0DA7-3C61-A890-9487ED6E1D91} = {E025A414-0DA7-3C61-A890-9487ED6E1D91}
+		{F4776924-619C-42C7-88B2-82C947CCC9E7} = {F4776924-619C-42C7-88B2-82C947CCC9E7}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "moonlight-common-c", "third_party\moonlight-common-c\build\moonlight-common-c.vcxproj", "{E025A414-0DA7-3C61-A890-9487ED6E1D91}"
 EndProject
