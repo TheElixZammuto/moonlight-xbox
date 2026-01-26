@@ -22,12 +22,7 @@ static inline GamepadButtons setButtons(GamepadButtons buttons, GamepadButtons m
 }
 
 static inline GamepadReading EmptyReading() {
-	static GamepadReading r = [] {
-		static GamepadReading er{};
-		ZeroMemory(&er, sizeof(GamepadReading));
-		return er;
-	}();
-	return r;
+	return GamepadReading{};
 }
 
 GamepadComboDetector::ComboResult GamepadComboDetector::GetComboResult(int gamepadIndex, int comboTimeoutMs) {
@@ -61,8 +56,13 @@ GamepadComboDetector::ComboResult GamepadComboDetector::GetComboResult(int gamep
 
 	switch (combo.comboState) {
 	case ComboState::None:
+		// Handle simultaneous press in the same poll
+		if (viewCurrentlyPressed && menuCurrentlyPressed && !combo.viewPressed && !combo.menuPressed) {
+			combo.comboState = ComboState::ComboActive;
+			result.comboTriggered = true;
+			maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
 		// Check if either button is newly pressed
-		if (viewCurrentlyPressed && !combo.viewPressed) {
+		} else if (viewCurrentlyPressed && !combo.viewPressed) {
 			combo.comboState = ComboState::ViewWaiting;
 			combo.startTime = QpcNow();
 			maskedButtons = clearButtons(buttons, GamepadButtons::View);
@@ -139,4 +139,12 @@ GamepadComboDetector::ComboResult GamepadComboDetector::GetComboResult(int gamep
 	result.maskedReading.Buttons = maskedButtons;
 
 	return result;
+}
+
+void GamepadComboDetector::Reset(int gamepadIndex) {
+	auto& combo = m_comboStates[gamepadIndex];
+	combo.comboState = ComboState::None;
+	combo.viewPressed = false;
+	combo.menuPressed = false;
+	combo.startTime = 0;
 }

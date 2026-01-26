@@ -1,11 +1,14 @@
 ﻿#pragma once
 
 #include "Common\StepTimer.h"
-#include "State\GamepadComboDetector.h"
+#include "State\GamepadState.h"
 #include "Streaming\VideoRenderer.h"
 #include "Streaming\LogRenderer.h"
 #include "Streaming\StatsRenderer.h"
 #include "Pages\StreamPage.xaml.h"
+
+// Xbox supports 8 controllers, this ought to be enough for anyone.
+#define MAX_GAMEPADS 8
 
 // Renders Direct2D and 3D content on the screen.
 namespace moonlight_xbox_dx
@@ -36,7 +39,7 @@ namespace moonlight_xbox_dx
 		bool ToggleStats();
 
 		bool mouseMode = false;
-		
+
 		MoonlightClient* moonlightClient;
 	private:
 		void ProcessInput();
@@ -63,8 +66,15 @@ namespace moonlight_xbox_dx
 		// Track current input pointer position.
 		float m_pointerLocationX;
 		bool insideFlyout = false;
-		Windows::Gaming::Input::GamepadReading previousReading[8];
-		GamepadComboDetector m_comboDetector;
 		StreamPage^ m_streamPage;
+
+		// Gamepad handling
+		std::array<GamepadState, MAX_GAMEPADS> m_GamepadState;
+		GamepadState& FindGamepadState(uint32_t localId);
+		GamepadState& FindGamepadStateByGamepad(Windows::Gaming::Input::Gamepad^ gamepad);
+		void RefreshGamepads();
+		void SendGamepadArrival(GamepadState& state);
+		void SendGamepadState(GamepadState& state);
+		void SendGamepadReadingForState(GamepadState& state, Windows::Gaming::Input::GamepadReading reading);
 	};
 }

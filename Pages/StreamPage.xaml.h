@@ -28,6 +28,7 @@ namespace moonlight_xbox_dx
 		virtual ~StreamPage();
 		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
 		void OnPropertyChanged(Platform::String^ propertyName);
+		bool ShouldRefreshGamepads();
 
 		property bool MouseMode {
 			bool get() { return m_mouseMode; }
@@ -147,6 +148,11 @@ namespace moonlight_xbox_dx
 		void guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+
+		Windows::Foundation::EventRegistrationToken gamepadAddedHandler, gamepadRemovedHandler;
+		std::atomic<bool> m_refreshGamepads{false};
+		void OnGamepadAdded(Platform::Object^, Windows::Gaming::Input::Gamepad^ args);
+		void OnGamepadRemoved(Platform::Object^, Windows::Gaming::Input::Gamepad^ args);
 
         bool m_mouseMode = false;
 	    bool m_showLogs = false;

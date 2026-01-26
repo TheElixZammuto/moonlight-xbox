@@ -12,6 +12,7 @@ class GamepadComboDetector {
 
 	GamepadComboDetector() = default;
 	ComboResult GetComboResult(int gamepadIndex, int comboTimeout = 125);
+	void Reset(int gamepadIndex);
 
   private:
 	enum class ComboState {
@@ -29,3 +30,5 @@ class GamepadComboDetector {
 	};
 	std::array<GamepadComboState, 8> m_comboStates;
 };
+
+// TODO: refactor to contain only 1 gamepad and fit better with GamepadState
