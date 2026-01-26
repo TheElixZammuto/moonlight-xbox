@@ -381,7 +381,7 @@
     <ClCompile Include="Streaming\FrameCadence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="State\GamepadComboDetector.cpp">
+    <ClCompile Include="Converters\BoolToTextConverter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -479,7 +479,10 @@
     <ClInclude Include="Streaming\FrameCadence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="State\GamepadComboDetector.h">
+    <ClInclude Include="Converters\BoolToTextConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="State\GamepadState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -13,8 +13,10 @@
 using namespace moonlight_xbox_dx;
 
 using namespace Platform;
+using namespace Platform::Collections;
 using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
+using namespace Windows::Gaming::Input;
 using namespace Windows::Graphics::Display;
 using namespace Windows::System::Threading;
 using namespace Windows::UI::Core;
@@ -65,6 +67,10 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 
 	keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyDown));
 	keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyUp));
+
+	// Detect gamepad connection and disconnection events
+	gamepadAddedHandler = Gamepad::GamepadAdded += ref new EventHandler<Gamepad^>(this, &StreamPage::OnGamepadAdded);
+	gamepadRemovedHandler = Gamepad::GamepadRemoved += ref new EventHandler<Gamepad ^>(this, &StreamPage::OnGamepadRemoved);
 
 	try {
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
@@ -316,3 +322,18 @@ void StreamPage::OnPropertyChanged(Platform::String^ propertyName)
 {
 	PropertyChanged(this, ref new Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 }
+
+void StreamPage::OnGamepadAdded(Platform::Object^ sender, Gamepad^ gamepad)
+{
+	m_refreshGamepads.store(true, std::memory_order_release);
+}
+
+void StreamPage::OnGamepadRemoved(Platform::Object^ sender, Gamepad^ gamepad)
+{
+	m_refreshGamepads.store(true, std::memory_order_release);
+}
+
+bool StreamPage::ShouldRefreshGamepads() {
+	return m_refreshGamepads.exchange(false);
+}
+
