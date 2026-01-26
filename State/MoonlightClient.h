@@ -29,7 +29,6 @@ class MoonlightClient {
 	int Pair();
 	char *GeneratePIN();
 	std::vector<MoonlightApp ^> GetApplications(bool fetchAssets = true);
-	void SendGamepadReading(short controllerNumber, Windows::Gaming::Input::GamepadReading reading);
 	void SendMousePosition(float x, float y);
 	void SendMousePressed(int button);
 	void SendMouseReleased(int button);
@@ -59,9 +58,9 @@ class MoonlightClient {
 	char *hostname = NULL;
 	int port = 0;
 	bool useSoftwareEncoder = false;
-	int activeGamepadMask = 0;
 	bool m_isHDR;
 	bool m_isRGBFull;
+	uint16_t activeGamepadMask = 0;
 	Windows::Gaming::Input::GamepadReading m_lastGamepadReading[16];
 };
 } // namespace moonlight_xbox_dx

@@ -282,8 +282,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	sprintf(message, "Inserted App ID %d\n", sConfig->appID);
 	Utils::Log(message);
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
-	// Since we are on Xbox, we can assume at least one gamepad is connected since they are required on this platform
-	this->SetGamepadCount(std::max((UINT)1, gamepads->Size));
+	this->SetGamepadCount(gamepads->Size); // sets activeGamepadMask
 	int a = gs_start_app(&serverData, &config, sConfig->appID, sConfig->enableSOPS, sConfig->playAudioOnPC, activeGamepadMask);
 	if (a != 0) {
 		char message[2048];
@@ -305,7 +304,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.stageComplete = connection_status_completed;
 	callbacks.setHdrMode = connection_set_hdr;
 	callbacks.rumble = connection_rumble;
-	// callbacks.rumbleTriggers = connection_trigger_rumble;
+	callbacks.rumbleTriggers = connection_trigger_rumble;
 
 	FFMpegDecoder::instance().CompleteInitialization(res, &config, sConfig->framePacing == "Immediate");
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
@@ -512,52 +511,6 @@ std::vector<MoonlightApp ^> MoonlightClient::GetApplications(bool fetchAssets) {
 	}
 
 	return values;
-}
-
-static bool hasGamepadReadingChanged(GamepadReading a, GamepadReading b) {
-	if (a.Buttons != b.Buttons) {
-		return true;
-	}
-
-	short altX = (short)(a.LeftThumbstickX * 32767);
-	short altY = (short)(a.LeftThumbstickY * 32767);
-	short artX = (short)(a.RightThumbstickX * 32767);
-	short artY = (short)(a.RightThumbstickY * 32767);
-	short bltX = (short)(b.LeftThumbstickX * 32767);
-	short bltY = (short)(b.LeftThumbstickY * 32767);
-	short brtX = (short)(b.RightThumbstickX * 32767);
-	short brtY = (short)(b.RightThumbstickY * 32767);
-	if (altX != bltX || altY != bltY || artX != brtX || artY != brtY) {
-		return true;
-	}
-
-	unsigned char alTrig = (unsigned char)(round(a.LeftTrigger * 255.0f));
-	unsigned char arTrig = (unsigned char)(round(a.RightTrigger * 255.0f));
-	unsigned char blTrig = (unsigned char)(round(b.LeftTrigger * 255.0f));
-	unsigned char brTrig = (unsigned char)(round(b.RightTrigger * 255.0f));
-	if (alTrig != blTrig || arTrig != brTrig) {
-		return true;
-	}
-
-	return false;
-}
-
-void MoonlightClient::SendGamepadReading(short controllerNumber, GamepadReading reading) {
-	int buttonFlags = 0;
-	GamepadButtons buttons[] = {GamepadButtons::A, GamepadButtons::B, GamepadButtons::X, GamepadButtons::Y, GamepadButtons::DPadLeft, GamepadButtons::DPadRight, GamepadButtons::DPadUp, GamepadButtons::DPadDown, GamepadButtons::LeftShoulder, GamepadButtons::RightShoulder, GamepadButtons::Menu, GamepadButtons::View, GamepadButtons::LeftThumbstick, GamepadButtons::RightThumbstick};
-	int LiButtonFlags[] = {A_FLAG, B_FLAG, X_FLAG, Y_FLAG, LEFT_FLAG, RIGHT_FLAG, UP_FLAG, DOWN_FLAG, LB_FLAG, RB_FLAG, PLAY_FLAG, BACK_FLAG, LS_CLK_FLAG, RS_CLK_FLAG};
-	for (int i = 0; i < 14; i++) {
-		if ((reading.Buttons & buttons[i]) == buttons[i]) {
-			buttonFlags |= LiButtonFlags[i];
-		}
-	}
-	unsigned char leftTrigger = (unsigned char)(round(reading.LeftTrigger * 255.0f));
-	unsigned char rightTrigger = (unsigned char)(round(reading.RightTrigger * 255.0f));
-
-	if (hasGamepadReadingChanged(reading, m_lastGamepadReading[controllerNumber])) {
-		LiSendMultiControllerEvent(controllerNumber, activeGamepadMask, buttonFlags, leftTrigger, rightTrigger, (short)(reading.LeftThumbstickX * 32767), (short)(reading.LeftThumbstickY * 32767), (short)(reading.RightThumbstickX * 32767), (short)(reading.RightThumbstickY * 32767));
-		m_lastGamepadReading[controllerNumber] = reading;
-	}
 }
 
 void MoonlightClient::SendGuide(int controllerNumber, bool s) {

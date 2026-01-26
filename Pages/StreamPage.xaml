@@ -31,6 +31,11 @@
                                 <FontIcon Glyph="&#xE962;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
+                        <MenuFlyoutItem x:Name="showKeyboardButton" Text="Show Keyboard" Click="showKeyboardButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE92E;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
                         <MenuFlyoutSubItem Text="Other Actions">
                             <MenuFlyoutItem x:Name="guideButtonShort" Text="Guide Button (short)" Click="guideButtonShort_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                                 <MenuFlyoutItem.Icon>
