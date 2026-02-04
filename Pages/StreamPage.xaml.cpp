@@ -128,6 +128,9 @@ void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::Rou
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
 
+	Gamepad::GamepadAdded -= gamepadAddedHandler;
+	Gamepad::GamepadRemoved -= gamepadRemovedHandler;
+
 	if (this->m_main) {
 
 		Utils::Log("StreamPage::Page_Unloaded stopping m_main render loop\n");

@@ -79,7 +79,9 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	client->OnRumble = ([this](unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
 		auto& state = this->FindGamepadStateByHostId(controllerNumber);
 		if (state.controller == nullptr) return;
-		auto gamepad = Gamepad::Gamepads->GetAt(state.localId);
+		auto gamepads = Gamepad::Gamepads;
+		if (state.localId >= gamepads->Size) return;
+		auto gamepad = gamepads->GetAt(state.localId);
 		float normalizedLow = lowFreqMotor / (float)(256 * 256);
 		float normalizedHigh = highFreqMotor / (float)(256 * 256);
 		GamepadVibration v = gamepad->Vibration;
@@ -91,7 +93,9 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	client->OnTriggerRumble = ([this](unsigned short controllerNumber, unsigned short leftTriggerMotor, unsigned short rightTriggerMotor) {
 		auto& state = this->FindGamepadStateByHostId(controllerNumber);
 		if (state.controller == nullptr) return;
-		auto gamepad = Gamepad::Gamepads->GetAt(state.localId);
+		auto gamepads = Gamepad::Gamepads;
+		if (state.localId >= gamepads->Size) return;
+		auto gamepad = gamepads->GetAt(state.localId);
 		float normalizedLeft = leftTriggerMotor / (float)(256 * 256);
 		float normalizedRight = rightTriggerMotor / (float)(256 * 256);
 		GamepadVibration v = gamepad->Vibration;
@@ -482,7 +486,7 @@ void moonlight_xbox_dxMain::DumpGamepads() {
 	// list all controllers with their connected status
 	for (int i = 0; i < MAX_GAMEPADS; ++i) {
 		if (m_GamepadState[i].controller != nullptr) {
-			Utils::Logf("  Gamepad #%d: hostId %d\n", i, m_GamepadState[i].localId, m_GamepadState[i].hostId);
+			Utils::Logf("  Gamepad #%d: hostId %d\n", m_GamepadState[i].localId, m_GamepadState[i].hostId);
 		}
 	}
 }
@@ -529,7 +533,7 @@ void moonlight_xbox_dxMain::RefreshGamepads() {
 					state.previousReading = EmptyReading();
 					SendGamepadArrival(state);
 					state.didSendArrival = true;
-					Utils::Logf("RefreshGamepads: added new Gampad #%d in host slot %d\n", state.localId, state.hostId);
+					Utils::Logf("RefreshGamepads: added new Gamepad #%d in host slot %d\n", state.localId, state.hostId);
 					break;
 				}
 			}
