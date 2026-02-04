@@ -55,7 +55,6 @@ struct GamepadState {
 	}
 
 	void Reset() {
-		auto emptyReading = EmptyReading();
 		controller = nullptr;
 		localId = hostId = 0;
 		lastRefreshedQpc = 0;
@@ -79,7 +78,11 @@ struct GamepadState {
 		}
 
 		auto gamepads = Gamepad::Gamepads;
-		Gamepad ^ gamepad = gamepads->GetAt(localId);
+		if (localId >= gamepads->Size) {
+			return result;
+		}
+
+		Gamepad^ gamepad = gamepads->GetAt(localId);
 		if (gamepad == nullptr) {
 			return result;
 		}
