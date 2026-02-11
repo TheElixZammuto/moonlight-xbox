@@ -77,7 +77,8 @@
         <Grid x:Name="ProgressView" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
             <StackPanel x:Name="ProgressStack" HorizontalAlignment="Center" VerticalAlignment="Center"  Orientation="Vertical">
                 <muxc:ProgressRing x:Name="MainProgressRing" Width="64" Height="64" IsActive="True" Margin="0,0,0,16" />
-                <TextBlock x:Name="StatusText" Text="Initializing Moonlight..."/>
+                <TextBlock x:Name="StatusText" TextAlignment="Center" Text="Initializing Moonlight..."/>
+                <TextBlock x:Name="StepText" FontSize="12px" Foreground="DimGray" TextAlignment="Center" Text="" Margin="0,16,0,0" />
             </StackPanel>
         </Grid>
     </Grid>

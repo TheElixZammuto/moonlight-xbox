@@ -71,50 +71,28 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 		Utils::Log("StreamPage::Page_Loaded: SetSwapChainPanel failed\n");
 	}
 
-	// Defer heavy initialization so the handler returns and the UI can present.
-	// Use a low-priority dispatch so the framework can complete the first frame.
 	Platform::WeakReference weakThis(this);
-	auto ignore = this->Dispatcher->RunAsync(CoreDispatcherPriority::Low, ref new DispatchedHandler([weakThis]() {
+	DISPATCH_UI([weakThis] {
 		auto that = weakThis.Resolve<StreamPage>();
 		if (that == nullptr) return;
 		try {
 			that->m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(that->m_deviceResources, that, new MoonlightClient(), that->configuration));
-			
-			DISPATCH_UI([that], {
-				try {
-					that->m_main->CreateDeviceDependentResources();
-					that->m_main->CreateWindowSizeDependentResources();
-					that->m_main->StartRenderLoop();
-				} catch (...) {
-					Utils::Log("StreamPage: init failed\n");
-				}
-			});
-
-		} catch (const std::exception &ex) {
-			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			dialog->Content = Utils::StringPrintf(ex.what());
-			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
-		} catch (const std::string &string) {
-			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			dialog->Content = Utils::StringPrintf(string.c_str());
-			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
-		} catch (Platform::Exception ^ e) {
-			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			Platform::String ^ errorMsg = ref new Platform::String();
-			errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
-			errorMsg = errorMsg->Concat(errorMsg, Utils::StringPrintf("%x", e->HResult));
-			dialog->Content = errorMsg;
-			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
-		} catch (...) {
-			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			dialog->Content = L"Generic Exception";
-			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
-		}
-	}));
+			that->m_main->CreateDeviceDependentResources();
+			that->m_main->CreateWindowSizeDependentResources();
+			that->m_main->StartRenderLoop();
+        } catch (const std::exception &ex) {
+			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", ex.what());
+        } catch (const std::string &string) {
+			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", string);
+        } catch (Platform::Exception ^ e) {
+            Platform::String ^ errorMsg = ref new Platform::String();
+            errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
+            errorMsg = errorMsg->Concat(errorMsg, Utils::StringPrintf("%x", e->HResult));
+			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", Utils::PlatformStringToStdString(errorMsg));
+        } catch (...) {
+            Utils::Log("StreamPage::Page_Loaded: Exception when starting stream. Exception: Generic Exception");
+        }
+	});
 }
 
 void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
@@ -127,11 +105,13 @@ void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::Rou
 
 		try {
 			this->m_main->StopRenderLoop();
+			this->m_main.reset();
+		} catch (std::exception &ex) {
+			Utils::Logf("StreamPage::Page_Unloaded m_main threw an exception: %s\n", ex.what());
 		} catch (...) {
-			Utils::Log("StreamPage::Page_Unloaded StopRenderLoop threw an exception\n");
+			Utils::Log("StreamPage::Page_Unloaded m_main threw an exception\n");
 		}
 
-		this->m_main.reset();
 		Utils::Log("StreamPage::Page_Unloaded m_main reset\n");
 	}
 
@@ -273,7 +253,7 @@ void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windo
 			// UI is sent back to HostSelectorPage in StartRenderLoop(), after the loop exits
 			// All we need to do is close the progress dialog
 
-			DISPATCH_UI([progressToken], {
+			DISPATCH_UI([progressToken] {
 				::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
 			});
 		} catch (...) {

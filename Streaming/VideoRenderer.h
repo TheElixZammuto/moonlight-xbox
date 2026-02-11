@@ -4,6 +4,7 @@
 #include "Common\StepTimer.h"
 #include "State\MoonlightClient.h"
 #include "State\StreamConfiguration.h"
+#include <atomic>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -32,6 +33,8 @@ namespace moonlight_xbox_dx
 	class VideoRenderer
 	{
 	public:
+		bool IsLoadingComplete() const { return m_loadingComplete.load(std::memory_order_acquire); }
+		bool IsLoadingSuccessful() const { return m_loadingSuccessful.load(std::memory_order_acquire); }
 		VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources,MoonlightClient *client,StreamConfiguration ^sConfig);
 		void CreateDeviceDependentResources();
 		void CreateWindowSizeDependentResources();
@@ -73,6 +76,7 @@ namespace moonlight_xbox_dx
 		// Variables used with the rendering loop.
 		DXGI_HDR_METADATA_HDR10 m_lastHdr10;
 		std::atomic<bool> m_loadingComplete;
+	    std::atomic<bool> m_loadingSuccessful;
 		MoonlightClient *client;
 		StreamConfiguration^ configuration;
 

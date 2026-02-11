@@ -303,14 +303,7 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^
 
 	try {
 		bool success = State->WakeHost(currentHost);
-		if (success) {
-			ContentDialog^ confirm = ref new ContentDialog();
-			confirm->Title = "Wake Host";
-			confirm->Content = "Wake-on-LAN packet sent successfully to " + currentHost->ComputerName;
-			confirm->PrimaryButtonText = "OK";
-			concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(confirm));
-		}
-		else {
+		if (!success) {
 			ContentDialog^ fail = ref new ContentDialog();
 			fail->Title = "Wake Host Failed";
 			fail->Content = "Failed to send Wake-on-LAN packet.\n\nPlease check if Wake-on-LAN is enabled on the host.";

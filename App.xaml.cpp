@@ -105,7 +105,7 @@ void App::OnSuspending(Object^ sender, SuspendingEventArgs^ e)
 
 /// <summary>
 /// Invoked when application execution is being resumed.
-/// </summary>
+/// </summary>F
 /// <param name="sender">The source of the resume request.</param>
 /// <param name="args">Details about the resume request.</param>
 void App::OnResuming(Object ^sender, Object ^args)
