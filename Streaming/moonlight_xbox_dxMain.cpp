@@ -217,6 +217,9 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	double refreshRate = m_deviceResources->GetUWPRefreshRate();
 	m_deviceResources->SetRefreshRate(refreshRate);
 	m_deviceResources->SetFrameRate(configuration->FPS);
+
+	// Force refresh of connected gamepads because OnGamepadAdded may not always be called if we reconnect
+	streamPage->RequestRefreshGamepads();
 }
 
 moonlight_xbox_dxMain::~moonlight_xbox_dxMain()
@@ -433,7 +436,7 @@ void moonlight_xbox_dxMain::ProcessInput() {
 
 	for (UINT i = 0; i < gamepadCount; i++) {
 		auto& state = this->FindGamepadState(i);
-		auto result = state.GetComboResult(125); // hold buttons for a short time for View + Menu combo
+		auto result = state.GetComboResult(50); // hold buttons for a short time for View + Menu combo
 
 		if (result.comboTriggered) {
 			DISPATCH_UI([this], {
@@ -577,12 +580,15 @@ void moonlight_xbox_dxMain::ProcessInput() {
 			moonlightClient->SendScrollH((float)pow(reading.RightThumbstickX * multiplier * 2, 3));
 			// Xbox/Guide Button (B)
 			if (PressedEdge(reading, prevReading, GamepadButtons::B)) {
-				moonlightClient->SendGuide(i, true);
+				moonlightClient->SendGuide(state.hostId, true);
 			} else if (ReleaseEdge(reading, prevReading, GamepadButtons::B)) {
-				moonlightClient->SendGuide(i, false);
+				moonlightClient->SendGuide(state.hostId, false);
 			}
 		} else {
 			SendGamepadReadingForState(state, reading);
+
+			// Uncomment to debug gamepad state
+			// state.DumpState();
 		}
 		state.previousReading = reading;
 	}

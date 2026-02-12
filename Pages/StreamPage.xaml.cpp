@@ -169,6 +169,7 @@ void StreamPage::SetMouseMode(bool enabled)
 
 void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
+	if (!m_main) return;
 	if (GetApplicationState()->EnableKeyboard) {
 		m_main->keyboardMode = true;
 
@@ -338,5 +339,9 @@ void StreamPage::OnGamepadRemoved(Platform::Object^ sender, Gamepad^ gamepad)
 
 bool StreamPage::ShouldRefreshGamepads() {
 	return m_refreshGamepads.exchange(false);
+}
+
+void StreamPage::RequestRefreshGamepads() {
+	m_refreshGamepads.store(true, std::memory_order_release);
 }
 
