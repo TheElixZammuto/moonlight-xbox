@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include "Utils.hpp"
 
 enum class ComboState {
 	None,
@@ -82,7 +83,7 @@ struct GamepadState {
 			return result;
 		}
 
-		Gamepad^ gamepad = gamepads->GetAt(localId);
+		Gamepad ^ gamepad = gamepads->GetAt(localId);
 		if (gamepad == nullptr) {
 			return result;
 		}
@@ -234,5 +235,63 @@ struct GamepadState {
 		}
 
 		return false;
+	}
+
+	// Debug helpers
+	static inline const struct {
+		Windows::Gaming::Input::GamepadButtons bit;
+		const char *name;
+	} kGamepadButtonNames[] = {
+	    {Windows::Gaming::Input::GamepadButtons::Menu, "Menu"},
+	    {Windows::Gaming::Input::GamepadButtons::View, "View"},
+	    {Windows::Gaming::Input::GamepadButtons::A, "A"},
+	    {Windows::Gaming::Input::GamepadButtons::B, "B"},
+	    {Windows::Gaming::Input::GamepadButtons::X, "X"},
+	    {Windows::Gaming::Input::GamepadButtons::Y, "Y"},
+	    {Windows::Gaming::Input::GamepadButtons::DPadUp, "Up"},
+	    {Windows::Gaming::Input::GamepadButtons::DPadDown, "Down"},
+	    {Windows::Gaming::Input::GamepadButtons::DPadLeft, "Left"},
+	    {Windows::Gaming::Input::GamepadButtons::DPadRight, "Right"},
+	    {Windows::Gaming::Input::GamepadButtons::LeftShoulder, "LB"},
+	    {Windows::Gaming::Input::GamepadButtons::RightShoulder, "RB"},
+	    {Windows::Gaming::Input::GamepadButtons::LeftThumbstick, "L3"},
+	    {Windows::Gaming::Input::GamepadButtons::RightThumbstick, "R3"},
+	};
+
+	static void DumpButtons(Windows::Gaming::Input::GamepadButtons buttons, char *out, size_t outSize) {
+		size_t pos = 0;
+		bool first = true;
+
+		for (const auto &b : kGamepadButtonNames) {
+			if ((static_cast<uint32_t>(buttons) & static_cast<uint32_t>(b.bit)) == static_cast<uint32_t>(b.bit)) {
+				int written = std::snprintf(
+				    out + pos,
+				    outSize - pos,
+				    "%s%s",
+				    first ? "" : "|",
+				    b.name);
+				if (written <= 0 || static_cast<size_t>(written) >= outSize - pos)
+					break;
+
+				pos += written;
+				first = false;
+			}
+		}
+
+		if (first) {
+			std::snprintf(out, outSize, "None");
+		}
+	}
+
+	void DumpState() {
+		char buttons[128];
+		DumpButtons(reading.Buttons, buttons, sizeof(buttons));
+		moonlight_xbox_dx::Utils::Logf(
+		    "GamepadState[localId: %d, hostId: %d] buttons: %s, axes: %d %d, %d %d, triggers: %d %d, combo{ state: %d, viewPressed: %d, menuPressed: %d, startTime: %d }\n",
+		    localId, hostId,
+		    buttons,
+		    ltX, ltY, rtX, rtY,
+		    lTrig, rTrig,
+		    combo.comboState, combo.viewPressed, combo.menuPressed, combo.startTime);
 	}
 };

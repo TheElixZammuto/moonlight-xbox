@@ -29,6 +29,7 @@ namespace moonlight_xbox_dx
 		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
 		void OnPropertyChanged(Platform::String^ propertyName);
 		bool ShouldRefreshGamepads();
+		void RequestRefreshGamepads();
 
 		property bool MouseMode {
 			bool get() { return m_mouseMode; }
