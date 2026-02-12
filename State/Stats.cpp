@@ -142,12 +142,6 @@ void Stats::SubmitRenderStats(int64_t preWaitTimeUs, int64_t renderTimeUs, int64
 		m_ActiveWndVideoStats.hitDeadlines++;
 	} else {
 		m_ActiveWndVideoStats.missedDeadlines++;
-
-#if defined(_DEBUG)
-		Utils::Logf("missed deadline: preWait + render: %.2f + %.2f = %.2f ms\n",
-			(double)preWaitTimeUs / 1000.0, (double)renderTimeUs / 1000.0,
-			(double)(preWaitTimeUs + renderTimeUs) / 1000.0);
-#endif
 	}
 
 	// Only shown in debug builds
