@@ -32,7 +32,7 @@ typedef struct _HTTP_DATA {
 int http_init(const char* keyDirectory, int logLevel);
 PHTTP_DATA http_create_data();
 int http_request(CURL *curl, char* url, PHTTP_DATA data);
-int http_request_binary(CURL *curl, char* url, void *fp);
 void http_free_data(PHTTP_DATA data);
 void http_cleanup(CURL* curl);
 CURL* get_curl_handle();
+void http_free_certblobs();
