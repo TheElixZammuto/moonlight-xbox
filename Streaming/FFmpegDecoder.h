@@ -36,7 +36,7 @@ class FFMpegDecoder {
 	int SubmitDecodeUnit(PDECODE_UNIT decodeUnit);
 	static FFMpegDecoder *getInstance();
 	static DECODER_RENDERER_CALLBACKS getDecoder();
-	int videoFormat, width, height;
+	int videoFormat, width, height, fps;
 	std::recursive_mutex m_mutex;
 
 	// locking helper
@@ -73,5 +73,6 @@ class FFMpegDecoder {
 	int ffmpeg_buffer_size;
 	std::shared_ptr<DX::DeviceResources> m_deviceResources;
 	int m_LastFrameNumber;
+	int64_t m_StreamEpochQpc;
 };
 } // namespace moonlight_xbox_dx

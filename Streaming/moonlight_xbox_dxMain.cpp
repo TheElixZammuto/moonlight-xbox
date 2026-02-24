@@ -22,8 +22,8 @@ extern "C" {
 // Loads and initializes application assets when the application is loaded.
 moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, StreamPage^ streamPage, MoonlightClient* client, StreamConfiguration^ configuration) :
 
-	m_deviceResources(deviceResources), m_pointerLocationX(0.0f), m_streamPage(streamPage), moonlightClient(client)
-{
+	m_deviceResources(deviceResources), m_pointerLocationX(0.0f), m_streamPage(streamPage), moonlightClient(client) {
+	
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
@@ -47,20 +47,21 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
 
-	streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
-
 	client->OnStatusUpdate = ([streamPage](int status) {
 		const char* msg = LiGetStageName(status);
 		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(msg));
 		});
 
 	client->OnCompleted = ([streamPage]() {
+		// Give stream a moment to stabilize before hiding progress view
+		Sleep(500);
+		streamPage->m_progressRing->IsActive = false;
 		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-		});
+	});
 
 	client->OnFailed = ([streamPage](int status, int error, char* message) {
 		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(message));
-		});
+	});
 
 	client->SetHDR = ([this](bool v) {
 		this->m_sceneRenderer->SetHDR(v);
@@ -138,7 +139,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 
 				// Whether we rendered a new frame or not, wait until vblank for pacing
 				// This is out of the lock and won't block the decoder
-				Pacer::instance().waitBeforePresent(deadline);
+				bool hitDeadline = Pacer::instance().waitBeforePresent(deadline);
 				t3 = QpcNow();
 
 				if (!rendered) {
@@ -173,7 +174,8 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				m_deviceResources->GetStats()->SubmitRenderStats(
 				    QpcToUs(t1 - t0),
 				    QpcToUs(t2 - t1),
-				    QpcToUs(t3 - t2));
+				    QpcToUs(t3 - t2),
+				    hitDeadline);
 
 				FQLog("render loop %.3fms frametime %.3fms (PreWait %.3fms + Render %.3fms (avg %.3f) + Present %.3fms)\n",
 				      QpcToMs(t3 - t0),
@@ -272,8 +274,8 @@ void moonlight_xbox_dxMain::ProcessInput()
 		}
 		for (auto k : magicKey) {
 			if ((reading.Buttons & k) != k) {
-				isCurrentlyPressed = false;
-				break;
+			 isCurrentlyPressed = false;
+			 break;
 			}
 		}
 		if (isCurrentlyPressed) {
@@ -415,7 +417,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 				if (GetApplicationState()->EnableKeyboard) {
 					m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
 						m_streamPage->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
-						}));
+					}));
 					keyboardMode = true;
 				}
 				else {

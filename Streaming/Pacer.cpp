@@ -86,6 +86,9 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 
 	m_FrameCadence.init(m_RefreshRate > 0.0 ? m_RefreshRate : 60.0, static_cast<double>(streamFps));
 
+	Utils::Logf("Frame Pacer init: mode %s, streamFps %d, refreshRate %.2f\n",
+		m_FramePacingImmediate ? "immediate" : "display-locked", m_StreamFps, m_RefreshRate);
+
 	m_vhsum = 0;
 	m_vhcount = 0;
 	m_vhidx = 0;
@@ -326,9 +329,9 @@ bool Pacer::renderModeDisplayLocked(std::shared_ptr<VideoRenderer> &sceneRendere
 	return true; // ok to Present()
 }
 
-// called by render thread
-void Pacer::waitBeforePresent(int64_t target) {
-	if (!running()) return;
+// called by render thread, returns true if we waited, false if we missed the target
+bool Pacer::waitBeforePresent(int64_t target) {
+	if (!running()) return false;
 
 	int64_t now = QpcNow();
 	if (target <= 0) {
@@ -340,7 +343,10 @@ void Pacer::waitBeforePresent(int64_t target) {
 	if (target > now) {
 		FQLog("waitBeforePresent(): waiting %.3fms\n", QpcToMs(target - now));
 		SleepUntilQpc(target);
+		return true;
 	}
+
+	return false;
 }
 
 // called by render thread

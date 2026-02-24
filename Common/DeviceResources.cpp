@@ -374,6 +374,9 @@ void DX::DeviceResources::SetSwapChainPanel(SwapChainPanel^ panel)
 	m_compositionScaleX = panel->CompositionScaleX;
 	m_compositionScaleY = panel->CompositionScaleY;
 
+	Utils::Logf("SwapChain logical size: %.0fx%.0f @ composition scale %.1fx%.1f\n",
+		m_logicalSize.Width, m_logicalSize.Height, m_compositionScaleX, m_compositionScaleY);
+
 	CreateWindowSizeDependentResources();
 
 	ComPtr<ISwapChainPanelNative> panelNative;
