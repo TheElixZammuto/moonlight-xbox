@@ -102,10 +102,7 @@ void App::OnSuspending(Object^ sender, SuspendingEventArgs^ e)
 	(void) sender;	// Unused parameter
 	(void) e;	// Unused parameter
 	displayRequest->RequestRelease();
-
-	try {
-		close_mdns();
-	} catch(...) {}
+	close_mdns();
 }
 
 /// <summary>
@@ -118,10 +115,7 @@ void App::OnResuming(Object ^sender, Object ^args)
 	(void) sender; // Unused parameter
 	(void) args; // Unused parameter
 	displayRequest->RequestActive();
-
-	try {
-		reinit_mdns();
-	} catch(...) {}
+	reinit_mdns();
 }
 
 /// <summary>
