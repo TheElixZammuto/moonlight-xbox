@@ -52,6 +52,11 @@
                                     <FontIcon Glyph="&#xe706;" />
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="resetDecoder" Text="Reset Decoder" Click="resetDecoder_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE72C;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
                             <MenuFlyoutItem x:Name="toggleFramePacing" Text="Switch frame pacing mode" Click="toggleFramePacing_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                                 <MenuFlyoutItem.Icon>
                                     <FontIcon Glyph="&#xE8B9;" />
