@@ -40,17 +40,19 @@ namespace moonlight_xbox_dx {
 			return ref new Platform::String(NarrowToWideString(std::string_view(message.data())).c_str());
 		}
 
-    std::wstring GetCurrentTimestamp() {
-			auto now = system_clock::now().time_since_epoch();
-			auto min = duration_cast<minutes>(now) % 60;
-			auto sec = duration_cast<seconds>(now) % 60;
-			auto ms  = duration_cast<milliseconds>(now) % 1000;
+		std::wstring GetCurrentTimestamp() {
+			auto now = system_clock::now();
+			auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+			std::time_t tt = system_clock::to_time_t(now);
+			std::tm local_tm{};
+			localtime_s(&local_tm, &tt);
 
-			wchar_t buffer[16];
-			swprintf(buffer, 16, L"[%02d:%02d.%03d] ",
-					 static_cast<int>(min.count()),
-					 static_cast<int>(sec.count()),
-					 static_cast<int>(ms.count()));
+			wchar_t buffer[32];
+			swprintf(buffer, 32, L"[%02d:%02d:%02d.%03d] ",
+			         local_tm.tm_hour,
+			         local_tm.tm_min,
+			         local_tm.tm_sec,
+			         static_cast<int>(ms.count()));
 			return std::wstring(buffer);
 		}
 
