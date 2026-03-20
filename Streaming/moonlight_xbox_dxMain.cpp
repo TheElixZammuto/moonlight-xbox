@@ -23,7 +23,7 @@ extern "C" {
 moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, StreamPage^ streamPage, MoonlightClient* client, StreamConfiguration^ configuration) :
 
 	m_deviceResources(deviceResources), m_pointerLocationX(0.0f), m_streamPage(streamPage), moonlightClient(client) {
-	
+
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
@@ -95,24 +95,23 @@ void moonlight_xbox_dxMain::CreateWindowSizeDependentResources()
 void moonlight_xbox_dxMain::StartRenderLoop()
 {
 	// If the animation render loop is already running then do not start another thread.
-	if (m_renderLoopWorker != nullptr && m_renderLoopWorker->Status == AsyncStatus::Started)
-	{
+	if (m_renderLoopWorker != nullptr && m_renderLoopWorker->Status == AsyncStatus::Started) {
 		return;
 	}
 
 	// Create a task that will be run on a background thread.
-	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action) {
+	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action) {
 		if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)) {
 			Utils::Logf("Failed to set render thread priority: %d\n", GetLastError());
 		}
 
 		int64_t t0 = 0, t1 = 0, t2 = 0, t3 = 0;
 		int64_t lastFramePts = 0, lastPresentTime = 0;
-		double frametimeMs = 0.0;
-		const double bufferMs  = 1.5;  // safety wait time to avoid missing deadline
-		const double alphaUp   = 0.25; // react faster when renderMs spikes upward
+		double frametimeMs = 0.0, hostFrametimeMs = 0.0;
+		const double bufferMs = 1.5;   // safety wait time to avoid missing deadline
+		const double alphaUp = 0.25;   // react faster when renderMs spikes upward
 		const double alphaDown = 0.05; // decay slowly when renderMs drops
-		double ewmaRenderMs = 3.0; // Initial guess for render cost
+		double ewmaRenderMs = 3.0;     // Initial guess for render cost
 
 		// Calculate the updated frame and render once per vertical blanking interval.
 		while (action->Status == AsyncStatus::Started && !moonlightClient->IsConnectionTerminated()) {
@@ -122,11 +121,10 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 			// wait for a frame + avg render time + safety buffer
 			double maxWaitMs = std::max(0.0, QpcToMs(deadline - t0) - ewmaRenderMs - bufferMs);
 			Pacer::instance().waitForFrame(maxWaitMs);
+			t1 = QpcNow();
 
 			{
 				critical_section::scoped_lock lock(m_criticalSection);
-
-				t1 = QpcNow();
 				Update();
 
 				bool rendered = false;
@@ -143,8 +141,10 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				t3 = QpcNow();
 
 				if (!rendered) {
-					// we're receiving a lower framerate so no frame was available,
-					// we don't call Present here and the previous frame is re-displayed
+					// (Immediate pacing mode only) We're receiving a lower framerate
+					// and no frame was available, we don't call Present here and the
+					// previous frame will be re-displayed by DWM. On Xbox One this may cause
+					// corrupted frames or tearing.
 					continue;
 				}
 
@@ -155,35 +155,47 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 				}
 
 				// Graph frametime only for new frames
+				bool isRepeatFrame = true;
 				int64_t currentFramePts = Pacer::instance().getCurrentFramePts();
 				if (currentFramePts != lastFramePts) {
 					if (lastPresentTime > 0) {
+						hostFrametimeMs = ((double)currentFramePts - lastFramePts) / 90.0;
 						frametimeMs = QpcToMs(t3 - lastPresentTime);
 						ImGuiPlots::instance().observeFloat(PLOT_FRAMETIME, static_cast<float>(frametimeMs));
 					}
 					lastPresentTime = t3;
 					lastFramePts = currentFramePts;
+					isRepeatFrame = false;
 				}
 
 				// Weighted avg of time spent in Render(), more weight given to a slower render time
-				double renderMs = std::clamp(QpcToMs(t2 - t1), 0.0, QpcToMs(deadline - t0));
-				double alpha = (renderMs > ewmaRenderMs) ? alphaUp : alphaDown;
-				ewmaRenderMs = (renderMs * alpha) + (ewmaRenderMs * (1.0 - alpha));
+				// If we missed our present deadline this frame, aggressively weight this higher so maxWaitMs is smaller.
+				// This is clamped to the deadline to prevent outliers
+				double renderMs = QpcToMs(t2 - t1);
+				double clampedRenderMs = std::clamp(renderMs, 0.0, QpcToMs(deadline - t0));
+				double alpha = (clampedRenderMs > ewmaRenderMs) ? alphaUp : alphaDown;
+				if (!hitDeadline) alpha *= 2.0;
+				ewmaRenderMs = (clampedRenderMs * alpha) + (ewmaRenderMs * (1.0 - alpha));
 
 				// Track high-level render loop stats
-				m_deviceResources->GetStats()->SubmitRenderStats(
-				    QpcToUs(t1 - t0),
-				    QpcToUs(t2 - t1),
-				    QpcToUs(t3 - t2),
-				    hitDeadline);
+				double preWaitMs = QpcToMs(t1 - t0);
+				double beforePresentMs = QpcToMs(t3 - t2);
+				m_deviceResources->GetStats()->SubmitRenderStats(preWaitMs, renderMs, beforePresentMs, hitDeadline);
 
-				FQLog("render loop %.3fms frametime %.3fms (PreWait %.3fms + Render %.3fms (avg %.3f) + Present %.3fms)\n",
-				      QpcToMs(t3 - t0),
-				      frametimeMs,
-				      QpcToMs(t1 - t0),
-				      renderMs,
-				      ewmaRenderMs,
-				      QpcToMs(t3 - t2));
+				FQLog("render loop %.3fms %s%s%s pts:%.3fs frametime(c:%02.3fms h:%02.3fms) (Deadline %.3fms PreWait %.3fms (max %.3fms) + Render %.3fms (avg %.3f) + Present %.3fms)\n",
+				      QpcToMs(t3 - t0),                             // loop time
+				      hitDeadline ? " " : "M",                      // missed deadline?
+				      isRepeatFrame ? "R" : " ",                    // repeated frame?
+				      preWaitMs > maxWaitMs + bufferMs ? "W" : " ", // we waited too long for a frame (including buffer)
+				      (double)currentFramePts / 90000.0,            // host's timestamp (in seconds)
+				      frametimeMs,                                  // effective client frametime not counting repeated frames
+				      hostFrametimeMs,                              // host frametime
+				      QpcToMs(deadline - t0),                       // deadline time window until next vblank
+				      preWaitMs,                                    // prewait (time spent waiting for new frame to arrive)
+				      maxWaitMs,                                    // max wait allowed this frame
+				      renderMs,                                     // render time this frame
+				      ewmaRenderMs,                                 // average of render time used to control prewait
+				      beforePresentMs);                             // wait time to align present to vblank
 			}
 		}
 
@@ -192,7 +204,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 		Disconnect();
 
 		// Navigate back to home
-		DISPATCH_UI([],{
+		DISPATCH_UI([], {
 			auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);
 			if (rootFrame) {
 				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
@@ -203,25 +215,22 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == AsyncStatus::Started) {
 		return;
 	}
-	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action)
-		{
-			const int pollingHz = 500;
-			const int64_t pollIntervalQpc = MsToQpc(1000.0 / pollingHz);
-			int64_t lastProcessInput = 0;
+	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action) {
+		const int pollingHz = 500;
+		const int64_t pollIntervalQpc = MsToQpc(1000.0 / pollingHz);
+		int64_t lastProcessInput = 0;
 
-			while (action->Status == AsyncStatus::Started)
-			{
-				int64_t now = QpcNow();
-				if (now - lastProcessInput >= pollIntervalQpc) {
-					lastProcessInput = now;
-					ProcessInput();
-				}
-				else {
-					const int64_t nextPoll = lastProcessInput + pollIntervalQpc;
-					SleepUntilQpc(nextPoll, 500);
-				}
+		while (action->Status == AsyncStatus::Started) {
+			int64_t now = QpcNow();
+			if (now - lastProcessInput >= pollIntervalQpc) {
+				lastProcessInput = now;
+				ProcessInput();
+			} else {
+				const int64_t nextPoll = lastProcessInput + pollIntervalQpc;
+				SleepUntilQpc(nextPoll, 500);
 			}
-		});
+		}
+	});
 
 	// Run task on a dedicated high priority background thread.
 	m_inputLoopWorker = ThreadPool::RunAsync(inputItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
