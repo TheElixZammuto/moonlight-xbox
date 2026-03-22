@@ -6,6 +6,7 @@
 #include "pch.h"
 #include <Utils.hpp>
 #include "MoonlightWelcome.xaml.h"
+#include "State/MDNSHandler.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -101,6 +102,7 @@ void App::OnSuspending(Object^ sender, SuspendingEventArgs^ e)
 	(void) sender;	// Unused parameter
 	(void) e;	// Unused parameter
 	displayRequest->RequestRelease();
+	close_mdns();
 }
 
 /// <summary>
@@ -113,6 +115,7 @@ void App::OnResuming(Object ^sender, Object ^args)
 	(void) sender; // Unused parameter
 	(void) args; // Unused parameter
 	displayRequest->RequestActive();
+	reinit_mdns();
 }
 
 /// <summary>
