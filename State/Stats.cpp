@@ -133,9 +133,9 @@ void Stats::SubmitPresentPacing(double presentDisplayMs) {
 }
 
 // High-level render loop timings
-void Stats::SubmitRenderStats(int64_t preWaitTimeUs, int64_t renderTimeUs, int64_t presentTimeUs, bool hitDeadline) {
+void Stats::SubmitRenderStats(double preWaitTimeMs, double renderTimeMs, double presentTimeMs, bool hitDeadline) {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	m_ActiveWndVideoStats.totalRenderTimeUs += renderTimeUs;
+	m_ActiveWndVideoStats.totalRenderTimeUs += static_cast<uint64_t>(renderTimeMs * 1000);
 	m_ActiveWndVideoStats.renderedFrames++;
 
 	if (hitDeadline) {
@@ -145,8 +145,8 @@ void Stats::SubmitRenderStats(int64_t preWaitTimeUs, int64_t renderTimeUs, int64
 	}
 
 	// Only shown in debug builds
-	m_ActiveWndVideoStats.totalPreWaitTimeUs += preWaitTimeUs;
-	m_ActiveWndVideoStats.totalPresentTimeUs += presentTimeUs;
+	m_ActiveWndVideoStats.totalPreWaitTimeUs += static_cast<uint64_t>(preWaitTimeMs * 1000);
+	m_ActiveWndVideoStats.totalPresentTimeUs += static_cast<uint64_t>(presentTimeMs * 1000);
 }
 
 /// private methods
@@ -304,13 +304,14 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   "Bitrate: %.1f Mbps, Peak (%us): %.1f\n"
 					   "Incoming frame rate from network: %.2f FPS\n"
 					   "Decoding frame rate: %.2f FPS\n"
-					   "Rendering frame rate: %.2f FPS\n",
+					   "Rendering frame rate: %.2f FPS (%s)\n",
 					   avgVideoMbps,
 					   m_bwTracker.GetWindowSeconds(),
 					   peakVideoMbps,
 					   stats.receivedFps,
 					   stats.decodedFps,
-					   stats.renderedFps);
+					   stats.renderedFps,
+					   Pacer::instance().getPacingImmediate() ? "immediate" : "display-locked");
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;

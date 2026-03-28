@@ -335,6 +335,13 @@ void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::
 	this->m_main->SendWinAltB();
 }
 
+void StreamPage::toggleFramePacing_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	// thread safe atomic bool
+	bool isImmediate = Pacer::instance().getPacingImmediate();
+	Pacer::instance().setPacingImmediate(isImmediate ? false : true);
+}
+
 void StreamPage::OnPropertyChanged(Platform::String^ propertyName)
 {
 	PropertyChanged(this, ref new Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
