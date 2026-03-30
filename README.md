@@ -50,6 +50,10 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 
 - Windows 10
 - Visual Studio 2022
+    - WinUI Application Development Workload
+        - Windows 10 SDK (10.0.19041.0) - This is marked as out of support as of VS 2022 version 17.10, but is still necessary for CMake
+        - Universal Windows Platform Tools
+        - C++ (v141, v142, v143) Universal Windows Platform Tools
 
 ### Steps to build
 
