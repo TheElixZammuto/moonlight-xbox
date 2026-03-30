@@ -64,5 +64,14 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
     3. Install dependencies: `.\vcpkg\vcpkg.exe install --triplet x64-uwp`
 3. Run x64 Visual Studio Prompt (Tools → Command Line → Developer Command Prompt)
     1. Run `generate-thirdparty-projects.bat` to generate `moonlight-common-c` VS project
-    2. Go to `libgamestream` and run `build-uwp.bat` to generate `libgamestream` VS project
-4. After all the actions above, you finally can open and build solution.
+    2. Open `moonlight-xbox-dx.vcxproj` in Visual Studio 2022
+    3. In the solution explorer, right click and build each of these projects, in the following order:
+        - enet
+        - moonlight-common-c
+        - gamestream
+4. In the solution explorer, expand `moonlight-xbox-dx (Universal Windows)`, then double click `Package.appxmanifest`
+5. Under the `Packaging` tab, next to `Publisher`, click the `Choose Certificate` button
+    -If you already have a certificate, select it and skip to the final step
+6. In the `Choose a Certificate` window that appears, click the `Create...` button
+7. Fill out the create prompt which appears, password is unnecessary if only building for personal use and/or debugging purposes.
+8. After all the actions above, you can now build the entire solution.
