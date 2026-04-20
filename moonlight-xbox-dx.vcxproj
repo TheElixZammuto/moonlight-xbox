@@ -329,6 +329,7 @@
     </ClInclude>
     <ClInclude Include="Common\imconfig.moonlight.h" />
     <ClInclude Include="Common\TextConsole.h" />
+    <ClInclude Include="Converters\BoolToTextConverter.h" />
     <ClInclude Include="MoonlightWelcome.xaml.h">
       <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
     </ClInclude>
@@ -388,6 +389,7 @@
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Common\TextConsole.cpp" />
+    <ClCompile Include="Converters\BoolToTextConverter.cpp" />
     <ClCompile Include="Keyboard\kbda1.cpp" />
     <ClCompile Include="Keyboard\kbda2.cpp" />
     <ClCompile Include="Keyboard\kbda3.cpp" />

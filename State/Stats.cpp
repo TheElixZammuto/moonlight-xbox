@@ -133,14 +133,20 @@ void Stats::SubmitPresentPacing(double presentDisplayMs) {
 }
 
 // High-level render loop timings
-void Stats::SubmitRenderStats(int64_t preWaitTimeUs, int64_t renderTimeUs, int64_t presentTimeUs) {
+void Stats::SubmitRenderStats(double preWaitTimeMs, double renderTimeMs, double presentTimeMs, bool hitDeadline) {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	m_ActiveWndVideoStats.totalRenderTimeUs += renderTimeUs;
+	m_ActiveWndVideoStats.totalRenderTimeUs += static_cast<uint64_t>(renderTimeMs * 1000);
 	m_ActiveWndVideoStats.renderedFrames++;
 
+	if (hitDeadline) {
+		m_ActiveWndVideoStats.hitDeadlines++;
+	} else {
+		m_ActiveWndVideoStats.missedDeadlines++;
+	}
+
 	// Only shown in debug builds
-	m_ActiveWndVideoStats.totalPreWaitTimeUs += preWaitTimeUs;
-	m_ActiveWndVideoStats.totalPresentTimeUs += presentTimeUs;
+	m_ActiveWndVideoStats.totalPreWaitTimeUs += static_cast<uint64_t>(preWaitTimeMs * 1000);
+	m_ActiveWndVideoStats.totalPresentTimeUs += static_cast<uint64_t>(presentTimeMs * 1000);
 }
 
 /// private methods
@@ -152,6 +158,8 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.totalFrames += src.totalFrames;
 	dst.networkDroppedFrames += src.networkDroppedFrames;
 	dst.pacerDroppedFrames += src.pacerDroppedFrames;
+	dst.hitDeadlines += src.hitDeadlines;
+	dst.missedDeadlines += src.missedDeadlines;
 	dst.totalReassemblyTimeUs += src.totalReassemblyTimeUs;
 	dst.totalDecodeTime += src.totalDecodeTime;
 	dst.totalPacerTimeUs += src.totalPacerTimeUs;
@@ -296,13 +304,14 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   "Bitrate: %.1f Mbps, Peak (%us): %.1f\n"
 					   "Incoming frame rate from network: %.2f FPS\n"
 					   "Decoding frame rate: %.2f FPS\n"
-					   "Rendering frame rate: %.2f FPS\n",
+					   "Rendering frame rate: %.2f FPS (%s)\n",
 					   avgVideoMbps,
 					   m_bwTracker.GetWindowSeconds(),
 					   peakVideoMbps,
 					   stats.receivedFps,
 					   stats.decodedFps,
-					   stats.renderedFps);
+					   stats.renderedFps,
+					   Pacer::instance().getPacingImmediate() ? "immediate" : "display-locked");
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;
@@ -373,23 +382,24 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 		offset += ret;
 	}
 
-// #if defined(_DEBUG)
-// 	// Developer-only stats that might be too confusing
-// 	// If you add lines here, add more height pixels in StatsRenderer::CreateWindowSizeDependentResources()
-// 	if (stats.renderedFrames != 0) {
-// 		ret = snprintf(&output[offset],
-// 					   length - offset,
-// 					   "------\n"
-// 					   "PreWait/Render/Present: %.2f / %.2f / %.2f ms\n",
-// 					   (double)stats.totalPreWaitTimeUs / 1000.0 / stats.renderedFrames,
-// 					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames,
-// 					   (double)stats.totalPresentTimeUs / 1000.0 / stats.renderedFrames);
-// 		if (ret < 0 || (size_t)ret >= (length - offset)) {
-// 			Utils::Log("Error: stringifyVideoStats length overflow\n");
-// 			return;
-// 		}
+#if defined(_DEBUG)
+	// Developer-only stats that might be too confusing
+	// If you add lines here, add more height pixels in StatsRenderer::CreateWindowSizeDependentResources()
+	if (stats.renderedFrames != 0) {
+		ret = snprintf(&output[offset],
+					   length - offset,
+					   "------\n"
+					   "Missed present rate: %.2f%%\n"
+					   "PreWait/Render: %.2f/%.2f ms\n",
+					   stats.hitDeadlines ? ((double)stats.missedDeadlines / (stats.missedDeadlines + stats.hitDeadlines)) * 100 : 0.0f,
+					   (double)stats.totalPreWaitTimeUs / 1000.0 / stats.renderedFrames,
+					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames);
+		if (ret < 0 || (size_t)ret >= (length - offset)) {
+			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			return;
+		}
 
-// 		offset += ret;
-// 	}
-// #endif
+		offset += ret;
+	}
+#endif
 }

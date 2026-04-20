@@ -30,6 +30,21 @@ static const char *pKeyFile = "./key.pem";
 static bool debug;
 static struct curl_blob certBlob, keyBlob;
 
+void http_free_certblobs(void) {
+    if (certBlob.data) {
+        free((void*)certBlob.data);
+        certBlob.data = NULL;
+        certBlob.len = 0;
+        certBlob.flags = 0;
+    }
+    if (keyBlob.data) {
+        free((void*)keyBlob.data);
+        keyBlob.data = NULL;
+        keyBlob.len = 0;
+        keyBlob.flags = 0;
+    }
+}
+
 
 static size_t _write_curl(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -55,13 +70,17 @@ static size_t _write_curl_binary(void* contents, size_t size, size_t nmemb, void
 
 CURL* get_curl_handle() {
     CURL* curl = curl_easy_init();
-    if (!curl) return GS_FAILED;
+    if (!curl) return NULL;
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_SSLENGINE_DEFAULT, 1L);
     curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, "PEM");
-    curl_easy_setopt(curl, CURLOPT_SSLCERT_BLOB, certBlob);
+    if (certBlob.data != NULL) {
+        curl_easy_setopt(curl, CURLOPT_SSLCERT_BLOB, &certBlob);
+    }
     curl_easy_setopt(curl, CURLOPT_SSLKEYTYPE, "PEM");
-    curl_easy_setopt(curl, CURLOPT_SSLKEY_BLOB, keyBlob);
+    if (keyBlob.data != NULL) {
+        curl_easy_setopt(curl, CURLOPT_SSLKEY_BLOB, &keyBlob);
+    }
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
     curl_easy_setopt(curl, CURLOPT_SSL_SESSIONID_CACHE, 0L);
@@ -71,33 +90,50 @@ CURL* get_curl_handle() {
 int http_init(const char* keyDirectory, int logLevel) {
   debug = logLevel >= 2;
 
+  // If we already have blobs allocated, free them first so repeated init is safe
+  http_free_certblobs();
+
   char certificateFilePath[4096];
-  sprintf(certificateFilePath, "%s%s", keyDirectory, CERTIFICATE_FILE_NAME);
+  snprintf(certificateFilePath, sizeof(certificateFilePath), "%s%s", keyDirectory, CERTIFICATE_FILE_NAME);
 
   char keyFilePath[4096];
-  sprintf(&keyFilePath[0], "%s%s", keyDirectory, KEY_FILE_NAME);
+  snprintf(keyFilePath, sizeof(keyFilePath), "%s%s", keyDirectory, KEY_FILE_NAME);
 
-  FILE* fp = fopen(certificateFilePath, "r");
-  if (fp == NULL)return 1;
-  fseek(fp, 0, SEEK_END);
-  int size = ftell(fp);
-  void* certificateBuffer = malloc(size);
-  fseek(fp, 0, SEEK_SET);
-  int a = fread(certificateBuffer, 1, size, fp);
+  // Read certificate file
+  FILE* fp = fopen(certificateFilePath, "rb");
+  if (fp == NULL) return 1;
+  if (fseek(fp, 0, SEEK_END) != 0) { fclose(fp); return 1; }
+  long size = ftell(fp);
+  if (size <= 0) { fclose(fp); return 1; }
+  rewind(fp);
+  void* certificateBuffer = malloc((size_t)size);
+  if (certificateBuffer == NULL) { fclose(fp); return 1; }
+  size_t read = fread(certificateBuffer, 1, (size_t)size, fp);
+  fclose(fp);
+  if (read != (size_t)size) { free(certificateBuffer); return 1; }
   certBlob.data = certificateBuffer;
-  certBlob.len = size;
+  certBlob.len = read;
   certBlob.flags = CURL_BLOB_COPY;
-  fp = fopen(keyFilePath, "r");
-  if (fp == NULL)return 1;
-  fseek(fp, 0, SEEK_END);
+
+  // Read key file
+  fp = fopen(keyFilePath, "rb");
+  if (fp == NULL) {
+    http_free_certblobs();
+    return 1;
+  }
+  if (fseek(fp, 0, SEEK_END) != 0) { fclose(fp); http_free_certblobs(); return 1; }
   size = ftell(fp);
-  void* keyBuffer = malloc(size);
-  fseek(fp, 0, SEEK_SET);
-  a = fread(keyBuffer, 1, size, fp);
+  if (size <= 0) { fclose(fp); http_free_certblobs(); return 1; }
+  rewind(fp);
+  void* keyBuffer = malloc((size_t)size);
+  if (keyBuffer == NULL) { fclose(fp); http_free_certblobs(); return 1; }
+  read = fread(keyBuffer, 1, (size_t)size, fp);
+  fclose(fp);
+  if (read != (size_t)size) { free(keyBuffer); http_free_certblobs(); return 1; }
   keyBlob.data = keyBuffer;
-  keyBlob.len = size;
+  keyBlob.len = read;
   keyBlob.flags = CURL_BLOB_COPY;
-  
+
   return GS_OK;
 }
 

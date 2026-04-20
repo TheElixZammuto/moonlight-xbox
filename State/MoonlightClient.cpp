@@ -259,7 +259,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	}
 	config.colorRange = this->IsRGBFull() ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
 	config.colorSpace = COLORSPACE_REC_601;
-	config.encryptionFlags = 0;
+	config.encryptionFlags = ENCFLG_AUDIO;
 	config.packetSize = 1024;
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
 	if (!IsXboxOneVCR()) {
