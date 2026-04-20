@@ -2,6 +2,7 @@
 #include "AppPage.Xaml.h"
 #include "Common\ModalDialog.xaml.h"
 #include "HostSettingsPage.xaml.h"
+#include "HostSelectorPage.xaml.h"
 #include "State\MoonlightClient.h"
 #include "StreamPage.xaml.h"
 #include "Utils.hpp"
@@ -24,6 +25,21 @@ using namespace Windows::UI::Composition;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
+static MoonlightApp^ GetAppById(MoonlightHost^ host, int appId) {
+	if (host == nullptr) {
+		return nullptr;
+	}
+
+	for (unsigned int i = 0; i < host->Apps->Size; ++i) {
+		auto app = host->Apps->GetAt(i);
+		if (app != nullptr && app->Id == appId) {
+			return app;
+		}
+	}
+
+	return nullptr;
+}
+
 AppPage::AppPage()
 {
 	InitializeComponent();
@@ -34,6 +50,7 @@ AppPage::AppPage()
 }
 
 void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr) return;
 	host = mhost;
@@ -136,9 +153,12 @@ void AppPage::Connect(int appId) {
 
 	continueAppFetch.store(false);
 
+	MoonlightApp^ app = GetAppById(host, appId);
+
 	StreamConfiguration ^ config = ref new StreamConfiguration();
 	config->hostname = host->LastHostname;
 	config->appID = appId;
+	config->appName = app ? app->Name : "App";
 	config->width = host->Resolution->Width;
 	config->height = host->Resolution->Height;
 	config->bitrate = host->Bitrate;
@@ -154,7 +174,7 @@ void AppPage::Connect(int appId) {
 	if (config->enableHDR) {
 		host->VideoCodec = "HEVC (H.265)";
 	}
- bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 	if (!result) {
 		printf("C");
 	}

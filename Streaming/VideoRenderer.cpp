@@ -10,6 +10,7 @@
 #include <d3dcompiler.h>
 
 extern "C" {
+#include "libgamestream/errors.h"
 #include "libgamestream/client.h"
 #include <Limelight.h>
 #include <libavcodec/avcodec.h>
@@ -50,11 +51,11 @@ typedef struct _CSC_CONST_BUF
 } CSC_CONST_BUF, * PCSC_CONST_BUF;
 static_assert(sizeof(CSC_CONST_BUF) % 16 == 0, "Constant buffer sizes must be a multiple of 16");
 
-
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, MoonlightClient* mclient, StreamConfiguration^ sConfig) :
 	m_LastColorTrc(AVCOL_TRC_UNSPECIFIED),
 	m_loadingComplete(false),
+	m_loadingSuccessful(false),
 	m_deviceResources(deviceResources),
 	client(mclient),
 	configuration(sConfig)
@@ -94,7 +95,7 @@ bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
 bool VideoRenderer::Render(AVFrame *frame) {
 	// Loading is asynchronous. Only draw geometry after it's loaded.
-	if (!m_loadingComplete.load(std::memory_order_acquire)) {
+	if (!m_loadingComplete.load(std::memory_order_acquire) && !m_loadingSuccessful.load(std::memory_order_acquire)) {
 		return true;
 	}
 
@@ -192,26 +193,26 @@ void VideoRenderer::CreateDeviceDependentResources()
 	{
 		auto vertexShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_vertex.fxc");
 		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreateVertexShader(
-				vertexShaderBytecode.data(),
-				vertexShaderBytecode.size(),
-				nullptr,
+		    m_deviceResources->GetD3DDevice()->CreateVertexShader(
+		        vertexShaderBytecode.data(),
+		        vertexShaderBytecode.size(),
+		        nullptr,
 				&m_vertexShader
 			)
 			, "Vertex Shader Creation");
 
 		static const D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
-		{
+		    {
 				{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 				{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		};
+		    };
 
 		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreateInputLayout(
-				vertexDesc,
-				ARRAYSIZE(vertexDesc),
-				vertexShaderBytecode.data(),
-				vertexShaderBytecode.size(),
+		    m_deviceResources->GetD3DDevice()->CreateInputLayout(
+		        vertexDesc,
+		        ARRAYSIZE(vertexDesc),
+		        vertexShaderBytecode.data(),
+		        vertexShaderBytecode.size(),
 				&m_inputLayout
 			)
 			, "Input Layout Creation");
@@ -221,10 +222,10 @@ void VideoRenderer::CreateDeviceDependentResources()
 	{
 		auto pixelShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_yuv420_pixel.fxc");
 		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreatePixelShader(
-				pixelShaderBytecode.data(),
-				pixelShaderBytecode.size(),
-				nullptr,
+		    m_deviceResources->GetD3DDevice()->CreatePixelShader(
+		        pixelShaderBytecode.data(),
+		        pixelShaderBytecode.size(),
+		        nullptr,
 				&m_pixelShaderYUV420
 			)
 			, "Pixel Shader Creation");
@@ -277,42 +278,27 @@ void VideoRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
 	}
 
-	int width = configuration->width;
-	int height = configuration->height;
-
-	int status = client->StartStreaming(m_deviceResources, configuration);
-	if (status != 0) {
-		Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-		Utils::logMutex.lock();
-		std::wstring m_text = L"";
-		std::vector<std::wstring> lines = Utils::GetLogLines();
-		for (int i = 0; i < lines.size(); i++) {
-			//Get only the last 24 lines
-			if (lines.size() - i < 24) {
-				m_text += lines[i];
-			}
+    DISPATCH_THREADPOOL(([this, devRes = m_deviceResources, cfg = configuration] {
+        int status = this->client->StartStreaming(devRes, cfg);
+		
+		if (status != 0) {
+			Utils::Logf("StartStreaming failed with status %d\n", status);
+			m_loadingSuccessful.store(false, std::memory_order_release);
+			m_loadingComplete.store(true, std::memory_order_release);
+			return;
 		}
-		Utils::logMutex.unlock();
-		Utils::showLogs = true;
-		auto sv = ref new Windows::UI::Xaml::Controls::ScrollViewer();
-		sv->VerticalScrollMode = Windows::UI::Xaml::Controls::ScrollMode::Enabled;
-		sv->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Visible;
-		auto tb = ref new Windows::UI::Xaml::Controls::TextBlock();
-		tb->Text = ref new Platform::String(m_text.c_str());
-		sv->Content = tb;
-		dialog->Content = sv;
-		dialog->CloseButtonText = L"OK";
-		dialog->ShowAsync();
-		return;
-	}
-	m_loadingComplete.store(true, std::memory_order_release);
-	Utils::Log("Loading Complete!\n");
+
+        m_loadingSuccessful.store(true, std::memory_order_release);
+        m_loadingComplete.store(true, std::memory_order_release);
+        Utils::Log("Loading Complete!\n");
+    }));
 }
 
 void VideoRenderer::ReleaseDeviceDependentResources()
 {
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	m_loadingComplete.store(false, std::memory_order_release);
+	m_loadingSuccessful.store(false, std::memory_order_release);
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
 	m_pixelShaderYUV420.Reset();

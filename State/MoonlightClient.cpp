@@ -288,9 +288,17 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 		char message[2048];
 		sprintf(message, "gs_startapp failed with status code %d\n", a);
 		Utils::Log(message);
-		Utils::Log(gs_error);
+		
+		if (gs_error) {
+			char errorMessage[2048];
+			sprintf(errorMessage, "%s\n", gs_error);
+
+			Utils::Log(errorMessage);
+			this->OnFailed(0, a, errorMessage);
+		}
 		return a;
 	}
+
 	// Sleep(10000);
 	connectedInstance = this;
 	CONNECTION_LISTENER_CALLBACKS callbacks;
@@ -310,10 +318,17 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
+
 	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
+
 	sprintf(message, "LiStartConnection %d\n", k);
 	Utils::Log(message);
-	return k;
+
+	if (k != 0) {
+		this->OnFailed(0, k, "Connection failed");
+	}
+
+    return k;
 }
 
 void MoonlightClient::StopStreaming() {
@@ -325,6 +340,16 @@ void log_message(const char *fmt, ...) {
 	va_start(argp, fmt);
 	char message[2048];
 	vsprintf_s(message, fmt, argp);
+	
+	// Append a single '\n' only if the string doesn't already end with one.
+	size_t len = strlen(message);
+	if (len == 0 || message[len - 1] != '\n') {
+		if (len + 1 < sizeof(message)) {
+			message[len] = '\n';
+			message[len + 1] = '\0';
+		}
+	}
+
 	Utils::Log(message);
 }
 
@@ -339,13 +364,14 @@ void connection_started() {
 
 void connection_status_update(int status) {
 	char message[4096];
-	sprintf(message, "Stage %d started\n", status);
+	auto stageName = LiGetFormattedStageName(status);
+	sprintf(message, "Stage %d: '%s' - Started\n", status, LiGetFormattedStageName(status));
 	Utils::Log(message);
 }
 
 void connection_status_completed(int status) {
 	char message[4096];
-	sprintf(message, "Stage %d completed\n", status);
+	sprintf(message, "Stage %d: '%s' - Completed\n", status, LiGetFormattedStageName(status));
 	Utils::Log(message);
 	if (connectedInstance->OnStatusUpdate != nullptr) {
 		connectedInstance->OnStatusUpdate(status);
@@ -369,10 +395,10 @@ void connection_terminated(int status) {
 void stage_failed(int stage, int err) {
 	char message[4096];
 	unsigned int portFlags = LiGetPortFlagsFromStage(stage);
-	int portResult = LiTestClientConnectivity("qt.conntest.moonlight-stream.org", 443, portFlags);
+	// int portResult = LiTestClientConnectivity("qt.conntest.moonlight-stream.org", 443, portFlags);
 	char failingPorts[128];
 	LiStringifyPortFlags(portFlags, ", ", failingPorts, sizeof(failingPorts));
-	sprintf(message, "%s failed with error %d.\n Check Firewall and Connections to port: %s\n", LiGetStageName(stage), err, failingPorts);
+	sprintf(message, "Stage %d: '%s' - Failed with error: %d.\n", stage, LiGetFormattedStageName(stage), err, failingPorts);
 	Utils::Log(message);
 	if (connectedInstance->OnFailed != nullptr) {
 		connectedInstance->OnFailed(stage, err, message);
