@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 // Use the C++ standard templated min/max
 #define NOMINMAX
@@ -19,8 +19,11 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
+#include <string>
+#include <cctype>
 #include <agile.h>
 #include <concrt.h>
+#include <ppltasks.h>
 #include <collection.h>
 #include <gamingdeviceinformation.h>
 #include "App.xaml.h"
@@ -35,13 +38,19 @@
 #endif
 
 // Helper for dispatching code to the UI thread
-#define DISPATCH_UI(CAPTURE, CODE)                                           \
+#define DISPATCH_UI(LAMBDA)                                            \
 	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow   \
 		->Dispatcher                                                         \
 		->RunAsync(                                                          \
-			Windows::UI::Core::CoreDispatcherPriority::High,                 \
-			ref new Windows::UI::Core::DispatchedHandler(CAPTURE CODE)       \
+			Windows::UI::Core::CoreDispatcherPriority::Normal,               \
+			ref new Windows::UI::Core::DispatchedHandler(LAMBDA)             \
 		)
+
+// Helper for dispatching code to the threadpool
+#define DISPATCH_THREADPOOL(LAMBDA) \
+    Windows::System::Threading::ThreadPool::RunAsync( \
+        ref new Windows::System::Threading::WorkItemHandler([=](Windows::Foundation::IAsyncAction^) { LAMBDA(); }) \
+    )
 
 // Time helpers
 static inline int64_t QpcFreq() {
@@ -225,3 +234,21 @@ static inline void SleepUntilQpc(int64_t targetQpc, int64_t sleepSlackUs = 1000)
 		YieldProcessor();
 	}
 }
+
+static inline const char *LiGetFormattedStageName(int status) {
+	const char *stageName = ::LiGetStageName(status);
+	if (!stageName) {
+		return nullptr;
+	}
+
+	thread_local std::string s;
+	s = stageName;
+
+	if (!s.empty()) {
+		s[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(s[0])));
+	}
+
+	return s.c_str();
+}
+
+

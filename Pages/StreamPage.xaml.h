@@ -99,6 +99,12 @@ namespace moonlight_xbox_dx
 			}
 		}
 
+		property TextBlock^ m_stepText {
+			TextBlock^ get() {
+				return this->StepText;
+			}
+		}
+
 		property StackPanel^ m_keyboardView {
 			StackPanel^ get() {
 				return this->KeyboardView;
