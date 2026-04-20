@@ -1,0 +1,19 @@
+<Page
+    x:Class="moonlight_xbox_dx.PreReleaseSignupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <StackPanel Padding="32,64,32,32">
+        <Button Margin="0 0 0 16" Name="backButton" Click="backButton_Click">
+            <Button.Content>
+                <SymbolIcon Symbol="Back" />
+            </Button.Content>
+        </Button>
+        <TextBlock x:Name="StatusText" Text="Checking enrollment status..." Margin="0,8,0,8" />
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,8">
+            <Button x:Name="OptInButton" Click="OptInButton_Click" Content="Sign up for Prerelease" IsEnabled="False" />
+        </StackPanel>
+        <TextBlock x:Name="InfoText" Text="Join the prerelease to get early access to features." TextWrapping="Wrap" />
+    </StackPanel>
+</Page>
