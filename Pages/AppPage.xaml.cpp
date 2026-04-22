@@ -166,6 +166,7 @@ void AppPage::Connect(int appId) {
 	config->audioConfig = host->AudioConfig;
 	config->videoCodec = host->VideoCodec;
 	config->playAudioOnPC = host->PlayAudioOnPC;
+	config->videoSuperResolution = host->VideoSuperResolution;
 	config->enableHDR = host->EnableHDR;
 	config->enableSOPS = host->EnableSOPS;
 	config->framePacing = host->FramePacing;

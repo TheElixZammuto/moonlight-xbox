@@ -118,9 +118,58 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	D3D11_TEXTURE2D_DESC ffmpegDesc;
 	ffmpegTexture->GetDesc(&ffmpegDesc);
 
+	// First, calculate the true destination size and offsets (to preserve aspect ratio and add black bars)
+	IRECT src, fsrDst;
+	src.x = src.y = 0;
+	src.w = configuration->width;
+	src.h = configuration->height;
+	
+	// FSR true pixel-based destination rect
+	fsrDst.x = fsrDst.y = 0;
+	fsrDst.w = m_deviceResources->GetPixelWidth();
+	fsrDst.h = m_deviceResources->GetPixelHeight();
+	scaleSourceToDestinationSurface(&src, &fsrDst);
+
 	bool hasChanged = hasFrameFormatChanged(frame);
 	if (hasChanged) {
 		setupVideoTexture(ffmpegDesc);
+		
+		// Set the correct format depending on whether HDR is active
+		DXGI_FORMAT renderFormat = m_deviceResources->GetBackBufferFormat();
+		bool isHDR = (frame->color_trc == AVCOL_TRC_SMPTE2084);
+		
+		// Initialize the Upscaler to upscale exactly to the aspect-ratio-preserved dimensions in raw pixels
+		if (configuration->videoSuperResolution) {
+			if (!m_upscaler) {
+				m_upscaler = std::make_unique<VideoUpscaler>(m_deviceResources);
+			}
+			if (m_upscaler->Initialize(src.w, src.h, fsrDst.w, fsrDst.h, renderFormat, isHDR)) {
+				D3D11_TEXTURE2D_DESC texDesc = {};
+				texDesc.Width = src.w;
+				texDesc.Height = src.h;
+				texDesc.MipLevels = 1;
+				texDesc.ArraySize = 1;
+				texDesc.Format = renderFormat;
+				texDesc.SampleDesc.Count = 1;
+				texDesc.Usage = D3D11_USAGE_DEFAULT;
+				texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+				auto device = m_deviceResources->GetD3DDevice();
+				HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, m_intermediateTex.GetAddressOf());
+				if (SUCCEEDED(hr)) {
+					device->CreateRenderTargetView(m_intermediateTex.Get(), nullptr, m_intermediateRTV.GetAddressOf());
+					device->CreateShaderResourceView(m_intermediateTex.Get(), nullptr, m_intermediateSRV.GetAddressOf());
+				} else {
+					m_upscaler.reset();
+				}
+			} else {
+				m_upscaler.reset();
+			}
+		}
+
+		// Calculate and submit scale ratio using the raw pixel output height / stream height
+		float scaleRatio = (float)fsrDst.h / (float)frame->height;
+		m_deviceResources->GetStats()->SubmitScaleRatio(scaleRatio);
 	}
 
 	// SRV 0 is always mapped to the video texture
@@ -142,6 +191,31 @@ bool VideoRenderer::Render(AVFrame *frame) {
 		bindColorConversion(frame, ffmpegDesc);
 	}
 
+	// Bind the render target: If VSR is enabled AND successfully initialized, use intermediate RTV
+	if (configuration->videoSuperResolution && m_intermediateRTV && m_upscaler) {
+		// Render the YUV->RGB pass into our intermediate texture at native stream resolution
+		ID3D11RenderTargetView* renderTarget[] = { m_intermediateRTV.Get() };
+		ctx->OMSetRenderTargets(1, renderTarget, nullptr);
+
+		// Set viewport to match the intermediate texture dimensions
+		D3D11_VIEWPORT vp;
+		vp.Width = (float)configuration->width;
+		vp.Height = (float)configuration->height;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		vp.TopLeftX = 0;
+		vp.TopLeftY = 0;
+		ctx->RSSetViewports(1, &vp);
+	} else {
+		// Render directly to the screen (backbuffer)
+		ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
+		ctx->OMSetRenderTargets(1, renderTarget, nullptr);
+
+		// Set viewport to match the screen
+		auto screenViewport = m_deviceResources->GetScreenViewport();
+		ctx->RSSetViewports(1, &screenViewport);
+	}
+
 	UINT stride = sizeof(VERTEX);
 	UINT offset = 0;
 	ctx->IASetVertexBuffers(0, 1, m_VideoVertexBuffer.GetAddressOf(), &stride, &offset);
@@ -152,12 +226,61 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ctx->PSSetShaderResources(0, 2, frameSrvs);
 	ctx->PSSetConstantBuffers(0, 1, m_cscConstantBuffer.GetAddressOf());
 
-	// Draw the video
+	// Draw the video (YUV to RGB conversion)
 	ctx->DrawIndexed(6, 0, 0);
 
 	// Unbind SRVs for this frame
 	ID3D11ShaderResourceView* nullSrvs[2] = {};
 	ctx->PSSetShaderResources(0, 2, nullSrvs);
+
+	// If Video Super Resolution is enabled, run the compute shaders
+	if (configuration->videoSuperResolution && m_upscaler && m_intermediateSRV) {
+		// Unbind the Render Target so we can use its SRV in the Compute Shader without D3D11 Hazard Tracking forcing it to NULL
+		ID3D11RenderTargetView* nullRTV[1] = { nullptr };
+		ctx->OMSetRenderTargets(1, nullRTV, nullptr);
+
+		// Run EASU and RCAS passes on the intermediate texture
+		ID3D11ShaderResourceView* finalSRV = m_upscaler->ProcessFrame(m_intermediateSRV.Get());
+		
+		if (finalSRV) {
+			// Now we need to render the final upscaled texture to the actual backbuffer
+			ID3D11RenderTargetView* backBufferRTV[] = { m_deviceResources->GetBackBufferRenderTargetView() };
+			ctx->OMSetRenderTargets(1, backBufferRTV, nullptr);
+
+			// For simplicity and to ensure it displays, if m_upscaler gives us an SRV, we can retrieve its texture
+			// and copy it to the backbuffer if dimensions match.
+			Microsoft::WRL::ComPtr<ID3D11Resource> upscaledRes;
+			finalSRV->GetResource(upscaledRes.GetAddressOf());
+			
+			Microsoft::WRL::ComPtr<ID3D11Texture2D> upscaledTex;
+			upscaledRes.As(&upscaledTex);
+			
+			if (upscaledTex) {
+				Microsoft::WRL::ComPtr<ID3D11Resource> backBufferRes;
+				backBufferRTV[0]->GetResource(backBufferRes.GetAddressOf());
+
+				Microsoft::WRL::ComPtr<ID3D11Texture2D> backBufferTex;
+				backBufferRes.As(&backBufferTex);
+
+				D3D11_TEXTURE2D_DESC srcDesc, dstDesc, videoDesc;
+				upscaledTex->GetDesc(&srcDesc);
+				backBufferTex->GetDesc(&dstDesc);
+				m_VideoTexture->GetDesc(&videoDesc);
+
+				static bool logged = false;
+				if (!logged) {
+					Utils::Logf("[Texture Sizes] Stream Input (m_VideoTexture): %dx%d | Upscaler Output (upscaledTex): %dx%d | Screen (BackBuffer): %dx%d\n",
+						videoDesc.Width, videoDesc.Height,
+						srcDesc.Width, srcDesc.Height,
+						dstDesc.Width, dstDesc.Height);
+					logged = true;
+				}
+
+				// Copy the upscaled texture to the backbuffer, using calculated offsets for centering
+				ctx->CopySubresourceRegion(backBufferRes.Get(), 0, fsrDst.x, fsrDst.y, 0, upscaledTex.Get(), 0, nullptr);
+			}
+		}
+	}
 
 	if (frame->color_trc != m_LastColorTrc) {
 		DXGI_COLOR_SPACE_TYPE colorspace = {};
@@ -384,14 +507,24 @@ void VideoRenderer::setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc)
 	src.x = src.y = 0;
 	src.w = configuration->width;
 	src.h = configuration->height;
-	dst.x = dst.y = 0;
-	dst.w = m_DisplayWidth;
-	dst.h = m_DisplayHeight;
-	scaleSourceToDestinationSurface(&src, &dst);
-
-	// Convert screen space to normalized device coordinates
+	
 	FRECT renderRect;
-	screenSpaceToNormalizedDeviceCoords(&dst, &renderRect, m_DisplayWidth, m_DisplayHeight);
+
+	if (configuration->videoSuperResolution) {
+		// Output exactly to the native resolution texture for the FSR pass
+		renderRect.x = -1.0f;
+		renderRect.y = -1.0f;
+		renderRect.w = 2.0f;
+		renderRect.h = 2.0f;
+	} else {
+		dst.x = dst.y = 0;
+		dst.w = m_DisplayWidth;
+		dst.h = m_DisplayHeight;
+		scaleSourceToDestinationSurface(&src, &dst);
+
+		// Convert screen space to normalized device coordinates
+		screenSpaceToNormalizedDeviceCoords(&dst, &renderRect, m_DisplayWidth, m_DisplayHeight);
+	}
 
 	m_TextureWidth = frameDesc.Width;
 	m_TextureHeight = frameDesc.Height;
@@ -587,6 +720,55 @@ void VideoRenderer::getFrameChromaCositingOffsets(const AVFrame* frame, std::arr
 	}
 	if (formatDesc->log2_chroma_h == 0) {
 		chromaOffsets[1] = 0;
+	}
+}
+
+void VideoRenderer::InitializeUpscaler(DXGI_FORMAT format, bool isHDR) {
+	if (!configuration->videoSuperResolution) return;
+
+	if (!m_upscaler) {
+		m_upscaler = std::make_unique<VideoUpscaler>(m_deviceResources);
+	}
+
+	// First, calculate the true destination size and offsets (to preserve aspect ratio and add black bars)
+	IRECT src, fsrDst;
+	src.x = src.y = 0;
+	src.w = configuration->width;
+	src.h = configuration->height;
+	
+	// FSR true pixel-based destination rect
+	fsrDst.x = fsrDst.y = 0;
+	fsrDst.w = m_deviceResources->GetPixelWidth();
+	fsrDst.h = m_deviceResources->GetPixelHeight();
+	scaleSourceToDestinationSurface(&src, &fsrDst);
+
+	// Initialize the Upscaler to upscale exactly to the aspect-ratio-preserved dimensions in raw pixels
+	if (m_upscaler->Initialize(src.w, src.h, fsrDst.w, fsrDst.h, format, isHDR)) {
+		
+		// Create the intermediate texture that the pixel shader will render into (instead of the backbuffer)
+		D3D11_TEXTURE2D_DESC texDesc = {};
+		texDesc.Width = configuration->width;
+		texDesc.Height = configuration->height;
+		texDesc.MipLevels = 1;
+		texDesc.ArraySize = 1;
+		texDesc.Format = format; // Match backbuffer format or HDR format
+		texDesc.SampleDesc.Count = 1;
+		texDesc.Usage = D3D11_USAGE_DEFAULT;
+		texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+		auto device = m_deviceResources->GetD3DDevice();
+		HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, m_intermediateTex.GetAddressOf());
+		if (SUCCEEDED(hr)) {
+			device->CreateRenderTargetView(m_intermediateTex.Get(), nullptr, m_intermediateRTV.GetAddressOf());
+			device->CreateShaderResourceView(m_intermediateTex.Get(), nullptr, m_intermediateSRV.GetAddressOf());
+			Utils::Log("VideoUpscaler initialized successfully.\n");
+		} else {
+			Utils::Log("Failed to create intermediate texture for VideoUpscaler.\n");
+			m_upscaler.reset();
+		}
+	} else {
+		Utils::Log("Failed to initialize VideoUpscaler.\n");
+		m_upscaler.reset();
 	}
 }
 

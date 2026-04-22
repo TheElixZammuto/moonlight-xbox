@@ -3,6 +3,7 @@
 #include "Utils.hpp"
 #include "../Plot/ImGuiPlots.h"
 #include "../Streaming/FFMpegDecoder.h"
+#include "../State/StreamConfiguration.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -45,7 +46,12 @@ bool Stats::ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char
 
 		// Move this window into the last window slot and clear it for next window
 		memcpy(&m_LastWndVideoStats, &m_ActiveWndVideoStats, sizeof(VIDEO_STATS));
+		
+		// Preserve the scaleRatio which is set directly by the renderer and doesn't accumulate
+		float currentScaleRatio = m_ActiveWndVideoStats.scaleRatio;
 		ZeroMemory(&m_ActiveWndVideoStats, sizeof(VIDEO_STATS));
+		m_ActiveWndVideoStats.scaleRatio = currentScaleRatio;
+		
 		m_ActiveWndVideoStats.measurementStartTimestamp = timer.GetTotalSeconds();
 	}
 
@@ -149,6 +155,11 @@ void Stats::SubmitRenderStats(double preWaitTimeMs, double renderTimeMs, double 
 	m_ActiveWndVideoStats.totalPresentTimeUs += static_cast<uint64_t>(presentTimeMs * 1000);
 }
 
+void Stats::SubmitScaleRatio(float scaleRatio) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_ActiveWndVideoStats.scaleRatio = scaleRatio;
+}
+
 /// private methods
 
 void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst) {
@@ -167,6 +178,7 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.totalPreWaitTimeUs += src.totalPreWaitTimeUs;
 	dst.totalPresentTimeUs += src.totalPresentTimeUs;
 	dst.totalPresentDisplayMs += src.totalPresentDisplayMs;
+	dst.scaleRatio = src.scaleRatio;
 
 	if (dst.minHostProcessingLatency == 0) {
 		dst.minHostProcessingLatency = src.minHostProcessingLatency;
@@ -299,19 +311,37 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 		double avgVideoMbps = m_bwTracker.GetAverageMbps();
 		double peakVideoMbps = m_bwTracker.GetPeakMbps();
 
-		ret = snprintf(&output[offset],
-					   length - offset,
-					   "Bitrate: %.1f Mbps, Peak (%us): %.1f\n"
-					   "Incoming frame rate from network: %.2f FPS\n"
-					   "Decoding frame rate: %.2f FPS\n"
-					   "Rendering frame rate: %.2f FPS (%s)\n",
-					   avgVideoMbps,
-					   m_bwTracker.GetWindowSeconds(),
-					   peakVideoMbps,
-					   stats.receivedFps,
-					   stats.decodedFps,
-					   stats.renderedFps,
-					   Pacer::instance().getPacingImmediate() ? "immediate" : "display-locked");
+		if (GetStreamConfig()->videoSuperResolution) {
+			ret = snprintf(&output[offset],
+						   length - offset,
+						   "Bitrate: %.1f Mbps, Peak (%us): %.1f\n"
+						   "Video Enhancement: (x%.2f) NIS Shader\n"
+						   "Incoming frame rate from network: %.2f FPS\n"
+						   "Decoding frame rate: %.2f FPS\n"
+						   "Rendering frame rate: %.2f FPS (%s)\n",
+						   avgVideoMbps,
+						   m_bwTracker.GetWindowSeconds(),
+						   peakVideoMbps,
+						   stats.scaleRatio,
+						   stats.receivedFps,
+						   stats.decodedFps,
+						   stats.renderedFps,
+						   Pacer::instance().getPacingImmediate() ? "immediate" : "display-locked");
+		} else {
+			ret = snprintf(&output[offset],
+						   length - offset,
+						   "Bitrate: %.1f Mbps, Peak (%us): %.1f\n"
+						   "Incoming frame rate from network: %.2f FPS\n"
+						   "Decoding frame rate: %.2f FPS\n"
+						   "Rendering frame rate: %.2f FPS (%s)\n",
+						   avgVideoMbps,
+						   m_bwTracker.GetWindowSeconds(),
+						   peakVideoMbps,
+						   stats.receivedFps,
+						   stats.decodedFps,
+						   stats.renderedFps,
+						   Pacer::instance().getPacingImmediate() ? "immediate" : "display-locked");
+		}
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;

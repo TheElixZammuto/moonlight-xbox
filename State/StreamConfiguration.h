@@ -17,6 +17,7 @@ namespace moonlight_xbox_dx
 		property Platform::String^ framePacing;
 		property bool enableHDR;
 		property bool playAudioOnPC;
+		property bool videoSuperResolution;
 		property bool enableVsync;
 		property bool enableSOPS;
 		property bool enableStats;

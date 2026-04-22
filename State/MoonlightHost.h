@@ -18,6 +18,7 @@ namespace moonlight_xbox_dx {
         bool loading = true;
         bool wolPolling = false;
         bool playAudioOnPC = false;
+        bool videoSuperResolution = false;
         MoonlightClient* client;
         int currentlyRunningAppId;
         int bitrate = 20000;
@@ -246,6 +247,15 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->playAudioOnPC = value;
                 OnPropertyChanged("PlayAudioOnPC");
+            }
+        }
+
+        property bool VideoSuperResolution
+        {
+            bool get() { return this->videoSuperResolution; }
+            void set(bool value) {
+                this->videoSuperResolution = value;
+                OnPropertyChanged("VideoSuperResolution");
             }
         }
 

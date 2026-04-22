@@ -6,6 +6,7 @@
 #include "../Plot/PlotDesc.h"
 #include "FFMpegDecoder.h"
 #include "Utils.hpp"
+#include "../State/StreamConfiguration.h"
 
 using namespace DirectX;
 using namespace moonlight_xbox_dx;
@@ -187,17 +188,19 @@ void StatsRenderer::CreateWindowSizeDependentResources() {
 	int right = m_displayWidth / 3;
 	int bottom = 0;
 
-	// 13 lines of text
+	// Check if Video Super Resolution is enabled to allocate space for 14 lines instead of 13
+	bool isVSREnabled = GetStreamConfig() != nullptr && GetStreamConfig()->videoSuperResolution;
+
 	if (m_displayHeight >= 2160) { // 24pt font
 		left = 20;
 		right = m_displayWidth / 2;
-		bottom = 448;
+		bottom = isVSREnabled ? 483 : 448; // 14 lines (483) vs 13 lines (448)
 	} else if (m_displayHeight >= 1440) { // 12pt font
 		left = 14;
-		bottom = 224;
+		bottom = isVSREnabled ? 242 : 224; // 14 lines (242) vs 13 lines (224)
 	} else {
 		left = 10;
-		bottom = 224;
+		bottom = isVSREnabled ? 242 : 224; // 14 lines (242) vs 13 lines (224)
 	}
 
 #if defined(_DEBUG)

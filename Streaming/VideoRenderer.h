@@ -5,6 +5,7 @@
 #include "State\MoonlightClient.h"
 #include "State\StreamConfiguration.h"
 #include <atomic>
+#include "VideoUpscaler.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -97,6 +98,13 @@ namespace moonlight_xbox_dx
 		AVColorTransferCharacteristic m_LastColorTrc = AVCOL_TRC_UNSPECIFIED;
 		AVColorSpace m_LastColorSpace = AVCOL_SPC_UNSPECIFIED;
 		AVChromaLocation m_LastChromaLocation = AVCHROMA_LOC_UNSPECIFIED;
+
+		std::unique_ptr<VideoUpscaler> m_upscaler;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_intermediateTex;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_intermediateRTV;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_intermediateSRV;
+		
+		void InitializeUpscaler(DXGI_FORMAT format, bool isHDR);
 	};
 }
 
