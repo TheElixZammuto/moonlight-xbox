@@ -44,6 +44,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
 					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
 					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
+					if (a.contains("video_super_resolution")) h->VideoSuperResolution = a["video_super_resolution"].get<bool>();
 					if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
 					if (a.contains("enable_sops")) h->EnableSOPS = a["enable_sops"].get<bool>();
 					if (a.contains("enable_stats")) h->EnableStats = a["enable_stats"].get<bool>();
@@ -104,6 +105,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["framePacing"] = Utils::PlatformStringToStdString(host->FramePacing);
 			hostJson["autoStartID"] = host->AutostartID;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
+			hostJson["video_super_resolution"] = host->VideoSuperResolution;
 			hostJson["enable_hdr"] = host->EnableHDR;
 			hostJson["enable_sops"] = host->EnableSOPS;
 			hostJson["enable_stats"] = host->EnableStats;

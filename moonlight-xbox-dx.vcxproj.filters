@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Assets">
@@ -43,6 +43,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Common\DeviceResources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\VideoUpscaler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Streaming\LogRenderer.cpp">
@@ -381,6 +384,9 @@
     <ClCompile Include="Streaming\FrameCadence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Converters\BoolToTextConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="State\MoonlightClient.h">
@@ -399,6 +405,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\VideoRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\VideoUpscaler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\LogRenderer.h">
@@ -474,6 +483,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\FrameCadence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Converters\BoolToTextConverter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -672,8 +684,29 @@
     <None Include="Assets\Font\ModeSeven-12.spritefont">
       <Filter>Assets</Filter>
     </None>
+    <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Main.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Assets\Shader\nis_hdr_fp16.cso">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Assets\Shader\nis_hdr_fp32.cso">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Assets\Shader\nis_sdr_fp16.cso">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Assets\Shader\nis_sdr_fp32.cso">
+      <Filter>Shaders</Filter>
+    </None>
     <None Include="Assets\Shader\d3d11_vertex.fxc" />
     <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc" />
+    <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Scaler.h">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Config.h">
+      <Filter>Header Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Page Include="Pages\AppPage.xaml" />
