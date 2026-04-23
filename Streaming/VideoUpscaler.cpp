@@ -2,10 +2,7 @@
 #include "VideoUpscaler.h"
 #include "..\Common\DirectXHelper.h"
 #include "Utils.hpp"
-#include <d3dcompiler.h>
 #include <string>
-
-#pragma comment(lib, "d3dcompiler")
 
 using namespace moonlight_xbox_dx;
 
@@ -69,65 +66,23 @@ bool VideoUpscaler::Initialize(int inWidth, int inHeight, int outWidth, int outH
     device->CheckFeatureSupport(D3D11_FEATURE_SHADER_MIN_PRECISION_SUPPORT, &featureSupport, sizeof(featureSupport));
     bool supportsFP16 = (featureSupport.AllOtherShaderStagesMinPrecision & D3D11_SHADER_MIN_PRECISION_16_BIT) != 0;
 
-    // Calculate optimal NIS parameters
-    NISGPUArchitecture gpuArch = supportsFP16 ? NISGPUArchitecture::NVIDIA_Generic_fp16 : NISGPUArchitecture::NVIDIA_Generic;
-    NISOptimizer opt(true, gpuArch);
-    
-    UINT blockWidth = opt.GetOptimalBlockWidth();
-    UINT blockHeight = opt.GetOptimalBlockHeight();
-    UINT threadGroupSize = opt.GetOptimalThreadGroupSize();
+    // Based on NIS static compilation parameters
+    UINT blockWidth = 32;
+    UINT blockHeight = supportsFP16 ? 32 : 24;
 
-    std::string sBlockWidth = std::to_string(blockWidth);
-    std::string sBlockHeight = std::to_string(blockHeight);
-    std::string sThreadGroupSize = std::to_string(threadGroupSize);
-    std::string sHDRMode = isHDR ? "2" : "0"; // 2 for PQ HDR
-    std::string sUseFP16 = supportsFP16 ? "1" : "0";
+    std::wstring shaderPath = L"Assets\\Shader\\nis_";
+    shaderPath += isHDR ? L"hdr_" : L"sdr_";
+    shaderPath += supportsFP16 ? L"fp16.cso" : L"fp32.cso";
 
-    // 1. Compile NIS shader from HLSL source
+    // 1. Load precompiled NIS shader
     try {
-        std::wstring fullShaderPath = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
-        fullShaderPath += L"\\third_party\\NVIDIAImageScaling\\NIS\\NIS_Main.hlsl";
-
-        D3D_SHADER_MACRO defines[] = {
-            { "NIS_SCALER",             "1" },
-            { "NIS_HDR_MODE",           sHDRMode.c_str() },
-            { "NIS_BLOCK_WIDTH",        sBlockWidth.c_str() },
-            { "NIS_BLOCK_HEIGHT",       sBlockHeight.c_str() },
-            { "NIS_THREAD_GROUP_SIZE",  sThreadGroupSize.c_str() },
-            { "NIS_USE_HALF_PRECISION", sUseFP16.c_str() },
-            { nullptr, nullptr }
-        };
-
-        Microsoft::WRL::ComPtr<ID3DBlob> shaderBlob;
-        Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-        
-        HRESULT hr = D3DCompileFromFile(
-            fullShaderPath.c_str(),
-            defines,
-            D3D_COMPILE_STANDARD_FILE_INCLUDE,
-            "main",
-            "cs_5_0",
-            D3DCOMPILE_OPTIMIZATION_LEVEL3,
-            0,
-            &shaderBlob,
-            &errorBlob
-        );
-
-        if (FAILED(hr)) {
-            if (errorBlob) {
-                Utils::Logf("NIS Shader compilation failed: %s\n", (char*)errorBlob->GetBufferPointer());
-            } else {
-                Utils::Logf("NIS Shader compilation failed with HRESULT 0x%X\n", hr);
-            }
-            return false;
-        }
-
-        DX::ThrowIfFailed(device->CreateComputeShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, m_nisShader.ReleaseAndGetAddressOf()), "Create NIS Compute Shader");
+        auto shaderBlob = DX::ReadData(shaderPath.c_str());
+        DX::ThrowIfFailed(device->CreateComputeShader(shaderBlob.data(), shaderBlob.size(), nullptr, m_nisShader.ReleaseAndGetAddressOf()), "Create NIS Compute Shader");
     } catch (Platform::Exception^ e) {
-        Utils::Logf("Failed to compile or create NIS shader. HRESULT: 0x%X\n", e->HResult);
+        Utils::Logf("Failed to load NIS shader (%ls). HRESULT: 0x%X\n", shaderPath.c_str(), e->HResult);
         return false;
     } catch (...) {
-        Utils::Log("Failed to compile NIS shader with unknown exception\n");
+        Utils::Log("Failed to load NIS shader with unknown exception\n");
         return false;
     }
 

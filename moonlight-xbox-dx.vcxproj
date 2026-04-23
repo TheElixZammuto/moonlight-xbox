@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -618,15 +618,22 @@
     <None Include="Assets\qrSupport.svg">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Main.hlsl">
+    <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Main.hlsl" />
+    <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Scaler.h" />
+    <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Config.h" />
+    <None Include="Assets\Shader\nis_hdr_fp16.cso">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>
-    <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Scaler.h">
+    <None Include="Assets\Shader\nis_hdr_fp32.cso">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>
-    <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Config.h">
+    <None Include="Assets\Shader\nis_sdr_fp16.cso">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shader\nis_sdr_fp32.cso">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>

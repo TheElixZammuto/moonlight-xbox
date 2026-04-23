@@ -687,6 +687,18 @@
     <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Main.hlsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Assets\Shader\nis_hdr_fp16.cso">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Assets\Shader\nis_hdr_fp32.cso">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Assets\Shader\nis_sdr_fp16.cso">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Assets\Shader\nis_sdr_fp32.cso">
+      <Filter>Shaders</Filter>
+    </None>
     <None Include="Assets\Shader\d3d11_vertex.fxc" />
     <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc" />
     <None Include="third_party\NVIDIAImageScaling\NIS\NIS_Scaler.h">
