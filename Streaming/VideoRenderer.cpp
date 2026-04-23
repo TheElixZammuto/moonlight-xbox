@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "VideoRenderer.h"
 #include <State\MoonlightClient.h>
 #include "..\Common\DirectXHelper.h"
@@ -720,55 +720,6 @@ void VideoRenderer::getFrameChromaCositingOffsets(const AVFrame* frame, std::arr
 	}
 	if (formatDesc->log2_chroma_h == 0) {
 		chromaOffsets[1] = 0;
-	}
-}
-
-void VideoRenderer::InitializeUpscaler(DXGI_FORMAT format, bool isHDR) {
-	if (!configuration->videoSuperResolution) return;
-
-	if (!m_upscaler) {
-		m_upscaler = std::make_unique<VideoUpscaler>(m_deviceResources);
-	}
-
-	// First, calculate the true destination size and offsets (to preserve aspect ratio and add black bars)
-	IRECT src, fsrDst;
-	src.x = src.y = 0;
-	src.w = configuration->width;
-	src.h = configuration->height;
-	
-	// FSR true pixel-based destination rect
-	fsrDst.x = fsrDst.y = 0;
-	fsrDst.w = m_deviceResources->GetPixelWidth();
-	fsrDst.h = m_deviceResources->GetPixelHeight();
-	scaleSourceToDestinationSurface(&src, &fsrDst);
-
-	// Initialize the Upscaler to upscale exactly to the aspect-ratio-preserved dimensions in raw pixels
-	if (m_upscaler->Initialize(src.w, src.h, fsrDst.w, fsrDst.h, format, isHDR)) {
-		
-		// Create the intermediate texture that the pixel shader will render into (instead of the backbuffer)
-		D3D11_TEXTURE2D_DESC texDesc = {};
-		texDesc.Width = configuration->width;
-		texDesc.Height = configuration->height;
-		texDesc.MipLevels = 1;
-		texDesc.ArraySize = 1;
-		texDesc.Format = format; // Match backbuffer format or HDR format
-		texDesc.SampleDesc.Count = 1;
-		texDesc.Usage = D3D11_USAGE_DEFAULT;
-		texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-
-		auto device = m_deviceResources->GetD3DDevice();
-		HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, m_intermediateTex.GetAddressOf());
-		if (SUCCEEDED(hr)) {
-			device->CreateRenderTargetView(m_intermediateTex.Get(), nullptr, m_intermediateRTV.GetAddressOf());
-			device->CreateShaderResourceView(m_intermediateTex.Get(), nullptr, m_intermediateSRV.GetAddressOf());
-			Utils::Log("VideoUpscaler initialized successfully.\n");
-		} else {
-			Utils::Log("Failed to create intermediate texture for VideoUpscaler.\n");
-			m_upscaler.reset();
-		}
-	} else {
-		Utils::Log("Failed to initialize VideoUpscaler.\n");
-		m_upscaler.reset();
 	}
 }
 
