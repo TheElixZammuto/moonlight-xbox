@@ -416,6 +416,10 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_VideoVertexBuffer.Reset();
 	m_samplerState.Reset();
 	m_indexBuffer.Reset();
+	m_intermediateTex.Reset();
+	m_intermediateRTV.Reset();
+	m_intermediateSRV.Reset();
+	m_upscaler.reset();
 }
 
 void VideoRenderer::scaleSourceToDestinationSurface(IRECT* src, IRECT* dst)
