@@ -311,7 +311,9 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 		double avgVideoMbps = m_bwTracker.GetAverageMbps();
 		double peakVideoMbps = m_bwTracker.GetPeakMbps();
 
-		if (GetStreamConfig()->videoSuperResolution) {
+		bool isVSREnabled = GetStreamConfig() != nullptr && GetStreamConfig()->videoSuperResolution;
+
+		if (isVSREnabled) {
 			ret = snprintf(&output[offset],
 						   length - offset,
 						   "Bitrate: %.1f Mbps, Peak (%us): %.1f\n"
