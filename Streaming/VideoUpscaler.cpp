@@ -122,7 +122,7 @@ bool VideoUpscaler::Initialize(int inWidth, int inHeight, int outWidth, int outH
             return false;
         }
 
-        DX::ThrowIfFailed(device->CreateComputeShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, m_nisShader.GetAddressOf()), "Create NIS Compute Shader");
+        DX::ThrowIfFailed(device->CreateComputeShader(shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize(), nullptr, m_nisShader.ReleaseAndGetAddressOf()), "Create NIS Compute Shader");
     } catch (Platform::Exception^ e) {
         Utils::Logf("Failed to compile or create NIS shader. HRESULT: 0x%X\n", e->HResult);
         return false;
@@ -138,7 +138,7 @@ bool VideoUpscaler::Initialize(int inWidth, int inHeight, int outWidth, int outH
     
     NVScalerUpdateConfig(config, sharpness, 0, 0, inWidth, inHeight, inWidth, inHeight, 0, 0, outWidth, outHeight, outWidth, outHeight, hdrMode);
     
-    if (!CreateConstantBuffer(&config, sizeof(config), m_nisCB.GetAddressOf())) return false;
+    if (!CreateConstantBuffer(&config, sizeof(config), m_nisCB.ReleaseAndGetAddressOf())) return false;
 
     // 3. Create coefficient textures
     const int rowPitch = supportsFP16 ? kFilterSize * sizeof(uint16_t) : kFilterSize * sizeof(float);
@@ -146,8 +146,8 @@ bool VideoUpscaler::Initialize(int inWidth, int inHeight, int outWidth, int outH
     const void* scaleData = supportsFP16 ? (const void*)coef_scale_fp16 : (const void*)coef_scale;
     const void* usmData = supportsFP16 ? (const void*)coef_usm_fp16 : (const void*)coef_usm;
 
-    if (!CreateCoefTexture(scaleData, kFilterSize / 4, kPhaseCount, rowPitch, coefFormat, m_coefScaleTex.GetAddressOf(), m_coefScaleSRV.GetAddressOf())) return false;
-    if (!CreateCoefTexture(usmData, kFilterSize / 4, kPhaseCount, rowPitch, coefFormat, m_coefUsmTex.GetAddressOf(), m_coefUsmSRV.GetAddressOf())) return false;
+    if (!CreateCoefTexture(scaleData, kFilterSize / 4, kPhaseCount, rowPitch, coefFormat, m_coefScaleTex.ReleaseAndGetAddressOf(), m_coefScaleSRV.ReleaseAndGetAddressOf())) return false;
+    if (!CreateCoefTexture(usmData, kFilterSize / 4, kPhaseCount, rowPitch, coefFormat, m_coefUsmTex.ReleaseAndGetAddressOf(), m_coefUsmSRV.ReleaseAndGetAddressOf())) return false;
 
     Utils::Logf("VideoUpscaler: Initialized NIS (%dx%d -> %dx%d, HDR: %d, FP16: %d, Block: %ux%u)\n", inWidth, inHeight, outWidth, outHeight, isHDR, supportsFP16, blockWidth, blockHeight);
 
@@ -162,10 +162,13 @@ bool VideoUpscaler::Initialize(int inWidth, int inHeight, int outWidth, int outH
     texDesc.Usage = D3D11_USAGE_DEFAULT;
     texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 
-    HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, m_finalOutputTex.GetAddressOf());
+    HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, m_finalOutputTex.ReleaseAndGetAddressOf());
     if (FAILED(hr)) return false;
-    device->CreateShaderResourceView(m_finalOutputTex.Get(), nullptr, m_finalOutputSRV.GetAddressOf());
-    hr = device->CreateUnorderedAccessView(m_finalOutputTex.Get(), nullptr, m_finalOutputUAV.GetAddressOf());
+    
+    hr = device->CreateShaderResourceView(m_finalOutputTex.Get(), nullptr, m_finalOutputSRV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) return false;
+    
+    hr = device->CreateUnorderedAccessView(m_finalOutputTex.Get(), nullptr, m_finalOutputUAV.ReleaseAndGetAddressOf());
     if (FAILED(hr)) {
         Utils::Logf("Failed to create UAV for NIS final texture. HRESULT: 0x%X\n", hr);
         return false;
@@ -177,7 +180,8 @@ bool VideoUpscaler::Initialize(int inWidth, int inHeight, int outWidth, int outH
     sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
     sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
     sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-    device->CreateSamplerState(&sampDesc, m_sampler.GetAddressOf());
+    hr = device->CreateSamplerState(&sampDesc, m_sampler.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) return false;
 
     // 6. Calculate Dispatch arguments
     m_dispatchX = static_cast<UINT>(std::ceil(m_outWidth / float(blockWidth)));

@@ -103,8 +103,6 @@ namespace moonlight_xbox_dx
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_intermediateTex;
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_intermediateRTV;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_intermediateSRV;
-		
-		void InitializeUpscaler(DXGI_FORMAT format, bool isHDR);
 	};
 }
 

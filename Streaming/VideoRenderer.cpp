@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "VideoRenderer.h"
 #include <State\MoonlightClient.h>
 #include "..\Common\DirectXHelper.h"
@@ -155,11 +155,15 @@ bool VideoRenderer::Render(AVFrame *frame) {
 				texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
 				auto device = m_deviceResources->GetD3DDevice();
-				HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, m_intermediateTex.GetAddressOf());
+				HRESULT hr = device->CreateTexture2D(&texDesc, nullptr, m_intermediateTex.ReleaseAndGetAddressOf());
 				if (SUCCEEDED(hr)) {
-					device->CreateRenderTargetView(m_intermediateTex.Get(), nullptr, m_intermediateRTV.GetAddressOf());
-					device->CreateShaderResourceView(m_intermediateTex.Get(), nullptr, m_intermediateSRV.GetAddressOf());
-				} else {
+					hr = device->CreateRenderTargetView(m_intermediateTex.Get(), nullptr, m_intermediateRTV.ReleaseAndGetAddressOf());
+					if (SUCCEEDED(hr)) {
+						hr = device->CreateShaderResourceView(m_intermediateTex.Get(), nullptr, m_intermediateSRV.ReleaseAndGetAddressOf());
+					}
+				}
+
+				if (FAILED(hr)) {
 					m_upscaler.reset();
 				}
 			} else {
@@ -250,14 +254,14 @@ bool VideoRenderer::Render(AVFrame *frame) {
 			// For simplicity and to ensure it displays, if m_upscaler gives us an SRV, we can retrieve its texture
 			// and copy it to the backbuffer if dimensions match.
 			Microsoft::WRL::ComPtr<ID3D11Resource> upscaledRes;
-			finalSRV->GetResource(upscaledRes.GetAddressOf());
+			finalSRV->GetResource(upscaledRes.ReleaseAndGetAddressOf());
 			
 			Microsoft::WRL::ComPtr<ID3D11Texture2D> upscaledTex;
 			upscaledRes.As(&upscaledTex);
 			
 			if (upscaledTex) {
 				Microsoft::WRL::ComPtr<ID3D11Resource> backBufferRes;
-				backBufferRTV[0]->GetResource(backBufferRes.GetAddressOf());
+				backBufferRTV[0]->GetResource(backBufferRes.ReleaseAndGetAddressOf());
 
 				Microsoft::WRL::ComPtr<ID3D11Texture2D> backBufferTex;
 				backBufferRes.As(&backBufferTex);
@@ -320,7 +324,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 		        vertexShaderBytecode.data(),
 		        vertexShaderBytecode.size(),
 		        nullptr,
-				&m_vertexShader
+				m_vertexShader.ReleaseAndGetAddressOf()
 			)
 			, "Vertex Shader Creation");
 
@@ -336,7 +340,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 		        ARRAYSIZE(vertexDesc),
 		        vertexShaderBytecode.data(),
 		        vertexShaderBytecode.size(),
-				&m_inputLayout
+				m_inputLayout.ReleaseAndGetAddressOf()
 			)
 			, "Input Layout Creation");
 	}
@@ -349,7 +353,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 		        pixelShaderBytecode.data(),
 		        pixelShaderBytecode.size(),
 		        nullptr,
-				&m_pixelShaderYUV420
+				m_pixelShaderYUV420.ReleaseAndGetAddressOf()
 			)
 			, "Pixel Shader Creation");
 	}
@@ -380,7 +384,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 		samplerDesc.MinLOD = 0.0f;
 		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc,  &m_samplerState));
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc,  m_samplerState.ReleaseAndGetAddressOf()));
 	}
 
 	// We use a common index buffer for all geometry
@@ -398,7 +402,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 		indexBufferData.pSysMem = indexes;
 		indexBufferData.SysMemPitch = sizeof(int);
 
-		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, m_indexBuffer.ReleaseAndGetAddressOf()), "Index Buffer creation");
 	}
 
     DISPATCH_THREADPOOL(([this, devRes = m_deviceResources, cfg = configuration] {
