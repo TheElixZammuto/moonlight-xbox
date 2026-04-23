@@ -263,23 +263,6 @@ bool VideoRenderer::Render(AVFrame *frame) {
 				Microsoft::WRL::ComPtr<ID3D11Resource> backBufferRes;
 				backBufferRTV[0]->GetResource(backBufferRes.ReleaseAndGetAddressOf());
 
-				Microsoft::WRL::ComPtr<ID3D11Texture2D> backBufferTex;
-				backBufferRes.As(&backBufferTex);
-
-				D3D11_TEXTURE2D_DESC srcDesc, dstDesc, videoDesc;
-				upscaledTex->GetDesc(&srcDesc);
-				backBufferTex->GetDesc(&dstDesc);
-				m_VideoTexture->GetDesc(&videoDesc);
-
-				static bool logged = false;
-				if (!logged) {
-					Utils::Logf("[Texture Sizes] Stream Input (m_VideoTexture): %dx%d | Upscaler Output (upscaledTex): %dx%d | Screen (BackBuffer): %dx%d\n",
-						videoDesc.Width, videoDesc.Height,
-						srcDesc.Width, srcDesc.Height,
-						dstDesc.Width, dstDesc.Height);
-					logged = true;
-				}
-
 				// Copy the upscaled texture to the backbuffer, using calculated offsets for centering
 				ctx->CopySubresourceRegion(backBufferRes.Get(), 0, fsrDst.x, fsrDst.y, 0, upscaledTex.Get(), 0, nullptr);
 			}
