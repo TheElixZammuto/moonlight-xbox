@@ -5,3 +5,4 @@ Calculate bitrate algorithm from res/fps
 Changing vsync mode requires a full swapchain reset
 
 When changing the Windows HDR calibration profile on the host, it causes the stream to reset and often switch to the wrong colorspace.
+
