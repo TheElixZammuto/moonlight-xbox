@@ -163,26 +163,6 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
 
-	client->OnStatusUpdate = ([streamPage](int status) {
-		const char *msg = LiGetStageName(status);
-		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(msg));
-	});
-
-	client->OnCompleted = ([streamPage]() {
-		// Give stream a moment to stabilize before hiding progress view
-		Sleep(500);
-		streamPage->m_progressRing->IsActive = false;
-		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-	});
-
-	client->OnFailed = ([streamPage](int status, int error, char *message) {
-		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(message));
-	});
-
-	client->SetHDR = ([this](bool v) {
-		this->m_sceneRenderer->SetHDR(v);
-	});
-
 	client->OnRumble = ([this](unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
 		auto &state = this->FindGamepadStateByHostId(controllerNumber);
 		if (state.controller == nullptr) return;
