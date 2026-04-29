@@ -17,7 +17,8 @@ namespace moonlight_xbox_dx {
 		bool alternateCombination;
 	internal:
 		Concurrency::task<void> Init();
-		bool AddHost(Platform::String^ hostname);
+		bool AddHost(Platform::String ^ hostname, Platform::String ^ mdnsInstanceName);
+		bool UpdateHostAddressForInstance(Platform::String ^ mdnsInstanceName, Platform::String ^ newHostPort);
 		Concurrency::task<void> UpdateFile();
 		void RemoveHost(MoonlightHost^ host);
 		std::string autostartInstance = "";
@@ -30,8 +31,6 @@ namespace moonlight_xbox_dx {
 		std::vector<std::string> Build_Unique_Addresses(MoonlightHost^ host);
 		int Open_Socket();
 		bool Send_Payload(int descriptor, std::string payload, std::string address, int port);
-		std::string Get_Broadcast_IP(std::string ipAddress);
-		std::pair<std::string, int> Split_IP_Address(const std::string& address, char deliminator);
 		void Throw_Error(std::string message);
 
 		 
