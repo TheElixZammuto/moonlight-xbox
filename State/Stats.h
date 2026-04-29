@@ -46,6 +46,7 @@ typedef struct _VIDEO_STATS {
 	double decodedFps;
 	double renderedFps;
 	double measurementStartTimestamp;
+	float scaleRatio;
 } VIDEO_STATS, *PVIDEO_STATS;
 
 namespace moonlight_xbox_dx
@@ -64,6 +65,7 @@ namespace moonlight_xbox_dx
 		void SubmitPacerTime(int64_t pacerTimeQpc);
 		void SubmitPresentPacing(double presentDisplayMs);
 		void SubmitRenderStats(double preWaitTimeMs, double renderTimeMs, double presentTimeMs, bool hitDeadline);
+		void SubmitScaleRatio(float scaleRatio);
 
 	private:
 		void addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst);
