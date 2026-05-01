@@ -1,13 +1,13 @@
-﻿#include "pch.h"
-#include "moonlight_xbox_dxMain.h"
-#include "Common\DirectXHelper.h"
-#include "State\GamepadState.h"
-#include "../Plot/ImGuiPlots.h"
-#include "Utils.hpp"
+﻿#include "moonlight_xbox_dxMain.h"
+#include "pch.h"
 #include <Pages/StreamPage.xaml.h>
 #include <Pages/AppPage.xaml.h>
 #include <Pages/HostSelectorPage.xaml.h>
 #include <Streaming\FFMpegDecoder.h>
+#include "../Plot/ImGuiPlots.h"
+#include "Common\DirectXHelper.h"
+#include "State\GamepadState.h"
+#include "Utils.hpp"
 
 #include <algorithm>
 
@@ -151,7 +151,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	// We're now connected and can register for gamepad events
 	for (int i = 0; i < MAX_GAMEPADS; i++) {
-		GamepadState& state = m_GamepadState[i];
+		GamepadState &state = m_GamepadState[i];
 		state.Reset();
 	}
 
@@ -165,9 +165,9 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
 
 	client->OnStatusUpdate = ([streamPage](int status) {
-		const char* msg = LiGetStageName(status);
+		const char *msg = LiGetStageName(status);
 		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(msg));
-		});
+	});
 
 	client->OnCompleted = ([streamPage]() {
 		// Give stream a moment to stabilize before hiding progress view
@@ -176,7 +176,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 	});
 
-	client->OnFailed = ([streamPage](int status, int error, char* message) {
+	client->OnFailed = ([streamPage](int status, int error, char *message) {
 		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(message));
 	});
 
@@ -185,7 +185,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	});
 
 	client->OnRumble = ([this](unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
-		auto& state = this->FindGamepadStateByHostId(controllerNumber);
+		auto &state = this->FindGamepadStateByHostId(controllerNumber);
 		if (state.controller == nullptr) return;
 		auto gamepads = Gamepad::Gamepads;
 		if (state.localId >= gamepads->Size) return;
@@ -199,7 +199,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	});
 
 	client->OnTriggerRumble = ([this](unsigned short controllerNumber, unsigned short leftTriggerMotor, unsigned short rightTriggerMotor) {
-		auto& state = this->FindGamepadStateByHostId(controllerNumber);
+		auto &state = this->FindGamepadStateByHostId(controllerNumber);
 		if (state.controller == nullptr) return;
 		auto gamepads = Gamepad::Gamepads;
 		if (state.localId >= gamepads->Size) return;
@@ -222,26 +222,22 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	streamPage->RequestRefreshGamepads();
 }
 
-moonlight_xbox_dxMain::~moonlight_xbox_dxMain()
-{
+moonlight_xbox_dxMain::~moonlight_xbox_dxMain() {
 	// Deregister device notification
 	m_deviceResources->RegisterDeviceNotify(nullptr);
 }
 
-void moonlight_xbox_dxMain::CreateDeviceDependentResources()
-{
+void moonlight_xbox_dxMain::CreateDeviceDependentResources() {
 }
 
 // Updates application state when the window size changes (e.g. device orientation change)
-void moonlight_xbox_dxMain::CreateWindowSizeDependentResources()
-{
+void moonlight_xbox_dxMain::CreateWindowSizeDependentResources() {
 	m_sceneRenderer->CreateWindowSizeDependentResources();
 	m_LogRenderer->CreateWindowSizeDependentResources();
 	m_statsTextRenderer->CreateWindowSizeDependentResources();
 }
 
-void moonlight_xbox_dxMain::StartRenderLoop()
-{
+void moonlight_xbox_dxMain::StartRenderLoop() {
 	// If the animation render loop is already running then do not start another thread.
 	if (m_renderLoopWorker != nullptr && m_renderLoopWorker->Status == AsyncStatus::Started) {
 		return;
@@ -390,22 +386,19 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 	moonlightClient->OnCompleted(); // hide Initializing spinny
 }
 
-void moonlight_xbox_dxMain::StopRenderLoop()
-{
+void moonlight_xbox_dxMain::StopRenderLoop() {
 	m_renderLoopWorker->Cancel();
 	m_inputLoopWorker->Cancel();
 }
 
 // Updates the application state once per frame.
-void moonlight_xbox_dxMain::Update()
-{
+void moonlight_xbox_dxMain::Update() {
 	// Update scene objects.
-	m_timer.Tick([&]()
-		{
-			m_sceneRenderer->Update(m_timer);
-			m_LogRenderer->Update(m_timer);
-			m_statsTextRenderer->Update(m_timer);
-		});
+	m_timer.Tick([&]() {
+		m_sceneRenderer->Update(m_timer);
+		m_LogRenderer->Update(m_timer);
+		m_statsTextRenderer->Update(m_timer);
+	});
 }
 
 // Gamepad handling
@@ -415,12 +408,12 @@ static inline bool isPressed(GamepadButtons buttons, GamepadButtons b) {
 }
 
 // new button press
-static inline bool PressedEdge(GamepadReading& r, GamepadReading& p, GamepadButtons b) {
+static inline bool PressedEdge(GamepadReading &r, GamepadReading &p, GamepadButtons b) {
 	return isPressed(r.Buttons, b) && !isPressed(p.Buttons, b);
 }
 
 // new button release
-static inline bool ReleaseEdge(GamepadReading& r, GamepadReading& p, GamepadButtons b) {
+static inline bool ReleaseEdge(GamepadReading &r, GamepadReading &p, GamepadButtons b) {
 	return !isPressed(r.Buttons, b) && isPressed(p.Buttons, b);
 }
 
@@ -435,7 +428,7 @@ void moonlight_xbox_dxMain::ProcessInput() {
 	moonlightClient->SetGamepadCount(gamepadCount);
 
 	for (UINT i = 0; i < gamepadCount; i++) {
-		auto& state = this->FindGamepadState(i);
+		auto &state = this->FindGamepadState(i);
 		auto result = state.GetComboResult(50); // hold buttons for a short time for View + Menu combo
 
 		if (result.comboTriggered) {
@@ -585,13 +578,18 @@ void moonlight_xbox_dxMain::ProcessInput() {
 				moonlightClient->SendGuide(state.hostId, false);
 			}
 		} else {
-			SendGamepadReadingForState(state, reading);
-
 			// Uncomment to debug gamepad state
-			// state.DumpState();
+			// if (state.hasGamepadReadingChanged()) state.DumpState();
+
+			SendGamepadReadingForState(state, reading);
 		}
 		state.previousReading = reading;
 	}
+}
+
+void moonlight_xbox_dxMain::SetGuideButtonDown(uint32_t hostId, bool isDown) {
+	auto &state = FindGamepadStateByHostId(hostId);
+	state.SetGuideButtonDown(isDown);
 }
 
 uint16_t moonlight_xbox_dxMain::MakeActiveMask() {
@@ -626,7 +624,7 @@ void moonlight_xbox_dxMain::RefreshGamepads() {
 		// Do we know about this gamepad already?
 		for (int i = 0; i < MAX_GAMEPADS; ++i) {
 			if (m_GamepadState[i].controller == gamepad) {
-				auto& state = m_GamepadState[i];
+				auto &state = m_GamepadState[i];
 				// update localId and send arrival packet if necessary
 				state.localId = localId;
 				state.lastRefreshedQpc = now;
@@ -645,7 +643,7 @@ void moonlight_xbox_dxMain::RefreshGamepads() {
 			for (int i = 0; i < MAX_GAMEPADS; ++i) {
 				if (m_GamepadState[i].controller == nullptr) {
 					// Save the new controller at the first open slot
-					auto& state = m_GamepadState[i];
+					auto &state = m_GamepadState[i];
 					state.Reset();
 					state.controller = gamepad;
 					state.localId = localId;
@@ -664,7 +662,7 @@ void moonlight_xbox_dxMain::RefreshGamepads() {
 
 	// Lastly, remove any leftover controllers that are no longer connected
 	for (int i = 0; i < MAX_GAMEPADS; ++i) {
-		auto& state = m_GamepadState[i];
+		auto &state = m_GamepadState[i];
 		if (state.controller != nullptr && state.lastRefreshedQpc != now) {
 			// Send a disconnect packet and reset this state slot
 			uint16_t activeMaskMinus = MakeActiveMask();
@@ -676,16 +674,12 @@ void moonlight_xbox_dxMain::RefreshGamepads() {
 	}
 }
 
-void moonlight_xbox_dxMain::SendGamepadArrival(GamepadState& state) {
+void moonlight_xbox_dxMain::SendGamepadArrival(GamepadState &state) {
 	// Only ever send this once
 	if (state.didSendArrival) return;
 
 	uint8_t type = IsXbox() ? LI_CTYPE_XBOX : LI_CTYPE_UNKNOWN;
-	uint32_t supportedButtonFlags
-		= A_FLAG | B_FLAG | X_FLAG | Y_FLAG
-		| BACK_FLAG | PLAY_FLAG | LS_CLK_FLAG | RS_CLK_FLAG
-		| UP_FLAG | DOWN_FLAG | LEFT_FLAG | RIGHT_FLAG
-		| LB_FLAG | RB_FLAG;
+	uint32_t supportedButtonFlags = A_FLAG | B_FLAG | X_FLAG | Y_FLAG | BACK_FLAG | PLAY_FLAG | LS_CLK_FLAG | RS_CLK_FLAG | UP_FLAG | DOWN_FLAG | LEFT_FLAG | RIGHT_FLAG | LB_FLAG | RB_FLAG;
 	uint32_t capabilities = LI_CCAP_ANALOG_TRIGGERS | LI_CCAP_RUMBLE | LI_CCAP_TRIGGER_RUMBLE;
 	int rc = LiSendControllerArrivalEvent(state.hostId, MakeActiveMask(), type, supportedButtonFlags, capabilities);
 	if (rc != 0) {
@@ -695,11 +689,9 @@ void moonlight_xbox_dxMain::SendGamepadArrival(GamepadState& state) {
 
 // Renders the current frame according to the current application state.
 // Returns true if the frame was rendered and is ready to be displayed.
-bool moonlight_xbox_dxMain::Render()
-{
+bool moonlight_xbox_dxMain::Render() {
 	// Don't try to render anything before the first Update.
-	if (m_timer.GetFrameCount() == 0)
-	{
+	if (m_timer.GetFrameCount() == 0) {
 		return false;
 	}
 
@@ -735,8 +727,7 @@ bool moonlight_xbox_dxMain::Render()
 
 // Set this to true to use the ImGui demo/debug tools.
 // Normal ImGui code can be used anywhere in the other Render() methods.
-void moonlight_xbox_dxMain::RenderImGui()
-{
+void moonlight_xbox_dxMain::RenderImGui() {
 	bool show_demo_window = false;
 	bool show_metrics = false;
 
@@ -751,16 +742,14 @@ void moonlight_xbox_dxMain::RenderImGui()
 }
 
 // Notifies renderers that device resources need to be released.
-void moonlight_xbox_dxMain::OnDeviceLost()
-{
+void moonlight_xbox_dxMain::OnDeviceLost() {
 	m_sceneRenderer->ReleaseDeviceDependentResources();
 	m_LogRenderer->ReleaseDeviceDependentResources();
 	m_statsTextRenderer->ReleaseDeviceDependentResources();
 }
 
 // Notifies renderers that device resources may now be recreated.
-void moonlight_xbox_dxMain::OnDeviceRestored()
-{
+void moonlight_xbox_dxMain::OnDeviceRestored() {
 	m_sceneRenderer->CreateDeviceDependentResources();
 	m_LogRenderer->CreateDeviceDependentResources();
 	m_statsTextRenderer->CreateDeviceDependentResources();
@@ -824,18 +813,20 @@ void moonlight_xbox_dxMain::OnKeyDown(unsigned short virtualKey, char modifiers)
 	moonlightClient->KeyDown(virtualKey, modifiers);
 }
 
-
-void moonlight_xbox_dxMain::OnKeyUp(unsigned short virtualKey, char modifiers)
-{
-	if (this == nullptr || moonlightClient == nullptr)return;
+void moonlight_xbox_dxMain::OnKeyUp(unsigned short virtualKey, char modifiers) {
+	if (this == nullptr || moonlightClient == nullptr) return;
 	moonlightClient->KeyUp(virtualKey, modifiers);
 }
 
 void moonlight_xbox_dxMain::SendGuideButton(int duration) {
-	concurrency::create_async([duration,this]() {
-		moonlightClient->SendGuide(0, true);
+	concurrency::create_async([duration, this]() {
+		// We change the state of the fake guide button, which will be included in the regular controller packets
+		auto &state = FindFirstGamepad();
+		SetGuideButtonDown(state.hostId, true);
+
 		Sleep(duration);
-		moonlightClient->SendGuide(0, false);
+
+		SetGuideButtonDown(state.hostId, false);
 	});
 }
 
@@ -874,63 +865,88 @@ bool moonlight_xbox_dxMain::ToggleStats() {
 
 /// Gamepad Handling
 
-GamepadState& moonlight_xbox_dxMain::FindGamepadState(uint32_t localId) {
+GamepadState &moonlight_xbox_dxMain::FindGamepadState(uint32_t localId) {
 	int i = 0;
 	for (i = 0; i < MAX_GAMEPADS; i++) {
 		if (m_GamepadState[i].controller != nullptr && m_GamepadState[i].localId == localId) {
 			return m_GamepadState[i];
 		}
-    }
+	}
 
 	static GamepadState nullState;
 	return nullState;
 }
 
-GamepadState& moonlight_xbox_dxMain::FindGamepadStateByHostId(uint32_t hostId) {
+GamepadState &moonlight_xbox_dxMain::FindGamepadStateByHostId(uint32_t hostId) {
 	int i = 0;
 	for (i = 0; i < MAX_GAMEPADS; i++) {
 		if (m_GamepadState[i].controller != nullptr && m_GamepadState[i].hostId == hostId) {
 			return m_GamepadState[i];
 		}
-    }
+	}
 
 	static GamepadState nullState;
 	return nullState;
 }
 
-GamepadState& moonlight_xbox_dxMain::FindGamepadStateByGamepad(Gamepad^ gamepad) {
+GamepadState &moonlight_xbox_dxMain::FindGamepadStateByGamepad(Gamepad ^ gamepad) {
 	int i = 0;
 	for (i = 0; i < MAX_GAMEPADS; i++) {
-        if (m_GamepadState[i].controller == gamepad) {
-            return m_GamepadState[i];
-        }
-    }
+		if (m_GamepadState[i].controller == gamepad) {
+			return m_GamepadState[i];
+		}
+	}
 
 	static GamepadState nullState;
 	return nullState;
 }
 
-void moonlight_xbox_dxMain::SendGamepadReadingForState(GamepadState& state, GamepadReading& reading) {
+GamepadState &moonlight_xbox_dxMain::FindFirstGamepad() {
+	int i = 0;
+	for (i = 0; i < MAX_GAMEPADS; i++) {
+		if (m_GamepadState[i].controller != nullptr) {
+			return m_GamepadState[i];
+		}
+	}
+
+	static GamepadState nullState;
+	return nullState;
+}
+
+void moonlight_xbox_dxMain::SendGamepadReadingForState(GamepadState &state, GamepadReading &reading) {
 	// This method must NOT change the reading
 	state.reading = reading;
 	state.normalizeAxes();
 	if (state.hasGamepadReadingChanged()) {
 		int buttonFlags = 0;
-		GamepadButtons buttons[] = {GamepadButtons::A, GamepadButtons::B, GamepadButtons::X, GamepadButtons::Y, GamepadButtons::DPadLeft, GamepadButtons::DPadRight, GamepadButtons::DPadUp, GamepadButtons::DPadDown, GamepadButtons::LeftShoulder, GamepadButtons::RightShoulder, GamepadButtons::Menu, GamepadButtons::View, GamepadButtons::LeftThumbstick, GamepadButtons::RightThumbstick};
-		int LiButtonFlags[] = {A_FLAG, B_FLAG, X_FLAG, Y_FLAG, LEFT_FLAG, RIGHT_FLAG, UP_FLAG, DOWN_FLAG, LB_FLAG, RB_FLAG, PLAY_FLAG, BACK_FLAG, LS_CLK_FLAG, RS_CLK_FLAG};
+		GamepadButtons buttons[] = {GamepadButtons::A, GamepadButtons::B, GamepadButtons::X, GamepadButtons::Y,
+		                            GamepadButtons::DPadLeft, GamepadButtons::DPadRight, GamepadButtons::DPadUp, GamepadButtons::DPadDown,
+		                            GamepadButtons::LeftShoulder, GamepadButtons::RightShoulder, GamepadButtons::Menu, GamepadButtons::View,
+		                            GamepadButtons::LeftThumbstick, GamepadButtons::RightThumbstick,
+		                            GamepadButtons::Paddle1, GamepadButtons::Paddle2, GamepadButtons::Paddle3, GamepadButtons::Paddle4};
+		int LiButtonFlags[] = {A_FLAG, B_FLAG, X_FLAG, Y_FLAG,
+		                       LEFT_FLAG, RIGHT_FLAG, UP_FLAG, DOWN_FLAG,
+		                       LB_FLAG, RB_FLAG, PLAY_FLAG, BACK_FLAG,
+		                       LS_CLK_FLAG, RS_CLK_FLAG,
+		                       PADDLE1_FLAG, PADDLE2_FLAG, PADDLE3_FLAG, PADDLE4_FLAG};
 		for (int i = 0; i < 14; i++) {
 			if ((reading.Buttons & buttons[i]) == buttons[i]) {
 				buttonFlags |= LiButtonFlags[i];
 			}
 		}
 
+		// add Guide button if it's being virtually held down by quick menu
+		if (state.GetGuideButtonDown()) {
+			buttonFlags |= SPECIAL_FLAG;
+		}
+
 		LiSendMultiControllerEvent(
-			state.hostId,
-			MakeActiveMask(),
-			buttonFlags,
-			state.lTrig, state.rTrig,
-			state.ltX, state.ltY,
-			state.rtX, state.rtY);
+		    state.hostId,
+		    MakeActiveMask(),
+		    buttonFlags,
+		    state.lTrig, state.rTrig,
+		    state.ltX, state.ltY,
+		    state.rtX, state.rtY);
 		state.previousReading = reading;
 	}
 }

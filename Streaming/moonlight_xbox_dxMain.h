@@ -74,7 +74,9 @@ namespace moonlight_xbox_dx
 		GamepadState& FindGamepadState(uint32_t localId);
 		GamepadState& FindGamepadStateByHostId(uint32_t hostId);
 		GamepadState& FindGamepadStateByGamepad(Windows::Gaming::Input::Gamepad^ gamepad);
+		GamepadState& FindFirstGamepad();
 		uint16_t MakeActiveMask();
+		void SetGuideButtonDown(uint32_t hostId, bool isDown);
 		void DumpGamepads();
 		void RefreshGamepads();
 		void SendGamepadArrival(GamepadState& state);

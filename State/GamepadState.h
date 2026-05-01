@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <atomic>
 #include "Utils.hpp"
 
 enum class ComboState {
@@ -25,13 +26,15 @@ struct ComboResult {
 
 struct GamepadState {
 	Windows::Gaming::Input::Gamepad ^ controller;
-	uint32_t localId;         // index into Gamepad::Gamepads vector, used during add/remove
-	uint8_t hostId;           // index this host is mapped to on the host, used for all commands
-	int64_t lastRefreshedQpc; // timestamp of last refresh
-	bool didSendArrival;      // do we need to send LiSendControllerArrivalEvent?
+	uint32_t localId;                           // index into Gamepad::Gamepads vector, used during add/remove
+	uint8_t hostId;                             // index this host is mapped to on the host, used for all commands
+	int64_t lastRefreshedQpc;                   // timestamp of last refresh
+	bool didSendArrival;                        // do we need to send LiSendControllerArrivalEvent?
+	std::atomic<bool> isGuideButtonDown{false}; // are we currently holding down the (virtual) Guide button?
 
 	Windows::Gaming::Input::GamepadReading reading;
 	Windows::Gaming::Input::GamepadReading previousReading;
+	bool previousGuideButtonDown;
 	GamepadComboState combo;
 
 	short ltX, ltY, rtX, rtY;   // after a call to normalizeAxes() these are
@@ -60,6 +63,8 @@ struct GamepadState {
 		localId = hostId = 0;
 		lastRefreshedQpc = 0;
 		didSendArrival = false;
+		isGuideButtonDown.store(false);
+		previousGuideButtonDown = false;
 		reading = EmptyReading();
 		previousReading = EmptyReading();
 		ltX = ltY = rtX = rtY = 0;
@@ -68,6 +73,14 @@ struct GamepadState {
 		combo.viewPressed = false;
 		combo.menuPressed = false;
 		combo.startTime = 0;
+	}
+
+	void SetGuideButtonDown(bool isDown) {
+		isGuideButtonDown.store(isDown);
+	}
+
+	bool GetGuideButtonDown() {
+		return isGuideButtonDown.load();
 	}
 
 	ComboResult GetComboResult(int comboTimeoutMs) {
@@ -234,6 +247,12 @@ struct GamepadState {
 			return true;
 		}
 
+		bool guideButtonDown = isGuideButtonDown.load();
+		if (guideButtonDown != previousGuideButtonDown) {
+			previousGuideButtonDown = guideButtonDown;
+			return true;
+		}
+
 		return false;
 	}
 
@@ -256,6 +275,10 @@ struct GamepadState {
 	    {Windows::Gaming::Input::GamepadButtons::RightShoulder, "RB"},
 	    {Windows::Gaming::Input::GamepadButtons::LeftThumbstick, "L3"},
 	    {Windows::Gaming::Input::GamepadButtons::RightThumbstick, "R3"},
+	    {Windows::Gaming::Input::GamepadButtons::Paddle1, "P1"},
+	    {Windows::Gaming::Input::GamepadButtons::Paddle2, "P2"},
+	    {Windows::Gaming::Input::GamepadButtons::Paddle3, "P3"},
+	    {Windows::Gaming::Input::GamepadButtons::Paddle4, "P4"},
 	};
 
 	static void DumpButtons(Windows::Gaming::Input::GamepadButtons buttons, char *out, size_t outSize) {
@@ -287,9 +310,10 @@ struct GamepadState {
 		char buttons[128];
 		DumpButtons(reading.Buttons, buttons, sizeof(buttons));
 		moonlight_xbox_dx::Utils::Logf(
-		    "GamepadState[localId: %d, hostId: %d] buttons: %s, axes: %d %d, %d %d, triggers: %d %d, combo{ state: %d, viewPressed: %d, menuPressed: %d, startTime: %d }\n",
+		    "GamepadState[localId: %d, hostId: %d] buttons: %s %s axes: %d %d, %d %d, triggers: %d %d, combo{ state: %d, viewPressed: %d, menuPressed: %d, startTime: %d }\n",
 		    localId, hostId,
 		    buttons,
+		    isGuideButtonDown.load() ? "Guide" : "",
 		    ltX, ltY, rtX, rtY,
 		    lTrig, rTrig,
 		    combo.comboState, combo.viewPressed, combo.menuPressed, combo.startTime);
