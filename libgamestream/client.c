@@ -756,11 +756,10 @@ int gs_start_app(PSERVER_DATA server, STREAM_CONFIGURATION *config, int appId, b
   uuid_generate_random(&uuid);
   uuid_unparse(&uuid, uuid_str);
   int surround_info = SURROUNDAUDIOINFO_FROM_AUDIO_CONFIGURATION(config->audioConfiguration);
-  // Using an FPS value over 60 causes SOPS to default to 720p60,
-  // so force it to 0 to ensure the correct resolution is set. We
-  // used to use 60 here but that locked the frame rate to 60 FPS
-  // on GFE 3.20.3.
-  int fps = (server->isNvidiaSoftware && config->fps > 60) ? 0 : config->fps;
+  // Preserve the requested FPS in the launch mode. Sending 0 for >60 FPS
+  // sessions can cause the host to start a 60 FPS stream even when the
+  // client requested 120 FPS.
+  int fps = config->fps;
   snprintf(url, sizeof(url), "https://%s:%u/%s?uniqueid=%s&uuid=%s&appid=%d&mode=%dx%dx%d&additionalStates=1&sops=%d&rikey=%s&rikeyid=%d&localAudioPlayMode=%d&surroundAudioInfo=%d&remoteControllersBitmap=%d&gcmap=%d%s%s",
       server->serverInfo.address, server->httpsPort, server->currentGame ? "resume" : "launch", unique_id, uuid_str, appId, config->width, config->height, fps, sops, rikey_hex, rikeyid, localaudio, surround_info, gamepad_mask, gamepad_mask,
       (config->supportedVideoFormats & VIDEO_FORMAT_MASK_10BIT) ? "&hdrMode=1&clientHdrCapVersion=0&clientHdrCapSupportedFlagsInUint32=0&clientHdrCapMetaDataId=NV_STATIC_METADATA_TYPE_1&clientHdrCapDisplayData=0x0x0x0x0x0x0x0x0x0x0" : "", LiGetLaunchUrlQueryParameters());
