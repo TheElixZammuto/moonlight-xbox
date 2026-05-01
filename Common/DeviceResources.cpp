@@ -217,7 +217,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			lround(m_d3dRenderTargetSize.Width),
 			lround(m_d3dRenderTargetSize.Height),
 			m_backBufferFormat,
-			0
+			DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
 			);
 
 		Utils::Logf("m_swapChain->ResizeBuffers(%d x %d)\n",
@@ -252,7 +252,8 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
 		swapChainDesc.BufferCount = 5;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapChainDesc.Flags = 0;
+		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
+		                    | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -292,6 +293,14 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		DX::ThrowIfFailed(
 			swapChain.As<IDXGISwapChain4>(&m_swapChain)
 		);
+
+		// Reduce frame queue latency to 1 so Present doesn't block behind stale frames.
+		// This is critical for 120 FPS on Xbox where the compositor otherwise throttles to 60 Hz.
+		ComPtr<IDXGISwapChain2> swapChain2;
+		if (SUCCEEDED(m_swapChain.As(&swapChain2))) {
+			swapChain2->SetMaximumFrameLatency(1);
+			Utils::Logf("SetMaximumFrameLatency(1) succeeded\n");
+		}
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread
@@ -525,7 +534,9 @@ void DX::DeviceResources::Trim()
 // Present the contents of the swap chain to the screen.
 void DX::DeviceResources::Present()
 {
-	HRESULT hr = m_swapChain->Present(0, 0);
+	// SyncInterval=0 + ALLOW_TEARING = no vsync, allows the render loop to
+	// run at the full target frame rate (120 FPS) without compositor throttling.
+	HRESULT hr = m_swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 
 	// If the device was removed either by a disconnection or a driver upgrade, we
 	// must recreate all device resources.
