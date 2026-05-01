@@ -1,8 +1,8 @@
 ﻿#include "moonlight_xbox_dxMain.h"
 #include "pch.h"
-#include <Pages/StreamPage.xaml.h>
 #include <Pages/AppPage.xaml.h>
 #include <Pages/HostSelectorPage.xaml.h>
+#include <Pages/StreamPage.xaml.h>
 #include <Streaming\FFMpegDecoder.h>
 #include "../Plot/ImGuiPlots.h"
 #include "Common\DirectXHelper.h"
@@ -21,15 +21,18 @@ using namespace Windows::System::Threading;
 using namespace Windows::UI::ViewManagement::Core;
 
 extern "C" {
-#include<Limelight.h>
 #include <Common/ModalDialog.xaml.h>
+#include <Limelight.h>
 }
 
 // Loads and initializes application assets when the application is loaded.
-moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, StreamPage^ streamPage, MoonlightClient* client, StreamConfiguration^ configuration) :
-	m_deviceResources(deviceResources), m_pointerLocationX(0.0f), m_streamPage(streamPage), moonlightClient(client) {
+moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources> &deviceResources, StreamPage ^ streamPage, MoonlightClient *client, StreamConfiguration ^ configuration)
+    : m_deviceResources(deviceResources),
+      m_pointerLocationX(0.0f),
+      m_streamPage(streamPage),
+      moonlightClient(client) {
 
-  Platform::String ^ appName = configuration->appName ? "'" + configuration->appName + "'" : "App";
+	Platform::String ^ appName = configuration->appName ? "'" + configuration->appName + "'" : "App";
 	DISPATCH_UI(([streamPage, appName]() {
 		streamPage->m_stepText->Text = "Starting " + appName;
 	}));
@@ -54,28 +57,27 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 					if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Primary) {
 						self->StopRenderLoop();
 						self->ExitStreamPage();
-					}
-					else if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Secondary) {
+					} else if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Secondary) {
 						(*showLogsDialog)();
 					}
 				});
 			};
 
 			*showLogsDialog = [self, showErrorDialog]() {
-                auto dialog2 = ref new Windows::UI::Xaml::Controls::ContentDialog();
+				auto dialog2 = ref new Windows::UI::Xaml::Controls::ContentDialog();
 
-                std::wstring m_text = L"";
-                std::vector<std::wstring> lines = Utils::GetLogLines();
+				std::wstring m_text = L"";
+				std::vector<std::wstring> lines = Utils::GetLogLines();
 
-                for (int i = 0; i < (int)lines.size(); i++) {
-                    // Get only the last 8 lines
+				for (int i = 0; i < (int)lines.size(); i++) {
+					// Get only the last 8 lines
 					// More than that cannot be fully viewed on the screen at the current scaling
-                    if ((int)lines.size() - i <= 8) {
-                        m_text += lines[i];
-                    }
-                }
+					if ((int)lines.size() - i <= 8) {
+						m_text += lines[i];
+					}
+				}
 
-                Utils::showLogs = true;
+				Utils::showLogs = true;
 
 				dialog2->MaxWidth = 600;
 				dialog2->Title = "Logs";
@@ -88,8 +90,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 					if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Primary) {
 						self->StopRenderLoop();
 						self->ExitStreamPage();
-					}
-					else if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Secondary) {
+					} else if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Secondary) {
 						(*showErrorDialog)();
 					}
 				});
@@ -116,13 +117,12 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	m_sceneRenderer = std::make_shared<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
 
-    client->OnCompleted = ([this, streamPage, configuration]() {
-        concurrency::create_task([this]() {
-            while (this->m_sceneRenderer && !this->m_sceneRenderer->IsLoadingComplete() && !this->moonlightClient->IsConnectionTerminated()) {
-                Sleep(50);
-            }
-        }).then([this, streamPage, configuration](concurrency::task<void> t) {
-
+	client->OnCompleted = ([this, streamPage, configuration]() {
+		concurrency::create_task([this]() {
+			while (this->m_sceneRenderer && !this->m_sceneRenderer->IsLoadingComplete() && !this->moonlightClient->IsConnectionTerminated()) {
+				Sleep(50);
+			}
+		}).then([this, streamPage, configuration](concurrency::task<void> t) {
 			if (this->m_sceneRenderer && this->m_sceneRenderer->IsLoadingSuccessful()) {
 				DISPATCH_UI(([streamPage]() {
 					Sleep(500);
@@ -130,7 +130,6 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 					streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 				}));
 			}
-
 		});
 	});
 
@@ -163,26 +162,6 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
-
-	client->OnStatusUpdate = ([streamPage](int status) {
-		const char *msg = LiGetStageName(status);
-		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(msg));
-	});
-
-	client->OnCompleted = ([streamPage]() {
-		// Give stream a moment to stabilize before hiding progress view
-		Sleep(500);
-		streamPage->m_progressRing->IsActive = false;
-		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-	});
-
-	client->OnFailed = ([streamPage](int status, int error, char *message) {
-		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(message));
-	});
-
-	client->SetHDR = ([this](bool v) {
-		this->m_sceneRenderer->SetHDR(v);
-	});
 
 	client->OnRumble = ([this](unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor) {
 		auto &state = this->FindGamepadStateByHostId(controllerNumber);
@@ -244,7 +223,7 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 	}
 
 	// Create a task that will be run on a background thread.
-	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action) {
+	auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action) {
 		if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)) {
 			Utils::Logf("Failed to set render thread priority: %d\n", GetLastError());
 		}
@@ -355,27 +334,24 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == AsyncStatus::Started) {
 		return;
 	}
-	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction^ action) {
+	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action) {
 		const int pollingHz = 500;
 		const int64_t pollIntervalQpc = MsToQpc(1000.0 / pollingHz);
 		int64_t lastProcessInput = 0;
 
-			while (action->Status == AsyncStatus::Started)
-			{
-				int64_t now = QpcNow();
-				if (now - lastProcessInput >= pollIntervalQpc) {
-					lastProcessInput = now;
-					ProcessInput();
+		while (action->Status == AsyncStatus::Started) {
+			int64_t now = QpcNow();
+			if (now - lastProcessInput >= pollIntervalQpc) {
+				lastProcessInput = now;
+				ProcessInput();
 
-					if (m_streamPage->ShouldRefreshGamepads()) {
-						// Process added/removed gamepads
-						RefreshGamepads();
-					}
+				if (m_streamPage->ShouldRefreshGamepads()) {
+					// Process added/removed gamepads
+					RefreshGamepads();
 				}
-				else {
-					const int64_t nextPoll = lastProcessInput + pollIntervalQpc;
-					SleepUntilQpc(nextPoll, 500);
-				}
+			} else {
+				const int64_t nextPoll = lastProcessInput + pollIntervalQpc;
+				SleepUntilQpc(nextPoll, 500);
 			}
 		}
 	});
@@ -432,9 +408,9 @@ void moonlight_xbox_dxMain::ProcessInput() {
 		auto result = state.GetComboResult(50); // hold buttons for a short time for View + Menu combo
 
 		if (result.comboTriggered) {
-			DISPATCH_UI([this], {
+			DISPATCH_UI(([this]() {
 				Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_streamPage->m_flyoutButton);
-			});
+			}));
 
 			// send an empty controller packet, otherwise Sunshine may see View being kept held down,
 			// triggering the "Home/Guide Button Emulation Timeout" to send a Guide button press after a few seconds.
@@ -807,9 +783,8 @@ void moonlight_xbox_dxMain::ExitStreamPage() {
 	}
 }
 
-void moonlight_xbox_dxMain::OnKeyDown(unsigned short virtualKey, char modifiers)
-{
-	if (this == nullptr || moonlightClient == nullptr)return;
+void moonlight_xbox_dxMain::OnKeyDown(unsigned short virtualKey, char modifiers) {
+	if (this == nullptr || moonlightClient == nullptr) return;
 	moonlightClient->KeyDown(virtualKey, modifiers);
 }
 
