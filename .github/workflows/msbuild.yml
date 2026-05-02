@@ -80,9 +80,9 @@ jobs:
         $hash = [System.BitConverter]::ToString($hashBytes).Replace("-", "").ToLower()
         $password = ConvertTo-SecureString -String $hash -Force -AsPlainText
 
-        # export the password for later use, decoded
-        $github_output = "password=$hash"
-        $github_output | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        # export the password and thumbprint for later use, decoded
+        "password=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        "thumbprint=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
         Export-PfxCertificate `
           -Cert Cert:\LocalMachine\My\$($cert.Thumbprint) `
@@ -116,6 +116,7 @@ jobs:
       run: |
         # get the password from the output if this is a fork
         $certPassword = "${{ steps.cert.outputs.password }}"
+        $certThumbprint = "${{ steps.cert.outputs.thumbprint }}"
 
         # if certPassword is not empty, use it
         if ($certPassword -ne "") {
@@ -125,12 +126,20 @@ jobs:
           $certPasswordArg = ""
         }
 
+        if ($certThumbprint -ne "") {
+          $certThumbprintArg = "/p:PackageCertificateThumbprint=$certThumbprint"
+        }
+        else {
+          $certThumbprintArg = ""
+        }
+
         msbuild /m `
           /p:Configuration=${{env.BUILD_CONFIGURATION}} `
           /p:AppxBundle=Always `
           /p:AppxPackageDir=output `
           /p:PackageCertificateKeyFile=cert.pfx `
           /p:UapAppxPackageBuildMode=SideLoadOnly `
+          $certThumbprintArg `
           $certPasswordArg `
           ${{env.SOLUTION_FILE_PATH}}
 
