@@ -55,8 +55,10 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       id: cert
       if: >-
-        github.event_name == 'pull_request' &&
-        !startsWith(github.event.pull_request.head.repo.full_name, 'TheElixZammuto/')
+        (github.event_name == 'pull_request' &&
+        !startsWith(github.event.pull_request.head.repo.full_name, 'TheElixZammuto/')) ||
+        (github.event_name == 'push' &&
+        !startsWith(github.repository, 'TheElixZammuto/'))
       run: |
         # generate a self signed certificate in pfx format
         
