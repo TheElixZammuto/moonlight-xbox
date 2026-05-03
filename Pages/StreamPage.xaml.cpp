@@ -13,13 +13,16 @@
 using namespace moonlight_xbox_dx;
 
 using namespace Platform;
+using namespace Platform::Collections;
 using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
+using namespace Windows::Gaming::Input;
 using namespace Windows::Graphics::Display;
 using namespace Windows::System::Threading;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Input;
 using namespace Windows::UI::ViewManagement;
+using namespace Windows::UI::ViewManagement::Core;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls::Primitives;
@@ -65,6 +68,10 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 	keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyDown));
 	keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyUp));
 
+	// Detect gamepad connection and disconnection events
+	gamepadAddedHandler = Gamepad::GamepadAdded += ref new EventHandler<Gamepad^>(this, &StreamPage::OnGamepadAdded);
+	gamepadRemovedHandler = Gamepad::GamepadRemoved += ref new EventHandler<Gamepad ^>(this, &StreamPage::OnGamepadRemoved);
+
 	try {
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
 	} catch (...) {
@@ -98,6 +105,9 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
+
+	Gamepad::GamepadAdded -= gamepadAddedHandler;
+	Gamepad::GamepadRemoved -= gamepadRemovedHandler;
 
 	if (this->m_main) {
 
@@ -146,7 +156,6 @@ void StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object
 	if(m_main != nullptr) m_main->SetFlyoutOpened(false);
 }
 
-
 void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	SetMouseMode(!this->m_mouseMode);
@@ -156,6 +165,22 @@ void StreamPage::SetMouseMode(bool enabled)
 {
 	this->MouseMode = enabled;
 	if (m_main) m_main->mouseMode = this->MouseMode;
+}
+
+void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	if (!m_main) return;
+	if (GetApplicationState()->EnableKeyboard) {
+		m_main->keyboardMode = true;
+
+		this->Dispatcher->RunAsync(
+			Windows::UI::Core::CoreDispatcherPriority::Normal,
+			ref new Windows::UI::Core::DispatchedHandler([this]() {
+				this->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+			}));
+	} else {
+		CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+	}
 }
 
 void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -290,6 +315,11 @@ void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::
 	this->m_main->SendWinAltB();
 }
 
+void StreamPage::resetDecoder_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	LiRequestIdrFrame();
+}
+
 void StreamPage::toggleFramePacing_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	// thread safe atomic bool
@@ -301,3 +331,22 @@ void StreamPage::OnPropertyChanged(Platform::String^ propertyName)
 {
 	PropertyChanged(this, ref new Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 }
+
+void StreamPage::OnGamepadAdded(Platform::Object^ sender, Gamepad^ gamepad)
+{
+	m_refreshGamepads.store(true, std::memory_order_release);
+}
+
+void StreamPage::OnGamepadRemoved(Platform::Object^ sender, Gamepad^ gamepad)
+{
+	m_refreshGamepads.store(true, std::memory_order_release);
+}
+
+bool StreamPage::ShouldRefreshGamepads() {
+	return m_refreshGamepads.exchange(false);
+}
+
+void StreamPage::RequestRefreshGamepads() {
+	m_refreshGamepads.store(true, std::memory_order_release);
+}
+

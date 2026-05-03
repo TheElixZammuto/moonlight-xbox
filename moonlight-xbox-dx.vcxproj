@@ -344,6 +344,7 @@
     <ClInclude Include="Plot\ImGuiPlots.h" />
     <ClInclude Include="Plot\PlotDesc.h" />
     <ClInclude Include="State\BandwidthTracker.h" />
+    <ClInclude Include="State\GamepadState.h" />
     <ClInclude Include="State\MoonlightClient.h" />
     <ClInclude Include="State\Stats.h" />
     <ClInclude Include="State\StreamConfiguration.h" />
