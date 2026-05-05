@@ -8,6 +8,7 @@ enum class ComboState {
 	None,
 	ViewWaiting,
 	MenuWaiting,
+	MenuLongPressWaiting,
 	ComboActive
 };
 
@@ -16,12 +17,14 @@ struct GamepadComboState {
 	bool menuPressed = false;
 	int64_t startTime = 0;
 	ComboState comboState = ComboState::None;
+	bool menuLongPressFired = false;
 };
 
 struct ComboResult {
 	Windows::Gaming::Input::GamepadReading currentReading; // untouched reading
 	Windows::Gaming::Input::GamepadReading maskedReading;  // reading with pending combo buttons masked out
-	bool comboTriggered;                                   // True when combo completes
+	bool comboTriggered;                                   // True when View+Menu combo completes
+	bool menuLongPressTriggered;                           // True when Menu held >= menuLongPressMs
 };
 
 struct GamepadState {
@@ -73,6 +76,7 @@ struct GamepadState {
 		combo.viewPressed = false;
 		combo.menuPressed = false;
 		combo.startTime = 0;
+		combo.menuLongPressFired = false;
 	}
 
 	void SetGuideButtonDown(bool isDown) {
@@ -83,10 +87,10 @@ struct GamepadState {
 		return isGuideButtonDown.load();
 	}
 
-	ComboResult GetComboResult(int comboTimeoutMs) {
+	ComboResult GetComboResult(int comboTimeoutMs, int menuLongPressMs = 600) {
 		using namespace Windows::Gaming::Input;
 
-		ComboResult result = ComboResult{EmptyReading(), EmptyReading(), false};
+		ComboResult result = ComboResult{EmptyReading(), EmptyReading(), false, false};
 		if (controller == nullptr) {
 			return result;
 		}
@@ -157,8 +161,9 @@ struct GamepadState {
 
 		case ComboState::MenuWaiting:
 			if (QpcToMs(QpcNow() - combo.startTime) > comboTimeoutMs) {
-				combo.comboState = ComboState::None;
-				maskedButtons = setButtons(buttons, GamepadButtons::Menu);
+				combo.comboState = ComboState::MenuLongPressWaiting;
+				combo.menuLongPressFired = false;
+				maskedButtons = clearButtons(buttons, GamepadButtons::Menu);
 				break;
 			}
 
@@ -174,6 +179,24 @@ struct GamepadState {
 				combo.comboState = ComboState::ComboActive;
 				result.comboTriggered = true;
 				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
+			}
+			break;
+
+		case ComboState::MenuLongPressWaiting:
+			if (!menuCurrentlyPressed) {
+				combo.comboState = ComboState::None;
+				if (!combo.menuLongPressFired) {
+					// Menu released before long press fired — inject the press so the host sees a brief tap
+					maskedButtons = setButtons(buttons, GamepadButtons::Menu);
+				}
+				break;
+			}
+
+			maskedButtons = clearButtons(buttons, GamepadButtons::Menu);
+
+			if (!combo.menuLongPressFired && QpcToMs(QpcNow() - combo.startTime) > menuLongPressMs) {
+				combo.menuLongPressFired = true;
+				result.menuLongPressTriggered = true;
 			}
 			break;
 

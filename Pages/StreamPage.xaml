@@ -96,6 +96,18 @@
                 <TextBlock x:Name="StepText" FontSize="12px" Foreground="DimGray" TextAlignment="Center" Text="" Margin="0,16,0,0" />
             </StackPanel>
         </Grid>
+        <Border x:Name="ToastView"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,56"
+                Padding="20,10,20,10"
+                CornerRadius="6"
+                Visibility="Collapsed">
+            <Border.Background>
+                <SolidColorBrush Color="DimGray" />
+            </Border.Background>
+            <TextBlock x:Name="ToastText" Foreground="White" FontSize="12" />
+        </Border>
     </Grid>
 
 </Page>

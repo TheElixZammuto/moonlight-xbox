@@ -30,6 +30,8 @@ namespace moonlight_xbox_dx
 		void OnPropertyChanged(Platform::String^ propertyName);
 		bool ShouldRefreshGamepads();
 		void RequestRefreshGamepads();
+		void SetMouseMode(bool enabled);
+		void ShowToast(Platform::String^ message);
 
 		property bool MouseMode {
 			bool get() { return m_mouseMode; }
@@ -119,6 +121,18 @@ namespace moonlight_xbox_dx
 			}
 		}
 
+		property Windows::UI::Xaml::Controls::Border^ m_toastView {
+			Windows::UI::Xaml::Controls::Border^ get() {
+				return this->ToastView;
+			}
+		}
+
+		property TextBlock^ m_toastText {
+			TextBlock^ get() {
+				return this->ToastText;
+			}
+		}
+
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	private:
@@ -138,7 +152,6 @@ namespace moonlight_xbox_dx
 		void flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e);
 		void toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-	    void SetMouseMode(bool enabled);
 		void showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	    void SetShowLogs(bool show);
@@ -166,6 +179,7 @@ namespace moonlight_xbox_dx
         bool m_mouseMode = false;
 	    bool m_showLogs = false;
 	    bool m_showStats = false;
+	    Windows::System::Threading::ThreadPoolTimer^ m_toastTimer = nullptr;
 	};
 }
 

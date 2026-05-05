@@ -167,6 +167,30 @@ void StreamPage::SetMouseMode(bool enabled)
 	if (m_main) m_main->mouseMode = this->MouseMode;
 }
 
+void StreamPage::ShowToast(Platform::String^ message) {
+	if (m_toastTimer != nullptr) {
+		m_toastTimer->Cancel();
+		m_toastTimer = nullptr;
+	}
+	this->m_toastText->Text = message;
+	this->m_toastView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+
+	Platform::WeakReference weakThis(this);
+	m_toastTimer = ThreadPoolTimer::CreateTimer(
+		ref new TimerElapsedHandler([weakThis](ThreadPoolTimer^) {
+			auto that = weakThis.Resolve<StreamPage>();
+			if (that == nullptr) return;
+			that->Dispatcher->RunAsync(
+				CoreDispatcherPriority::Normal,
+				ref new DispatchedHandler([that]() {
+			        that->m_toastView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+					that->m_toastTimer = nullptr;
+				}));
+		}),
+		Windows::Foundation::TimeSpan{ 20000000LL }
+	);
+}
+
 void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	if (!m_main) return;
