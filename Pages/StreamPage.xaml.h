@@ -179,7 +179,7 @@ namespace moonlight_xbox_dx
         bool m_mouseMode = false;
 	    bool m_showLogs = false;
 	    bool m_showStats = false;
-	    Windows::System::Threading::ThreadPoolTimer^ m_toastTimer = nullptr;
+	    void ToastStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e);
 	};
 }
 
