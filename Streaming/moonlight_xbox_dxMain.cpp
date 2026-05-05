@@ -427,6 +427,16 @@ void moonlight_xbox_dxMain::ProcessInput() {
 			continue;
 		}
 
+		if (result.menuLongPressTriggered) {
+			DISPATCH_UI(([this]() {
+				bool newMode = !m_streamPage->MouseMode;
+				m_streamPage->SetMouseMode(newMode);
+				m_streamPage->ShowToast(newMode ? L"Mouse Mode: On" : L"Mouse Mode: Off");
+			}));
+			SendGamepadReadingForState(state, EmptyReading());
+			continue;
+		}
+
 		// GetComboResult() will have masked off our combo buttons if they are pending
 		auto reading = result.maskedReading;
 		auto prevReading = state.previousReading;

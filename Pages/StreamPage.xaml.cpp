@@ -167,6 +167,17 @@ void StreamPage::SetMouseMode(bool enabled)
 	if (m_main) m_main->mouseMode = this->MouseMode;
 }
 
+void StreamPage::ShowToast(Platform::String^ message) {
+	ToastStoryboard->Stop();
+	this->ToastText->Text = message;
+	this->ToastView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	ToastStoryboard->Begin();
+}
+
+void StreamPage::ToastStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e) {
+	this->ToastView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+}
+
 void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	if (!m_main) return;
