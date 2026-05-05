@@ -18,6 +18,7 @@ struct GamepadComboState {
 	int64_t startTime = 0;
 	ComboState comboState = ComboState::None;
 	bool menuLongPressFired = false;
+	int64_t menuInjectionStartQpc = 0; // nonzero while injecting a brief Menu tap back to the host
 };
 
 struct ComboResult {
@@ -77,6 +78,7 @@ struct GamepadState {
 		combo.menuPressed = false;
 		combo.startTime = 0;
 		combo.menuLongPressFired = false;
+		combo.menuInjectionStartQpc = 0;
 	}
 
 	void SetGuideButtonDown(bool isDown) {
@@ -119,6 +121,7 @@ struct GamepadState {
 			// Handle simultaneous press in the same poll
 			if (viewCurrentlyPressed && menuCurrentlyPressed && !combo.viewPressed && !combo.menuPressed) {
 				combo.comboState = ComboState::ComboActive;
+				combo.menuInjectionStartQpc = 0;
 				result.comboTriggered = true;
 				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
 				// Check if either button is newly pressed
@@ -129,7 +132,15 @@ struct GamepadState {
 			} else if (menuCurrentlyPressed && !combo.menuPressed) {
 				combo.comboState = ComboState::MenuWaiting;
 				combo.startTime = QpcNow();
+				combo.menuInjectionStartQpc = 0; // cancel any in-progress injection on new press
 				maskedButtons = clearButtons(buttons, GamepadButtons::Menu);
+			} else if (!menuCurrentlyPressed && combo.menuInjectionStartQpc != 0) {
+				// Sustain the injected Menu tap for 100ms so the host gets reliable frame coverage
+				if (QpcToMs(QpcNow() - combo.menuInjectionStartQpc) < 100) {
+					maskedButtons = setButtons(maskedButtons, GamepadButtons::Menu);
+				} else {
+					combo.menuInjectionStartQpc = 0;
+				}
 			}
 			break;
 
@@ -169,7 +180,7 @@ struct GamepadState {
 
 			if (!menuCurrentlyPressed) {
 				combo.comboState = ComboState::None;
-				maskedButtons = setButtons(buttons, GamepadButtons::Menu);
+				combo.menuInjectionStartQpc = QpcNow();
 				break;
 			}
 
@@ -186,8 +197,8 @@ struct GamepadState {
 			if (!menuCurrentlyPressed) {
 				combo.comboState = ComboState::None;
 				if (!combo.menuLongPressFired) {
-					// Menu released before long press fired — inject the press so the host sees a brief tap
-					maskedButtons = setButtons(buttons, GamepadButtons::Menu);
+					// Menu released before long press fired — inject a sustained tap so the host gets reliable coverage
+					combo.menuInjectionStartQpc = QpcNow();
 				}
 				break;
 			}
