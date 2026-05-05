@@ -19,6 +19,7 @@ struct GamepadComboState {
 	ComboState comboState = ComboState::None;
 	bool menuLongPressFired = false;
 	int64_t menuInjectionStartQpc = 0; // nonzero while injecting a brief Menu tap back to the host
+	int64_t viewInjectionStartQpc = 0; // nonzero while injecting a brief View tap back to the host
 };
 
 struct ComboResult {
@@ -79,6 +80,7 @@ struct GamepadState {
 		combo.startTime = 0;
 		combo.menuLongPressFired = false;
 		combo.menuInjectionStartQpc = 0;
+		combo.viewInjectionStartQpc = 0;
 	}
 
 	void SetGuideButtonDown(bool isDown) {
@@ -122,24 +124,35 @@ struct GamepadState {
 			if (viewCurrentlyPressed && menuCurrentlyPressed && !combo.viewPressed && !combo.menuPressed) {
 				combo.comboState = ComboState::ComboActive;
 				combo.menuInjectionStartQpc = 0;
+				combo.viewInjectionStartQpc = 0;
 				result.comboTriggered = true;
 				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
 				// Check if either button is newly pressed
 			} else if (viewCurrentlyPressed && !combo.viewPressed) {
 				combo.comboState = ComboState::ViewWaiting;
 				combo.startTime = QpcNow();
+				combo.viewInjectionStartQpc = 0; // cancel any in-progress injection on new press
 				maskedButtons = clearButtons(buttons, GamepadButtons::View);
 			} else if (menuCurrentlyPressed && !combo.menuPressed) {
 				combo.comboState = ComboState::MenuWaiting;
 				combo.startTime = QpcNow();
 				combo.menuInjectionStartQpc = 0; // cancel any in-progress injection on new press
 				maskedButtons = clearButtons(buttons, GamepadButtons::Menu);
-			} else if (!menuCurrentlyPressed && combo.menuInjectionStartQpc != 0) {
-				// Sustain the injected Menu tap for 100ms so the host gets reliable frame coverage
-				if (QpcToMs(QpcNow() - combo.menuInjectionStartQpc) < 100) {
-					maskedButtons = setButtons(maskedButtons, GamepadButtons::Menu);
-				} else {
-					combo.menuInjectionStartQpc = 0;
+			} else {
+				// Sustain any injected taps for 100ms so the host gets reliable frame coverage
+				if (!menuCurrentlyPressed && combo.menuInjectionStartQpc != 0) {
+					if (QpcToMs(QpcNow() - combo.menuInjectionStartQpc) < 100) {
+						maskedButtons = setButtons(maskedButtons, GamepadButtons::Menu);
+					} else {
+						combo.menuInjectionStartQpc = 0;
+					}
+				}
+				if (!viewCurrentlyPressed && combo.viewInjectionStartQpc != 0) {
+					if (QpcToMs(QpcNow() - combo.viewInjectionStartQpc) < 100) {
+						maskedButtons = setButtons(maskedButtons, GamepadButtons::View);
+					} else {
+						combo.viewInjectionStartQpc = 0;
+					}
 				}
 			}
 			break;
@@ -148,14 +161,14 @@ struct GamepadState {
 			// Check timeout
 			if (QpcToMs(QpcNow() - combo.startTime) > comboTimeoutMs) {
 				combo.comboState = ComboState::None;
-				maskedButtons = setButtons(buttons, GamepadButtons::View);
+				combo.viewInjectionStartQpc = QpcNow();
 				break;
 			}
 
 			// Check if View was released before combo completed
 			if (!viewCurrentlyPressed) {
 				combo.comboState = ComboState::None;
-				maskedButtons = setButtons(buttons, GamepadButtons::View);
+				combo.viewInjectionStartQpc = QpcNow();
 				break;
 			}
 
@@ -165,6 +178,7 @@ struct GamepadState {
 			// Check if Menu is now pressed (combo complete)
 			if (menuCurrentlyPressed && !combo.menuPressed) {
 				combo.comboState = ComboState::ComboActive;
+				combo.viewInjectionStartQpc = 0;
 				result.comboTriggered = true;
 				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
 			}
