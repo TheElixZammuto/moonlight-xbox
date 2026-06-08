@@ -119,23 +119,38 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ffmpegTexture->GetDesc(&ffmpegDesc);
 
 	bool hasChanged = hasFrameFormatChanged(frame);
-	if (hasChanged) {
-		setupVideoTexture(ffmpegDesc);
-	}
 
-	// SRV 0 is always mapped to the video texture
-	UINT srvIndex = 0;
-	// Copy this frame into our video texture
-	ctx->CopySubresourceRegion1(m_VideoTexture.Get(), 0, 0, 0, 0,
-	                            (ID3D11Resource *)frame->data[0], (int)(intptr_t)frame->data[1],
-	                            nullptr, D3D11_COPY_DISCARD);
+	// Choose rendering path. Direct sampling reads the decoder's array texture
+	// straight into the YUV->RGB shader, skipping the per-frame CopySubresourceRegion1.
+	// It's only used when the decoder gave us a shader-resource-capable pool and the
+	// Texture2DArray shader loaded; otherwise we fall back to the copy path below.
+	UINT slice = (UINT)(intptr_t)frame->data[1];
+	const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>* directSrvs = nullptr;
+	if (FFMpegDecoder::instance().directSamplingEnabled() && m_pixelShaderYUV420Array) {
+		directSrvs = getDirectSampleSrvs(ffmpegTexture, slice, ffmpegDesc);
+	}
+	m_DirectSampling = (directSrvs != nullptr);
+
+	if (!m_DirectSampling) {
+		// Copy path: maintain an intermediate single-slice texture and copy into it.
+		// Guard on !m_VideoTexture too, in case direct sampling was active before and
+		// the intermediate texture was never created.
+		if (hasChanged || !m_VideoTexture) {
+			setupVideoTexture(ffmpegDesc);
+		}
+
+		// Copy this frame into our video texture
+		ctx->CopySubresourceRegion1(m_VideoTexture.Get(), 0, 0, 0, 0,
+		                            (ID3D11Resource *)frame->data[0], slice,
+		                            nullptr, D3D11_COPY_DISCARD);
+	}
 
 	// Setup shader
 	ctx->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 	ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	ctx->IASetInputLayout(m_inputLayout.Get());
 	ctx->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-	ctx->PSSetShader(m_pixelShaderYUV420.Get(), nullptr, 0);
+	ctx->PSSetShader(m_DirectSampling ? m_pixelShaderYUV420Array.Get() : m_pixelShaderYUV420.Get(), nullptr, 0);
 
 	if (hasChanged) {
 		setupVertexBuffer(ffmpegDesc);
@@ -148,7 +163,14 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ctx->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 	// Bind SRVs for this frame
-	ID3D11ShaderResourceView* frameSrvs[] = { m_VideoTextureResourceViews[srvIndex][0].Get(), m_VideoTextureResourceViews[srvIndex][1].Get() };
+	ID3D11ShaderResourceView* frameSrvs[2];
+	if (m_DirectSampling) {
+		frameSrvs[0] = (*directSrvs)[0].Get();
+		frameSrvs[1] = (*directSrvs)[1].Get();
+	} else {
+		frameSrvs[0] = m_VideoTextureResourceViews[0][0].Get();
+		frameSrvs[1] = m_VideoTextureResourceViews[0][1].Get();
+	}
 	ctx->PSSetShaderResources(0, 2, frameSrvs);
 	ctx->PSSetConstantBuffers(0, 1, m_cscConstantBuffer.GetAddressOf());
 
@@ -231,6 +253,22 @@ void VideoRenderer::CreateDeviceDependentResources()
 			, "Pixel Shader Creation");
 	}
 
+	// Texture2DArray pixel shader (direct-sampling path). Loaded best-effort: if the
+	// asset is missing or fails to compile/create, we simply never enable direct
+	// sampling and keep using the copy path with the Texture2D shader above.
+	try {
+		auto arrayBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_yuv420_pixel_array.fxc");
+		HRESULT hr = m_deviceResources->GetD3DDevice()->CreatePixelShader(
+			arrayBytecode.data(), arrayBytecode.size(), nullptr, &m_pixelShaderYUV420Array);
+		if (FAILED(hr)) {
+			m_pixelShaderYUV420Array.Reset();
+			Utils::Logf("Array pixel shader creation failed (0x%08X); direct sampling disabled\n", (unsigned)hr);
+		}
+	} catch (...) {
+		m_pixelShaderYUV420Array.Reset();
+		Utils::Log("Array pixel shader asset missing; direct sampling disabled\n");
+	}
+
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	auto w = CoreWindow::GetForCurrentThread();
 	m_DisplayWidth = (int)w->Bounds.Width;
@@ -302,10 +340,15 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
 	m_pixelShaderYUV420.Reset();
+	m_pixelShaderYUV420Array.Reset();
 	m_cscConstantBuffer.Reset();
 	m_VideoVertexBuffer.Reset();
 	m_samplerState.Reset();
 	m_indexBuffer.Reset();
+
+	// Drop SRVs over decoder surfaces; the pool is owned by ffmpeg and is going away.
+	m_DirectSampleSrvs.clear();
+	m_DirectSampling = false;
 }
 
 void VideoRenderer::scaleSourceToDestinationSurface(IRECT* src, IRECT* dst)
@@ -329,6 +372,44 @@ void VideoRenderer::screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, 
 	dst->y = ((float)src->y / (viewportHeight / 2.0f)) - 1.0f;
 	dst->w = (float)src->w / (viewportWidth / 2.0f);
 	dst->h = (float)src->h / (viewportHeight / 2.0f);
+}
+
+const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>*
+VideoRenderer::getDirectSampleSrvs(ID3D11Texture2D* texture, UINT slice, const D3D11_TEXTURE2D_DESC& desc)
+{
+	auto it = m_DirectSampleSrvs.find(texture);
+	if (it == m_DirectSampleSrvs.end()) {
+		// Build the (luma, chroma) SRV pair for every slice of this array texture once.
+		std::vector<std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>> slices(desc.ArraySize);
+		auto formats = getVideoTextureSRVFormats(desc.Format);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+		srvDesc.Texture2DArray.MostDetailedMip = 0;
+		srvDesc.Texture2DArray.MipLevels = 1;
+		srvDesc.Texture2DArray.ArraySize = 1;
+
+		auto* dev = m_deviceResources->GetD3DDevice();
+		for (UINT s = 0; s < desc.ArraySize; s++) {
+			srvDesc.Texture2DArray.FirstArraySlice = s;
+			for (size_t plane = 0; plane < formats.size() && plane < 2; plane++) {
+				srvDesc.Format = formats[plane];
+				HRESULT hr = dev->CreateShaderResourceView(texture, &srvDesc, &slices[s][plane]);
+				if (FAILED(hr)) {
+					Utils::Logf("Direct sampling SRV creation failed (slice %u, plane %zu, 0x%08X); using copy path\n",
+					            s, plane, (unsigned)hr);
+					return nullptr;
+				}
+			}
+		}
+		it = m_DirectSampleSrvs.emplace(texture, std::move(slices)).first;
+	}
+
+	if (slice >= it->second.size()) {
+		// Out of range slice index; should never happen, but stay safe.
+		return nullptr;
+	}
+	return &it->second[slice];
 }
 
 bool VideoRenderer::setupVideoTexture(D3D11_TEXTURE2D_DESC frameDesc)
