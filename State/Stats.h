@@ -64,6 +64,7 @@ namespace moonlight_xbox_dx
 		void SubmitPacerTime(int64_t pacerTimeQpc);
 		void SubmitPresentPacing(double presentDisplayMs);
 		void SubmitRenderStats(double preWaitTimeMs, double renderTimeMs, double presentTimeMs, bool hitDeadline);
+		void SubmitGpuTime(float minGpuTimeMs, float maxGpuTimeMs, float avgGpuTimeMs);
 
 	private:
 		void addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst);
@@ -78,5 +79,8 @@ namespace moonlight_xbox_dx
 		BandwidthTracker                     m_bwTracker;
 		float                                m_avgQueueSize;
 		double                               m_avgMbpsSmoothed;
+		float                                m_minGpuTimeMs;
+		float                                m_maxGpuTimeMs;
+		float                                m_avgGpuTimeMs;
 	};
 }

@@ -108,6 +108,8 @@ namespace moonlight_xbox_dx {
 	void FFMpegDecoder::trySetupDirectSampleFramesContext(AVCodecContext *avctx) {
 		m_directSampling.store(false, std::memory_order_release);
 
+		//return; // uncomment to test CopySubresourceRegion1 method
+
 		AVBufferRef *frames_ref = nullptr;
 		int err = avcodec_get_hw_frames_parameters(avctx, avctx->hw_device_ctx, AV_PIX_FMT_D3D11, &frames_ref);
 		if (err < 0 || frames_ref == nullptr) {

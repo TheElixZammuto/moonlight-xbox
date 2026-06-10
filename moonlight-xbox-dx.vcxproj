@@ -390,6 +390,7 @@
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="Common\DirectXHelper.cpp" />
     <ClCompile Include="Common\TextConsole.cpp" />
     <ClCompile Include="Converters\BoolToTextConverter.cpp" />
     <ClCompile Include="Keyboard\kbda1.cpp" />

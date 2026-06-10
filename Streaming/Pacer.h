@@ -8,9 +8,14 @@
 #include "FrameCadence.h"
 #include "Utils.hpp"
 #include "VideoRenderer.h"
+#include "..\Common\DirectXHelper.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+}
+
+namespace DX {
+    class GpuPerformanceTimer;
 }
 
 class Pacer {
@@ -28,6 +33,10 @@ class Pacer {
 	int64_t getCurrentFramePts();
 	int64_t getNextVBlankQpc(int64_t *now);
 	void submitFrame(AVFrame *frame);
+
+	DX::GpuPerformanceTimer* GetGpuPerformanceTimer() const noexcept { return m_GpuPerformanceTimer.get(); }
+	void StartGpuTimerForFrame() { if (m_GpuPerformanceTimer) m_GpuPerformanceTimer->StartTimerForFrame(); }
+	void EndGpuTimerForFrame()   { if (m_GpuPerformanceTimer) m_GpuPerformanceTimer->EndTimerForFrame(); }
 
   private:
 	Pacer();
@@ -54,6 +63,7 @@ class Pacer {
 	int m_StreamFps;
 	double m_RefreshRate;
 	std::atomic<bool> m_FramePacingImmediate;
+	std::unique_ptr<DX::GpuPerformanceTimer> m_GpuPerformanceTimer;
 
 	FrameCadence m_FrameCadence;
 	AVFrame* m_CurrentFrame = nullptr;

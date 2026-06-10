@@ -161,9 +161,11 @@ void StatsRenderer::RenderGraphs() {
 		draw_plot(row2[c], graphW, graphH);
 	}
 
+#if defined(_DEBUG)
 	// 3rd row for quickly graphing something if needed
-	// ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	// draw_plot(PLOT_ETC, graphW, graphH);
+	ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
+	draw_plot(PLOT_ETC, graphW, graphH);
+#endif
 
 	ImGui::End();
 }
@@ -191,13 +193,13 @@ void StatsRenderer::CreateWindowSizeDependentResources() {
 	if (m_displayHeight >= 2160) { // 24pt font
 		left = 20;
 		right = m_displayWidth / 2;
-		bottom = 448;
+		bottom = 483;
 	} else if (m_displayHeight >= 1440) { // 12pt font
 		left = 14;
-		bottom = 224;
+		bottom = 242;
 	} else {
 		left = 10;
-		bottom = 224;
+		bottom = 242;
 	}
 
 #if defined(_DEBUG)

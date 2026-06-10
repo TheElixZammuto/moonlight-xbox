@@ -6,6 +6,7 @@
 #include <chrono>
 #include <thread>
 #include <windows.h>
+#include "..\Common\DirectXHelper.h"
 #include "../Plot/ImGuiPlots.h"
 #include "FFmpegDecoder.h"
 #include "FrameQueue.h"
@@ -84,6 +85,7 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 	m_StreamFps = streamFps;
 	m_RefreshRate = refreshRate;
 	m_FramePacingImmediate.store(framePacingImmediate, std::memory_order_release);
+	m_GpuPerformanceTimer = std::make_unique<DX::GpuPerformanceTimer>(res);
 
 	m_FrameCadence.init(m_RefreshRate > 0.0 ? m_RefreshRate : 60.0, static_cast<double>(streamFps));
 
@@ -227,11 +229,14 @@ void Pacer::waitForFrame(double timeoutMs) {
 bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 	if (!running()) return false;
 
+	bool didRender = true;
 	if (m_FramePacingImmediate.load(std::memory_order_acquire)) {
-		return renderModeImmediate(sceneRenderer);
+		didRender = renderModeImmediate(sceneRenderer);
 	} else {
-		return renderModeDisplayLocked(sceneRenderer);
+		didRender = renderModeDisplayLocked(sceneRenderer);
 	}
+
+	return didRender;
 }
 
 // Dequeue a new frame if available and immediately render it. When no new frame is available

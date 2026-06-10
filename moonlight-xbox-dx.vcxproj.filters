@@ -384,6 +384,9 @@
     <ClCompile Include="Converters\BoolToTextConverter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Common\DirectXHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="State\MoonlightClient.h">
