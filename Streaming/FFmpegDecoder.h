@@ -30,13 +30,13 @@ class FFMpegDecoder {
 	// Singleton accessor
 	static FFMpegDecoder &instance();
 
-	void CompleteInitialization(const std::shared_ptr<DX::DeviceResources> &res, STREAM_CONFIGURATION *config, bool framePacingImmediate);
+	void CompleteInitialization(const std::shared_ptr<DX::DeviceResources> &res, STREAM_CONFIGURATION *config, bool framePacingImmediate, int idrInterval);
 	int Init(int videoFormat, int width, int height, int redrawRate, void *context, int drFlags);
 	void Cleanup();
 	int SubmitDecodeUnit(PDECODE_UNIT decodeUnit);
 	static FFMpegDecoder *getInstance();
 	static DECODER_RENDERER_CALLBACKS getDecoder();
-	int videoFormat, width, height, fps;
+	int videoFormat, width, height, fps, idrInterval;
 	std::recursive_mutex m_mutex;
 
 	// locking helper
@@ -74,5 +74,6 @@ class FFMpegDecoder {
 	std::shared_ptr<DX::DeviceResources> m_deviceResources;
 	int m_LastFrameNumber;
 	int64_t m_StreamEpochQpc;
+	int m_FramesSinceIDR;
 };
 } // namespace moonlight_xbox_dx

@@ -314,7 +314,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.rumble = connection_rumble;
 	callbacks.rumbleTriggers = connection_trigger_rumble;
 
-	FFMpegDecoder::instance().CompleteInitialization(res, &config, sConfig->framePacing == "Immediate");
+	FFMpegDecoder::instance().CompleteInitialization(res, &config, sConfig->framePacing == "Immediate", sConfig->idrInterval);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();

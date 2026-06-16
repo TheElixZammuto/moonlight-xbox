@@ -171,6 +171,7 @@ void AppPage::Connect(int appId) {
 	config->framePacing = host->FramePacing;
 	config->enableStats = host->EnableStats;
 	config->enableGraphs = host->EnableGraphs;
+	config->idrInterval = host->IdrInterval;
 	if (config->enableHDR) {
 		host->VideoCodec = "HEVC (H.265)";
 	}

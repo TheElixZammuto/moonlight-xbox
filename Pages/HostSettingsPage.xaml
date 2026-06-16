@@ -40,6 +40,8 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0">Resolution</TextBlock>
             <ComboBox x:Name="ResolutionSelector" SelectionChanged="ResolutionSelector_SelectionChanged" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind AvailableResolutions}">
@@ -90,26 +92,33 @@
                 Best for Xbox One. Locks rendering frame rate to refresh rate and evenly spaces frames.
             </TextBlock>
 
-            <TextBlock Grid.Row="10" Grid.Column="0">Show performance stats:</TextBlock>
+            <TextBlock Grid.Row="10" Grid.Column="0" >Periodic decoder refresh:</TextBlock>
+                <CheckBox Name="EnableIdrIntervalCheckbox" Grid.Row="10" Grid.Column="1" Checked="EnableIdrIntervalCheckbox_Checked" Unchecked="EnableIdrIntervalCheckbox_Unchecked"></CheckBox>
+            <TextBlock Grid.Row="10" Grid.Column="2" >Mitigates HEVC corruption. Refreshes every (Target FPS)*(Interval) frames.</TextBlock>
+
+            <TextBlock Grid.Row="11" Grid.Column="0" >Refresh interval (Seconds)</TextBlock>
+            <Slider Name ="IdrIntervalSlider" Grid.Row="11" Grid.Column="1" Grid.ColumnSpan="2" Value="{x:Bind Host.IdrInterval}" IsEnabled="False" x:DefaultBindMode="TwoWay" Minimum="2" Maximum="60" SmallChange="1" TickFrequency="2" StepFrequency="2" />
+
+            <TextBlock Grid.Row="12" Grid.Column="0">Show performance stats:</TextBlock>
             <CheckBox
-                Grid.Row="10" Grid.Column="1"
+                Grid.Row="12" Grid.Column="1"
                 x:Name="EnableStatsCheckbox"
                 IsChecked="{x:Bind Host.EnableStats, Mode=TwoWay}" />
 
-            <TextBlock Grid.Row="11" Grid.Column="0" >Show performance graphs:</TextBlock>
+            <TextBlock Grid.Row="13" Grid.Column="0" >Show performance graphs:</TextBlock>
             <CheckBox
-                Grid.Row="11" Grid.Column="1"
+                Grid.Row="13" Grid.Column="1"
                 x:Name="EnableGraphsCheckbox"
                 IsEnabled="{x:Bind Host.EnableStats, Mode=OneWay}"
                 IsChecked="{x:Bind Host.EnableGraphs, Mode=TwoWay}" />
             <TextBlock
-                Name="XboxOneGraphsNote" Grid.Row="11" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed">
+                Name="XboxOneGraphsNote" Grid.Row="13" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed">
                 Graphs are unavailable on Xbox One when system resolution is set to 4K.
             </TextBlock>
 
-            <TextBlock Grid.Row="12" Grid.Column="0">Other:</TextBlock>
-            <Button Grid.Row="12" Grid.Column="1" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click">Open Global Settings</Button>
-        </Grid>
+            <TextBlock Grid.Row="14" Grid.Column="0">Other:</TextBlock>
+            <Button Grid.Row="14" Grid.Column="1" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click">Open Global Settings</Button>
+            </Grid>
     </StackPanel>
     </ScrollViewer>
 </Page>

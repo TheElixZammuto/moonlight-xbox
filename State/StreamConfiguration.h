@@ -21,6 +21,7 @@ namespace moonlight_xbox_dx
 		property bool enableSOPS;
 		property bool enableStats;
 		property bool enableGraphs;
+	    property int idrInterval;
 	};
 
 	moonlight_xbox_dx::StreamConfiguration^ GetStreamConfig();

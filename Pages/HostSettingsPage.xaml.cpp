@@ -121,6 +121,17 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 			XboxOneGraphsNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 		}
 	}
+
+	if (host->IdrInterval > 0) {
+		EnableIdrIntervalCheckbox->IsChecked = true;
+		IdrIntervalSlider->Minimum = 2;
+		IdrIntervalSlider->IsEnabled = true;
+	} else {
+		EnableIdrIntervalCheckbox->IsChecked = false;
+		IdrIntervalSlider->Minimum = 0;
+		IdrIntervalSlider->Value = 0;
+		IdrIntervalSlider->IsEnabled = false;
+	}
 }
 
 void HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -189,6 +200,20 @@ void HostSettingsPage::FramePacing_SelectionChanged(Platform::Object^ sender, Wi
 	}
 
 	host->FramePacing = selectedFramePacing;
+}
+
+void HostSettingsPage::EnableIdrIntervalCheckbox_Checked(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	IdrIntervalSlider->IsEnabled = true;
+	if (IdrIntervalSlider->Value < 2) {
+		IdrIntervalSlider->Value = 10;
+	}
+	IdrIntervalSlider->Minimum = 2;
+}
+
+void HostSettingsPage::EnableIdrIntervalCheckbox_Unchecked(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	IdrIntervalSlider->IsEnabled = false;
+	IdrIntervalSlider->Minimum = 0;
+	IdrIntervalSlider->Value = 0;
 }
 
 void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
