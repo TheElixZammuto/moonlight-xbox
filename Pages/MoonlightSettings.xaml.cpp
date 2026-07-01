@@ -58,6 +58,35 @@ MoonlightSettings::MoonlightSettings()
 		}
 		k++;
 	}
+	// App grid tile size selector (Small / Medium / Large -> index maps to TileSize).
+	const wchar_t* tileSizeLabels[] = { L"Small", L"Medium", L"Large" };
+	for (auto label : tileSizeLabels) {
+		auto tItem = ref new ComboBoxItem();
+		tItem->Content = ref new Platform::String(label);
+		TileSizeSelector->Items->Append(tItem);
+	}
+	TileSizeSelector->SelectedIndex = std::max(0, std::min(state->TileSize, 2));
+
+	// Background selector. DataContext holds the persisted value; Content is the label.
+	struct BackgroundOption { const wchar_t* label; const wchar_t* value; };
+	BackgroundOption backgroundOptions[] = {
+		{ L"System default", L"System" },
+		{ L"Navy", L"Navy" },
+		{ L"Black", L"Black" }
+	};
+	int bgIndex = 0, bgSelected = 1; // default to Navy
+	for (auto opt : backgroundOptions) {
+		auto bItem = ref new ComboBoxItem();
+		bItem->Content = ref new Platform::String(opt.label);
+		bItem->DataContext = ref new Platform::String(opt.value);
+		BackgroundSelector->Items->Append(bItem);
+		if (state->BackgroundTheme != nullptr && state->BackgroundTheme->Equals(ref new Platform::String(opt.value))) {
+			bgSelected = bgIndex;
+		}
+		bgIndex++;
+	}
+	BackgroundSelector->SelectedIndex = bgSelected;
+
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightSettings::OnLoaded);
 	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightSettings::OnUnloaded);
 }
@@ -99,6 +128,20 @@ void MoonlightSettings::LayoutSelector_SelectionChanged(Platform::Object^ sender
 
 	auto s = item->DataContext->ToString();
 	state->KeyboardLayout = s;
+}
+
+void MoonlightSettings::TileSizeSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	int index = this->TileSizeSelector->SelectedIndex;
+	if (index < 0) return;
+	state->TileSize = index;
+}
+
+void MoonlightSettings::BackgroundSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	ComboBoxItem^ item = (ComboBoxItem^)this->BackgroundSelector->SelectedItem;
+	if (item == nullptr) return;
+	state->BackgroundTheme = item->DataContext->ToString();
 }
 
 void MoonlightSettings::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

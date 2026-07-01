@@ -54,6 +54,10 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr) return;
 	host = mhost;
+	auto backgroundBrush = GetApplicationState()->CreateBackgroundBrush();
+	if (backgroundBrush != nullptr) {
+		this->Background = backgroundBrush;
+	}
 	host->UpdateHostInfo(true);
 	host->UpdateApps();
 

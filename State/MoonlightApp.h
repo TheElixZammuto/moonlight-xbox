@@ -51,5 +51,16 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("CurrentlyRunning");
             }
         }
+
+        // Box-art tile dimensions, sourced from the global TileSize setting.
+        property double TileWidth
+        {
+            double get();
+        }
+
+        property double TileHeight
+        {
+            double get();
+        }
     };
 }

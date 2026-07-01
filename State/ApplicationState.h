@@ -15,6 +15,8 @@ namespace moonlight_xbox_dx {
 		Platform::String^ keyboardLayout;
 		bool firstTime;
 		bool alternateCombination;
+		int tileSize = 0; // 0 = Small, 1 = Medium, 2 = Large
+		Platform::String^ backgroundTheme = "Navy"; // "System", "Navy", "Black"
 	internal:
 		Concurrency::task<void> Init();
 		bool AddHost(Platform::String^ hostname);
@@ -142,6 +144,62 @@ namespace moonlight_xbox_dx {
 				OnPropertyChanged("KeyboardLayout");
 			}
 		}
+
+		// 0 = Small, 1 = Medium, 2 = Large. Controls app grid tile size.
+		property int TileSize
+		{
+			int get()
+			{
+				return this->tileSize;
+			};
+			void set(int value) {
+				this->tileSize = value;
+				OnPropertyChanged("TileSize");
+				OnPropertyChanged("AppTileWidth");
+				OnPropertyChanged("AppTileHeight");
+			}
+		}
+
+		// Box-art tile dimensions derived from TileSize (kept at a 3:4 ratio).
+		property double AppTileWidth
+		{
+			double get()
+			{
+				switch (this->tileSize) {
+					case 2: return 255.0;
+					case 1: return 210.0;
+					default: return 165.0;
+				}
+			}
+		}
+
+		property double AppTileHeight
+		{
+			double get()
+			{
+				switch (this->tileSize) {
+					case 2: return 340.0;
+					case 1: return 280.0;
+					default: return 220.0;
+				}
+			}
+		}
+
+		// "System" (default theme brush), "Navy" (gradient) or "Black".
+		property Platform::String^ BackgroundTheme
+		{
+			Platform::String^ get()
+			{
+				return this->backgroundTheme;
+			};
+			void set(Platform::String^ value) {
+				this->backgroundTheme = value;
+				OnPropertyChanged("BackgroundTheme");
+			}
+		}
+
+		// Builds the page background brush for the current BackgroundTheme.
+		Windows::UI::Xaml::Media::Brush^ CreateBackgroundBrush();
 	};
 
 	moonlight_xbox_dx::ApplicationState^ GetApplicationState();

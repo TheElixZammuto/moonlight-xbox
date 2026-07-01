@@ -29,6 +29,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("marginWidth"))this->ScreenMarginWidth = stateJson["marginWidth"];
 				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
 				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
+				if (stateJson.contains("tileSize"))this->tileSize = stateJson["tileSize"];
+				if (stateJson.contains("backgroundTheme"))this->backgroundTheme = Utils::StringFromStdString(stateJson["backgroundTheme"].get<std::string>());
 				if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
@@ -86,6 +88,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		stateJson["marginWidth"] = std::max(0, std::min(that->ScreenMarginWidth, 250));
 		stateJson["marginHeight"] = std::max(0, std::min(that->ScreenMarginHeight, 250));
 		stateJson["mouseSensitivity"] = std::max(1, std::min(that->MouseSensitivity, 16));
+		stateJson["tileSize"] = std::max(0, std::min(that->tileSize, 2));
+		stateJson["backgroundTheme"] = Utils::PlatformStringToStdString(that->backgroundTheme);
 		stateJson["firstTime"] = that->FirstTime;
 		stateJson["enableKeyboard"] = that->EnableKeyboard;
 		stateJson["keyboardLayout"] = Utils::PlatformStringToStdString(that->KeyboardLayout);
@@ -149,6 +153,44 @@ moonlight_xbox_dx::ApplicationState^ __stateInstance;
 moonlight_xbox_dx::ApplicationState^ moonlight_xbox_dx::GetApplicationState() {
 	if (__stateInstance == nullptr)__stateInstance = ref new moonlight_xbox_dx::ApplicationState();
 	return __stateInstance;
+}
+
+Windows::UI::Xaml::Media::Brush^ moonlight_xbox_dx::ApplicationState::CreateBackgroundBrush()
+{
+	namespace WUXM = Windows::UI::Xaml::Media;
+	std::string theme = Utils::PlatformStringToStdString(this->backgroundTheme);
+
+	if (theme == "Black") {
+		return ref new WUXM::SolidColorBrush(Windows::UI::ColorHelper::FromArgb(255, 0, 0, 0));
+	}
+
+	if (theme == "System" || theme.empty()) {
+		try {
+			auto res = Windows::UI::Xaml::Application::Current->Resources;
+			auto key = ref new Platform::String(L"ApplicationPageBackgroundThemeBrush");
+			if (res->HasKey(key)) {
+				return dynamic_cast<WUXM::Brush^>(res->Lookup(key));
+			}
+		} catch (...) {}
+		// Fall back: let the caller keep the XAML-defined ThemeResource brush.
+		return nullptr;
+	}
+
+	// "Navy" (default): a vertical gradient matching the redesigned look.
+	auto brush = ref new WUXM::LinearGradientBrush();
+	brush->StartPoint = Windows::Foundation::Point(0.5, 0.0);
+	brush->EndPoint = Windows::Foundation::Point(0.5, 1.0);
+
+	auto top = ref new WUXM::GradientStop();
+	top->Color = Windows::UI::ColorHelper::FromArgb(255, 16, 42, 74);   // #102A4A
+	top->Offset = 0.0;
+	auto bottom = ref new WUXM::GradientStop();
+	bottom->Color = Windows::UI::ColorHelper::FromArgb(255, 10, 22, 38); // #0A1626
+	bottom->Offset = 1.0;
+
+	brush->GradientStops->Append(top);
+	brush->GradientStops->Append(bottom);
+	return brush;
 }
 
 bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)

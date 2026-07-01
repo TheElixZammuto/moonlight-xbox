@@ -63,7 +63,7 @@
                 <DataTemplate x:DataType="local:MoonlightApp" x:DefaultBindMode="OneWay">
                     <StackPanel>
                         <StackPanel Padding="16" VerticalAlignment="Center">
-                            <Image Source="{x:Bind ImagePath}" Stretch="Fill" Height="300" Width="225"/>
+                            <Image Source="{x:Bind ImagePath}" Stretch="Fill" Height="{x:Bind TileHeight}" Width="{x:Bind TileWidth}"/>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Stretch">
                                 <Image Source="ms-appx:///Assets/play.svg" Visibility="{x:Bind CurrentlyRunning}" Width="24" Height="24" />
                                 <TextBlock Text="{x:Bind Name}"></TextBlock>
