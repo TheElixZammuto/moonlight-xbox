@@ -6,6 +6,7 @@
 #include "../Plot/PlotDesc.h"
 #include "FFMpegDecoder.h"
 #include "Utils.hpp"
+#include <cmath>
 
 using namespace DirectX;
 using namespace moonlight_xbox_dx;
@@ -21,8 +22,7 @@ namespace {
 		return Colors::Yellow; // default
 	}
 
-	// Maps the persisted StatsFont setting to the base spritefont filename (without the
-	// resolution-tier suffix/extension, e.g. "ModeSeven" -> "ModeSeven-12.spritefont").
+	// Maps persisted StatsFont to the base spritefont filename (e.g. "ModeSeven-12.spritefont").
 	std::wstring StatsFontFileBase(const std::wstring &name) {
 		if (name == L"Consolas") return L"Consolas";
 		if (name == L"CascadiaMono") return L"CascadiaMono";
@@ -196,42 +196,38 @@ void StatsRenderer::CreateDeviceDependentResources() {
 	std::wstring fontPath = L"Assets\\Font\\" + fontBase + sizeSuffix;
 
 	m_console->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), fontPath.c_str());
-	// Re-apply color: RestoreDevice / device-lost recovery can reset console state.
+	// Re-apply color since RestoreDevice (device-lost recovery) can reset console state.
 	m_console->SetForegroundColor(StatsColorFromName(m_colorName));
 
-	// use much faster font rendering; all bundled overlay fonts (ModeSeven, Consolas, Cascadia
-	// Mono) are monospace, so this optimization remains valid for every font choice.
+	// All bundled fonts are monospace, so this fast-path measurement stays valid for any of them.
 	m_console->SetFixedWidthFont(true);
 }
 
 void StatsRenderer::CreateWindowSizeDependentResources() {
 	int left = 10;
 	int right = m_displayWidth / 3;
-	int bottom = 0;
 
-	// 13 lines of text (Lite mode only needs 1, sized just tall enough for a single row so the
-	// TextConsole's circular buffer doesn't wrap the line down toward the bottom of a tall box).
 	if (m_displayHeight >= 2160) { // 24pt font
 		left = 20;
 		right = m_displayWidth / 2;
-		bottom = m_liteMode ? 50 : 448;
 	} else if (m_displayHeight >= 1440) { // 12pt font
 		left = 14;
-		bottom = m_liteMode ? 24 : 224;
 	} else {
 		left = 10;
-		bottom = m_liteMode ? 24 : 224;
 	}
 
-#if defined(_DEBUG)
-	// Debug builds append 3 extra lines to the full-mode block: a "------" separator plus
-	// "Missed present rate" and "PreWait/Render". Must add room for all 3 (not 2) or the
-	// TextConsole's circular line buffer wraps and overwrites the topmost lines (Video
-	// stream/Bitrate/Incoming frame rate) with these debug-only lines.
+	// Full mode emits up to 12 lines (15 in Debug); Lite mode is 1. Size the box from the
+	// font's real line spacing rather than guessed pixel constants.
+	int lineCount = 1;
 	if (!m_liteMode) {
-		bottom += (m_displayHeight >= 2160) ? 105 : 53;
-	}
+		lineCount = 12;
+#if defined(_DEBUG)
+		lineCount += 3;
 #endif
+	}
+	const float lineSpacing = m_console->GetLineSpacing();
+	// +0.5 line of slack absorbs rounding/wrap of a slightly-too-long line.
+	const int bottom = left + static_cast<int>(std::ceil(lineSpacing * (lineCount + 0.5f)));
 
 	// The size of our text area (left, top, right, bottom)
 	RECT size = {left, left, right, bottom};

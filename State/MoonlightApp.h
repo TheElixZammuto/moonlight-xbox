@@ -66,15 +66,13 @@ namespace moonlight_xbox_dx {
             double get();
         }
 
-        // Padding around the tile, sourced from the global TileGap setting — controls the visible
-        // gap between adjacent tiles in the grid.
+        // Gap between adjacent tiles, sourced from the global TileGap setting.
         property Windows::UI::Xaml::Thickness TilePadding
         {
             Windows::UI::Xaml::Thickness get();
         }
 
-        // Whether this app is pinned to the Favorites row. Set by MoonlightHost
-        // when it applies persisted favorite state onto a freshly-fetched app list.
+        // Set by MoonlightHost when applying persisted favorite state to a fetched app list.
         property bool IsFavorite
         {
             bool get() { return this->isFavorite; }

@@ -223,8 +223,7 @@ namespace moonlight_xbox_dx {
 
 		// Builds the page background brush for the current BackgroundTheme.
 		Windows::UI::Xaml::Media::Brush^ CreateBackgroundBrush();
-		// Applies the current BackgroundTheme's brush to the given page (no-op for "System", which
-		// leaves the page's own ThemeResource-driven brush in place).
+		// Applies BackgroundTheme's brush to the page (no-op for "System").
 		void ApplyBackgroundTo(Windows::UI::Xaml::Controls::Page^ page);
 	};
 

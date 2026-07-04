@@ -208,9 +208,8 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.renderedFps = (double)dst.renderedFrames / (now - dst.measurementStartTimestamp);
 }
 
-// Compact single-line summary, modeled on the Artemis moonlight-android fork's "Lite mode":
-// bandwidth, network/decode delay, packet loss %, and total FPS — deliberately omitting
-// resolution/decoder/jitter/host-processing-latency (those stay in the verbose formatVideoStats()).
+// Compact "Lite mode" summary (bandwidth, delay, loss %, FPS), modeled on Artemis
+// moonlight-android; omits resolution/decoder/jitter/host latency (see formatVideoStats()).
 void Stats::formatVideoStatsLite(VIDEO_STATS& stats, char* output, size_t length) {
 	output[0] = 0;
 	if (stats.renderedFrames == 0 && stats.totalFrames == 0) {

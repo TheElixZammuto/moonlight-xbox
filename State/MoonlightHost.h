@@ -52,13 +52,11 @@ namespace moonlight_xbox_dx {
         // Favorites: appId -> position within the Favorites row.
         bool IsAppFavorite(int appId);
         void SetFavorite(int appId, bool favorite);
-        // Swaps appId's Favorites-row position with its neighbor in the given direction
-        // (-1 = earlier/left/up, +1 = later/right/down). No-op at the ends or if not favorited.
+        // Moves appId one slot toward -1 (earlier) or +1 (later); no-op at ends or if not favorited.
         void MoveFavorite(int appId, int direction);
-        // Re-stamps IsFavorite/SortOrder onto the current Apps collection and
-        // re-sorts it (favorites first, in stored order; then the rest as returned by the host).
+        // Re-stamps IsFavorite/SortOrder onto Apps and re-sorts (favorites first, then the rest).
         void ApplyFavoritesToApps();
-        // Opaque JSON blob (e.g. {"12345":0,"67890":1}) used by ApplicationState for persistence.
+        // JSON blob (e.g. {"12345":0,"67890":1}) used by ApplicationState for persistence.
         Platform::String^ SerializeFavorites();
         void DeserializeFavorites(Platform::String^ json);
         property Platform::String^ InstanceId
@@ -303,8 +301,7 @@ namespace moonlight_xbox_dx {
             }
         }
 
-        // Single-line, less verbose stats overlay (Artemis "Lite mode"). Only meaningful when
-        // EnableStats is true.
+        // Compact single-line overlay (Artemis "Lite mode"). Only meaningful when EnableStats is true.
         property bool EnableStatsLite
         {
             bool get() { return this->enableStatsLite; }

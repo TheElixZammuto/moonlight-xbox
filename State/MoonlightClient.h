@@ -54,6 +54,11 @@ class MoonlightClient {
 	std::function<void(unsigned short, unsigned short, unsigned short)> OnRumble;
 	std::function<void(unsigned short, unsigned short, unsigned short)> OnTriggerRumble;
 
+	// RAII lock covering the full duration of a Connect()+status-read sequence (see
+	// MoonlightHost::UpdateHostInfo/UpdateApps). Recursive so Connect() can also take it
+	// internally without deadlocking when the caller already holds it.
+	std::unique_lock<std::recursive_mutex> LockState() { return std::unique_lock<std::recursive_mutex>(m_stateMutex); }
+
   private:
 	SERVER_DATA serverData;
 	char *connectionPin = NULL;
@@ -64,10 +69,9 @@ class MoonlightClient {
 	bool m_isRGBFull;
 	uint16_t activeGamepadMask = 0;
 	Windows::Gaming::Input::GamepadReading m_lastGamepadReading[16];
-	// Guards Connect() against concurrent invocation on the same instance: the background host
-	// status poll (HostSelectorPage's 5s refresh loop) and UI-driven calls (AppPage construction,
-	// closeAppButton_Click) can both call UpdateHostInfo()->Connect() on the same MoonlightHost's
-	// client around navigation time, racing on the shared hostname/port buffer below otherwise.
-	std::mutex m_connectMutex;
+	// Guards serverData/hostname/port against concurrent access: Connect() locks this
+	// internally, and callers reading status right after Connect() (see LockState()) should
+	// hold it across their whole read sequence to avoid racing a concurrent Connect().
+	std::recursive_mutex m_stateMutex;
 };
 } // namespace moonlight_xbox_dx

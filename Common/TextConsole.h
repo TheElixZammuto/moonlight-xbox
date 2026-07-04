@@ -60,6 +60,9 @@ namespace DX
 
         void SetFixedWidthFont(bool isFixedWidth);
 
+        // Pixel line height of the currently loaded font.
+        float GetLineSpacing() const noexcept { return m_font ? m_font->GetLineSpacing() : 0.f; }
+
     private:
         void ProcessString(_In_z_ const wchar_t* str);
         void IncrementLine();

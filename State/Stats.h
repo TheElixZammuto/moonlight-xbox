@@ -56,8 +56,8 @@ namespace moonlight_xbox_dx
 		Stats();
 		bool ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char* output, size_t length);
 
-		// When true, ShouldUpdateDisplay produces a compact single-line summary instead of the
-		// full verbose multi-line block (Artemis-style "Lite" overlay).
+		// Switches to a compact single-line summary (Artemis-style "Lite" overlay) instead of the
+		// full verbose multi-line block.
 		void SetLiteMode(bool lite) { m_liteMode = lite; }
 
 		// submitters for various types of data

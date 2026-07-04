@@ -123,7 +123,7 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		}
 	}
 
-	// Overlay font selector. DataContext holds the persisted value; Content is the label.
+	// DataContext holds the persisted value; Content is the display label.
 	struct StatsFontOption { const wchar_t* label; const wchar_t* value; };
 	StatsFontOption statsFontOptions[] = {
 		{ L"Retro (Mode Seven)", L"ModeSeven" },

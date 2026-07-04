@@ -419,9 +419,8 @@ void connection_trigger_rumble(unsigned short controllerNumber, unsigned short l
 }
 
 int MoonlightClient::Connect(const char *hostname) {
-	// Serialize: this instance's Connect() can be invoked concurrently from the HostSelectorPage
-	// background poll loop and from AppPage/UI code around navigation time.
-	std::lock_guard<std::mutex> lock(m_connectMutex);
+	// Recursive: safe whether called standalone or while the caller already holds LockState().
+	std::lock_guard<std::recursive_mutex> lock(m_stateMutex);
 	if (this->hostname != NULL) {
 		free(this->hostname);
 		this->hostname = NULL;

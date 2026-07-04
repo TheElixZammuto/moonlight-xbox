@@ -27,9 +27,7 @@ class StatsRenderer
 		m_visible = visible;
 	}
 	void ToggleVisible();
-	// When true, sizes the on-screen text box for a single compact line (Lite overlay) instead
-	// of the tall multi-line box used for the verbose stats block — without this, a single line
-	// written into the (much taller) full-mode box renders near the bottom, not the top.
+	// Sizes the text box for a single compact line (Lite) vs. the tall multi-line full-mode box.
 	void SetLiteMode(bool lite) { m_liteMode = lite; }
 
   private:

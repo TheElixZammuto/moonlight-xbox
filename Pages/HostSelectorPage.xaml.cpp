@@ -214,8 +214,7 @@ void HostSelectorPage::SettingsButton_Click(Platform::Object^ sender, Windows::U
 }
 
 void HostSelectorPage::OnStateLoaded() {
-	// Re-apply background now that the persisted theme has actually loaded (Init() is async,
-	// so at construction time BackgroundTheme was still its default and ApplyBackgroundTo no-op'd).
+	// Re-apply now that the persisted theme has loaded (it was still default at construction time).
 	GetApplicationState()->ApplyBackgroundTo(this);
 
 	if (GetApplicationState()->FirstTime) {
@@ -276,10 +275,8 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		while (continueFetch.load()) {
 			query_mdns();
 			for (auto a : GetApplicationState()->SavedHosts) {
-				// Bail out mid-batch as soon as the user navigates away (e.g. clicked Connect),
-				// instead of finishing every remaining host in this iteration first. Reduces (but
-				// the MoonlightClient::Connect() mutex is what actually prevents) the window where
-				// this loop's Connect() calls can race with AppPage's own UpdateHostInfo() calls.
+				// Bail mid-batch on navigation instead of finishing every host first; narrows
+				// (doesn't eliminate — the Connect() mutex does that) the race window.
 				if (!continueFetch.load()) break;
 				a->UpdateHostInfo(true);
 			}

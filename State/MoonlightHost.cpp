@@ -20,6 +20,12 @@ namespace moonlight_xbox_dx {
 
 	void MoonlightHost::UpdateHostInfo(bool showLoading) {
 		if (showLoading) this->Loading = true;
+		if (client == nullptr) {
+			client = new MoonlightClient();
+		}
+		// Held across the whole connect+read sequence so a concurrent Connect() from another
+		// thread (e.g. HostSelectorPage's poll loop) can't mutate serverData/hostname mid-read.
+		auto lock = client->LockState();
 		bool status = this->Connect() == 0;
 		this->Connected = status;
 		if (status) {
@@ -47,6 +53,9 @@ namespace moonlight_xbox_dx {
 	}
 
 	void MoonlightHost::UpdateApps() {
+		// Same rationale as UpdateHostInfo: hold the lock across the read so a concurrent
+		// Connect() elsewhere can't mutate serverData mid-fetch.
+		auto lock = client->LockState();
 	    auto apps = client->GetApplications();
 	    Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, apps]() {
 			Apps->Clear();

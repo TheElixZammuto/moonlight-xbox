@@ -143,7 +143,7 @@ void MoonlightSettings::BackgroundSelector_SelectionChanged(Platform::Object^ se
 	ComboBoxItem^ item = (ComboBoxItem^)this->BackgroundSelector->SelectedItem;
 	if (item == nullptr) return;
 	state->BackgroundTheme = item->DataContext->ToString();
-	// Live preview: re-apply immediately so this page reflects the change without navigating away.
+	// Live preview without navigating away.
 	state->ApplyBackgroundTo(this);
 }
 
@@ -162,7 +162,7 @@ void MoonlightSettings::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::
 
 void MoonlightSettings::MarginSlider_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	// Show the calibration guide border only while the user is actively adjusting a screen margin slider.
+	// Only show the calibration border while actively adjusting a margin slider.
 	CalibrationBorderPanel->BorderBrush = ref new SolidColorBrush(Windows::UI::Colors::Green);
 }
 

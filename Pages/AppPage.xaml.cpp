@@ -190,10 +190,8 @@ void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml:
 }
 
 void AppPage::AppsGrid_ContextRequested(Platform::Object ^ sender, Windows::UI::Xaml::Input::ContextRequestedEventArgs ^ e) {
-    // Raised for mouse right-click, touch press-and-hold, AND the gamepad Menu (hamburger) button
-    // on a focused item. Without this handler, Xbox falls back to its own generic single-action
-    // menu for the focused GridViewItem instead of ours - wiring this is what makes our menu
-    // (and the Favorites toggle below) reachable with a controller.
+    // Raised for right-click/press-and-hold/gamepad Menu button on a focused item; wiring this
+    // is what makes our context menu (and Favorites toggle) reachable with a controller.
     Utils::Log("AppPage::AppsGrid_ContextRequested invoked\n");
     ShowActionsMenu(e->OriginalSource, sender != nullptr ? dynamic_cast<FrameworkElement^>(sender) : nullptr);
     e->Handled = true;
@@ -258,8 +256,7 @@ void AppPage::ShowActionsMenu(Platform::Object^ originalSource, FrameworkElement
         this->toggleFavoriteButton->Text = currentApp->IsFavorite ? "Remove from Favorites" : "Add to Favorites";
     }
 
-    // Reordering only makes sense within the Favorites row, since only favorited apps have
-    // a meaningful SortOrder.
+    // Only favorited apps have a meaningful SortOrder, so reordering only applies there.
     this->moveFavoriteButton->Visibility = (currentApp != nullptr && currentApp->IsFavorite)
         ? Windows::UI::Xaml::Visibility::Visible
         : Windows::UI::Xaml::Visibility::Collapsed;
@@ -298,13 +295,16 @@ void AppPage::EnterMoveMode(MoonlightApp^ app) {
 
 void AppPage::ExitMoveMode(bool commit) {
 	if (!this->isMoveModeActive) return;
-	if (!commit && this->host != nullptr) {
+	if (commit) {
+		// Only persist here, once, on commit — intermediate d-pad moves no longer write to
+		// disk, so a canceled move has nothing on disk to revert.
+		GetApplicationState()->UpdateFile();
+	} else if (this->host != nullptr) {
 		// Revert to the pre-move snapshot; DeserializeFavorites re-applies ordering + flags.
 		this->host->DeserializeFavorites(this->moveModeSnapshot);
 	}
 	if (this->movingApp != nullptr) this->movingApp->IsBeingMoved = false;
 	if (this->moveModeHint != nullptr) this->moveModeHint->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-	GetApplicationState()->UpdateFile();
 
 	auto movedApp = this->movingApp;
 	this->isMoveModeActive = false;
@@ -339,8 +339,8 @@ void AppPage::Page_PreviewKeyDown(Platform::Object ^ sender, Windows::UI::Xaml::
 	case VirtualKey::GamepadDPadUp:
 	case VirtualKey::Left:
 	case VirtualKey::Up:
+		// In-memory reorder only; persisted once on commit in ExitMoveMode(true).
 		this->host->MoveFavorite(this->movingApp->Id, -1);
-		GetApplicationState()->UpdateFile();
 		this->FocusAppTile(this->movingApp);
 		e->Handled = true;
 		break;
@@ -349,7 +349,6 @@ void AppPage::Page_PreviewKeyDown(Platform::Object ^ sender, Windows::UI::Xaml::
 	case VirtualKey::Right:
 	case VirtualKey::Down:
 		this->host->MoveFavorite(this->movingApp->Id, 1);
-		GetApplicationState()->UpdateFile();
 		this->FocusAppTile(this->movingApp);
 		e->Handled = true;
 		break;
@@ -365,8 +364,7 @@ void AppPage::Page_PreviewKeyDown(Platform::Object ^ sender, Windows::UI::Xaml::
 		e->Handled = true;
 		break;
 	default:
-		// Suppress all other input (e.g. other face buttons/bumpers) while actively moving a
-		// tile so focus can't wander off via normal XY navigation mid-reorder.
+		// Swallow other input while a tile is actively being moved, so focus can't drift mid-reorder.
 		e->Handled = true;
 		break;
 	}
