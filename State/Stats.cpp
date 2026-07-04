@@ -36,7 +36,11 @@ bool Stats::ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char
 			addVideoStats(timer, m_LastWndVideoStats, lastTwoWndStats);
 			addVideoStats(timer, m_ActiveWndVideoStats, lastTwoWndStats);
 
-			formatVideoStats(timer, lastTwoWndStats, output, length);
+			if (m_liteMode) {
+				formatVideoStatsLite(lastTwoWndStats, output, length);
+			} else {
+				formatVideoStats(timer, lastTwoWndStats, output, length);
+			}
 			shouldUpdate = true;
 		}
 
@@ -202,6 +206,33 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.receivedFps = (double)dst.receivedFrames / (now - dst.measurementStartTimestamp);
 	dst.decodedFps = (double)dst.decodedFrames / (now - dst.measurementStartTimestamp);
 	dst.renderedFps = (double)dst.renderedFrames / (now - dst.measurementStartTimestamp);
+}
+
+// Compact single-line summary, modeled on the Artemis moonlight-android fork's "Lite mode":
+// bandwidth, network/decode delay, packet loss %, and total FPS — deliberately omitting
+// resolution/decoder/jitter/host-processing-latency (those stay in the verbose formatVideoStats()).
+void Stats::formatVideoStatsLite(VIDEO_STATS& stats, char* output, size_t length) {
+	output[0] = 0;
+	if (stats.renderedFrames == 0 && stats.totalFrames == 0) {
+		return;
+	}
+
+	double avgVideoMbps = m_bwTracker.GetAverageMbps();
+	char rttString[24];
+	if (stats.lastRtt != 0) {
+		snprintf(rttString, sizeof(rttString), "%u ms", stats.lastRtt);
+	} else {
+		snprintf(rttString, sizeof(rttString), "N/A");
+	}
+	double decodeMs = stats.decodedFrames ? (double)stats.totalDecodeTime / stats.decodedFrames : 0.0;
+	double lossPct = stats.totalFrames ? (double)stats.networkDroppedFrames / stats.totalFrames * 100 : 0.0;
+
+	int ret = snprintf(output, length,
+	                    "%.1f Mbps | Delay: %s / %.1f ms | Loss: %.1f%% | FPS: %.0f",
+	                    avgVideoMbps, rttString, decodeMs, lossPct, stats.totalFps);
+	if (ret < 0 || (size_t)ret >= length) {
+		Utils::Log("Error: formatVideoStatsLite length overflow\n");
+	}
 }
 
 void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, char* output, size_t length) {

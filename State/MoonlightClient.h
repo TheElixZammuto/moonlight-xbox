@@ -64,5 +64,10 @@ class MoonlightClient {
 	bool m_isRGBFull;
 	uint16_t activeGamepadMask = 0;
 	Windows::Gaming::Input::GamepadReading m_lastGamepadReading[16];
+	// Guards Connect() against concurrent invocation on the same instance: the background host
+	// status poll (HostSelectorPage's 5s refresh loop) and UI-driven calls (AppPage construction,
+	// closeAppButton_Click) can both call UpdateHostInfo()->Connect() on the same MoonlightHost's
+	// client around navigation time, racing on the shared hostname/port buffer below otherwise.
+	std::mutex m_connectMutex;
 };
 } // namespace moonlight_xbox_dx

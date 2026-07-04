@@ -8,6 +8,7 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     XYFocusKeyboardNavigation="Disabled"
+    PreviewKeyDown="Page_PreviewKeyDown"
     >
     <FlyoutBase.AttachedFlyout>
         <MenuFlyout x:Name="ActionsFlyout" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
@@ -24,6 +25,17 @@
             <MenuFlyoutItem x:Name="closeAndStartButton"  Click="closeAndStartButton_Click"  Text="Close Current App and Start" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                 <MenuFlyoutItem.Icon>
                     <SymbolIcon Symbol="Next" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem x:Name="toggleFavoriteButton" Click="toggleFavoriteButton_Click" Text="Add to Favorites" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="OutlineStar" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem x:Name="moveFavoriteButton" Click="moveFavoriteButton_Click" Text="Move / Reorder" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                <MenuFlyoutItem.Icon>
+                    <SymbolIcon Symbol="Sort" />
                 </MenuFlyoutItem.Icon>
             </MenuFlyoutItem>
         </MenuFlyout>
@@ -51,7 +63,10 @@
                 </Button>
             </StackPanel>
         </Grid>
-        <GridView Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind Host.Apps}" IsRightTapEnabled="True" IsItemClickEnabled="True" ItemClick="AppsGrid_ItemClick" RightTapped="AppsGrid_RightTapped" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock x:Name="moveModeHint" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                   Foreground="Gold" FontSize="16" Visibility="Collapsed"
+                   Text="Move Mode: D-pad to reposition, A to place, B to cancel" />
+        <GridView Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind Host.Apps}" IsRightTapEnabled="True" IsItemClickEnabled="True" ItemClick="AppsGrid_ItemClick" RightTapped="AppsGrid_RightTapped" ContextRequested="AppsGrid_ContextRequested" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal"
@@ -62,8 +77,14 @@
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="local:MoonlightApp" x:DefaultBindMode="OneWay">
                     <StackPanel>
-                        <StackPanel Padding="16" VerticalAlignment="Center">
-                            <Image Source="{x:Bind ImagePath}" Stretch="Fill" Height="{x:Bind TileHeight}" Width="{x:Bind TileWidth}"/>
+                        <StackPanel Padding="{x:Bind TilePadding}" VerticalAlignment="Center">
+                            <Grid>
+                                <Image Source="{x:Bind ImagePath}" Stretch="Fill" Height="{x:Bind TileHeight}" Width="{x:Bind TileWidth}"/>
+                                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE735;" Foreground="Gold" FontSize="20"
+                                          HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,6,0"
+                                          Visibility="{x:Bind IsFavorite}" />
+                                <Border BorderBrush="Gold" BorderThickness="4" Visibility="{x:Bind IsBeingMoved}" />
+                            </Grid>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Stretch">
                                 <Image Source="ms-appx:///Assets/play.svg" Visibility="{x:Bind CurrentlyRunning}" Width="24" Height="24" />
                                 <TextBlock Text="{x:Bind Name}"></TextBlock>

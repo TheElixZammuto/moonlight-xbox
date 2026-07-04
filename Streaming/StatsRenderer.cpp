@@ -12,13 +12,33 @@ using namespace moonlight_xbox_dx;
 using namespace Microsoft::WRL;
 using namespace Windows::UI::Core;
 
-StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources> &deviceResources, const std::shared_ptr<Stats> &stats)
+namespace {
+	// Maps the persisted StatsColor setting to a DirectXTK color constant.
+	DirectX::XMVECTORF32 StatsColorFromName(const std::wstring &name) {
+		if (name == L"White") return Colors::White;
+		if (name == L"Green") return Colors::LimeGreen;
+		if (name == L"Cyan") return Colors::Cyan;
+		return Colors::Yellow; // default
+	}
+
+	// Maps the persisted StatsFont setting to the base spritefont filename (without the
+	// resolution-tier suffix/extension, e.g. "ModeSeven" -> "ModeSeven-12.spritefont").
+	std::wstring StatsFontFileBase(const std::wstring &name) {
+		if (name == L"Consolas") return L"Consolas";
+		if (name == L"CascadiaMono") return L"CascadiaMono";
+		return L"ModeSeven"; // default (retro)
+	}
+}
+
+StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources> &deviceResources, const std::shared_ptr<Stats> &stats, Platform::String^ fontFamily, Platform::String^ colorName)
     : m_console(std::make_unique<DX::TextConsole>()),
       m_deviceResources(deviceResources),
       m_mutex(),
       m_visible(false),
-      m_stats(stats) {
-	m_console->SetForegroundColor(Colors::Yellow);
+      m_stats(stats),
+      m_fontFamily(fontFamily != nullptr ? fontFamily->Data() : L"ModeSeven"),
+      m_colorName(colorName != nullptr ? colorName->Data() : L"Yellow") {
+	m_console->SetForegroundColor(StatsColorFromName(m_colorName));
 	// m_console->SetDebugOutput(true);
 
 	CreateDeviceDependentResources();
@@ -171,14 +191,16 @@ void StatsRenderer::RenderGraphs() {
 void StatsRenderer::CreateDeviceDependentResources() {
 	m_deviceResources->GetUWPPixelDimensions(&m_displayWidth, &m_displayHeight);
 
-	const wchar_t *font = L"Assets\\Font\\ModeSeven-24.spritefont"; // sized for 4K
-	if (m_displayHeight <= 1440) {
-		font = L"Assets\\Font\\ModeSeven-12.spritefont"; // for 1080p & 1440p
-	}
+	std::wstring fontBase = StatsFontFileBase(m_fontFamily);
+	const wchar_t *sizeSuffix = (m_displayHeight <= 1440) ? L"-12.spritefont" : L"-24.spritefont"; // 1080p/1440p vs 4K
+	std::wstring fontPath = L"Assets\\Font\\" + fontBase + sizeSuffix;
 
-	m_console->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), font);
+	m_console->RestoreDevice(m_deviceResources->GetD3DDeviceContext(), fontPath.c_str());
+	// Re-apply color: RestoreDevice / device-lost recovery can reset console state.
+	m_console->SetForegroundColor(StatsColorFromName(m_colorName));
 
-	// use much faster font rendering
+	// use much faster font rendering; all bundled overlay fonts (ModeSeven, Consolas, Cascadia
+	// Mono) are monospace, so this optimization remains valid for every font choice.
 	m_console->SetFixedWidthFont(true);
 }
 
@@ -187,22 +209,28 @@ void StatsRenderer::CreateWindowSizeDependentResources() {
 	int right = m_displayWidth / 3;
 	int bottom = 0;
 
-	// 13 lines of text
+	// 13 lines of text (Lite mode only needs 1, sized just tall enough for a single row so the
+	// TextConsole's circular buffer doesn't wrap the line down toward the bottom of a tall box).
 	if (m_displayHeight >= 2160) { // 24pt font
 		left = 20;
 		right = m_displayWidth / 2;
-		bottom = 448;
+		bottom = m_liteMode ? 50 : 448;
 	} else if (m_displayHeight >= 1440) { // 12pt font
 		left = 14;
-		bottom = 224;
+		bottom = m_liteMode ? 24 : 224;
 	} else {
 		left = 10;
-		bottom = 224;
+		bottom = m_liteMode ? 24 : 224;
 	}
 
 #if defined(_DEBUG)
-	// make room for 2 extra lines of stats
-	bottom += (m_displayHeight >= 2160) ? 70 : 35;
+	// Debug builds append 3 extra lines to the full-mode block: a "------" separator plus
+	// "Missed present rate" and "PreWait/Render". Must add room for all 3 (not 2) or the
+	// TextConsole's circular line buffer wraps and overwrites the topmost lines (Video
+	// stream/Bitrate/Incoming frame rate) with these debug-only lines.
+	if (!m_liteMode) {
+		bottom += (m_displayHeight >= 2160) ? 105 : 53;
+	}
 #endif
 
 	// The size of our text area (left, top, right, bottom)

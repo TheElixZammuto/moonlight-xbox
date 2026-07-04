@@ -9,6 +9,9 @@ namespace moonlight_xbox_dx {
         Platform::String^ imagePath = "ms-appx:///Assets/gamepad.svg";
         int id;
         bool currentlyRunning;
+        bool isFavorite = false;
+        int sortOrder = -1;
+        bool isBeingMoved = false;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -61,6 +64,44 @@ namespace moonlight_xbox_dx {
         property double TileHeight
         {
             double get();
+        }
+
+        // Padding around the tile, sourced from the global TileGap setting — controls the visible
+        // gap between adjacent tiles in the grid.
+        property Windows::UI::Xaml::Thickness TilePadding
+        {
+            Windows::UI::Xaml::Thickness get();
+        }
+
+        // Whether this app is pinned to the Favorites row. Set by MoonlightHost
+        // when it applies persisted favorite state onto a freshly-fetched app list.
+        property bool IsFavorite
+        {
+            bool get() { return this->isFavorite; }
+            void set(bool value) {
+                this->isFavorite = value;
+                OnPropertyChanged("IsFavorite");
+            }
+        }
+
+        // Position within the Favorites row (0-based). -1 when not a favorite.
+        property int SortOrder
+        {
+            int get() { return this->sortOrder; }
+            void set(int value) {
+                this->sortOrder = value;
+                OnPropertyChanged("SortOrder");
+            }
+        }
+
+        // True while this tile is the one actively being repositioned in Move mode.
+        property bool IsBeingMoved
+        {
+            bool get() { return this->isBeingMoved; }
+            void set(bool value) {
+                this->isBeingMoved = value;
+                OnPropertyChanged("IsBeingMoved");
+            }
         }
     };
 }

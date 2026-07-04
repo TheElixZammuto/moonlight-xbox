@@ -1,6 +1,10 @@
 #include "pch.h"
 #include "MoonlightHost.h"
 #include "State\MoonlightClient.h"
+#include <nlohmann/json.hpp>
+#include <Utils.hpp>
+#include <algorithm>
+#include <vector>
 
 namespace moonlight_xbox_dx {
 	MoonlightHost::MoonlightHost(Platform::String ^host) {
@@ -50,8 +54,89 @@ namespace moonlight_xbox_dx {
 				if (a->Id == CurrentlyRunningAppId) a->CurrentlyRunning = true;
 				Apps->Append(a);
 			}
+			ApplyFavoritesToApps();
 		}));
     }
+
+	bool MoonlightHost::IsAppFavorite(int appId) {
+		return favoriteOrders.find(appId) != favoriteOrders.end();
+	}
+
+	void MoonlightHost::SetFavorite(int appId, bool favorite) {
+		if (favorite) {
+			if (favoriteOrders.find(appId) == favoriteOrders.end()) {
+				int maxOrder = -1;
+				for (auto& kv : favoriteOrders) maxOrder = std::max(maxOrder, kv.second);
+				favoriteOrders[appId] = maxOrder + 1;
+			}
+		} else {
+			favoriteOrders.erase(appId);
+		}
+		ApplyFavoritesToApps();
+	}
+
+	void MoonlightHost::ApplyFavoritesToApps() {
+		if (this->apps == nullptr) return;
+		std::vector<MoonlightApp^> favs;
+		std::vector<MoonlightApp^> rest;
+		for (unsigned int i = 0; i < apps->Size; ++i) {
+			auto a = apps->GetAt(i);
+			auto it = favoriteOrders.find(a->Id);
+			if (it != favoriteOrders.end()) {
+				a->IsFavorite = true;
+				a->SortOrder = it->second;
+				favs.push_back(a);
+			} else {
+				a->IsFavorite = false;
+				a->SortOrder = -1;
+				rest.push_back(a);
+			}
+		}
+		if (favs.empty()) return; // nothing to reorder, keep host-provided ordering as-is
+		std::sort(favs.begin(), favs.end(), [](MoonlightApp^ l, MoonlightApp^ r) { return l->SortOrder < r->SortOrder; });
+		apps->Clear();
+		for (auto a : favs) apps->Append(a);
+		for (auto a : rest) apps->Append(a);
+	}
+
+	void MoonlightHost::MoveFavorite(int appId, int direction) {
+		auto it = favoriteOrders.find(appId);
+		if (it == favoriteOrders.end()) return; // not a favorite, nothing to reorder
+		int currentOrder = it->second;
+		int targetOrder = currentOrder + direction;
+		int swapAppId = -1;
+		for (auto& kv : favoriteOrders) {
+			if (kv.second == targetOrder) { swapAppId = kv.first; break; }
+		}
+		if (swapAppId == -1) return; // already at the first/last favorite position
+		favoriteOrders[swapAppId] = currentOrder;
+		favoriteOrders[appId] = targetOrder;
+		ApplyFavoritesToApps();
+	}
+
+	Platform::String^ MoonlightHost::SerializeFavorites() {
+		nlohmann::json j = nlohmann::json::object();
+		for (auto& kv : favoriteOrders) {
+			j[std::to_string(kv.first)] = kv.second;
+		}
+		return Utils::StringFromStdString(j.dump());
+	}
+
+	void MoonlightHost::DeserializeFavorites(Platform::String^ json) {
+		favoriteOrders.clear();
+		if (json != nullptr && json->Length() > 0) {
+			try {
+				std::string s = Utils::PlatformStringToStdString(json);
+				nlohmann::json j = nlohmann::json::parse(s);
+				for (auto it = j.begin(); it != j.end(); ++it) {
+					favoriteOrders[std::stoi(it.key())] = it.value().get<int>();
+				}
+			} catch (...) {
+				favoriteOrders.clear();
+			}
+		}
+		ApplyFavoritesToApps();
+	}
 
 	void MoonlightHost::UpdateAppRunningStates() {
 		try {

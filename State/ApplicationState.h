@@ -16,7 +16,8 @@ namespace moonlight_xbox_dx {
 		bool firstTime;
 		bool alternateCombination;
 		int tileSize = 0; // 0 = Small, 1 = Medium, 2 = Large
-		Platform::String^ backgroundTheme = "Navy"; // "System", "Navy", "Black"
+		int tileGap = 16; // px padding applied around each tile; forms the visible gap between tiles
+		Platform::String^ backgroundTheme = "System"; // "System", "Navy", "Black"
 	internal:
 		Concurrency::task<void> Init();
 		bool AddHost(Platform::String^ hostname);
@@ -166,9 +167,9 @@ namespace moonlight_xbox_dx {
 			double get()
 			{
 				switch (this->tileSize) {
-					case 2: return 255.0;
-					case 1: return 210.0;
-					default: return 165.0;
+					case 2: return 210.0; // Large
+					case 1: return 165.0; // Medium
+					default: return 120.0; // Small
 				}
 			}
 		}
@@ -178,11 +179,33 @@ namespace moonlight_xbox_dx {
 			double get()
 			{
 				switch (this->tileSize) {
-					case 2: return 340.0;
-					case 1: return 280.0;
-					default: return 220.0;
+					case 2: return 280.0; // Large
+					case 1: return 220.0; // Medium
+					default: return 160.0; // Small
 				}
 			}
+		}
+
+		// Padding (px) applied around each app tile — controls the visible gap between tiles in the grid.
+		property int TileGap
+		{
+			int get()
+			{
+				return this->tileGap;
+			};
+			void set(int value) {
+				this->tileGap = value;
+				OnPropertyChanged("TileGap");
+				OnPropertyChanged("TilePadding");
+			}
+		}
+
+		property Windows::UI::Xaml::Thickness TilePadding
+		{
+			Windows::UI::Xaml::Thickness get()
+			{
+				return { (double)this->tileGap, (double)this->tileGap, (double)this->tileGap, (double)this->tileGap };
+			};
 		}
 
 		// "System" (default theme brush), "Navy" (gradient) or "Black".
@@ -200,6 +223,9 @@ namespace moonlight_xbox_dx {
 
 		// Builds the page background brush for the current BackgroundTheme.
 		Windows::UI::Xaml::Media::Brush^ CreateBackgroundBrush();
+		// Applies the current BackgroundTheme's brush to the given page (no-op for "System", which
+		// leaves the page's own ThemeResource-driven brush in place).
+		void ApplyBackgroundTo(Windows::UI::Xaml::Controls::Page^ page);
 	};
 
 	moonlight_xbox_dx::ApplicationState^ GetApplicationState();

@@ -30,6 +30,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
 				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
 				if (stateJson.contains("tileSize"))this->tileSize = stateJson["tileSize"];
+				if (stateJson.contains("tileGap"))this->tileGap = stateJson["tileGap"];
 				if (stateJson.contains("backgroundTheme"))this->backgroundTheme = Utils::StringFromStdString(stateJson["backgroundTheme"].get<std::string>());
 				if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
 				for (auto a : stateJson["hosts"]) {
@@ -50,9 +51,13 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("enable_sops")) h->EnableSOPS = a["enable_sops"].get<bool>();
 					if (a.contains("enable_stats")) h->EnableStats = a["enable_stats"].get<bool>();
 					if (a.contains("enable_graphs")) h->EnableGraphs = a["enable_graphs"].get<bool>();
+					if (a.contains("enable_stats_lite")) h->EnableStatsLite = a["enable_stats_lite"].get<bool>();
+					if (a.contains("stats_color")) h->StatsColor = Utils::StringFromStdString(a["stats_color"].get<std::string>());
+					if (a.contains("stats_font")) h->StatsFont = Utils::StringFromStdString(a["stats_font"].get<std::string>());
 					if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());
 					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
 					else h->ComputerName = h->LastHostname;
+					if (a.contains("favorites")) h->DeserializeFavorites(Utils::StringFromStdString(a["favorites"].dump()));
 					this->SavedHosts->Append(h);
 				}
 			}
@@ -89,6 +94,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		stateJson["marginHeight"] = std::max(0, std::min(that->ScreenMarginHeight, 250));
 		stateJson["mouseSensitivity"] = std::max(1, std::min(that->MouseSensitivity, 16));
 		stateJson["tileSize"] = std::max(0, std::min(that->tileSize, 2));
+		stateJson["tileGap"] = std::max(0, std::min(that->tileGap, 48));
 		stateJson["backgroundTheme"] = Utils::PlatformStringToStdString(that->backgroundTheme);
 		stateJson["firstTime"] = that->FirstTime;
 		stateJson["enableKeyboard"] = that->EnableKeyboard;
@@ -112,12 +118,20 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["enable_sops"] = host->EnableSOPS;
 			hostJson["enable_stats"] = host->EnableStats;
 			hostJson["enable_graphs"] = host->EnableGraphs;
+			hostJson["enable_stats_lite"] = host->EnableStatsLite;
+			hostJson["stats_color"] = Utils::PlatformStringToStdString(host->StatsColor);
+			hostJson["stats_font"] = Utils::PlatformStringToStdString(host->StatsFont);
 			hostJson["serverAddress"] = Utils::PlatformStringToStdString(host->ServerAddress);
 
 			std::string macAddr = Utils::PlatformStringToStdString(host->MacAddress);
 			if (macAddr != "00:00:00:00:00:00" && macAddr != "")
 			{
 				hostJson["macaddress"] = macAddr;
+			}
+
+			std::string favoritesJson = Utils::PlatformStringToStdString(host->SerializeFavorites());
+			if (!favoritesJson.empty()) {
+				hostJson["favorites"] = nlohmann::json::parse(favoritesJson);
 			}
 
 			stateJson["hosts"].push_back(hostJson);
@@ -191,6 +205,13 @@ Windows::UI::Xaml::Media::Brush^ moonlight_xbox_dx::ApplicationState::CreateBack
 	brush->GradientStops->Append(top);
 	brush->GradientStops->Append(bottom);
 	return brush;
+}
+
+void moonlight_xbox_dx::ApplicationState::ApplyBackgroundTo(Windows::UI::Xaml::Controls::Page^ page)
+{
+	if (page == nullptr) return;
+	auto brush = CreateBackgroundBrush();
+	if (brush != nullptr) page->Background = brush;
 }
 
 bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)

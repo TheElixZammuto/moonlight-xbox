@@ -21,6 +21,9 @@ namespace moonlight_xbox_dx
 		property bool enableSOPS;
 		property bool enableStats;
 		property bool enableGraphs;
+		property bool enableStatsLite;
+		property Platform::String^ statsColor;
+		property Platform::String^ statsFont;
 	};
 
 	moonlight_xbox_dx::StreamConfiguration^ GetStreamConfig();

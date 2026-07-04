@@ -25,4 +25,9 @@ namespace moonlight_xbox_dx {
 	{
 		return GetApplicationState()->AppTileHeight;
 	}
+
+	Windows::UI::Xaml::Thickness MoonlightApp::TilePadding::get()
+	{
+		return GetApplicationState()->TilePadding;
+	}
 }

@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "State\MoonlightClient.h"
 #include "State\ScreenResolution.h"
+#include <map>
 namespace moonlight_xbox_dx {
 
     [Windows::UI::Xaml::Data::Bindable]
@@ -31,7 +32,11 @@ namespace moonlight_xbox_dx {
         bool enableSOPS = false;
         bool enableStats = false;
         bool enableGraphs = true;
+        bool enableStatsLite = false;
+        Platform::String^ statsColor = "Yellow"; // "Yellow", "White", "Green", "Cyan"
+        Platform::String^ statsFont = "ModeSeven"; // "ModeSeven" (retro, default), "Consolas", "CascadiaMono"
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
+        std::map<int, int> favoriteOrders; // appId -> position within Favorites row; absent = not favorited
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -43,6 +48,19 @@ namespace moonlight_xbox_dx {
         void Unpair();
         void UpdateApps();
     void UpdateAppRunningStates();
+
+        // Favorites: appId -> position within the Favorites row.
+        bool IsAppFavorite(int appId);
+        void SetFavorite(int appId, bool favorite);
+        // Swaps appId's Favorites-row position with its neighbor in the given direction
+        // (-1 = earlier/left/up, +1 = later/right/down). No-op at the ends or if not favorited.
+        void MoveFavorite(int appId, int direction);
+        // Re-stamps IsFavorite/SortOrder onto the current Apps collection and
+        // re-sorts it (favorites first, in stored order; then the rest as returned by the host).
+        void ApplyFavoritesToApps();
+        // Opaque JSON blob (e.g. {"12345":0,"67890":1}) used by ApplicationState for persistence.
+        Platform::String^ SerializeFavorites();
+        void DeserializeFavorites(Platform::String^ json);
         property Platform::String^ InstanceId
         {
             Platform::String^ get() { return this->instanceId; }
@@ -282,6 +300,37 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->enableGraphs = value;
                 OnPropertyChanged("EnableGraphs");
+            }
+        }
+
+        // Single-line, less verbose stats overlay (Artemis "Lite mode"). Only meaningful when
+        // EnableStats is true.
+        property bool EnableStatsLite
+        {
+            bool get() { return this->enableStatsLite; }
+            void set(bool value) {
+                this->enableStatsLite = value;
+                OnPropertyChanged("EnableStatsLite");
+            }
+        }
+
+        // Text color for the in-stream performance overlay (Full and Lite).
+        property Platform::String^ StatsColor
+        {
+            Platform::String^ get() { return this->statsColor; }
+            void set(Platform::String^ value) {
+                this->statsColor = value;
+                OnPropertyChanged("StatsColor");
+            }
+        }
+
+        // Font family for the in-stream performance overlay (Full and Lite).
+        property Platform::String^ StatsFont
+        {
+            Platform::String^ get() { return this->statsFont; }
+            void set(Platform::String^ value) {
+                this->statsFont = value;
+                OnPropertyChanged("StatsFont");
             }
         }
     };

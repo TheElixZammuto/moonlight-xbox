@@ -54,10 +54,7 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr) return;
 	host = mhost;
-	auto backgroundBrush = GetApplicationState()->CreateBackgroundBrush();
-	if (backgroundBrush != nullptr) {
-		this->Background = backgroundBrush;
-	}
+	GetApplicationState()->ApplyBackgroundTo(this);
 	host->UpdateHostInfo(true);
 	host->UpdateApps();
 
@@ -175,6 +172,9 @@ void AppPage::Connect(int appId) {
 	config->framePacing = host->FramePacing;
 	config->enableStats = host->EnableStats;
 	config->enableGraphs = host->EnableGraphs;
+	config->enableStatsLite = host->EnableStatsLite;
+	config->statsColor = host->StatsColor;
+	config->statsFont = host->StatsFont;
 	if (config->enableHDR) {
 		host->VideoCodec = "HEVC (H.265)";
 	}
@@ -186,15 +186,30 @@ void AppPage::Connect(int appId) {
 
 void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs ^ e) {
     Utils::Log("AppPage::AppsGrid_RightTapped invoked\n");
-    FrameworkElement ^ senderElement = (FrameworkElement ^) e->OriginalSource;
-    FrameworkElement ^ anchor = senderElement;
+    ShowActionsMenu(e->OriginalSource, nullptr);
+}
+
+void AppPage::AppsGrid_ContextRequested(Platform::Object ^ sender, Windows::UI::Xaml::Input::ContextRequestedEventArgs ^ e) {
+    // Raised for mouse right-click, touch press-and-hold, AND the gamepad Menu (hamburger) button
+    // on a focused item. Without this handler, Xbox falls back to its own generic single-action
+    // menu for the focused GridViewItem instead of ours - wiring this is what makes our menu
+    // (and the Favorites toggle below) reachable with a controller.
+    Utils::Log("AppPage::AppsGrid_ContextRequested invoked\n");
+    ShowActionsMenu(e->OriginalSource, sender != nullptr ? dynamic_cast<FrameworkElement^>(sender) : nullptr);
+    e->Handled = true;
+}
+
+void AppPage::ShowActionsMenu(Platform::Object^ originalSource, FrameworkElement^ fallbackAnchor) {
+    FrameworkElement ^ senderElement = dynamic_cast<FrameworkElement ^>(originalSource);
+    FrameworkElement ^ anchor = senderElement != nullptr ? senderElement : fallbackAnchor;
 
 	if (senderElement != nullptr && senderElement->GetType()->FullName->Equals(GridViewItem::typeid->FullName)) {
 		auto gi = (GridViewItem ^) senderElement;
 		currentApp = (MoonlightApp ^)(gi->Content);
 		anchor = gi;
     } else {
-        if (senderElement != nullptr) currentApp = (MoonlightApp ^)(senderElement->DataContext);
+        FrameworkElement^ contextSource = senderElement != nullptr ? senderElement : fallbackAnchor;
+        if (contextSource != nullptr) currentApp = (MoonlightApp ^)(contextSource->DataContext);
 
         if (currentApp == nullptr && this->HostsGrid != nullptr && this->HostsGrid->SelectedIndex >= 0) {
             currentApp = (MoonlightApp ^) this->HostsGrid->SelectedItem;
@@ -238,6 +253,17 @@ void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml:
         }
     }
 
+    this->toggleFavoriteButton->Visibility = currentApp != nullptr ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+    if (currentApp != nullptr) {
+        this->toggleFavoriteButton->Text = currentApp->IsFavorite ? "Remove from Favorites" : "Add to Favorites";
+    }
+
+    // Reordering only makes sense within the Favorites row, since only favorited apps have
+    // a meaningful SortOrder.
+    this->moveFavoriteButton->Visibility = (currentApp != nullptr && currentApp->IsFavorite)
+        ? Windows::UI::Xaml::Visibility::Visible
+        : Windows::UI::Xaml::Visibility::Collapsed;
+
     if (anchor != nullptr) {
         this->ActionsFlyout->ShowAt(anchor);
     } else {
@@ -247,6 +273,103 @@ void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml:
 
 void AppPage::resumeAppButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	this->Connect(this->currentApp->Id);
+}
+
+void AppPage::toggleFavoriteButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	if (this->currentApp == nullptr || this->host == nullptr) return;
+	this->host->SetFavorite(this->currentApp->Id, !this->currentApp->IsFavorite);
+	GetApplicationState()->UpdateFile();
+}
+
+void AppPage::moveFavoriteButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	if (this->currentApp == nullptr || this->host == nullptr || !this->currentApp->IsFavorite) return;
+	this->EnterMoveMode(this->currentApp);
+}
+
+void AppPage::EnterMoveMode(MoonlightApp^ app) {
+	if (app == nullptr || this->host == nullptr) return;
+	this->isMoveModeActive = true;
+	this->movingApp = app;
+	this->moveModeSnapshot = this->host->SerializeFavorites();
+	app->IsBeingMoved = true;
+	if (this->moveModeHint != nullptr) this->moveModeHint->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	this->FocusAppTile(app);
+}
+
+void AppPage::ExitMoveMode(bool commit) {
+	if (!this->isMoveModeActive) return;
+	if (!commit && this->host != nullptr) {
+		// Revert to the pre-move snapshot; DeserializeFavorites re-applies ordering + flags.
+		this->host->DeserializeFavorites(this->moveModeSnapshot);
+	}
+	if (this->movingApp != nullptr) this->movingApp->IsBeingMoved = false;
+	if (this->moveModeHint != nullptr) this->moveModeHint->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+	GetApplicationState()->UpdateFile();
+
+	auto movedApp = this->movingApp;
+	this->isMoveModeActive = false;
+	this->movingApp = nullptr;
+	this->moveModeSnapshot = nullptr;
+
+	if (movedApp != nullptr) this->FocusAppTile(movedApp);
+}
+
+void AppPage::FocusAppTile(MoonlightApp^ app) {
+	if (app == nullptr || this->HostsGrid == nullptr || this->host == nullptr) return;
+	int index = -1;
+	for (unsigned int i = 0; i < this->host->Apps->Size; ++i) {
+		if (this->host->Apps->GetAt(i) == app) { index = (int)i; break; }
+	}
+	if (index < 0) return;
+	this->HostsGrid->SelectedIndex = index;
+	auto container = dynamic_cast<Windows::UI::Xaml::Controls::Control^>(this->HostsGrid->ContainerFromIndex(index));
+	if (container != nullptr) {
+		container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+	}
+}
+
+void AppPage::Page_PreviewKeyDown(Platform::Object ^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs ^ e) {
+	if (!this->isMoveModeActive || this->movingApp == nullptr || this->host == nullptr) return;
+
+	using Windows::System::VirtualKey;
+	VirtualKey key = e->Key;
+
+	switch (key) {
+	case VirtualKey::GamepadDPadLeft:
+	case VirtualKey::GamepadDPadUp:
+	case VirtualKey::Left:
+	case VirtualKey::Up:
+		this->host->MoveFavorite(this->movingApp->Id, -1);
+		GetApplicationState()->UpdateFile();
+		this->FocusAppTile(this->movingApp);
+		e->Handled = true;
+		break;
+	case VirtualKey::GamepadDPadRight:
+	case VirtualKey::GamepadDPadDown:
+	case VirtualKey::Right:
+	case VirtualKey::Down:
+		this->host->MoveFavorite(this->movingApp->Id, 1);
+		GetApplicationState()->UpdateFile();
+		this->FocusAppTile(this->movingApp);
+		e->Handled = true;
+		break;
+	case VirtualKey::GamepadA:
+	case VirtualKey::Enter:
+	case VirtualKey::Space:
+		this->ExitMoveMode(true);
+		e->Handled = true;
+		break;
+	case VirtualKey::GamepadB:
+	case VirtualKey::Escape:
+		this->ExitMoveMode(false);
+		e->Handled = true;
+		break;
+	default:
+		// Suppress all other input (e.g. other face buttons/bumpers) while actively moving a
+		// tile so focus can't wander off via normal XY navigation mid-reorder.
+		e->Handled = true;
+		break;
+	}
 }
 
 void AppPage::closeAndStartButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {

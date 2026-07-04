@@ -29,6 +29,7 @@ using namespace Windows::UI::ViewManagement::Core;
 HostSettingsPage::HostSettingsPage()
 {
 	InitializeComponent();
+	GetApplicationState()->ApplyBackgroundTo(this);
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &HostSettingsPage::OnLoaded);
 	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &HostSettingsPage::OnUnloaded);
@@ -121,6 +122,47 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 			XboxOneGraphsNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 		}
 	}
+
+	// Overlay font selector. DataContext holds the persisted value; Content is the label.
+	struct StatsFontOption { const wchar_t* label; const wchar_t* value; };
+	StatsFontOption statsFontOptions[] = {
+		{ L"Retro (Mode Seven)", L"ModeSeven" },
+		{ L"Consolas", L"Consolas" },
+		{ L"Cascadia Mono", L"CascadiaMono" }
+	};
+	int fontIndex = 0, fontSelected = 0; // default to Retro
+	for (auto opt : statsFontOptions) {
+		auto fItem = ref new ComboBoxItem();
+		fItem->Content = ref new Platform::String(opt.label);
+		fItem->DataContext = ref new Platform::String(opt.value);
+		StatsFontSelector->Items->Append(fItem);
+		if (host->StatsFont != nullptr && host->StatsFont->Equals(ref new Platform::String(opt.value))) {
+			fontSelected = fontIndex;
+		}
+		fontIndex++;
+	}
+	StatsFontSelector->SelectedIndex = fontSelected;
+
+	// Overlay color selector.
+	struct StatsColorOption { const wchar_t* label; const wchar_t* value; };
+	StatsColorOption statsColorOptions[] = {
+		{ L"Yellow", L"Yellow" },
+		{ L"White", L"White" },
+		{ L"Green", L"Green" },
+		{ L"Cyan", L"Cyan" }
+	};
+	int colorIndex = 0, colorSelected = 0; // default to Yellow
+	for (auto opt : statsColorOptions) {
+		auto cItem = ref new ComboBoxItem();
+		cItem->Content = ref new Platform::String(opt.label);
+		cItem->DataContext = ref new Platform::String(opt.value);
+		StatsColorSelector->Items->Append(cItem);
+		if (host->StatsColor != nullptr && host->StatsColor->Equals(ref new Platform::String(opt.value))) {
+			colorSelected = colorIndex;
+		}
+		colorIndex++;
+	}
+	StatsColorSelector->SelectedIndex = colorSelected;
 }
 
 void HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -194,6 +236,20 @@ void HostSettingsPage::FramePacing_SelectionChanged(Platform::Object^ sender, Wi
 void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+}
+
+void HostSettingsPage::StatsFontSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	ComboBoxItem^ item = (ComboBoxItem^)this->StatsFontSelector->SelectedItem;
+	if (item == nullptr) return;
+	host->StatsFont = item->DataContext->ToString();
+}
+
+void HostSettingsPage::StatsColorSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	ComboBoxItem^ item = (ComboBoxItem^)this->StatsColorSelector->SelectedItem;
+	if (item == nullptr) return;
+	host->StatsColor = item->DataContext->ToString();
 }
 
 

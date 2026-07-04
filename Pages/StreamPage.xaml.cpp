@@ -37,6 +37,7 @@ StreamPage::StreamPage():
 	m_coreInput(nullptr)
 {
 	InitializeComponent();
+	GetApplicationState()->ApplyBackgroundTo(this);
 
 	DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
 	NavigationCacheMode = Windows::UI::Xaml::Navigation::NavigationCacheMode::Enabled;
