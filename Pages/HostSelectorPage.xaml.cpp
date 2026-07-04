@@ -36,6 +36,7 @@ HostSelectorPage::HostSelectorPage()
 {
 	state = GetApplicationState();
 	InitializeComponent();
+	state->ApplyBackgroundTo(this);
 }
 
 void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -213,6 +214,9 @@ void HostSelectorPage::SettingsButton_Click(Platform::Object^ sender, Windows::U
 }
 
 void HostSelectorPage::OnStateLoaded() {
+	// Re-apply now that the persisted theme has loaded (it was still default at construction time).
+	GetApplicationState()->ApplyBackgroundTo(this);
+
 	if (GetApplicationState()->FirstTime) {
 		this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
 		return;
@@ -271,6 +275,9 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		while (continueFetch.load()) {
 			query_mdns();
 			for (auto a : GetApplicationState()->SavedHosts) {
+				// Bail mid-batch on navigation instead of finishing every host first; narrows
+				// (doesn't eliminate — the Connect() mutex does that) the race window.
+				if (!continueFetch.load()) break;
 				a->UpdateHostInfo(true);
 			}
 			Sleep(5000);

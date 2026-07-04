@@ -145,8 +145,10 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
 
-	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
+	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats, configuration->statsFont, configuration->statsColor);
 	m_statsTextRenderer->SetVisible(configuration->enableStats);
+	m_statsTextRenderer->SetLiteMode(configuration->enableStatsLite);
+	m_stats->SetLiteMode(configuration->enableStatsLite);
 
 	// We're now connected and can register for gamepad events
 	for (int i = 0; i < MAX_GAMEPADS; i++) {

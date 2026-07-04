@@ -24,6 +24,7 @@ using namespace Windows::UI::Xaml::Navigation;
 MoonlightWelcome::MoonlightWelcome()
 {
 	InitializeComponent();
+	GetApplicationState()->ApplyBackgroundTo(this);
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightWelcome::OnLoaded);

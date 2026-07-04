@@ -7,7 +7,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-    <StackPanel Padding="32,64,32,32" Margin="{x:Bind State.ScreenMargin,Mode=OneWay}" BorderBrush="Green" BorderThickness="2">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled">
+    <StackPanel Padding="32,64,32,32" Margin="{x:Bind State.ScreenMargin,Mode=OneWay}" x:Name="CalibrationBorderPanel" BorderBrush="Transparent" BorderThickness="2">
         <Button Margin="0 0 0 16" Name="backButton" Click="backButton_Click">
             <Button.Content>
                 <SymbolIcon Symbol="Back" />
@@ -42,23 +43,32 @@
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
                 <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
+                <RowDefinition Height="auto"></RowDefinition>
             </Grid.RowDefinitions>
             <TextBlock Grid.Column="0" Grid.Row="0">Autostart Host:</TextBlock>
             <ComboBox Grid.Column="1" Grid.Row="0" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged"></ComboBox>
             <TextBlock Grid.Column="0" Grid.Row="2">Screen Margin Height:</TextBlock>
-            <Slider Grid.Row="2" Grid.Column="1" Value="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay" Minimum="0" Maximum="100" StepFrequency="1" />
+            <Slider Grid.Row="2" Grid.Column="1" Value="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay" Minimum="0" Maximum="100" StepFrequency="1" GotFocus="MarginSlider_GotFocus" LostFocus="MarginSlider_LostFocus" />
             <TextBlock Grid.Column="0" Grid.Row="3">Screen Margin Width:</TextBlock>
-            <Slider Grid.Row="3" Grid.Column="1" Value="{x:Bind State.ScreenMarginWidth}" x:DefaultBindMode="TwoWay" Minimum="0" Maximum="100" StepFrequency="1"/>
+            <Slider Grid.Row="3" Grid.Column="1" Value="{x:Bind State.ScreenMarginWidth}" x:DefaultBindMode="TwoWay" Minimum="0" Maximum="100" StepFrequency="1" GotFocus="MarginSlider_GotFocus" LostFocus="MarginSlider_LostFocus"/>
             <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center">Change these parameters until you can see a green border around the screen</TextBlock>
             <TextBlock Grid.Column="0" Grid.Row="5">Mouse Sensitivity:</TextBlock>
             <Slider Grid.Row="5" Grid.Column="1" Value="{x:Bind State.MouseSensitivity}" x:DefaultBindMode="TwoWay" Minimum="1" Maximum="16" StepFrequency="1"/>
             <TextBlock Grid.Row="6">Experimental Keyboard</TextBlock>
-            <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal">
-                <CheckBox IsChecked="{x:Bind State.EnableKeyboard,Mode=TwoWay}" Name="KeyboardEnable" XYFocusRight="{x:Bind KeyboardLayoutSelector}">Enabled</CheckBox>
-                <ComboBox XYFocusLeft="{x:Bind KeyboardEnable}" Grid.Column="7" Grid.Row="0" x:Name="KeyboardLayoutSelector" SelectionChanged="LayoutSelector_SelectionChanged"></ComboBox>
-                <TextBlock>Layout</TextBlock>
+            <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <CheckBox IsChecked="{x:Bind State.EnableKeyboard,Mode=TwoWay}" Name="KeyboardEnable" VerticalAlignment="Center" XYFocusRight="{x:Bind KeyboardLayoutSelector}">Enabled</CheckBox>
+                <ComboBox XYFocusLeft="{x:Bind KeyboardEnable}" Margin="8,0,8,0" VerticalAlignment="Center" x:Name="KeyboardLayoutSelector" SelectionChanged="LayoutSelector_SelectionChanged"></ComboBox>
+                <TextBlock VerticalAlignment="Center">Layout</TextBlock>
             </StackPanel>
             <Button x:Name="WelcomeButton" Grid.Row="7" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
+            <TextBlock Grid.Column="0" Grid.Row="8" VerticalAlignment="Center">App Tile Size:</TextBlock>
+            <ComboBox Grid.Column="1" Grid.Row="8" x:Name="TileSizeSelector" SelectionChanged="TileSizeSelector_SelectionChanged"></ComboBox>
+            <TextBlock Grid.Column="0" Grid.Row="9" VerticalAlignment="Center">Background:</TextBlock>
+            <ComboBox Grid.Column="1" Grid.Row="9" x:Name="BackgroundSelector" SelectionChanged="BackgroundSelector_SelectionChanged"></ComboBox>
+            <TextBlock Grid.Column="0" Grid.Row="10" VerticalAlignment="Center">Tile Gap:</TextBlock>
+            <Slider Grid.Row="10" Grid.Column="1" Value="{x:Bind State.TileGap}" x:DefaultBindMode="TwoWay" Minimum="0" Maximum="32" StepFrequency="2"/>
         </Grid>
     </StackPanel>
+    </ScrollViewer>
 </Page>

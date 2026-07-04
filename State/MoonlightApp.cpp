@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "MoonlightApp.h"
 #include "State\MoonlightClient.h"
+#include "State\ApplicationState.h"
 #include <ppltasks.h>
 
 namespace moonlight_xbox_dx {
@@ -13,5 +14,20 @@ namespace moonlight_xbox_dx {
 				{
 					PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 				}));
+	}
+
+	double MoonlightApp::TileWidth::get()
+	{
+		return GetApplicationState()->AppTileWidth;
+	}
+
+	double MoonlightApp::TileHeight::get()
+	{
+		return GetApplicationState()->AppTileHeight;
+	}
+
+	Windows::UI::Xaml::Thickness MoonlightApp::TilePadding::get()
+	{
+		return GetApplicationState()->TilePadding;
 	}
 }

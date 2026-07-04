@@ -15,6 +15,9 @@ namespace moonlight_xbox_dx {
 		Platform::String^ keyboardLayout;
 		bool firstTime;
 		bool alternateCombination;
+		int tileSize = 0; // 0 = Small, 1 = Medium, 2 = Large
+		int tileGap = 16; // px padding applied around each tile; forms the visible gap between tiles
+		Platform::String^ backgroundTheme = "System"; // "System", "Navy", "Black"
 	internal:
 		Concurrency::task<void> Init();
 		bool AddHost(Platform::String^ hostname);
@@ -142,6 +145,86 @@ namespace moonlight_xbox_dx {
 				OnPropertyChanged("KeyboardLayout");
 			}
 		}
+
+		// 0 = Small, 1 = Medium, 2 = Large. Controls app grid tile size.
+		property int TileSize
+		{
+			int get()
+			{
+				return this->tileSize;
+			};
+			void set(int value) {
+				this->tileSize = value;
+				OnPropertyChanged("TileSize");
+				OnPropertyChanged("AppTileWidth");
+				OnPropertyChanged("AppTileHeight");
+			}
+		}
+
+		// Box-art tile dimensions derived from TileSize (kept at a 3:4 ratio).
+		property double AppTileWidth
+		{
+			double get()
+			{
+				switch (this->tileSize) {
+					case 2: return 210.0; // Large
+					case 1: return 165.0; // Medium
+					default: return 120.0; // Small
+				}
+			}
+		}
+
+		property double AppTileHeight
+		{
+			double get()
+			{
+				switch (this->tileSize) {
+					case 2: return 280.0; // Large
+					case 1: return 220.0; // Medium
+					default: return 160.0; // Small
+				}
+			}
+		}
+
+		// Padding (px) applied around each app tile — controls the visible gap between tiles in the grid.
+		property int TileGap
+		{
+			int get()
+			{
+				return this->tileGap;
+			};
+			void set(int value) {
+				this->tileGap = value;
+				OnPropertyChanged("TileGap");
+				OnPropertyChanged("TilePadding");
+			}
+		}
+
+		property Windows::UI::Xaml::Thickness TilePadding
+		{
+			Windows::UI::Xaml::Thickness get()
+			{
+				return { (double)this->tileGap, (double)this->tileGap, (double)this->tileGap, (double)this->tileGap };
+			};
+		}
+
+		// "System" (default theme brush), "Navy" (gradient) or "Black".
+		property Platform::String^ BackgroundTheme
+		{
+			Platform::String^ get()
+			{
+				return this->backgroundTheme;
+			};
+			void set(Platform::String^ value) {
+				this->backgroundTheme = value;
+				OnPropertyChanged("BackgroundTheme");
+			}
+		}
+
+		// Builds the page background brush for the current BackgroundTheme.
+		Windows::UI::Xaml::Media::Brush^ CreateBackgroundBrush();
+		// Applies BackgroundTheme's brush to the page (no-op for "System").
+		void ApplyBackgroundTo(Windows::UI::Xaml::Controls::Page^ page);
 	};
 
 	moonlight_xbox_dx::ApplicationState^ GetApplicationState();

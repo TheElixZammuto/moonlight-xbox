@@ -56,6 +56,10 @@ namespace moonlight_xbox_dx
 		Stats();
 		bool ShouldUpdateDisplay(DX::StepTimer const& timer, bool isVisible, char* output, size_t length);
 
+		// Switches to a compact single-line summary (Artemis-style "Lite" overlay) instead of the
+		// full verbose multi-line block.
+		void SetLiteMode(bool lite) { m_liteMode = lite; }
+
 		// submitters for various types of data
 		void SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT decodeUnit, uint32_t droppedFrames);
 		void SubmitDecodeMs(double decodeMs);
@@ -68,6 +72,9 @@ namespace moonlight_xbox_dx
 	private:
 		void addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst);
 		void formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, char* output, size_t length);
+		void formatVideoStatsLite(VIDEO_STATS& stats, char* output, size_t length);
+
+		bool                                 m_liteMode = false;
 
 		std::mutex                           m_mutex;
 
