@@ -159,30 +159,53 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ID3D11ShaderResourceView* nullSrvs[2] = {};
 	ctx->PSSetShaderResources(0, 2, nullSrvs);
 
-	if (frame->color_trc != m_LastColorTrc) {
-		DXGI_COLOR_SPACE_TYPE colorspace = {};
-
-		if (frame->color_trc == AVCOL_TRC_SMPTE2084) {
-			// Switch to Rec 2020 PQ (SMPTE ST 2084) colorspace for HDR10 rendering
-			colorspace = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020;
-		} else {
-			// Restore default sRGB colorspace
-			colorspace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
-		}
-
-		UINT colorSpaceSupport = 0;
-		if (colorspace && SUCCEEDED(m_deviceResources->GetSwapChain()->CheckColorSpaceSupport(colorspace, &colorSpaceSupport)) && (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)) {
-			DX::ThrowIfFailed(m_deviceResources->GetSwapChain()->SetColorSpace1(colorspace));
-			Utils::Logf("Colorspace changed to %s\n",
-			            colorspace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
-			                ? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
-			                : "DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709");
-		}
-
-		m_LastColorTrc = frame->color_trc;
-	}
+	applySwapChainColorSpace(frame);
 
 	return true;
+}
+
+bool VideoRenderer::frameUsesHdrColorSpace(const AVFrame* frame) const {
+	if (frame->color_trc == AVCOL_TRC_SMPTE2084) {
+		return true;
+	}
+
+	if (!configuration->enableHDR && !client->IsHDR()) {
+		return false;
+	}
+
+	// HDR stream or display: HEVC Main10 often omits TRC or reports BT.709 despite PQ content
+	return frame->color_trc == AVCOL_TRC_UNSPECIFIED || frame->color_trc == AVCOL_TRC_BT709;
+}
+
+void VideoRenderer::applySwapChainColorSpace(const AVFrame* frame) {
+	bool useHdr = frameUsesHdrColorSpace(frame);
+	if (useHdr == m_SwapChainHdrColorSpace && frame->color_trc == m_LastColorTrc) {
+		return;
+	}
+
+	auto* swapChain = m_deviceResources->GetSwapChain();
+	if (!swapChain) {
+		return;
+	}
+
+	DXGI_COLOR_SPACE_TYPE colorspace = useHdr
+	    ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
+	    : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+
+	HRESULT hr = swapChain->SetColorSpace1(colorspace);
+	if (SUCCEEDED(hr)) {
+		Utils::Logf("Colorspace changed to %s (color_trc=%d, hdrStream=%d, displayHdr=%d)\n",
+		            useHdr ? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
+		                   : "DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709",
+		            frame->color_trc, configuration->enableHDR, client->IsHDR());
+		m_SwapChainHdrColorSpace = useHdr;
+		m_LastColorTrc = frame->color_trc;
+	} else {
+		Utils::Logf("SetColorSpace1(%s) failed: 0x%08X (color_trc=%d)\n",
+		            useHdr ? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
+		                   : "DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709",
+		            hr, frame->color_trc);
+	}
 }
 
 void VideoRenderer::CreateDeviceDependentResources()
@@ -680,6 +703,30 @@ void VideoRenderer::SetHDR(bool enabled)
 	else {
 		// toggle the display to the correct state
 		client->SetDisplayHDR(false, SS_HDR_METADATA{});
+	}
+
+	// Keep HDMI and swap chain color spaces in sync; force re-apply on next frame if this fails
+	m_LastColorTrc = AVCOL_TRC_UNSPECIFIED;
+	m_SwapChainHdrColorSpace = !enabled;
+
+	auto* swapChain = m_deviceResources->GetSwapChain();
+	if (!swapChain) {
+		return;
+	}
+
+	DXGI_COLOR_SPACE_TYPE colorspace = enabled
+	    ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
+	    : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+
+	HRESULT hr = swapChain->SetColorSpace1(colorspace);
+	if (SUCCEEDED(hr)) {
+		m_SwapChainHdrColorSpace = enabled;
+		Utils::Logf("SetHDR(%s): swap chain colorspace set to %s\n",
+		            enabled ? "true" : "false",
+		            enabled ? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
+		                    : "DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709");
+	} else {
+		Utils::Logf("SetHDR(%s): SetColorSpace1 failed: 0x%08X\n", enabled ? "true" : "false", hr);
 	}
 }
 

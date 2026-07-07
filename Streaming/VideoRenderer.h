@@ -55,6 +55,8 @@ namespace moonlight_xbox_dx
 		void getFramePremultipliedCscConstants(const AVFrame* frame, std::array<float, 9> &cscMatrix, std::array<float, 3> &offsets);
 		void getFrameChromaCositingOffsets(const AVFrame* frame, std::array<float, 2> &chromaOffsets);
 		bool hasFrameFormatChanged(const AVFrame* frame);
+		bool frameUsesHdrColorSpace(const AVFrame* frame) const;
+		void applySwapChainColorSpace(const AVFrame* frame);
 
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
@@ -97,6 +99,7 @@ namespace moonlight_xbox_dx
 		AVColorTransferCharacteristic m_LastColorTrc = AVCOL_TRC_UNSPECIFIED;
 		AVColorSpace m_LastColorSpace = AVCOL_SPC_UNSPECIFIED;
 		AVChromaLocation m_LastChromaLocation = AVCHROMA_LOC_UNSPECIFIED;
+		bool m_SwapChainHdrColorSpace = false;
 	};
 }
 
