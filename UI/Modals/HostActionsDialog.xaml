@@ -1,0 +1,115 @@
+<ContentDialog
+    x:Class="moonlight_xbox_dx.HostActionsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Width="350"
+    CornerRadius="12"
+    BorderBrush="Transparent"
+    BorderThickness="0">
+
+    <ContentDialog.Background>
+        <AcrylicBrush TintColor="#FFF"
+                      TintOpacity="0.01"
+                      TintLuminosityOpacity="0.05"
+                      FallbackColor="Transparent" />
+    </ContentDialog.Background>
+
+    <ContentDialog.Resources>
+        <Style x:Key="ButtonIconContainerStyle" TargetType="StackPanel">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Spacing" Value="12"/>
+        </Style>
+
+        <Style x:Key="HamburgerButtonIconContainerStyle" TargetType="StackPanel">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="Spacing" Value="12"/>
+        </Style>
+
+        <Style x:Key="ButtonIconStyle" TargetType="FontIcon">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="ButtonLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Bahnschrift"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="WrapWholeWords"/>
+        </Style>
+    </ContentDialog.Resources>
+
+    <Grid Background="Transparent" Padding="0">
+        <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center" Spacing="0">
+            <Border CornerRadius="12" Margin="0,0,0,16">
+              <Border.Background>
+                <AcrylicBrush TintOpacity="0.75" TintLuminosityOpacity="0.25" TintColor="{ThemeResource SystemAccentColor}"/>
+              </Border.Background>
+              <TextBlock x:Name="HostNameHeader"
+                          HorizontalAlignment="Center"
+                          TextAlignment="Center"
+                          FontFamily="Bahnschrift"
+                          FontSize="12"
+                          FontWeight="SemiBold"
+                          Foreground="White"
+                          Padding="32,12,32,10"
+                          TextWrapping="WrapWholeWords" />
+            </Border>
+
+            <Grid ColumnSpacing="16" RowSpacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+
+                  <Button x:Name="WakeHostButton" Margin="0,0,0,8" Style="{StaticResource HamburgerButtonStyle}">
+                    <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
+                      <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE7E8;"/>
+                      <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Wake Host"/>
+                    </StackPanel>
+                  </Button>
+
+                  <Button x:Name="TestConnectionButton" Margin="0,0,0,8" Style="{StaticResource HamburgerButtonStyle}">
+                    <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
+                      <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE701;"/>
+                      <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Test Connection"/>
+                    </StackPanel>
+                  </Button>
+
+                  <Button x:Name="RemoveHostButton" Margin="0,0,0,8" Style="{StaticResource HamburgerButtonStyle}">
+                    <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
+                      <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE74D;"/>
+                      <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Remove Host"/>
+                    </StackPanel>
+                  </Button>
+
+                </StackPanel>
+
+                <Button x:Name="HostSettingsButton" Grid.Row="1" Grid.Column="0" Style="{StaticResource DialogButtonStyle}">
+                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
+                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE713;"/>
+                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Host Settings"/>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="MoonlightSettingsButton" Grid.Row="1" Grid.Column="1" Style="{StaticResource DialogButtonStyle}">
+                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
+                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE708;"/>
+                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Moonlight Settings"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</ContentDialog>

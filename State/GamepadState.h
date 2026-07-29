@@ -8,7 +8,9 @@ enum class ComboState {
 	None,
 	ViewWaiting,
 	MenuWaiting,
-	ComboActive
+	MenuLongPressWaiting,
+	ComboActive,
+	ComboReleasing
 };
 
 struct GamepadComboState {
@@ -16,12 +18,16 @@ struct GamepadComboState {
 	bool menuPressed = false;
 	int64_t startTime = 0;
 	ComboState comboState = ComboState::None;
+	bool menuLongPressFired = false;
+	int64_t menuInjectionStartQpc = 0;
+	int64_t viewInjectionStartQpc = 0;
 };
 
 struct ComboResult {
 	Windows::Gaming::Input::GamepadReading currentReading; // untouched reading
 	Windows::Gaming::Input::GamepadReading maskedReading;  // reading with pending combo buttons masked out
-	bool comboTriggered;                                   // True when combo completes
+	bool comboTriggered;
+	bool menuLongPressTriggered;
 };
 
 struct GamepadState {
@@ -36,6 +42,7 @@ struct GamepadState {
 	Windows::Gaming::Input::GamepadReading previousReading;
 	bool previousGuideButtonDown;
 	GamepadComboState combo;
+	Windows::Gaming::Input::GamepadButtons buttonSuppressMask = Windows::Gaming::Input::GamepadButtons::None;
 
 	short ltX, ltY, rtX, rtY;   // after a call to normalizeAxes() these are
 	unsigned char lTrig, rTrig; // populated with values expected by the protocol
@@ -73,6 +80,10 @@ struct GamepadState {
 		combo.viewPressed = false;
 		combo.menuPressed = false;
 		combo.startTime = 0;
+		combo.menuLongPressFired = false;
+		combo.menuInjectionStartQpc = 0;
+		combo.viewInjectionStartQpc = 0;
+		buttonSuppressMask = Windows::Gaming::Input::GamepadButtons::None;
 	}
 
 	void SetGuideButtonDown(bool isDown) {
@@ -83,10 +94,10 @@ struct GamepadState {
 		return isGuideButtonDown.load();
 	}
 
-	ComboResult GetComboResult(int comboTimeoutMs) {
+	ComboResult GetComboResult(int comboTimeoutMs, int menuLongPressMs = 600) {
 		using namespace Windows::Gaming::Input;
 
-		ComboResult result = ComboResult{EmptyReading(), EmptyReading(), false};
+		ComboResult result = ComboResult{EmptyReading(), EmptyReading(), false, false};
 		if (controller == nullptr) {
 			return result;
 		}
@@ -115,17 +126,37 @@ struct GamepadState {
 			// Handle simultaneous press in the same poll
 			if (viewCurrentlyPressed && menuCurrentlyPressed && !combo.viewPressed && !combo.menuPressed) {
 				combo.comboState = ComboState::ComboActive;
+				combo.menuInjectionStartQpc = 0;
+				combo.viewInjectionStartQpc = 0;
 				result.comboTriggered = true;
 				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
 				// Check if either button is newly pressed
 			} else if (viewCurrentlyPressed && !combo.viewPressed) {
 				combo.comboState = ComboState::ViewWaiting;
 				combo.startTime = QpcNow();
+				combo.viewInjectionStartQpc = 0;
 				maskedButtons = clearButtons(buttons, GamepadButtons::View);
 			} else if (menuCurrentlyPressed && !combo.menuPressed) {
 				combo.comboState = ComboState::MenuWaiting;
 				combo.startTime = QpcNow();
+				combo.menuInjectionStartQpc = 0;
 				maskedButtons = clearButtons(buttons, GamepadButtons::Menu);
+			} else {
+
+				if (!menuCurrentlyPressed && combo.menuInjectionStartQpc != 0) {
+					if (QpcToMs(QpcNow() - combo.menuInjectionStartQpc) < 100) {
+						maskedButtons = setButtons(maskedButtons, GamepadButtons::Menu);
+					} else {
+						combo.menuInjectionStartQpc = 0;
+					}
+				}
+				if (!viewCurrentlyPressed && combo.viewInjectionStartQpc != 0) {
+					if (QpcToMs(QpcNow() - combo.viewInjectionStartQpc) < 100) {
+						maskedButtons = setButtons(maskedButtons, GamepadButtons::View);
+					} else {
+						combo.viewInjectionStartQpc = 0;
+					}
+				}
 			}
 			break;
 
@@ -133,14 +164,14 @@ struct GamepadState {
 			// Check timeout
 			if (QpcToMs(QpcNow() - combo.startTime) > comboTimeoutMs) {
 				combo.comboState = ComboState::None;
-				maskedButtons = setButtons(buttons, GamepadButtons::View);
+				combo.viewInjectionStartQpc = QpcNow();
 				break;
 			}
 
 			// Check if View was released before combo completed
 			if (!viewCurrentlyPressed) {
 				combo.comboState = ComboState::None;
-				maskedButtons = setButtons(buttons, GamepadButtons::View);
+				combo.viewInjectionStartQpc = QpcNow();
 				break;
 			}
 
@@ -150,6 +181,7 @@ struct GamepadState {
 			// Check if Menu is now pressed (combo complete)
 			if (menuCurrentlyPressed && !combo.menuPressed) {
 				combo.comboState = ComboState::ComboActive;
+				combo.viewInjectionStartQpc = 0;
 				result.comboTriggered = true;
 				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
 			}
@@ -157,14 +189,15 @@ struct GamepadState {
 
 		case ComboState::MenuWaiting:
 			if (QpcToMs(QpcNow() - combo.startTime) > comboTimeoutMs) {
-				combo.comboState = ComboState::None;
-				maskedButtons = setButtons(buttons, GamepadButtons::Menu);
+				combo.comboState = ComboState::MenuLongPressWaiting;
+				combo.menuLongPressFired = false;
+				maskedButtons = clearButtons(buttons, GamepadButtons::Menu);
 				break;
 			}
 
 			if (!menuCurrentlyPressed) {
 				combo.comboState = ComboState::None;
-				maskedButtons = setButtons(buttons, GamepadButtons::Menu);
+				combo.menuInjectionStartQpc = QpcNow();
 				break;
 			}
 
@@ -177,13 +210,36 @@ struct GamepadState {
 			}
 			break;
 
+		case ComboState::MenuLongPressWaiting:
+			if (!menuCurrentlyPressed) {
+				combo.comboState = ComboState::None;
+				if (!combo.menuLongPressFired) {
+					combo.menuInjectionStartQpc = QpcNow();
+				}
+				break;
+			}
+
+			maskedButtons = clearButtons(buttons, GamepadButtons::Menu);
+
+			if (!combo.menuLongPressFired && QpcToMs(QpcNow() - combo.startTime) > menuLongPressMs) {
+				combo.menuLongPressFired = true;
+				result.menuLongPressTriggered = true;
+			}
+			break;
+
 		case ComboState::ComboActive:
 			// Remain in combo state while both are held
 			if (viewCurrentlyPressed && menuCurrentlyPressed) {
-				// Continue masking both buttons
 				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
 			} else {
-				// One or both released, reset state
+				combo.comboState = ComboState::ComboReleasing;
+				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
+			}
+			break;
+
+		case ComboState::ComboReleasing:
+			maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
+			if (!viewCurrentlyPressed && !menuCurrentlyPressed) {
 				combo.comboState = ComboState::None;
 			}
 			break;
@@ -310,6 +366,7 @@ struct GamepadState {
 		char buttons[128];
 		DumpButtons(reading.Buttons, buttons, sizeof(buttons));
 		moonlight_xbox_dx::Utils::Logf(
+		    moonlight_xbox_dx::Utils::LogLevel::Verbose,
 		    "GamepadState[localId: %d, hostId: %d] buttons: %s %s axes: %d %d, %d %d, triggers: %d %d, combo{ state: %d, viewPressed: %d, menuPressed: %d, startTime: %d }\n",
 		    localId, hostId,
 		    buttons,

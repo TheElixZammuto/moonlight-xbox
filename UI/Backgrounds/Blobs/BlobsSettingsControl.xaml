@@ -1,0 +1,68 @@
+<UserControl
+    x:Class="moonlight_xbox_dx.BlobsSettingsControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <StackPanel Spacing="{StaticResource SettingsRowSpacing}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="160" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Color Scheme" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" x:Name="SchemeSelector"
+                      SelectionChanged="SchemeSelector_SelectionChanged"
+                      VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+        </Grid>
+
+        <StackPanel x:Name="CustomPanel" Visibility="Collapsed">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Blob 1" VerticalAlignment="Center" />
+                <local:SwatchPicker Grid.Column="1" x:Name="Color0" VerticalAlignment="Center" />
+            </Grid>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Blob 2" VerticalAlignment="Center" />
+                <local:SwatchPicker Grid.Column="1" x:Name="Color1" VerticalAlignment="Center" />
+            </Grid>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Blob 3" VerticalAlignment="Center" />
+                <local:SwatchPicker Grid.Column="1" x:Name="Color2" VerticalAlignment="Center" />
+            </Grid>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Background" VerticalAlignment="Center" />
+                <local:SwatchPicker Grid.Column="1" x:Name="Color3" VerticalAlignment="Center" />
+            </Grid>
+        </StackPanel>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="160" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" />
+            <Button Grid.Column="1" x:Name="ResetButton"
+                    Style="{StaticResource SettingsButtonStyle}"
+                    Click="ResetButton_Click">Reset to Default</Button>
+        </Grid>
+    </StackPanel>
+</UserControl>

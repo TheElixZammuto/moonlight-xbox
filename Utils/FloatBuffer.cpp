@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "FloatBuffer.h"
+#define MLOG_TAG_OVERRIDE "FloatBuffer"
 #include "../Utils.hpp"
 
 #include <algorithm>
@@ -155,7 +156,7 @@ void FloatBuffer::dump() const noexcept
 	std::lock_guard<std::mutex> lock(mtx_);
 
 	if (count_ == 0) {
-		Utils::Logf("[FloatBuffer empty]\n");
+		MLOGF(Utils::LogLevel::Debug, "[FloatBuffer empty]\n");
 		return;
 	}
 
@@ -177,5 +178,5 @@ void FloatBuffer::dump() const noexcept
 		oss << ',' << buffer_[i];
 	}
 
-	Utils::Logf("%s\n", oss.str().c_str());
+	MLOGF(Utils::LogLevel::Debug, "%s\n", oss.str().c_str());
 }

@@ -15,6 +15,8 @@ namespace moonlight_xbox_dx {
 		Platform::String^ keyboardLayout;
 		bool firstTime;
 		bool alternateCombination;
+		bool m_isStateLoaded = false;
+		std::vector<std::string> recentHostnames;
 	internal:
 		Concurrency::task<void> Init();
 		bool AddHost(Platform::String^ hostname);
@@ -34,7 +36,6 @@ namespace moonlight_xbox_dx {
 		std::pair<std::string, int> Split_IP_Address(const std::string& address, char deliminator);
 		void Throw_Error(std::string message);
 
-		 
 	public:
 		//Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
 		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -49,6 +50,41 @@ namespace moonlight_xbox_dx {
 				}
 				return this->hosts;
 			};
+		}
+		property Windows::Foundation::Collections::IVector<Platform::String^>^ RecentHostnames
+		{
+			Windows::Foundation::Collections::IVector<Platform::String^>^ get();
+		}
+		property Windows::Foundation::Collections::IVector<Platform::String^>^ RecentHostDisplayNames
+		{
+			Windows::Foundation::Collections::IVector<Platform::String^>^ get();
+		}
+		property Platform::String^ HostSelectionTitle
+		{
+			Platform::String^ get()
+			{
+				return (hosts != nullptr && hosts->Size > 0) ? "Select Host" : "Connect to a host to continue";
+			};
+		}
+		property bool HasSavedHosts
+		{
+			bool get() { return hosts != nullptr && hosts->Size > 0; }
+		}
+		property bool HasNoSavedHosts
+		{
+			bool get() { return hosts == nullptr || hosts->Size == 0; }
+		}
+		property bool ShowHostList
+		{
+			bool get() { return m_isStateLoaded && hosts != nullptr && hosts->Size > 0; }
+		}
+		property bool ShowEmptyState
+		{
+			bool get() { return m_isStateLoaded && (hosts == nullptr || hosts->Size == 0); }
+		}
+		property bool IsStateLoaded
+		{
+			bool get() { return m_isStateLoaded; }
 		}
 		property int ScreenMarginWidth
 		{

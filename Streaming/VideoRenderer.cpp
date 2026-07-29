@@ -1,11 +1,10 @@
 ﻿#include "pch.h"
+#define MLOG_TAG_OVERRIDE "VideoRenderer"
 #include "VideoRenderer.h"
 #include <State\MoonlightClient.h>
 #include "..\Common\DirectXHelper.h"
 #include <Streaming\FFMpegDecoder.h>
 #include <Utils.hpp>
-#include "..\Common\ModalDialog.xaml.h"
-
 #include <d3d11shader.h>
 #include <d3dcompiler.h>
 
@@ -173,7 +172,7 @@ bool VideoRenderer::Render(AVFrame *frame) {
 		UINT colorSpaceSupport = 0;
 		if (colorspace && SUCCEEDED(m_deviceResources->GetSwapChain()->CheckColorSpaceSupport(colorspace, &colorSpaceSupport)) && (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)) {
 			DX::ThrowIfFailed(m_deviceResources->GetSwapChain()->SetColorSpace1(colorspace));
-			Utils::Logf("Colorspace changed to %s\n",
+			MLOGF(Utils::LogLevel::Info, "Colorspace changed to %s\n",
 			            colorspace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
 			                ? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
 			                : "DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709");
@@ -187,7 +186,7 @@ bool VideoRenderer::Render(AVFrame *frame) {
 
 void VideoRenderer::CreateDeviceDependentResources()
 {
-	Utils::Log("Started with creation of DXView\n");
+	MLOG(Utils::LogLevel::Info, "Started with creation of DXView\n");
 
 	// Vertex shader
 	{
@@ -282,7 +281,7 @@ void VideoRenderer::CreateDeviceDependentResources()
         int status = this->client->StartStreaming(devRes, cfg);
 		
 		if (status != 0) {
-			Utils::Logf("StartStreaming failed with status %d\n", status);
+			MLOGF(Utils::LogLevel::Error, "StartStreaming failed with status %d\n", status);
 			m_loadingSuccessful.store(false, std::memory_order_release);
 			m_loadingComplete.store(true, std::memory_order_release);
 			return;
@@ -290,7 +289,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 
         m_loadingSuccessful.store(true, std::memory_order_release);
         m_loadingComplete.store(true, std::memory_order_release);
-        Utils::Log("Loading Complete!\n");
+        MLOG(Utils::LogLevel::Info, "Loading Complete!\n");
     }));
 }
 
@@ -400,7 +399,7 @@ void VideoRenderer::setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc)
 	float uMax = m_TextureWidth > 0 ? (float)m_DecoderParams.width / m_TextureWidth : 1.0f;
 	float vMax = m_TextureHeight > 0 ? (float)m_DecoderParams.height / m_TextureHeight : 1.0f;
 
-	Utils::Logf("Setup vertex shader params: uMax %f, vMax %f\n", uMax, vMax);
+	MLOGF(Utils::LogLevel::Debug, "Setup vertex shader params: uMax %f, vMax %f\n", uMax, vMax);
 
 	VERTEX verts[] =
 	{
@@ -532,7 +531,7 @@ void VideoRenderer::getFramePremultipliedCscConstants(const AVFrame* frame, std:
 		cscMatrix[i] *= uvScale;
 	}
 
-	Utils::Logf("Shader config: %s %d-bit %s, (AVColorSpace %d, AVChromaLocation %d)\n",
+	MLOGF(Utils::LogLevel::Debug, "Shader config: %s %d-bit %s, (AVColorSpace %d, AVChromaLocation %d)\n",
 	            colorspace == COLORSPACE_REC_601   ? "Rec. 601"
 	            : colorspace == COLORSPACE_REC_709 ? "Rec. 709"
 	                                               : "Rec. 2020",
@@ -657,7 +656,7 @@ void VideoRenderer::bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC fra
 	D3D11_SUBRESOURCE_DATA constData = {};
 	constData.pSysMem = &constBuf;
 
-	Utils::Logf("Setup pixel shader params: chromaOffset[0] %f, chromaOffset[1] %f, chromaUVMax[0] %f, chromaUVMax[1] %f\n",
+	MLOGF(Utils::LogLevel::Debug, "Setup pixel shader params: chromaOffset[0] %f, chromaOffset[1] %f, chromaUVMax[0] %f, chromaUVMax[1] %f\n",
 				constBuf.chromaOffset[0], constBuf.chromaOffset[1],
 				constBuf.chromaUVMax[0], constBuf.chromaUVMax[1]);
 

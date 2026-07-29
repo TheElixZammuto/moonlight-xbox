@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Stats.h"
+#define MLOG_TAG_OVERRIDE "Stats"
 #include "Utils.hpp"
 #include "../Plot/ImGuiPlots.h"
 #include "../Streaming/FFMpegDecoder.h"
@@ -290,7 +291,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 						stats.totalFps,
 						codecString);
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
-			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			MLOG(Utils::LogLevel::Error, "Error: stringifyVideoStats length overflow\n");
 			return;
 		}
 
@@ -313,7 +314,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   stats.renderedFps,
 					   Pacer::instance().getPacingImmediate() ? "immediate" : "display-locked");
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
-			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			MLOG(Utils::LogLevel::Error, "Error: stringifyVideoStats length overflow\n");
 			return;
 		}
 
@@ -328,7 +329,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   (double)stats.maxHostProcessingLatency / 10,
 					   (double)stats.totalHostProcessingLatency / 10 / stats.framesWithHostProcessingLatency);
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
-			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			MLOG(Utils::LogLevel::Error, "Error: stringifyVideoStats length overflow\n");
 			return;
 		}
 
@@ -340,7 +341,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   length - offset,
 					   "Host processing latency min/max/avg: -/-/- ms\n");
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
-			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			MLOG(Utils::LogLevel::Error, "Error: stringifyVideoStats length overflow\n");
 			return;
 		}
 
@@ -375,7 +376,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   stats.renderedFrames ? (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames : 0.0f,
 					   stats.renderedFrames ? (double)stats.totalPresentTimeUs / 1000.0 / stats.renderedFrames : 0.0f);
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
-			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			MLOG(Utils::LogLevel::Error, "Error: stringifyVideoStats length overflow\n");
 			return;
 		}
 
@@ -395,7 +396,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   (double)stats.totalPreWaitTimeUs / 1000.0 / stats.renderedFrames,
 					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames);
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
-			Utils::Log("Error: stringifyVideoStats length overflow\n");
+			MLOG(Utils::LogLevel::Error, "Error: stringifyVideoStats length overflow\n");
 			return;
 		}
 

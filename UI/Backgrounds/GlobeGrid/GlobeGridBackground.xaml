@@ -1,0 +1,49 @@
+<UserControl
+    x:Class="moonlight_xbox_dx.GlobeGridBackground"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    <Grid Background="Black">
+
+        <!-- Stars: behind the wireframe -->
+        <Canvas x:Name="StarCanvas"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                IsHitTestVisible="False"/>
+
+        <!-- Wireframe layer -->
+        <Canvas x:Name="WireCanvas"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                SizeChanged="Canvas_SizeChanged"/>
+
+        <Border Opacity="0.5" Background="#000"/>
+
+        <!-- Vignette -->
+        <Grid Opacity="0.35" IsHitTestVisible="False">
+            <Rectangle>
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                        <GradientStop Color="#CC000000" Offset="0.0"/>
+                        <GradientStop Color="#00000000" Offset="0.30"/>
+                        <GradientStop Color="#00000000" Offset="0.70"/>
+                        <GradientStop Color="#CC000000" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Rectangle>
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Color="#CC000000" Offset="0.0"/>
+                        <GradientStop Color="#00000000" Offset="0.25"/>
+                        <GradientStop Color="#00000000" Offset="0.75"/>
+                        <GradientStop Color="#CC000000" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+        </Grid>
+
+    </Grid>
+</UserControl>

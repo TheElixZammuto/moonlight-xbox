@@ -1,0 +1,327 @@
+<Page
+    x:Class="moonlight_xbox_dx.MoonlightSettings"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="Black">
+
+    <Page.Resources>
+        <Storyboard x:Name="ShowMarginPreview">
+            <DoubleAnimation Storyboard.TargetName="ScreenMarginPreviewBorder"
+                             Storyboard.TargetProperty="Opacity"
+                             To="1" Duration="0:0:0.15" />
+        </Storyboard>
+        <Storyboard x:Name="HideMarginPreview">
+            <DoubleAnimation Storyboard.TargetName="ScreenMarginPreviewBorder"
+                             Storyboard.TargetProperty="Opacity"
+                             To="0" Duration="0:0:0.15" />
+        </Storyboard>
+    </Page.Resources>
+
+    <Grid>
+        <local:DynamicBackgroundHost x:Name="BackgroundHost"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Stretch"
+                                     IsHitTestVisible="False" />
+
+        <Button x:Name="backButton" Click="backButton_Click" BorderThickness="0" Background="Transparent"
+                HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="16" IsTabStop="False" Padding="8">
+            <Viewbox Height="16">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                    <TextBlock Foreground="{ThemeResource ButtonForegroundColor}" Text="Back"/>
+                    <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xF094;" Foreground="{ThemeResource ButtonForegroundColor}"/>
+                </StackPanel>
+            </Viewbox>
+        </Button>
+
+        <Grid Padding="24,20,24,8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Margin="0" VerticalAlignment="Center">
+                <TextBlock Text="Moonlight Settings" Style="{StaticResource PageTitleStyle}" />
+            </StackPanel>
+            <Button x:Name="WelcomeButton" Grid.Column="1" Style="{StaticResource SettingsButtonStyle}" Click="WelcomeButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" XYFocusDown="{x:Bind ScreenTab}">Open Welcome Wizard</Button>
+        </Grid>
+
+        <Border Grid.Row="1" Margin="{StaticResource SettingsPanelMargin}" CornerRadius="16" MaxWidth="{StaticResource SettingsPanelMaxWidth}" MaxHeight="{StaticResource SettingsPanelMaxHeight}"
+                BorderBrush="#1EFFFFFF" BorderThickness="1">
+            <Border.Background>
+                    <AcrylicBrush TintColor="#FFFFFF" TintOpacity="0.04" TintLuminosityOpacity="0.07"/>
+                </Border.Background>
+            <local:TabsLayout x:Name="tabsLayout" Margin="{StaticResource SettingsPanelInnerMargin}">
+
+                <local:TabsLayout.TabsContent>
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button TabIndex="0" Grid.Row="0" Grid.Column="0" Style="{StaticResource TabButtonStyle}" x:Name="ScreenTab" local:TabsLayout.TargetPanelName="ScreenPanel" Content="Screen" HorizontalAlignment="Stretch"
+                                XYFocusDown="{x:Bind InputTab}"
+                                XYFocusRight="{x:Bind HostSelector}" />
+                        <Button TabIndex="1" Grid.Row="1" Grid.Column="0" Style="{StaticResource TabButtonStyle}" x:Name="InputTab" local:TabsLayout.TargetPanelName="InputPanel" Content="Input" HorizontalAlignment="Stretch"
+                                XYFocusDown="{x:Bind LogsTab}"
+                                XYFocusRight="{x:Bind KeyboardEnable}" />
+                        <Border Grid.Row="2" Grid.Column="0" BorderThickness="1" BorderBrush="White" Height="1" Margin="14,12" Opacity=".25" />
+                        <Button TabIndex="2" Grid.Row="3" Grid.Column="0" Style="{StaticResource TabButtonStyle}" x:Name="LogsTab" local:TabsLayout.TargetPanelName="LogsPanel" Content="Logs" HorizontalAlignment="Stretch"
+                                XYFocusDown="{x:Bind ScreenTab}"
+                                XYFocusRight="{x:Bind LogListView}" />
+                    </Grid>
+                </local:TabsLayout.TabsContent>
+                
+                <local:TabsLayout.LeftContent>
+                    <Grid>
+
+                        <!-- Screen -->
+
+                        <StackPanel x:Name="ScreenPanel" Visibility="Visible">
+
+
+                            <TextBlock x:Name="GeneralHeader" Style="{StaticResource SettingsSectionHeaderStyle}" Text="GENERAL" />
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Autostart Host" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" XYFocusLeft="{x:Bind ScreenTab}" />
+                                </Grid>
+                            </Border>
+
+                            <TextBlock x:Name="DisplayHeader" Style="{StaticResource SettingsSectionHeaderStyle}" Text="DISPLAY" />
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Screen Margin Height" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Grid.Row="0" Value="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" StepFrequency="1" VerticalAlignment="Center"
+                                            ValueChanged="OnMarginSliderChanged"
+                                            GotFocus="OnMarginSliderGotFocus"
+                                            LostFocus="OnMarginSliderLostFocus"
+                                            XYFocusLeft="{x:Bind ScreenTab}" />
+
+                                    <TextBlock Grid.Column="0" Grid.Row="1" Text="Screen Margin Width" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Grid.Row="1" Value="{x:Bind State.ScreenMarginWidth}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" StepFrequency="1" VerticalAlignment="Center"
+                                            ValueChanged="OnMarginSliderChanged"
+                                            GotFocus="OnMarginSliderGotFocus"
+                                            LostFocus="OnMarginSliderLostFocus"
+                                            XYFocusLeft="{x:Bind ScreenTab}" />
+                                </Grid>
+                            </Border>
+                            <TextBlock Margin="4,4,0,0" FontSize="12" Opacity="0.5" TextWrapping="Wrap">
+                                Change these parameters until you can see a border around the screen
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Input -->
+
+                        <StackPanel x:Name="InputPanel" Visibility="Collapsed" Padding="0,0,16,0">
+                            <TextBlock x:Name="MouseHeader" Style="{StaticResource SettingsSectionHeaderStyle}" Text="MOUSE" />
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Mouse Sensitivity" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Value="{x:Bind State.MouseSensitivity}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="1" Maximum="16" StepFrequency="1" VerticalAlignment="Center" XYFocusLeft="{x:Bind InputTab}" />
+                                </Grid>
+                            </Border>
+
+                            <TextBlock x:Name="KeyboardHeader" Style="{StaticResource SettingsSectionHeaderStyle}" Text="KEYBOARD" />
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Experimental Keyboard" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <CheckBox IsChecked="{x:Bind State.EnableKeyboard,Mode=TwoWay}"
+                                                  Name="KeyboardEnable"
+                                                  FontSize="12"
+                                                  Margin="0,0,20,0"
+                                                  XYFocusLeft="{x:Bind InputTab}"
+                                                  XYFocusRight="{x:Bind KeyboardLayoutSelector}">Enabled</CheckBox>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <ComboBox XYFocusLeft="{x:Bind KeyboardEnable}" 
+                                                      x:Name="KeyboardLayoutSelector" 
+                                                      SelectionChanged="LayoutSelector_SelectionChanged" 
+                                                      HorizontalAlignment="Stretch" />
+                                            <TextBlock Text="Layout" 
+                                                       FontSize="12"
+                                                       VerticalAlignment="Center" 
+                                                       Margin="8,0,0,0" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="1" Text="Alternate Menu Combination" VerticalAlignment="Center" />
+                                    <Grid Grid.Column="1" Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0"
+                                                  IsChecked="{x:Bind State.AlternateCombination,Mode=TwoWay}"
+                                                  XYFocusLeft="{x:Bind InputTab}"
+                                                  XYFocusRight="{x:Bind KeyboardLayoutSelector}"
+                                                  FontSize="12"
+                                                  VerticalAlignment="Center">
+                                        </CheckBox>
+                                        <TextBlock Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="WrapWholeWords">
+                                            <Run FontFamily="Segoe Fluent Icons">&#xF10A;</Run>
+                                            <Run>+</Run>
+                                            <Run FontFamily="Segoe Fluent Icons">&#xF10B;</Run>
+                                            <Run>+</Run>
+                                            <Run FontFamily="Segoe Fluent Icons">&#xF10C;</Run>
+                                            <Run>+</Run>
+                                            <Run FontFamily="Segoe Fluent Icons">&#xF10D;</Run>
+                                        </TextBlock>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
+                        <Grid x:Name="LogsPanel" Visibility="Collapsed" Padding="0,0,16,0">
+                            
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="LogsHeader" Grid.Column="0" Style="{StaticResource SettingsSectionHeaderStyle}" Text="LOGS" VerticalAlignment="Center" />
+                                <ComboBox Grid.Column="1" x:Name="LogLevelFilterSelector" SelectionChanged="LogLevelFilterSelector_SelectionChanged"
+                                          VerticalAlignment="Center" MinWidth="140"
+                                          XYFocusLeft="{x:Bind LogsTab}"
+                                          XYFocusDown="{x:Bind LogListView}" />
+                            </Grid>
+
+                            <Border Grid.Row="1" Style="{StaticResource SettingsGroupStyle}">
+                                <ListView x:Name="LogListView" SelectionMode="None" IsItemClickEnabled="False"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                          MaxHeight="190"
+                                          LostFocus="LogListView_LostFocus"
+                                          KeyDown="LogListView_KeyDown"
+                                          XYFocusLeft="{x:Bind LogsTab}"
+                                          XYFocusUp="{x:Bind LogLevelFilterSelector}"
+                                          XYFocusDown="{x:Bind CurrentRunLogTab}">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:LogLineItem">
+                                            <TextBlock Text="{x:Bind Text}" Foreground="{x:Bind Foreground}" FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                    <ListView.ItemContainerStyle>
+                                        <Style TargetType="ListViewItem">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="MinHeight" Value="0" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            <Setter Property="UseSystemFocusVisuals" Value="False" />
+                                            <Setter Property="FocusVisualPrimaryThickness" Value="0" />
+                                            <Setter Property="FocusVisualSecondaryThickness" Value="0" />
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListViewItem">
+                                                        <Grid>
+                                                            <Border x:Name="BackgroundLayer" Background="Transparent" />
+                                                            <ContentPresenter x:Name="contentPresenter"
+                                                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                                              Content="{TemplateBinding Content}"
+                                                                              HorizontalAlignment="Stretch"
+                                                                              VerticalAlignment="Stretch" />
+                                                            <VisualStateManager.VisualStateGroups>
+                                                                <VisualStateGroup x:Name="FocusStates">
+                                                                    <VisualState x:Name="Focused">
+                                                                        <VisualState.Setters>
+                                                                            <Setter Target="BackgroundLayer.Background" Value="#33FFFFFF" />
+                                                                        </VisualState.Setters>
+                                                                    </VisualState>
+                                                                    <VisualState x:Name="Unfocused" />
+                                                                </VisualStateGroup>
+                                                            </VisualStateManager.VisualStateGroups>
+                                                        </Grid>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListView.ItemContainerStyle>
+                                </ListView>
+                            </Border>
+
+                            <Grid Grid.Row="2" Padding="4,16,4,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                <Button x:Name="CurrentRunLogTab" Grid.Column="0" Style="{StaticResource SettingsButtonStyle}" Click="LogViewTab_Click" Content="Current Run" Margin="0,0,8,0"
+                                        XYFocusUp="{x:Bind LogListView}"
+                                        XYFocusLeft="{x:Bind LogsTab}"
+                                        XYFocusRight="{x:Bind LastRunLogTab}" />
+                                <Button x:Name="LastRunLogTab" Grid.Column="1" Style="{StaticResource SettingsButtonStyle}" Click="LogViewTab_Click" Content="Last Run"
+                                        XYFocusUp="{x:Bind LogListView}"
+                                        XYFocusLeft="{x:Bind CurrentRunLogTab}"
+                                        XYFocusRight="{x:Bind RefreshLogButton}" />
+                                <Button x:Name="RefreshLogButton" Grid.Column="3" Style="{StaticResource SettingsButtonStyle}" Click="RefreshLogButton_Click" Content="Refresh"
+                                        XYFocusUp="{x:Bind LogListView}"
+                                        XYFocusLeft="{x:Bind LastRunLogTab}" />
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </local:TabsLayout.LeftContent>
+            </local:TabsLayout>
+        </Border>
+        </Grid>
+
+        <Border x:Name="ScreenMarginPreviewBorder"
+                BorderBrush="{ThemeResource SystemAccentColor}"
+                BorderThickness="2"
+                Background="Transparent"
+                Opacity="0"
+                IsHitTestVisible="False"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch" />
+    </Grid>
+</Page>

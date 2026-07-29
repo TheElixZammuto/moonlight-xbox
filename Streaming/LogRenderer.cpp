@@ -36,7 +36,17 @@ void LogRenderer::Update(DX::StepTimer const& timer)
 		Utils::logMutex.lock();
 		std::vector<std::wstring> lines = Utils::GetLogLines();
 		for (std::wstring line : lines) {
-			m_console->Write(line.c_str());
+			switch (Utils::ParseLogLevelFromLine(line)) {
+				case Utils::LogLevel::Error:
+					m_console->Write(line.c_str(), Colors::Red);
+					break;
+				case Utils::LogLevel::Warning:
+					m_console->Write(line.c_str(), Colors::Orange);
+					break;
+				default:
+					m_console->Write(line.c_str());
+					break;
+			}
 		}
 		Utils::logMutex.unlock();
 

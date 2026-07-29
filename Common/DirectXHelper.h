@@ -12,7 +12,7 @@ namespace DX
 			// Set a breakpoint on this line to catch Win32 API errors.
 			char msg[4096];
 			sprintf(msg, "Got generic error from HRESULT: %x\n", hr);
-			moonlight_xbox_dx::Utils::Log(msg);
+			moonlight_xbox_dx::Utils::Log(moonlight_xbox_dx::Utils::LogLevel::Error, msg);
 
 			throw Platform::Exception::CreateException(hr);
 		}
@@ -25,7 +25,7 @@ namespace DX
 			// Set a breakpoint on this line to catch Win32 API errors.
 			char msg[4096];
 			sprintf(msg, "Got generic error from %s: %x\n", reason, hr);
-			moonlight_xbox_dx::Utils::Log(msg);
+			moonlight_xbox_dx::Utils::Log(moonlight_xbox_dx::Utils::LogLevel::Error, msg);
 
 			throw Platform::Exception::CreateException(hr);
 		}

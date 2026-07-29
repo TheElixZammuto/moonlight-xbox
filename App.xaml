@@ -2,8 +2,19 @@
     x:Class="moonlight_xbox_dx.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:moonlight_xbox_dx">
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls">
+
     <Application.Resources>
-        <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+
+                <controls:XamlControlsResources />
+
+                <ResourceDictionary Source="ms-appx:///UI/Styles/Colors.xaml"/>
+                <ResourceDictionary Source="ms-appx:///UI/Styles/Controls.xaml"/>
+
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

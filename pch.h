@@ -17,6 +17,7 @@
 #include <DirectXColors.h>
 #include <DirectXMath.h>
 #include <algorithm>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -27,6 +28,8 @@
 #include <collection.h>
 #include <gamingdeviceinformation.h>
 #include "App.xaml.h"
+#include "UI\Converters\BoolToVisibilityConverter.h"
+#include "UI\Converters\BoolToTextConverter.h"
 
 #define IMGUI_USER_CONFIG "Common\imconfig.moonlight.h"
 #include <imgui.h>
@@ -106,7 +109,7 @@ static inline int64_t MsToQpc(double ms) {
     do {                                                     \
         static std::once_flag CONCAT(_onceFlag_, __LINE__);  \
         std::call_once(CONCAT(_onceFlag_, __LINE__), [&] {   \
-            Utils::Logf(fmt, ##__VA_ARGS__);                 \
+            Utils::Logf(Utils::LogLevel::Debug, fmt, ##__VA_ARGS__); \
         });                                                  \
     } while (0)
 
@@ -118,14 +121,14 @@ static inline int64_t MsToQpc(double ms) {
 
 #ifdef FRAME_QUEUE_VERBOSE
 	#define FQLog(fmt, ...) \
-		moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+		moonlight_xbox_dx::Utils::Logf(moonlight_xbox_dx::Utils::LogLevel::Verbose, "[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
 #else
 # ifdef FRAME_QUEUE_VERBOSE_LIMITED
 	#include <atomic>
 	static std::atomic<int> g_fqlog_counter{0};
 	#define FQLog(fmt, ...) \
         if (++g_fqlog_counter > 200 && g_fqlog_counter < 1000) \
-		    moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+		    moonlight_xbox_dx::Utils::Logf(moonlight_xbox_dx::Utils::LogLevel::Verbose, "[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
 # else
   	#if defined(_MSC_VER)
     	#define FQLog(...) __noop

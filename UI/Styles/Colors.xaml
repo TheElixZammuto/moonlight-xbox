@@ -1,0 +1,48 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="ButtonBackgroundColor" Color="Transparent"/>
+    <SolidColorBrush x:Key="ButtonForegroundColor" Color="#777"/>
+    <SolidColorBrush x:Key="ButtonBackgroundFocusColor" Color="#11FFFFFF"/>
+
+    <!-- Theme variables -->
+    <ResourceDictionary.ThemeDictionaries>
+
+        <!-- Light theme -->
+        <ResourceDictionary x:Key="Light">
+
+            <SolidColorBrush x:Key="ThemeBackgroundColor" Color="#DDD"/>
+            <SolidColorBrush x:Key="ThemeSecondaryBackgroundColor" Color="#CCC"/>
+            <SolidColorBrush x:Key="ThemeLightColor" Color="#BBB"/>
+
+            <!-- Button -->
+            <SolidColorBrush x:Key="ButtonBackgroundColor" Color="#FFF"/>
+            <SolidColorBrush x:Key="ButtonForegroundColor" Color="#FFFFFF"/>
+
+            <!-- Settings page -->
+            <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#AAFFFFFF"/>
+            <SolidColorBrush x:Key="SettingsSeparatorColor" Color="Transparent"/>
+
+        </ResourceDictionary>
+
+        <!-- Dark theme -->
+        <ResourceDictionary x:Key="Dark">
+
+            <SolidColorBrush x:Key="ThemeBackgroundColor" Color="#040404"/>
+            <SolidColorBrush x:Key="ThemeSecondaryBackgroundColor" Color="#0F0F0F"/>
+            <SolidColorBrush x:Key="ThemeLightColor" Color="#111"/>
+
+            <!-- Button -->
+            <SolidColorBrush x:Key="ButtonBackgroundColor" Color="Transparent"/>
+            <SolidColorBrush x:Key="ButtonForegroundColor" Color="#FFFFFF"/>
+
+            <!-- Settings page -->
+            <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#33000000"/>
+            <SolidColorBrush x:Key="SettingsSeparatorColor" Color="Transparent"/>
+
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+
+</ResourceDictionary>
