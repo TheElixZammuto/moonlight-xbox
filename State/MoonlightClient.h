@@ -28,6 +28,7 @@ namespace moonlight_xbox_dx {
         bool IsRGBFull();
         bool IsConnectionTerminated();
         void SetConnectionTerminated();
+        void SetStageFailureReported();
         int Pair();
         char *GeneratePIN();
         std::vector<MoonlightApp^> GetApplications(bool fetchAssets = true);
@@ -54,7 +55,6 @@ namespace moonlight_xbox_dx {
         std::function<void()> OnCompleted;
         std::function<void(bool)> SetHDR;
         std::function<void(int,int, char*)> OnFailed;
-        std::function<void(int, const char*)> OnStartFailed;
         std::function<void(unsigned short, unsigned short, unsigned short)> OnRumble;
         std::function<void(unsigned short, unsigned short, unsigned short)> OnTriggerRumble;
     private:
@@ -68,6 +68,7 @@ namespace moonlight_xbox_dx {
         bool m_isHDR;
         bool m_isRGBFull;
         std::atomic<bool> m_connectionTerminated{ false };
+        std::atomic<bool> m_stageFailureReported{ false };
         Windows::Gaming::Input::GamepadReading m_lastGamepadReading[16];
     };
 }

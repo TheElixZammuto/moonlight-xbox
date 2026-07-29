@@ -13,17 +13,9 @@ public:
 
     static void Initialize(ID3D11Device* device, ID3D11DeviceContext* context);
 
-    static ID3D11ShaderResourceView* Blur(ID3D11ShaderResourceView* src, float sigma);
-
     static bool BoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius);
 
     static Windows::Graphics::Imaging::SoftwareBitmap^ GpuBoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius, bool returnPadded = false);
-
-    static ID3D11ShaderResourceView* Glow(ID3D11ShaderResourceView* src, float radius) {
-
-        return Blur(src, radius);
-
-    }
 
     static ID3D11Device* GetDevice() { return m_device; }
 

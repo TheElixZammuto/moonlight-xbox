@@ -621,8 +621,3 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
     }
 }
 
-ID3D11ShaderResourceView* EffectsLibrary::Blur(ID3D11ShaderResourceView* src, float sigma)
-{
-
-    return src;
-}

@@ -241,7 +241,11 @@ void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
 			if (host->Connected) {
 				host->Unpair();
 			}
-		} catch (...) {}
+		} catch (Platform::Exception^ ex) {
+			MLOGF(Utils::LogLevel::Warning, "RemoveHost: failed to unpair before removal: %ws\n", ex->Message->Data());
+		} catch (...) {
+			MLOG(Utils::LogLevel::Warning, "RemoveHost: failed to unpair before removal (unknown exception)\n");
+		}
 	});
 }
 
