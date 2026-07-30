@@ -1,0 +1,134 @@
+<ContentDialog
+    x:Class="moonlight_xbox_dx.Controls.SlidingMenu"
+    x:Name="RootDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:controls="using:moonlight_xbox_dx.Controls"
+    Title="Menu" TitleTemplate="{StaticResource ContentDialogTitleTemplate}"
+    PrimaryButtonText="" SecondaryButtonText=""
+    HorizontalAlignment="Center" VerticalAlignment="Center"
+    BorderBrush="Transparent" BorderThickness="0"
+    Background="Transparent"
+    Height="Auto"
+    CornerRadius="30"
+    Shadow="{x:Null}">
+
+    <ContentDialog.Resources>
+        <ResourceDictionary>
+            <Style x:Key="MenuButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                <Setter Property="Background" Value="{ThemeResource ButtonBackgroundColor}"/>
+                <Setter Property="Margin" Value="0,-4"/>
+            </Style>
+        </ResourceDictionary>
+    </ContentDialog.Resources>
+
+    <ContentDialog.Template>
+        <ControlTemplate TargetType="ContentDialog">
+            <Grid>
+                <Border x:Name="BackgroundElement"
+                        Background="{TemplateBinding Background}"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"
+                        MinWidth="{TemplateBinding MinWidth}"
+                        MaxWidth="{TemplateBinding MaxWidth}"
+                        MinHeight="{TemplateBinding MinHeight}"
+                        MaxHeight="{TemplateBinding MaxHeight}"
+                        HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalAlignment}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="12,10,12,6">
+                            <Border Background="#20FF0000" BorderBrush="#80FF0000" BorderThickness="1" Padding="4">
+                                <ContentControl x:Name="DialogTitlePresenter"
+                                                Content="{TemplateBinding Title}"
+                                                ContentTemplate="{TemplateBinding TitleTemplate}"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Stretch"
+                                                VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <ContentPresenter x:Name="DialogContent"
+                                          Grid.Row="1"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          Margin="0"/>
+                    </Grid>
+
+                </Border>
+            </Grid>
+        </ControlTemplate>
+    </ContentDialog.Template>
+
+    <!-- Dialog content -->
+    <Grid x:Name="Root" HorizontalAlignment="Center" VerticalAlignment="Center">
+
+         <!-- Overlay for fade animation (initially transparent) -->
+        <Rectangle x:Name="Overlay"
+                 Fill="#80000000"
+                 Opacity="0"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Stretch"
+                 IsHitTestVisible="False"/>
+
+        <Border x:Name="LeftPanel" Background="Transparent" HorizontalAlignment="Left" VerticalAlignment="Center" Width="360">
+            <Grid Padding="0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled" VerticalScrollMode="Auto" IsTabStop="False" AllowFocusOnInteraction="False">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Stretch">
+
+                        <!-- Global items -->
+                        <ItemsControl x:Name="GlobalItemsList" IsTabStop="False" AllowFocusOnInteraction="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="local:MenuItem">
+                                    <Button Style="{StaticResource MenuButtonStyle}" HorizontalAlignment="Stretch" Click="OnMenuItemClicked" IsTabStop="True" AllowFocusOnInteraction="True">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" >
+                                            <TextBlock Text="{x:Bind IconGlyph}" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" FontSize="18" />
+                                            <TextBlock Text="{x:Bind Title}" VerticalAlignment="Center" Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" FontSize="16" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Page items -->
+                        <ItemsControl x:Name="PageItemsList" IsTabStop="False" AllowFocusOnInteraction="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="local:MenuItem">
+                                    <Button Style="{StaticResource MenuButtonStyle}" HorizontalAlignment="Stretch" Click="OnMenuItemClicked" IsTabStop="True" AllowFocusOnInteraction="True">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{x:Bind IconGlyph}" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" FontSize="18" />
+                                            <TextBlock Text="{x:Bind Title}" VerticalAlignment="Center" Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" FontSize="16" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- VisualStateManager to animate the left panel on Open -->
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="OpenCloseStates">
+                <VisualState x:Name="Closed"/>
+                <VisualState x:Name="Opened">
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="SlideTransform" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.18" EnableDependentAnimation="True" />
+                        <DoubleAnimation Storyboard.TargetName="Overlay" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.18" EnableDependentAnimation="True" />
+                    </Storyboard>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+    </Grid>
+</ContentDialog>

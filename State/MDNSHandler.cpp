@@ -123,6 +123,14 @@ void init_mdns() {
 	}
 }
 
+void mdns_send_query() {
+	auto str = "_nvstream._tcp.local";
+	for (int i = 0; i < 8; i++) {
+		if (sockets[i] == 0) break;
+		mdns_query_send(sockets[i], MDNS_RECORDTYPE_PTR, str, strlen(str), &mdns_buffer, 4096, 0);
+	}
+}
+
 int query_mdns() {
 	for (int i = 0; i < 8; i++) {
 		if (sockets[i] == 0) break;

@@ -182,6 +182,14 @@ int http_request_binary(CURL *curl, char* url, FILE *data) {
         gs_error = curl_easy_strerror(res);
         return GS_FAILED;
     }
+
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    if (http_code != 200) {
+        gs_error = "HTTP error response";
+        return GS_FAILED;
+    }
+
     return GS_OK;
 }
 

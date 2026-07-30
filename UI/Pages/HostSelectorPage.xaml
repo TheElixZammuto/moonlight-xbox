@@ -1,0 +1,196 @@
+<Page
+    x:Class="moonlight_xbox_dx.HostSelectorPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:moonlight_xbox_dx"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    mc:Ignorable="d"
+    Background="Transparent"
+    XYFocusKeyboardNavigation="Disabled"
+    >
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///UI/Styles/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:BoolToVisibilityConverter x:Key="BoolToVis"/>
+
+            <Storyboard x:Key="ShowSelectedHostStoryboard">
+                <DoubleAnimation Storyboard.TargetName="SelectedHostBanner"
+                                 Storyboard.TargetProperty="Opacity"
+                                 To="1" Duration="0:0:0.125" />
+            </Storyboard>
+            <Storyboard x:Key="HideSelectedHostStoryboard">
+                <DoubleAnimation Storyboard.TargetName="SelectedHostBanner"
+                                 Storyboard.TargetProperty="Opacity"
+                                 To="0" Duration="0:0:0.125" />
+            </Storyboard>
+
+            <Style x:Key="HostGridViewItemContainerStyle" TargetType="ListViewItem">
+                <Setter Property="UseSystemFocusVisuals" Value="False" />
+                <Setter Property="FocusVisualPrimaryThickness" Value="0" />
+                <Setter Property="FocusVisualSecondaryThickness" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListViewItem">
+                            <Grid Background="Transparent">
+                                <Grid x:Name="ItemRoot" Margin="8,0">
+                                    <ContentPresenter x:Name="contentPresenter"
+                                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                      Content="{TemplateBinding Content}"
+                                                      HorizontalAlignment="Stretch"
+                                                      VerticalAlignment="Stretch"/>
+                                </Grid>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Page.Resources>
+
+        <Grid Background="Transparent">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="100" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="100" />
+            </Grid.RowDefinitions>
+
+            <local:DynamicBackgroundHost x:Name="BackgroundHost"
+                                         Grid.Row="0" Grid.RowSpan="3"
+                                         HorizontalAlignment="Stretch"
+                                         VerticalAlignment="Stretch"
+                                         IsHitTestVisible="False" />
+
+            <Grid Grid.Row="0" VerticalAlignment="Center" Padding="30,8" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="ms-appx:///Assets/logo1.gif" Margin="0,0,2,5" Width="24" Height="24"></Image>
+                    <TextBlock VerticalAlignment="Center" Padding="12,0" FontFamily="Bahnschrift" CharacterSpacing="500" FontSize="14">MOONLIGHT</TextBlock>
+                </StackPanel>
+            </Grid>
+            <Grid Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Margin="0,16" HorizontalAlignment="Stretch" TextAlignment="Center" Text="{x:Bind State.HostSelectionTitle, Mode=OneWay}"
+                           Visibility="{x:Bind State.ShowHostList, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                <ListView Grid.Row="1"
+                          Visibility="{x:Bind State.ShowHostList, Mode=OneWay, Converter={StaticResource BoolToVis}}"
+                          Margin="0,12"
+                          IsRightTapEnabled="True"
+                          RightTapped="HostsGrid_RightTapped"
+                          x:Name="HostsGrid"
+                          ItemsSource="{x:Bind State.SavedHosts}"
+                          IsItemClickEnabled="True"
+                          ItemClick="GridView_ItemClick"
+                          SelectionChanged="HostsGrid_SelectionChanged"
+                          Loaded="HostsGrid_Loaded"
+                          SizeChanged="HostsGrid_SizeChanged"
+                          TabIndex="0"
+                          SelectionMode="Single"
+                          SelectedIndex="0"
+                          ItemContainerStyle="{StaticResource HostGridViewItemContainerStyle}"
+                          ScrollViewer.HorizontalScrollMode="Enabled"
+                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                          ScrollViewer.VerticalScrollMode="Disabled"
+                          ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsStackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:MoonlightHost" x:DefaultBindMode="OneWay">
+                            <local:LunarPhaseControl
+                                ShowOrbit="{x:Bind StatusIsPolling}"
+                                IsDashed="{x:Bind StatusIsUnavailable}"
+                                Margin="27,0"/>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <Border x:Name="SelectedHostBanner"
+                        Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,0"
+                        Padding="24,12"
+                        CornerRadius="12"
+                        Opacity="0"
+                        Background="#66000000"
+                        Visibility="{x:Bind State.ShowHostList, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                    <Grid Width="10" Height="10" VerticalAlignment="Center" Margin="0,0,0,3">
+                            <Ellipse Stroke="#777" StrokeThickness="1" Fill="Transparent"
+                                     Visibility="{Binding ElementName=HostsGrid, Path=SelectedItem.StatusIsDisconnected, Converter={StaticResource BoolToVis}}" />
+                            <Ellipse Stroke="White" StrokeThickness="0" Fill="#FF66aa00"
+                                     Visibility="{Binding ElementName=HostsGrid, Path=SelectedItem.StatusIsConnectedAndPaired, Converter={StaticResource BoolToVis}}" />
+                            <Image Source="ms-appx:///Assets/lock.svg" Width="10" Height="10"
+                                   Visibility="{Binding ElementName=HostsGrid, Path=SelectedItem.StatusIsNotPaired, Converter={StaticResource BoolToVis}}" />
+                            <Image Source="ms-appx:///Assets/loading2.gif" Width="10" Height="10"
+                                   Visibility="{Binding ElementName=HostsGrid, Path=SelectedItem.StatusIsPolling, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                        <TextBlock x:Name="SelectedHostText"
+                                   FontFamily="Bahnschrift"
+                                   FontSize="10"
+                                   VerticalAlignment="Center"
+                                   Text="" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <StackPanel Grid.Row="1"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Spacing="12"
+                        Visibility="{x:Bind State.ShowEmptyState, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                <Viewbox Width="260" Height="260" HorizontalAlignment="Center">
+                    <local:LunarPhaseControl IsDashed="True" ShowOrbit="False"/>
+                </Viewbox>
+                <TextBlock Text="No hosts added yet"
+                           FontFamily="Bahnschrift"
+                           FontSize="22"
+                           CharacterSpacing="300"
+                           Opacity="0.85"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,8,0,0"/>
+                <TextBlock Text="Press + below to add your first host"
+                           FontSize="13"
+                           Opacity="0.45"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"/>
+            </StackPanel>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Orientation="Horizontal" Spacing="0">
+                    <Button Click="NewHostButton_Click" TabIndex="1">
+                        <Button.Content>
+                            <SymbolIcon Symbol="Add" />
+                        </Button.Content>
+                    </Button>
+                    <Button Name="SettingsButton" TabIndex="2" Click="SettingsButton_Click">
+                        <Button.Content>
+                            <SymbolIcon Symbol="Setting" />
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+
+            </Grid>
+        </Grid>
+</Page>

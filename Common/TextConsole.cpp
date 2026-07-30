@@ -7,6 +7,7 @@
 
 #include "pch.h"
 #include "TextConsole.h"
+#define MLOG_TAG_OVERRIDE "TextConsole"
 #include "../Utils.hpp"
 
 #include "SimpleMath.h"
@@ -28,6 +29,7 @@ using namespace moonlight_xbox_dx;
 TextConsole::TextConsole() noexcept
     : m_layout{},
     m_textColor(1.f, 1.f, 1.f, 1.f),
+    m_currentWriteColor(1.f, 1.f, 1.f, 1.f),
     m_debugOutput(false),
     m_columns(0),
     m_rows(0)
@@ -40,6 +42,7 @@ _Use_decl_annotations_
 TextConsole::TextConsole(ID3D11DeviceContext* context, const wchar_t* fontName) noexcept(false)
     : m_layout{},
     m_textColor(1.f, 1.f, 1.f, 1.f),
+    m_currentWriteColor(1.f, 1.f, 1.f, 1.f),
     m_debugOutput(false),
     m_columns(0),
     m_rows(0),
@@ -63,7 +66,7 @@ void TextConsole::Render()
     const float x = float(m_layout.left);
     const float y = float(m_layout.top);
 
-    const XMVECTOR color = XMLoadFloat4(&m_textColor);
+    const XMVECTOR defaultColor = XMLoadFloat4(&m_textColor);
 
     m_batch->Begin();
 
@@ -75,6 +78,7 @@ void TextConsole::Render()
 
         if (*m_lines[textLine])
         {
+            const XMVECTOR color = m_lineColors ? XMLoadFloat4(&m_lineColors[textLine]) : defaultColor;
             m_font->DrawString(m_batch.get(), m_lines[textLine], pos, color);
         }
 
@@ -103,6 +107,23 @@ void TextConsole::Write(const wchar_t* str)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    m_currentWriteColor = m_textColor;
+    ProcessString(str);
+
+#ifndef NDEBUG
+    if (m_debugOutput)
+    {
+        OutputDebugStringW(str);
+    }
+#endif
+}
+
+_Use_decl_annotations_
+void XM_CALLCONV TextConsole::Write(const wchar_t* str, DirectX::FXMVECTOR color)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    XMStoreFloat4(&m_currentWriteColor, color);
     ProcessString(str);
 
 #ifndef NDEBUG
@@ -119,6 +140,7 @@ void TextConsole::WriteLine(const wchar_t* str)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    m_currentWriteColor = m_textColor;
     ProcessString(str);
     IncrementLine();
 
@@ -151,6 +173,7 @@ void TextConsole::Format(const wchar_t* strFormat, ...)
 
     va_end(argList);
 
+    m_currentWriteColor = m_textColor;
     ProcessString(m_tempBuffer.data());
 
 #ifndef NDEBUG
@@ -185,6 +208,12 @@ void TextConsole::SetWindow(const RECT& layout)
         lines[line] = buffer.get() + (columns + 1) * line;
     }
 
+    auto lineColors = std::make_unique<XMFLOAT4[]>(rows);
+    for (unsigned int line = 0; line < rows; ++line)
+    {
+        lineColors[line] = m_textColor;
+    }
+
     if (m_lines)
     {
         const unsigned int c = std::min<unsigned int>(columns, m_columns);
@@ -194,14 +223,23 @@ void TextConsole::SetWindow(const RECT& layout)
         {
             memcpy(lines[line], m_lines[line], c * sizeof(wchar_t));
         }
+
+        if (m_lineColors)
+        {
+            for (unsigned int line = 0; line < r; ++line)
+            {
+                lineColors[line] = m_lineColors[line];
+            }
+        }
     }
 
     std::swap(columns, m_columns);
     std::swap(rows, m_rows);
     std::swap(buffer, m_buffer);
     std::swap(lines, m_lines);
+    std::swap(lineColors, m_lineColors);
 
-    Utils::Logf("TextConsole initialized at (%d,%d) - (%d,%d) with %u rows, %u columns\n",
+    MLOGF(Utils::LogLevel::Info, "TextConsole initialized at (%d,%d) - (%d,%d) with %u rows, %u columns\n",
                 layout.left, layout.top, layout.right, layout.bottom, m_rows, m_columns);
 
     if ((m_currentColumn >= m_columns) || (m_currentLine >= m_rows))
@@ -282,6 +320,8 @@ void TextConsole::ProcessString(_In_z_ const wchar_t* str)
         }
 
         bool increment = false;
+
+        if (m_lineColors) m_lineColors[m_currentLine] = m_currentWriteColor;
 
         if (m_currentColumn >= m_columns)
         {

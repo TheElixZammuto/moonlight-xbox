@@ -41,6 +41,7 @@ namespace DX
         void Clear() noexcept;
 
         void Write(_In_z_ const wchar_t *str);
+        void XM_CALLCONV Write(_In_z_ const wchar_t *str, DirectX::FXMVECTOR color);
         void WriteLine(_In_z_ const wchar_t *str);
         void Format(_In_z_ _Printf_format_string_ const wchar_t* strFormat, ...);
 
@@ -77,6 +78,8 @@ namespace DX
 
         std::unique_ptr<wchar_t[]>                      m_buffer;
         std::unique_ptr<wchar_t*[]>                     m_lines;
+        std::unique_ptr<DirectX::XMFLOAT4[]>            m_lineColors;
+        DirectX::XMFLOAT4                               m_currentWriteColor;
         std::vector<wchar_t>                            m_tempBuffer;
 
         std::unique_ptr<DirectX::SpriteBatch>           m_batch;

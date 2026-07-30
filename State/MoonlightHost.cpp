@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "MoonlightHost.h"
 #include "State\MoonlightClient.h"
+#include <algorithm>
 
 namespace moonlight_xbox_dx {
 	MoonlightHost::MoonlightHost(Platform::String ^host) {
@@ -48,10 +49,34 @@ namespace moonlight_xbox_dx {
 			Apps->Clear();
 			for (auto a : apps) {
 				if (a->Id == CurrentlyRunningAppId) a->CurrentlyRunning = true;
+				a->IsFavorite = IsAppFavorite(a->Id);
 				Apps->Append(a);
 			}
 		}));
     }
+
+	bool MoonlightHost::IsAppFavorite(int appId) {
+		return std::find(favoriteAppIds.begin(), favoriteAppIds.end(), appId) != favoriteAppIds.end();
+	}
+
+	void MoonlightHost::ToggleFavorite(int appId) {
+		auto it = std::find(favoriteAppIds.begin(), favoriteAppIds.end(), appId);
+		bool nowFavorite;
+		if (it != favoriteAppIds.end()) {
+			favoriteAppIds.erase(it);
+			nowFavorite = false;
+		} else {
+			favoriteAppIds.push_back(appId);
+			nowFavorite = true;
+		}
+		for (unsigned int i = 0; i < Apps->Size; ++i) {
+			auto a = Apps->GetAt(i);
+			if (a != nullptr && a->Id == appId) {
+				a->IsFavorite = nowFavorite;
+				break;
+			}
+		}
+	}
 
 	void MoonlightHost::UpdateAppRunningStates() {
 		try {
@@ -82,5 +107,32 @@ namespace moonlight_xbox_dx {
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, propertyName]() {
 			PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 		}));
+	}
+
+	void MoonlightHost::ScheduleStatusDebounce()
+	{
+		int version = ++m_debounceVersion;
+		auto delay = Windows::Foundation::TimeSpan{ 10000000LL };
+		Windows::System::Threading::ThreadPoolTimer::CreateTimer(
+			ref new Windows::System::Threading::TimerElapsedHandler([this, version](Windows::System::Threading::ThreadPoolTimer^) {
+				if (m_debounceVersion == version) {
+					CommitDisplayedStatus();
+				}
+			}),
+			delay
+		);
+	}
+
+	void MoonlightHost::CommitDisplayedStatus()
+	{
+		this->displayedConnected = this->connected;
+		this->displayedPaired = this->paired;
+		this->displayedLoading = this->loading;
+		this->displayedWolPolling = this->wolPolling;
+		OnPropertyChanged("StatusIsPolling");
+		OnPropertyChanged("StatusIsConnectedAndPaired");
+		OnPropertyChanged("StatusIsNotPaired");
+		OnPropertyChanged("StatusIsDisconnected");
+		OnPropertyChanged("StatusIsUnavailable");
 	}
 }

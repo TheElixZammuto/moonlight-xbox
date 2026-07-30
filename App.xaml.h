@@ -1,4 +1,4 @@
-﻿//
+//
 // App.xaml.h
 // Declaration of the App class.
 //
@@ -6,7 +6,8 @@
 #pragma once
 
 #include "App.g.h"
-#include <Pages\HostSelectorPage.xaml.h>
+#include "UI\Models\MenuItem.h"
+#include "UI\Pages\HostSelectorPage.xaml.h"
 
 namespace moonlight_xbox_dx
 {
@@ -17,6 +18,10 @@ namespace moonlight_xbox_dx
 	{
 	public:
 		App();
+
+		static Windows::UI::Xaml::Controls::Frame^ GetRootFrame();
+
+		property Windows::Foundation::Collections::IObservableVector<moonlight_xbox_dx::MenuItem^>^ GlobalMenuItems;
 		virtual void OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEventArgs^ e) override;
 		void OnStateLoaded();
 	private:

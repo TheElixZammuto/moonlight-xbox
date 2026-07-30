@@ -5,7 +5,7 @@
 #include "Streaming\VideoRenderer.h"
 #include "Streaming\LogRenderer.h"
 #include "Streaming\StatsRenderer.h"
-#include "Pages\StreamPage.xaml.h"
+#include "UI\Pages\StreamPage.xaml.h"
 
 // Xbox supports 8 controllers, this ought to be enough for anyone.
 #define MAX_GAMEPADS 8
@@ -23,7 +23,7 @@ namespace moonlight_xbox_dx
 		void TrackingUpdate(float positionX) { m_pointerLocationX = positionX; }
 		void StartRenderLoop();
 		void StopRenderLoop();
-		void SetFlyoutOpened(bool value);
+		void SetMenuVisible(bool value);
 		Concurrency::critical_section& GetCriticalSection() { return m_criticalSection; }
 		bool keyboardMode = false;
 		void OnKeyDown(unsigned short virtualKey, char modifiers);
@@ -66,7 +66,7 @@ namespace moonlight_xbox_dx
 
 		// Track current input pointer position.
 		float m_pointerLocationX;
-		bool insideFlyout = false;
+		bool insideMenu = false;
 		StreamPage^ m_streamPage;
 
 		// Gamepad handling

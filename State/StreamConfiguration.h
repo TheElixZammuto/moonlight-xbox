@@ -21,6 +21,7 @@ namespace moonlight_xbox_dx
 		property bool enableSOPS;
 		property bool enableStats;
 		property bool enableGraphs;
+		property Windows::UI::Xaml::Media::Imaging::BitmapImage^ backgroundImage;
 	};
 
 	moonlight_xbox_dx::StreamConfiguration^ GetStreamConfig();

@@ -1,6 +1,7 @@
 // clang-format off
 #include "pch.h"
 // clang-format on
+#define MLOG_TAG_OVERRIDE "FrameQueue"
 #include "FrameQueue.h"
 #include "Utils.hpp"
 #include <algorithm>
@@ -44,13 +45,13 @@ void FrameQueue::setPaused(bool p) {
 
 void FrameQueue::start() {
 	setPaused(false);
-	Utils::Logf("FrameQueue started\n");
+	MLOGF(Utils::LogLevel::Info, "FrameQueue started\n");
 }
 
 void FrameQueue::stop() {
 	setPaused(true);
 	clear();
-	Utils::Logf("FrameQueue stopped\n");
+	MLOGF(Utils::LogLevel::Info, "FrameQueue stopped\n");
 }
 
 std::size_t FrameQueue::count() const {

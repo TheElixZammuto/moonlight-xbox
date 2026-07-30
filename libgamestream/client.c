@@ -33,6 +33,7 @@
 #include <curl/curl.h>
 #ifdef _WIN32
 #define PATH_MAX 4096
+#include <synchapi.h>
 #include "winrt.h"
 #else
 #include <uuid/uuid.h>
@@ -834,15 +835,31 @@ int gs_quit_app(PSERVER_DATA server) {
   return ret;
 }
 
+static bool identityLoaded = false;
+static SRWLOCK identityLock = SRWLOCK_INIT;
+
+static int ensure_identity_loaded(const char* keyDirectory, int log_level) {
+  int ret = GS_OK;
+  AcquireSRWLockExclusive(&identityLock);
+  if (!identityLoaded) {
+    if (load_unique_id(keyDirectory) != GS_OK) {
+      ret = GS_FAILED;
+    } else if (load_cert(keyDirectory)) {
+      ret = GS_FAILED;
+    } else {
+      http_init(keyDirectory, log_level);
+      identityLoaded = true;
+    }
+  }
+  ReleaseSRWLockExclusive(&identityLock);
+  return ret;
+}
+
 int gs_init(PSERVER_DATA server, char *address, unsigned short httpPort, const char *keyDirectory, int log_level, bool unsupported) {
   mkdirtree(keyDirectory);
-  if (load_unique_id(keyDirectory) != GS_OK)
-    return GS_FAILED;
 
-  if (load_cert(keyDirectory))
+  if (ensure_identity_loaded(keyDirectory, log_level) != GS_OK)
     return GS_FAILED;
-
-  http_init(keyDirectory, log_level);
 
   LiInitializeServerInformation(&server->serverInfo);
   server->serverInfo.address = address;
@@ -854,21 +871,19 @@ int gs_init(PSERVER_DATA server, char *address, unsigned short httpPort, const c
 
 int gs_appasset(PSERVER_DATA server, const char *keyDirectory, int appId) {
     int ret = GS_OK;
-    char url[4096];    
-    char* result = NULL;
+    char url[4096];
 
     snprintf(url, sizeof(url), "https://%s:%u/appasset?appid=%d&AssetType=2&AssetIdx=0", server->serverInfo.address, server->httpsPort, appId);
     char uniqueFilePath[PATH_MAX];
     snprintf(uniqueFilePath, PATH_MAX, "%s%d.png", keyDirectory, appId);
     FILE* fd = fopen(uniqueFilePath, "wb");
     CURL* curl = get_curl_handle();
-    if ((ret = http_request_binary(curl, url, fd)) != GS_OK)
-        goto cleanup;
+    ret = http_request_binary(curl, url, fd);
     fclose(fd);
+    if (ret != GS_OK)
+        remove(uniqueFilePath);
 
 cleanup:
-    if (result != NULL)
-        free(result);
     http_cleanup(curl);
     return ret;
 }

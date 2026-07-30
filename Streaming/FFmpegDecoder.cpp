@@ -1,4 +1,5 @@
 #include "pch.h"
+#define MLOG_TAG_OVERRIDE "FFmpegDecoder"
 #include "FFMpegDecoder.h"
 #include "../Plot/ImGuiPlots.h"
 #include "StatsRenderer.h"
@@ -82,7 +83,7 @@ namespace moonlight_xbox_dx {
 		bool shouldPrefixThisMessage = printPrefix != 0;
 
 		av_log_format_line(ptr, level, fmt, vl, lineBuffer, sizeof(lineBuffer), &printPrefix);
-		Utils::Logf(shouldPrefixThisMessage ? "[ffmpeg] %s" : "%s", lineBuffer);
+		MLOGF(Utils::LogLevel::Error, shouldPrefixThisMessage ? "[ffmpeg] %s" : "%s", lineBuffer);
 	}
 
     void FFMpegDecoder::CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config, bool framePacingImmediate) {
@@ -113,21 +114,21 @@ namespace moonlight_xbox_dx {
 
 		if (videoFormat & VIDEO_FORMAT_MASK_H264) {
 			decoder = avcodec_find_decoder(AV_CODEC_ID_H264);
-			Utils::Log("Using H264\n");
+			MLOG(Utils::LogLevel::Info, "Using H264\n");
 		}
 		else if (videoFormat & VIDEO_FORMAT_MASK_H265) {
 			decoder = avcodec_find_decoder(AV_CODEC_ID_HEVC);
-			Utils::Log("Using HEVC\n");
+			MLOG(Utils::LogLevel::Info, "Using HEVC\n");
 		}
 
 		if (decoder == NULL) {
-			Utils::Log("Couldn't find decoder\n");
+			MLOG(Utils::LogLevel::Error, "Couldn't find decoder\n");
 			return -1;
 		}
 
 		decoder_ctx = avcodec_alloc_context3(decoder);
 		if (decoder_ctx == NULL) {
-			Utils::Log("Couldn't allocate context\n");
+			MLOG(Utils::LogLevel::Error, "Couldn't allocate context\n");
 			return -1;
 		}
 		decoder_ctx->opaque = this;
@@ -142,7 +143,7 @@ namespace moonlight_xbox_dx {
 		d3d11va_device_ctx->lock_ctx = this;
 		int err2;
 		if ((err2 = av_hwdevice_ctx_init(hw_device_ctx)) < 0) {
-			Utils::Logf("Failed to create specified DirectX Video device: %d\n", err2);
+			MLOGF(Utils::LogLevel::Error, "Failed to create specified DirectX Video device: %d\n", err2);
 			Cleanup();
 			return err2;
 		}
@@ -160,16 +161,16 @@ namespace moonlight_xbox_dx {
 		if (err < 0) {
 			char msg[2048];
 			sprintf(msg, "Failed to create FFMpeg Codec: %d\n", err);
-			Utils::Log(msg);
+			MLOG(Utils::LogLevel::Error, msg);
 			return err;
 		}
 
 		if (decoder_ctx->pix_fmt != AV_PIX_FMT_D3D11) {
-    		Utils::Log("Warning: decoder did not select AV_PIX_FMT_D3D11\n");
+    		MLOG(Utils::LogLevel::Warning, "Warning: decoder did not select AV_PIX_FMT_D3D11\n");
 		}
 
 		if (!ensure_buf_size(&ffmpeg_buffer, &ffmpeg_buffer_size, INITIAL_DECODER_BUFFER_SIZE + AV_INPUT_BUFFER_PADDING_SIZE)) {
-			Utils::Log("Couldn't allocate initial ffmpeg_buffer\n");
+			MLOG(Utils::LogLevel::Error, "Couldn't allocate initial ffmpeg_buffer\n");
 			Cleanup();
 			return -1;
 		}
@@ -188,7 +189,12 @@ namespace moonlight_xbox_dx {
 
 		Pacer::instance().deinit();
 
-		Utils::Log("FFMpegDecoder::Cleanup\n");
+
+		if (m_deviceResources) {
+			m_deviceResources->GetD3DDeviceContext()->AddRef();
+		}
+
+		MLOG(Utils::LogLevel::Info, "FFMpegDecoder::Cleanup\n");
 	}
 
     static inline int frame_attach_userdata(AVFrame *frame, int64_t decodeEndQpc) {
@@ -218,7 +224,7 @@ namespace moonlight_xbox_dx {
 		if (m_StreamEpochQpc == 0) m_StreamEpochQpc = decodeStart.QuadPart;
 
 		if (!ensure_buf_size(&ffmpeg_buffer, &ffmpeg_buffer_size, decodeUnit->fullLength + AV_INPUT_BUFFER_PADDING_SIZE)) {
-			Utils::Logf("Couldn't realloc ffmpeg_buffer\n");
+			MLOGF(Utils::LogLevel::Error, "Couldn't realloc ffmpeg_buffer\n");
 			return DR_NEED_IDR;
 		}
 
@@ -261,7 +267,7 @@ namespace moonlight_xbox_dx {
 		if (err < 0) {
 			char ffmpegError[1024];
 			av_strerror(err, ffmpegError, 1024);
-			Utils::Logf("avcodec_send_packet failed: %s\n", ffmpegError);
+			MLOGF(Utils::LogLevel::Error, "avcodec_send_packet failed: %s\n", ffmpegError);
 			return DR_NEED_IDR;
 		}
 
@@ -275,7 +281,7 @@ namespace moonlight_xbox_dx {
 			else if (err < 0) {
 				char ffmpegError[1024];
 				av_strerror(err, ffmpegError, sizeof(ffmpegError));
-				Utils::Logf("avcodec_receive_frame failed: %s\n", ffmpegError);
+				MLOGF(Utils::LogLevel::Error, "avcodec_receive_frame failed: %s\n", ffmpegError);
 				av_frame_free(&frame);
 				return DR_NEED_IDR;
 			}

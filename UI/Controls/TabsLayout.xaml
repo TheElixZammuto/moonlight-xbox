@@ -1,0 +1,81 @@
+<UserControl
+    x:Class="moonlight_xbox_dx.TabsLayout"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    x:Name="root"
+    FontSize="12"
+    HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+
+    <UserControl.Resources>
+        <Style x:Key="TabButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#AAFFFFFF" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="UseSystemFocusVisuals" Value="False" />
+            <Setter Property="FocusVisualPrimaryThickness" Value="0" />
+            <Setter Property="FocusVisualSecondaryThickness" Value="0" />
+            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid CornerRadius="6" HorizontalAlignment="Stretch" Margin="0,2">
+                            <Border x:Name="BackgroundLayer"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="6"/>
+
+                            <TextBlock
+                                Text="{TemplateBinding Content}"
+                                HorizontalAlignment="Left"
+                                FontSize="12"
+                                VerticalAlignment="Center"
+                                Margin="16,10"
+                                Foreground="{TemplateBinding Foreground}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Implicit style so Buttons inside this control pick up the TabButtonStyle automatically -->
+        <Style TargetType="Button" BasedOn="{StaticResource TabButtonStyle}" />
+    </UserControl.Resources>
+
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*" />
+            <ColumnDefinition Width="1" />
+            <ColumnDefinition Width="7*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left: vertical tab headers (scroll when overflow) -->
+        <ScrollViewer Grid.Column="0" Padding="0,4,0,16" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <Grid x:Name="TabsGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <!-- Sliding selection indicator (behind buttons) -->
+                <Border x:Name="SelectionIndicator"
+                        CornerRadius="6"
+                        VerticalAlignment="Top"
+                        HorizontalAlignment="Stretch"
+                        Opacity="0"
+                        IsHitTestVisible="False">
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="SelectionTransform"/>
+                    </Border.RenderTransform>
+                </Border>
+                <ContentControl x:Name="TabsPresenter" Content="{Binding TabsContent, ElementName=root}" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Width="Auto" />
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Right: main content area (scroll when overflow) -->
+        <ScrollViewer x:Name="ContentSV" Grid.Column="2" Padding="28,0,8,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                      IsTabStop="True" KeyDown="OnContentScrollViewerKeyDown">
+            <ContentControl x:Name="ContentPresenter" Content="{Binding LeftContent, ElementName=root}" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        </ScrollViewer>
+    </Grid>
+
+</UserControl>

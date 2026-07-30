@@ -1,6 +1,7 @@
 // clang-format off
 #include "pch.h"
 // clang-format on
+#define MLOG_TAG_OVERRIDE "Pacer"
 #include "Pacer.h"
 #include <algorithm>
 #include <chrono>
@@ -75,7 +76,7 @@ void Pacer::deinit() {
 		m_CurrentFrame = nullptr;
 	}
 
-	Utils::Logf("Pacer: deinit\n");
+	MLOGF(Utils::LogLevel::Info, "Pacer: deinit\n");
 }
 
 void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps, double refreshRate, bool framePacingImmediate) {
@@ -87,7 +88,7 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 
 	m_FrameCadence.init(m_RefreshRate > 0.0 ? m_RefreshRate : 60.0, static_cast<double>(streamFps));
 
-	Utils::Logf("Frame Pacer init: mode %s, streamFps %d, refreshRate %.2f\n",
+	MLOGF(Utils::LogLevel::Info, "Frame Pacer init: mode %s, streamFps %d, refreshRate %.2f\n",
 	            framePacingImmediate ? "immediate" : "display-locked", m_StreamFps, m_RefreshRate);
 
 	m_vhsum = 0;
@@ -119,10 +120,10 @@ void Pacer::setPacingImmediate(bool framePacingImmediate) {
 
 void Pacer::vsyncHardware() {
 	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)) {
-		Utils::Logf("Failed to set vsyncHardware priority: %d\n", GetLastError());
+		MLOGF(Utils::LogLevel::Warning, "Failed to set vsyncHardware priority: %d\n", GetLastError());
 	}
 
-	Utils::Logf("vsyncHardware stats thread started, qpcFreq=%lld ticksPerMs=%lld\n",
+	MLOGF(Utils::LogLevel::Info, "vsyncHardware stats thread started, qpcFreq=%lld ticksPerMs=%lld\n",
 	            QpcFreq(), MsToQpc(1.0));
 
 	while (!stopping()) {
@@ -133,7 +134,7 @@ void Pacer::vsyncHardware() {
 		updateFrameStats();
 	}
 
-	Utils::Logf("vsyncHardware stats thread stopped\n");
+	MLOGF(Utils::LogLevel::Info, "vsyncHardware stats thread stopped\n");
 }
 
 // based on mpv's d3d11_get_vsync()

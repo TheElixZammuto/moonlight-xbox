@@ -1,11 +1,14 @@
 ﻿#include "pch.h"
 #include "DeviceResources.h"
+#define MLOG_TAG_OVERRIDE "DeviceResources"
+#include "Utils.hpp"
 #include "DirectXHelper.h"
+#include "UI\Utilities\EffectsLibrary.h"
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <winrt/Windows.UI.Core.h>
-#include <Pages/StreamPage.xaml.h>
-#include <Streaming/FFmpegDecoder.h>
-#include <Plot/ImGuiPlots.h>
+#include "UI\Pages\StreamPage.xaml.h"
+#include "Streaming\FFmpegDecoder.h"
+#include "Plot\ImGuiPlots.h"
 
 using namespace moonlight_xbox_dx;
 using namespace D2D1;
@@ -220,7 +223,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			0
 			);
 
-		Utils::Logf("m_swapChain->ResizeBuffers(%d x %d)\n",
+		MLOGF(Utils::LogLevel::Info, "m_swapChain->ResizeBuffers(%d x %d)\n",
 			lround(m_d3dRenderTargetSize.Width), lround(m_d3dRenderTargetSize.Height));
 
 		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
@@ -286,7 +289,7 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 			)
 		);
 
-		Utils::Logf("CreateSwapChainForComposition(%d x %d)\n",
+		MLOGF(Utils::LogLevel::Info, "CreateSwapChainForComposition(%d x %d)\n",
 			lround(m_d3dRenderTargetSize.Width), lround(m_d3dRenderTargetSize.Height));
 
 		DX::ThrowIfFailed(
@@ -374,9 +377,6 @@ void DX::DeviceResources::SetSwapChainPanel(SwapChainPanel^ panel)
 	m_compositionScaleX = panel->CompositionScaleX;
 	m_compositionScaleY = panel->CompositionScaleY;
 
-	Utils::Logf("SwapChain logical size: %.0fx%.0f @ composition scale %.1fx%.1f\n",
-		m_logicalSize.Width, m_logicalSize.Height, m_compositionScaleX, m_compositionScaleY);
-
 	CreateWindowSizeDependentResources();
 
 	ComPtr<ISwapChainPanelNative> panelNative;
@@ -387,6 +387,7 @@ void DX::DeviceResources::SetSwapChainPanel(SwapChainPanel^ panel)
 	// Setup Dear ImGui context
 	float dpi = currentDisplayInformation->LogicalDpi / 96.0f;
 	ImGui_Init(panelNative, dpi);
+
 }
 
 // This method is called in the event handler for the SizeChanged event.
@@ -490,7 +491,7 @@ void DX::DeviceResources::HandleDeviceLost()
 
 	m_swapChain = nullptr;
 
-	Utils::Log("HandleDeviceLost()\n");
+	MLOG(Utils::LogLevel::Error, "HandleDeviceLost()\n");
 
 	if (m_deviceNotify != nullptr)
 	{
@@ -541,7 +542,7 @@ void DX::DeviceResources::Present()
 	}
 	else if (hr == DXGI_ERROR_INVALID_CALL) {
 		// Try to reset
-		Utils::Logf("Present() failed with DXGI_ERROR_INVALID_CALL\n");
+		MLOGF(Utils::LogLevel::Error, "Present() failed with DXGI_ERROR_INVALID_CALL\n");
 		HandleDeviceLost();
 	}
 	else {

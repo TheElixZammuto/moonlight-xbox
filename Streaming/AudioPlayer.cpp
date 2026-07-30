@@ -1,4 +1,5 @@
 #include "pch.h"
+#define MLOG_TAG_OVERRIDE "AudioPlayer"
 #include <opus/opus_multistream.h>
 #include <State\MoonlightClient.h>
 #include <Streaming\AudioPlayer.h>
@@ -12,7 +13,7 @@
 static void AudioPlayer_LogCallback(void* pUserData, ma_uint32 level, const char* pMessage)
 {
 	if (level <= MA_LOG_LEVEL_INFO) {
-		moonlight_xbox_dx::Utils::Logf("[miniaudio] %s", pMessage);
+		MLOGF(moonlight_xbox_dx::Utils::LogLevel::Info, "[miniaudio] %s", pMessage);
 	}
 }
 
@@ -65,14 +66,14 @@ namespace moonlight_xbox_dx {
 		ma_uint32 len = frameCount;
 		ma_result res = ma_pcm_rb_acquire_read(&rb, &len, &buffer);
 		if (res != MA_SUCCESS) {
-			Utils::Log("Failed to read audio data\n");
+			MLOG(Utils::LogLevel::Error, "Failed to read audio data\n");
 			return;
 		}
 		if (len > 0) {
 			memcpy(pOutput, buffer, len * ma_pcm_rb_get_bpf(&rb));
 			res = ma_pcm_rb_commit_read(&rb, len);
 			if (res != MA_SUCCESS && res != MA_AT_END) {
-				Utils::Log("Failed to read audio data to shared buffer\n");
+				MLOG(Utils::LogLevel::Error, "Failed to read audio data to shared buffer\n");
 				return;
 			}
 		}
@@ -100,24 +101,24 @@ namespace moonlight_xbox_dx {
 		config.pLog = &log;
 
 		if (ma_context_init(NULL, 1, &config, &context) != MA_SUCCESS) {
-			Utils::Log("Failed to create miniaudio context.\n");
+			MLOG(Utils::LogLevel::Error, "Failed to create miniaudio context.\n");
 			return -3;
 		}
 
 		if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
-			Utils::Log("Failed to open playback device.\n");
+			MLOG(Utils::LogLevel::Error, "Failed to open playback device.\n");
 			return -3;
 		}
 
 		ma_result r = ma_pcm_rb_init(ma_format_f32, opusConfig->channelCount, opusConfig->samplesPerFrame * 10, NULL, NULL, &rb);
 		if (r != MA_SUCCESS) {
-			Utils::Log("Failed to create shared buffer\n");
+			MLOG(Utils::LogLevel::Error, "Failed to create shared buffer\n");
 		}
 		return r;
 	}
 
 	void AudioPlayer::Cleanup() {
-		Utils::Log("Audio Cleanup\n");
+		MLOG(Utils::LogLevel::Info, "Audio Cleanup\n");
 		if (decoder != NULL) opus_multistream_decoder_destroy(decoder);
 		ma_pcm_rb_uninit(&rb);
 		ma_device_uninit(&device);
@@ -130,24 +131,24 @@ namespace moonlight_xbox_dx {
 		ma_uint32 bufferLen = (ma_uint32)this->samplePerFrame;
 		ma_result r = ma_pcm_rb_acquire_write(&rb, &bufferLen, &buffer);
 		if (r != MA_SUCCESS) {
-			Utils::Log("Failed to acquire shared buffer\n");
+			MLOG(Utils::LogLevel::Error, "Failed to acquire shared buffer\n");
 			return -1;
 		}
 		if (bufferLen < (ma_uint32)this->samplePerFrame || buffer == nullptr) {
-			Utils::Logf("Audio buffer overflow (%d > %d)\n", bufferLen, this->samplePerFrame);
+			MLOGF(Utils::LogLevel::Warning, "Audio buffer overflow (%d > %d)\n", bufferLen, this->samplePerFrame);
 			return -1;
 		}
 
 		int decodeLen = opus_multistream_decode_float(decoder, (unsigned char*)sampleData,
 													  sampleLength, (float *)buffer, this->samplePerFrame, 0);
 		if (decodeLen < 0) {
-			Utils::Logf("opus_multistream_decode_float failed: %d\n", decodeLen);
+			MLOGF(Utils::LogLevel::Error, "opus_multistream_decode_float failed: %d\n", decodeLen);
 			return -1;
 		}
 		if (decodeLen > 0) {
 			r = ma_pcm_rb_commit_write(&rb, (ma_uint32)decodeLen);
 			if (r != MA_SUCCESS && r != MA_AT_END) {
-				Utils::Log("Failed to write to shared buffer\n");
+				MLOG(Utils::LogLevel::Error, "Failed to write to shared buffer\n");
 				return -1;
 			}
 		}
@@ -156,7 +157,7 @@ namespace moonlight_xbox_dx {
 
 	void AudioPlayer::Start() {
 		if (ma_device_start(&device) != MA_SUCCESS) {
-			Utils::Log("Failed to start playback device.\n");
+			MLOG(Utils::LogLevel::Error, "Failed to start playback device.\n");
 			ma_device_uninit(&device);
 		}
 
@@ -164,7 +165,7 @@ namespace moonlight_xbox_dx {
 
 	void AudioPlayer::Stop() {
 		if (ma_device_stop(&device) != MA_SUCCESS) {
-			Utils::Log("Failed to start playback device.\n");
+			MLOG(Utils::LogLevel::Error, "Failed to start playback device.\n");
 			ma_device_uninit(&device);
 		}
 	}

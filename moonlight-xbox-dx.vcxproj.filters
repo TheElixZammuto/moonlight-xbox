@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Assets">
@@ -6,11 +6,8 @@
       <Extensions>svg;png</Extensions>
     </Filter>
     <Filter Include="DLLs">
-      <UniqueIdentifier>{3fbf8cfc-2833-4477-9705-aa2b53149e20}</UniqueIdentifier>
-      <Extensions>dll;pdb</Extensions>
-    </Filter>
-    <Filter Include="Assets">
       <UniqueIdentifier>{c71dcdb3-0f05-4f2e-b87d-d392921f9242}</UniqueIdentifier>
+      <Extensions>dll;pdb</Extensions>
     </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
@@ -20,473 +17,952 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
     <Filter Include="Shaders">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFC}</UniqueIdentifier>
       <Extensions>hlsl</Extensions>
     </Filter>
     <Filter Include="ImGui">
       <UniqueIdentifier>{c5fa3ea7-182b-41f7-91ef-1c48589370b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Font">
+      <UniqueIdentifier>{2aace108-c3a8-52cf-826b-8c9cdea480f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Shader">
+      <UniqueIdentifier>{b8f174b0-5e31-566d-9201-73fcfb6e5f37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{0d2cc763-ad0c-5756-b153-b595e4c93cfa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="State">
+      <UniqueIdentifier>{f4bb19a3-bfc0-55d3-a4a9-30d4a6a0db1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Streaming">
+      <UniqueIdentifier>{f34ed542-7efa-50f9-99ef-bc1852f15a37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{efe1c19e-a719-51bc-85e3-3305867278a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Backgrounds">
+      <UniqueIdentifier>{e6cb9d4e-bbb2-5dfa-8e47-e6b2609544bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Backgrounds\Blobs">
+      <UniqueIdentifier>{6930fa43-8b19-56bd-b5c9-56afd0d688e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Backgrounds\GlobeGrid">
+      <UniqueIdentifier>{c72fd6cf-9169-5619-a367-2a04d22259f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Backgrounds\Orbs">
+      <UniqueIdentifier>{5704adc6-b65f-5cd2-a5d7-2e3b8800e124}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Backgrounds\Particles">
+      <UniqueIdentifier>{889a1e1a-f914-5a13-9ccf-f5be1130e6ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Backgrounds\Spheres">
+      <UniqueIdentifier>{6bac72a9-5993-5866-9970-6ecd54286ecd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Backgrounds\Streaks">
+      <UniqueIdentifier>{4dcf855c-eec4-571b-b638-9e2b296931ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Backgrounds\SwipeReveal">
+      <UniqueIdentifier>{116f9d2d-c1c6-5b6c-878b-87eca5788f07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Controls">
+      <UniqueIdentifier>{45ee189f-14af-5f42-a1a2-ddc9c842f88f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Converters">
+      <UniqueIdentifier>{26cb9df7-7ce8-5aeb-8c04-872b0f6a4c7c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Modals">
+      <UniqueIdentifier>{40ce30a4-9150-5a67-93e8-bf57dd8055b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Models">
+      <UniqueIdentifier>{890be602-8fe3-55ca-91d5-4a3f3e359c6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Models\ViewModels">
+      <UniqueIdentifier>{847bb4eb-d94e-52df-9a09-8820dde367b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Pages">
+      <UniqueIdentifier>{4cafd1ae-b0cd-5927-85a2-f819ef06180c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Pages\AppPage">
+      <UniqueIdentifier>{bd62e9e7-ae66-5165-a7e2-2e48e023afe5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Styles">
+      <UniqueIdentifier>{8b742987-262d-5ecd-9d2b-2ca577cdb354}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI\Utilities">
+      <UniqueIdentifier>{522e4255-b673-5a87-a302-e4b083e14599}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{280fdf19-7ced-5d3b-9fd7-658388d53b10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party">
+      <UniqueIdentifier>{b48b8cb7-a2b9-5642-9186-ca7ab781ac9c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\imgui">
+      <UniqueIdentifier>{1e23cefe-35ac-57b4-87a8-0a5a13fcb316}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\imgui-uwp">
+      <UniqueIdentifier>{b6666f08-8ced-5907-9bd7-d8266c1fca2a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\imgui-uwp\backends">
+      <UniqueIdentifier>{29f95cb9-c5b4-5b22-ad2c-8b1282efe5a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="third_party\imgui\backends">
+      <UniqueIdentifier>{eae1029b-01a6-547e-9715-1f13dbbeaace}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vcpkg_installed">
+      <UniqueIdentifier>{e7b6af5a-4e97-579b-b40b-70fc2ba709c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vcpkg_installed\x64-uwp">
+      <UniqueIdentifier>{291aa1fc-74e0-5aa0-9930-3bed8801c11a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vcpkg_installed\x64-uwp\bin">
+      <UniqueIdentifier>{1ea73efe-bdbb-5566-889b-d3b42ef30e85}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Keyboard">
+      <UniqueIdentifier>{62add804-f1de-56ed-8aca-a16851b8cb65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plot">
+      <UniqueIdentifier>{d8480659-c2cd-58e5-b866-1ec230594064}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="State\MoonlightClient.cpp">
+    <Page Include="UI\Backgrounds\Particles\ParticleBackground.xaml">
+      <Filter>UI\Backgrounds\Particles</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\Particles\ParticleSettingsControl.xaml">
+      <Filter>UI\Backgrounds\Particles</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\Spheres\SpheresBackground.xaml">
+      <Filter>UI\Backgrounds\Spheres</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\Spheres\SpheresSettingsControl.xaml">
+      <Filter>UI\Backgrounds\Spheres</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\Streaks\StreaksBackground.xaml">
+      <Filter>UI\Backgrounds\Streaks</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\Streaks\StreaksSettingsControl.xaml">
+      <Filter>UI\Backgrounds\Streaks</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml">
+      <Filter>UI\Backgrounds\SwipeReveal</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml">
+      <Filter>UI\Backgrounds\GlobeGrid</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\Orbs\OrbsBackground.xaml">
+      <Filter>UI\Backgrounds\Orbs</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\Orbs\OrbsSettingsControl.xaml">
+      <Filter>UI\Backgrounds\Orbs</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\Blobs\BlobsBackground.xaml">
+      <Filter>UI\Backgrounds\Blobs</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\Blobs\BlobsSettingsControl.xaml">
+      <Filter>UI\Backgrounds\Blobs</Filter>
+    </Page>
+    <Page Include="UI\Backgrounds\DynamicBackgroundHost.xaml">
+      <Filter>UI\Backgrounds</Filter>
+    </Page>
+    <Page Include="UI\Controls\AspectRatioBox.xaml">
+      <Filter>UI\Controls</Filter>
+    </Page>
+    <Page Include="UI\Controls\SwatchPicker.xaml">
+      <Filter>UI\Controls</Filter>
+    </Page>
+    <Page Include="UI\Controls\LunarPhaseControl.xaml">
+      <Filter>UI\Controls</Filter>
+    </Page>
+    <Page Include="UI\Controls\TabsLayout.xaml">
+      <Filter>UI\Controls</Filter>
+    </Page>
+    <Page Include="UI\Pages\MoonlightWelcome.xaml">
+      <Filter>UI\Pages</Filter>
+    </Page>
+    <Page Include="KeyboardControl.xaml" />
+    <Page Include="UI\Modals\AppActionsDialog.xaml">
+      <Filter>UI\Modals</Filter>
+    </Page>
+    <Page Include="UI\Pages\AppPage\AppPage.Resources.xaml">
+      <Filter>UI\Pages\AppPage</Filter>
+    </Page>
+    <Page Include="UI\Pages\AppPage\AppPage.Resources.List.xaml">
+      <Filter>UI\Pages\AppPage</Filter>
+    </Page>
+    <Page Include="UI\Pages\AppPage\AppPage.Resources.Grid.xaml">
+      <Filter>UI\Pages\AppPage</Filter>
+    </Page>
+    <Page Include="UI\Pages\AppPage\AppPage.xaml">
+      <Filter>UI\Pages\AppPage</Filter>
+    </Page>
+    <Page Include="UI\Modals\AddHostDialog.xaml">
+      <Filter>UI\Modals</Filter>
+    </Page>
+    <Page Include="UI\Modals\HostActionsDialog.xaml">
+      <Filter>UI\Modals</Filter>
+    </Page>
+    <Page Include="UI\Modals\TestConnectionResultDialog.xaml">
+      <Filter>UI\Modals</Filter>
+    </Page>
+    <Page Include="UI\Modals\AlertDialog.xaml">
+      <Filter>UI\Modals</Filter>
+    </Page>
+    <Page Include="UI\Modals\PairDialog.xaml">
+      <Filter>UI\Modals</Filter>
+    </Page>
+    <Page Include="UI\Modals\ConfirmDialog.xaml">
+      <Filter>UI\Modals</Filter>
+    </Page>
+    <Page Include="UI\Modals\StreamErrorDialog.xaml">
+      <Filter>UI\Modals</Filter>
+    </Page>
+    <Page Include="UI\Pages\HostSelectorPage.xaml">
+      <Filter>UI\Pages</Filter>
+    </Page>
+    <Page Include="UI\Pages\HostSettingsPage.xaml">
+      <Filter>UI\Pages</Filter>
+    </Page>
+    <Page Include="UI\Pages\MoonlightSettings.xaml">
+      <Filter>UI\Pages</Filter>
+    </Page>
+    <Page Include="UI\Pages\StreamPage.xaml">
+      <Filter>UI\Pages</Filter>
+    </Page>
+    <Page Include="UI\Controls\SlidingMenu.xaml">
+      <Filter>UI\Controls</Filter>
+    </Page>
+    <Page Include="UI\Styles\Colors.xaml">
+      <Filter>UI\Styles</Filter>
+    </Page>
+    <Page Include="UI\Styles\Controls.xaml">
+      <Filter>UI\Styles</Filter>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="App.xaml.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\TextConsole.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Controls\AspectRatioBox.xaml.cpp">
+      <Filter>UI\Controls</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Controls\SwatchPicker.xaml.cpp">
+      <Filter>UI\Controls</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Controls\LunarPhaseControl.xaml.cpp">
+      <Filter>UI\Controls</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Controls\TabsLayout.xaml.cpp">
+      <Filter>UI\Controls</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Converters\BoolToTextConverter.cpp">
+      <Filter>UI\Converters</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Converters\BoolToVisibilityConverter.cpp">
+      <Filter>UI\Converters</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbda1.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbda2.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbda3.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdal.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdarme.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdarmw.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdaze.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdazel.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbe.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbga.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbgt.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdblr.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbr.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbu.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdbur.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdcan.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdcr.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdcz.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdcz1.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdda.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbddv.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdeo.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdest.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdfc.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdfi.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdfr.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgeo.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgerg.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgneo.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgr.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdgr1.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdhe.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdheb.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdhu.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdic.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdinasa.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdinben.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdindev.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdinguj.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdinmal.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdir.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdit.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdjpn.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdkaz.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdkor.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdla.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdlt1.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdlv.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdmac.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdne.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdno.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdpl.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdpl1.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdpo.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdro.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdrost.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdru.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdru1.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsf.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsg.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsl.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsl1.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsp.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdsw.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdtat.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdth0.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdth1.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdth2.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdth3.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdtuf.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdtuq.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbduk.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdur.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdurs.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdus.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdusa.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdusl.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdusr.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdusx.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbduzb.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdvntc.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdycc.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard\kbdycl.cpp">
+      <Filter>Keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="KeyboardCommon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KeyboardControl.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Pages\MoonlightWelcome.xaml.cpp">
+      <Filter>UI\Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Particles\ParticleBackground.xaml.cpp">
+      <Filter>UI\Backgrounds\Particles</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Particles\ParticleSettingsControl.xaml.cpp">
+      <Filter>UI\Backgrounds\Particles</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Spheres\SpheresBackground.xaml.cpp">
+      <Filter>UI\Backgrounds\Spheres</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Spheres\SpheresSettingsControl.xaml.cpp">
+      <Filter>UI\Backgrounds\Spheres</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Streaks\StreaksBackground.xaml.cpp">
+      <Filter>UI\Backgrounds\Streaks</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Streaks\StreaksSettingsControl.xaml.cpp">
+      <Filter>UI\Backgrounds\Streaks</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml.cpp">
+      <Filter>UI\Backgrounds\SwipeReveal</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml.cpp">
+      <Filter>UI\Backgrounds\GlobeGrid</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Orbs\OrbsBackground.xaml.cpp">
+      <Filter>UI\Backgrounds\Orbs</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Orbs\OrbsSettingsControl.xaml.cpp">
+      <Filter>UI\Backgrounds\Orbs</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Blobs\BlobsBackground.xaml.cpp">
+      <Filter>UI\Backgrounds\Blobs</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Blobs\BlobsSettingsControl.xaml.cpp">
+      <Filter>UI\Backgrounds\Blobs</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\DynamicBackgroundHost.xaml.cpp">
+      <Filter>UI\Backgrounds</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Modals\AddHostDialog.xaml.cpp">
+      <Filter>UI\Modals</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Modals\HostActionsDialog.xaml.cpp">
+      <Filter>UI\Modals</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Modals\TestConnectionResultDialog.xaml.cpp">
+      <Filter>UI\Modals</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Modals\AlertDialog.xaml.cpp">
+      <Filter>UI\Modals</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Modals\PairDialog.xaml.cpp">
+      <Filter>UI\Modals</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Modals\ConfirmDialog.xaml.cpp">
+      <Filter>UI\Modals</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Modals\StreamErrorDialog.xaml.cpp">
+      <Filter>UI\Modals</Filter>
+    </ClCompile>
+    <ClCompile Include="Plot\ImGuiPlots.cpp">
+      <Filter>Plot</Filter>
+    </ClCompile>
+    <ClCompile Include="State\BandwidthTracker.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="State\MoonlightClient.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="State\Stats.cpp">
+      <Filter>State</Filter>
     </ClCompile>
     <ClCompile Include="State\StreamConfiguration.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>State</Filter>
     </ClCompile>
     <ClCompile Include="Common\DeviceResources.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Utilities\EffectsLibrary.cpp">
+      <Filter>UI\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Utilities\ImageHelpers.cpp">
+      <Filter>UI\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Utilities\XamlHelpers.cpp">
+      <Filter>UI\Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Utilities\ToastService.cpp">
+      <Filter>UI\Utilities</Filter>
     </ClCompile>
     <ClCompile Include="Streaming\LogRenderer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\Pacer.cpp">
+      <Filter>Streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\FrameCadence.cpp">
+      <Filter>Streaming</Filter>
     </ClCompile>
     <ClCompile Include="Streaming\VideoRenderer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\FrameQueue.cpp">
+      <Filter>Streaming</Filter>
     </ClCompile>
     <ClCompile Include="State\MDNSHandler.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Pages\HostSettingsPage.xaml.cpp">
+      <Filter>UI\Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Pages\MoonlightSettings.xaml.cpp">
+      <Filter>UI\Pages</Filter>
     </ClCompile>
     <ClCompile Include="State\ScreenResolution.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>State</Filter>
     </ClCompile>
     <ClCompile Include="State\MoonlightApp.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>State</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Pages\AppPage\AppPage.xaml.cpp">
+      <Filter>UI\Pages\AppPage</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Modals\AppActionsDialog.xaml.cpp">
+      <Filter>UI\Modals</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Pages\AppPage\AppPage.Selection.cpp">
+      <Filter>UI\Pages\AppPage</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Controls\SlidingMenu.xaml.cpp">
+      <Filter>UI\Controls</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Models\MenuItem.cpp">
+      <Filter>UI\Models</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Pages\HostSelectorPage.xaml.cpp">
+      <Filter>UI\Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Pages\StreamPage.xaml.cpp">
+      <Filter>UI\Pages</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Streaming\StatsRenderer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Streaming</Filter>
     </ClCompile>
     <ClCompile Include="State\ApplicationState.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>State</Filter>
     </ClCompile>
     <ClCompile Include="State\MoonlightHost.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>State</Filter>
     </ClCompile>
     <ClCompile Include="Streaming\AudioPlayer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Streaming</Filter>
     </ClCompile>
     <ClCompile Include="Streaming\FFmpegDecoder.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Streaming</Filter>
     </ClCompile>
     <ClCompile Include="Streaming\moonlight_xbox_dxMain.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Streaming</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui-uwp\backends\imgui_impl_uwp.cpp">
+      <Filter>third_party\imgui-uwp\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\backends\imgui_impl_dx11.cpp">
+      <Filter>third_party\imgui\backends</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui.cpp">
+      <Filter>third_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui_demo.cpp">
+      <Filter>third_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui_draw.cpp">
+      <Filter>third_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui_tables.cpp">
+      <Filter>third_party\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="third_party\imgui\imgui_widgets.cpp">
+      <Filter>third_party\imgui</Filter>
     </ClCompile>
     <ClCompile Include="Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="KeyboardCommon.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\TextConsole.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbda2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbda3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdal.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdarme.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdarmw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdaze.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdazel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdbe.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdbga.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdbgt.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdblr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdbr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdbu.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdbur.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdcan.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdcr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdcz.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdcz1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdda.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbddv.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdeo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdfc.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdfi.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdfr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdgeo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdgerg.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdgneo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdgr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdgr1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdhe.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdheb.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdhu.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdic.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdinasa.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdinben.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdindev.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdinguj.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdinmal.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdir.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdit.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdjpn.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdkaz.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdkor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdla.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdlt1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdlv.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdmac.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdne.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdno.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdpl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdpl1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdpo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdro.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdrost.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdru.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdru1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdsf.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdsg.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdsl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdsl1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdsp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdsw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdtat.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdth0.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdth1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdth2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdth3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdtuf.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdtuq.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbduk.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdur.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdurs.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdus.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdusa.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdusl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdusr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdusx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbduzb.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdvntc.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdycc.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbdycl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Keyboard\kbda1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="State\BandwidthTracker.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="State\Stats.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\imgui\imgui_widgets.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\imgui\imgui_demo.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\imgui\imgui_draw.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\imgui\backends\imgui_impl_dx11.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\imgui-uwp\backends\imgui_impl_uwp.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\imgui\imgui_tables.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="third_party\imgui\imgui.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Plot\ImGuiPlots.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Utils\FloatBuffer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="Streaming\Pacer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Streaming\FrameQueue.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Streaming\FrameCadence.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Converters\BoolToTextConverter.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="UI\Models\ViewModels\AppPageViewModel.cpp">
+      <Filter>UI\Models\ViewModels</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="State\MoonlightClient.h">
+    <ClInclude Include="App.xaml.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Utilities\ImageHelpers.h">
+      <Filter>UI\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Utilities\XamlHelpers.h">
+      <Filter>UI\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Utilities\ToastService.h">
+      <Filter>UI\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\imconfig.moonlight.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\TextConsole.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Controls\AspectRatioBox.xaml.h">
+      <Filter>UI\Controls</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Controls\SwatchPicker.xaml.h">
+      <Filter>UI\Controls</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Controls\LunarPhaseControl.xaml.h">
+      <Filter>UI\Controls</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Controls\TabsLayout.xaml.h">
+      <Filter>UI\Controls</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Controls\SlidingMenu.xaml.h">
+      <Filter>UI\Controls</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Models\MenuItem.h">
+      <Filter>UI\Models</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Converters\BoolToTextConverter.h">
+      <Filter>UI\Converters</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Converters\BoolToVisibilityConverter.h">
+      <Filter>UI\Converters</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Pages\MoonlightWelcome.xaml.h">
+      <Filter>UI\Pages</Filter>
+    </ClInclude>
+    <ClInclude Include="KeyboardControl.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Keyboard\KeyboardCommon.h">
+      <Filter>Keyboard</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Modals\AddHostDialog.xaml.h">
+      <Filter>UI\Modals</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Modals\HostActionsDialog.xaml.h">
+      <Filter>UI\Modals</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Modals\TestConnectionResultDialog.xaml.h">
+      <Filter>UI\Modals</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Modals\AlertDialog.xaml.h">
+      <Filter>UI\Modals</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Modals\PairDialog.xaml.h">
+      <Filter>UI\Modals</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Modals\ConfirmDialog.xaml.h">
+      <Filter>UI\Modals</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Modals\StreamErrorDialog.xaml.h">
+      <Filter>UI\Modals</Filter>
+    </ClInclude>
+    <ClInclude Include="Plot\ImGuiPlots.h">
+      <Filter>Plot</Filter>
+    </ClInclude>
+    <ClInclude Include="Plot\PlotDesc.h">
+      <Filter>Plot</Filter>
+    </ClInclude>
+    <ClInclude Include="State\BandwidthTracker.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="State\GamepadState.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="State\MoonlightClient.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="State\MoonlightHostView.h">
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="State\Stats.h">
+      <Filter>State</Filter>
     </ClInclude>
     <ClInclude Include="State\StreamConfiguration.h">
-      <Filter>Header Files</Filter>
+      <Filter>State</Filter>
     </ClInclude>
     <ClInclude Include="Common\DeviceResources.h">
-      <Filter>Header Files</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Common\DirectXHelper.h">
-      <Filter>Header Files</Filter>
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Utilities\EffectsLibrary.h">
+      <Filter>UI\Utilities</Filter>
     </ClInclude>
     <ClInclude Include="Common\StepTimer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\FrameCadence.h">
+      <Filter>Streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\FrameQueue.h">
+      <Filter>Streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\Pacer.h">
+      <Filter>Streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\PacerCompat.h">
+      <Filter>Streaming</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\PacerRational.h">
+      <Filter>Streaming</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\VideoRenderer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Streaming</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\LogRenderer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Streaming</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\ShaderStructures.h">
-      <Filter>Header Files</Filter>
+      <Filter>Streaming</Filter>
     </ClInclude>
     <ClInclude Include="State\MDNSHandler.h">
-      <Filter>Header Files</Filter>
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Pages\HostSettingsPage.xaml.h">
+      <Filter>UI\Pages</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Pages\MoonlightSettings.xaml.h">
+      <Filter>UI\Pages</Filter>
     </ClInclude>
     <ClInclude Include="State\ScreenResolution.h">
-      <Filter>Header Files</Filter>
+      <Filter>State</Filter>
     </ClInclude>
     <ClInclude Include="State\MoonlightApp.h">
-      <Filter>Header Files</Filter>
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Pages\AppPage\AppPage.xaml.h">
+      <Filter>UI\Pages\AppPage</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Modals\AppActionsDialog.xaml.h">
+      <Filter>UI\Modals</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Pages\HostSelectorPage.xaml.h">
+      <Filter>UI\Pages</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Pages\StreamPage.xaml.h">
+      <Filter>UI\Pages</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\StatsRenderer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Streaming</Filter>
     </ClInclude>
     <ClInclude Include="State\ApplicationState.h">
-      <Filter>Header Files</Filter>
+      <Filter>State</Filter>
     </ClInclude>
     <ClInclude Include="State\MoonlightHost.h">
-      <Filter>Header Files</Filter>
+      <Filter>State</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Models\UIPersonalization.h">
+      <Filter>UI\Models</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\AudioPlayer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Streaming</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\FFmpegDecoder.h">
-      <Filter>Header Files</Filter>
+      <Filter>Streaming</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h">
-      <Filter>Header Files</Filter>
+      <Filter>Streaming</Filter>
     </ClInclude>
     <ClInclude Include="Utils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Keyboard\KeyboardCommon.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="UI\Backgrounds\BackgroundRegistry.h">
+      <Filter>UI\Backgrounds</Filter>
     </ClInclude>
-    <ClInclude Include="Common\TextConsole.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="UI\Backgrounds\BackgroundSettingsHelpers.h">
+      <Filter>UI\Backgrounds</Filter>
     </ClInclude>
-    <ClInclude Include="State\BandwidthTracker.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="UI\Backgrounds\Particles\ParticleBackground.xaml.h">
+      <Filter>UI\Backgrounds\Particles</Filter>
     </ClInclude>
-    <ClInclude Include="State\Stats.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="UI\Backgrounds\Particles\ParticleSettingsControl.xaml.h">
+      <Filter>UI\Backgrounds\Particles</Filter>
     </ClInclude>
-    <ClInclude Include="Common\imconfig.moonlight.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="UI\Backgrounds\Spheres\SpheresBackground.xaml.h">
+      <Filter>UI\Backgrounds\Spheres</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Spheres\SpheresSettingsControl.xaml.h">
+      <Filter>UI\Backgrounds\Spheres</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Streaks\StreaksBackground.xaml.h">
+      <Filter>UI\Backgrounds\Streaks</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Streaks\StreaksSettingsControl.xaml.h">
+      <Filter>UI\Backgrounds\Streaks</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml.h">
+      <Filter>UI\Backgrounds\SwipeReveal</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml.h">
+      <Filter>UI\Backgrounds\GlobeGrid</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Orbs\OrbsBackground.xaml.h">
+      <Filter>UI\Backgrounds\Orbs</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Orbs\OrbsSettingsControl.xaml.h">
+      <Filter>UI\Backgrounds\Orbs</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Blobs\BlobsBackground.xaml.h">
+      <Filter>UI\Backgrounds\Blobs</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Blobs\BlobsSettingsControl.xaml.h">
+      <Filter>UI\Backgrounds\Blobs</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\DynamicBackgroundHost.xaml.h">
+      <Filter>UI\Backgrounds</Filter>
     </ClInclude>
     <ClInclude Include="Utils\FloatBuffer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Plot\ImGuiPlots.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Plot\PlotDesc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Streaming\Pacer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Streaming\PacerCompat.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Streaming\FrameQueue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Streaming\FrameCadence.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Converters\BoolToTextConverter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="State\GamepadState.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="UI\Models\ViewModels\AppPageViewModel.h">
+      <Filter>UI\Models\ViewModels</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="Assets\grid.png">
+      <Filter>Assets</Filter>
+    </Image>
     <Image Include="Assets\LargeTile.scale-100.png">
       <Filter>Assets</Filter>
     </Image>
@@ -502,7 +978,37 @@
     <Image Include="Assets\LargeTile.scale-400.png">
       <Filter>Assets</Filter>
     </Image>
+    <Image Include="Assets\loading2.gif">
+      <Filter>Assets</Filter>
+    </Image>
     <Image Include="Assets\LockScreenLogo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\logo1.gif">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\logo1.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\logo2.gif">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\logo_a.gif">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\orbit_load.gif">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\orbit_load2.gif">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\orbit_load3.gif">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\play.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Play1.png">
       <Filter>Assets</Filter>
     </Image>
     <Image Include="Assets\SmallTile.scale-100.png">
@@ -642,19 +1148,17 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <AppxManifest Include="Package.appxmanifest" />
-  </ItemGroup>
-  <ItemGroup>
-    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
-      <Filter>DLLs</Filter>
-    </CopyFileToFolders>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Assets\desktop.svg">
       <Filter>Assets</Filter>
     </None>
     <None Include="Assets\disconnected.svg">
       <Filter>Assets</Filter>
+    </None>
+    <None Include="Assets\Font\ModeSeven-12.spritefont">
+      <Filter>Assets\Font</Filter>
+    </None>
+    <None Include="Assets\Font\ModeSeven-24.spritefont">
+      <Filter>Assets\Font</Filter>
     </None>
     <None Include="Assets\gamepad.svg">
       <Filter>Assets</Filter>
@@ -665,33 +1169,29 @@
     <None Include="Assets\Play.svg">
       <Filter>Assets</Filter>
     </None>
-    <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />
-    <None Include="packages.config" />
-    <None Include="README.md" />
-    <None Include="Package.StoreAssociation.xml" />
     <None Include="Assets\qrSunshine.svg">
       <Filter>Assets</Filter>
     </None>
     <None Include="Assets\qrSupport.svg">
       <Filter>Assets</Filter>
     </None>
-    <None Include="Assets\Font\ModeSeven-24.spritefont">
-      <Filter>Assets</Filter>
+    <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc">
+      <Filter>Assets\Shader</Filter>
     </None>
-    <None Include="Assets\Font\ModeSeven-12.spritefont">
-      <Filter>Assets</Filter>
+    <None Include="Assets\Shader\d3d11_vertex.fxc">
+      <Filter>Assets\Shader</Filter>
     </None>
-    <None Include="Assets\Shader\d3d11_vertex.fxc" />
-    <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc" />
+    <None Include="moonlight-xbox-dx_TemporaryKey.pfx" />
+    <None Include="packages.config" />
+    <None Include="README.md" />
+    <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Pages\AppPage.xaml" />
-    <Page Include="Pages\HostSelectorPage.xaml" />
-    <Page Include="Pages\HostSettingsPage.xaml" />
-    <Page Include="Pages\MoonlightSettings.xaml" />
-    <Page Include="Pages\StreamPage.xaml" />
-    <Page Include="KeyboardControl.xaml" />
-    <Page Include="MoonlightWelcome.xaml" />
-    <Page Include="Common\ModalDialog.xaml" />
+    <AppxManifest Include="Package.appxmanifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>vcpkg_installed\x64-uwp\bin</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>
