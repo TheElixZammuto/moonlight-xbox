@@ -1,9 +1,9 @@
-// Variant of d3d11_yuv420_pixel.hlsl that samples the decoder's output surface
-// directly. FFmpeg's D3D11VA decoder hands frames out as slices of a single
-// Texture2D *array*, so the planes are declared as Texture2DArray here. The SRVs
-// bound to t0/t1 are created with FirstArraySlice pointing at the decoded frame's
-// slice and ArraySize == 1, so within the shader we always sample array index 0.
-// This lets us skip the per-frame CopySubresourceRegion1 used by the Texture2D path.
+// YUV->RGB shader that samples the decoder's output surface directly. FFmpeg's
+// D3D11VA decoder hands frames out as slices of a single Texture2D *array*, so
+// the planes are declared as Texture2DArray here. The SRVs bound to t0/t1 are
+// created with FirstArraySlice pointing at the decoded frame's slice and
+// ArraySize == 1, so within the shader we always sample array index 0. This
+// avoids a per-frame CopySubresourceRegion1 into an intermediate texture.
 Texture2DArray<min16float> luminancePlane : register(t0);
 Texture2DArray<min16float2> chrominancePlane : register(t1);
 SamplerState theSampler : register(s0);

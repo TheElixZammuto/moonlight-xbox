@@ -623,10 +623,6 @@
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>
-    <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc">
-      <DeploymentContent>true</DeploymentContent>
-      <FileType>Document</FileType>
-    </None>
     <None Include="Assets\Shader\d3d11_yuv420_pixel_array.fxc">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>

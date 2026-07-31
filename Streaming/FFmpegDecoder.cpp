@@ -92,29 +92,23 @@ namespace moonlight_xbox_dx {
 		for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
 			if (*p == AV_PIX_FMT_D3D11) {
 				auto *me = reinterpret_cast<FFMpegDecoder *>(avctx->opaque);
-				if (me) {
-					me->trySetupDirectSampleFramesContext(avctx);
+				if (me->setupDirectSampleFramesContext(avctx)) {
+					return AV_PIX_FMT_D3D11;
 				}
-				return AV_PIX_FMT_D3D11;
+				return AV_PIX_FMT_NONE;
 			}
 		}
-		// Should not happen for a D3D11VA decoder, but return whatever ffmpeg offers
-		return pix_fmts[0];
+		return AV_PIX_FMT_NONE;
 	}
 
 	// Allocate the hwaccel frame pool ourselves so we can add D3D11_BIND_SHADER_RESOURCE
-	// to its textures. If anything fails we leave avctx->hw_frames_ctx alone and ffmpeg
-	// falls back to allocating its own default pool, which the renderer copies from.
-	void FFMpegDecoder::trySetupDirectSampleFramesContext(AVCodecContext *avctx) {
-		m_directSampling.store(false, std::memory_order_release);
-
-		//return; // uncomment to test CopySubresourceRegion1 method
-
+	// to its textures, which the renderer requires to sample decoder surfaces directly.
+	bool FFMpegDecoder::setupDirectSampleFramesContext(AVCodecContext *avctx) {
 		AVBufferRef *frames_ref = nullptr;
 		int err = avcodec_get_hw_frames_parameters(avctx, avctx->hw_device_ctx, AV_PIX_FMT_D3D11, &frames_ref);
 		if (err < 0 || frames_ref == nullptr) {
-			Utils::Logf("Direct sampling: avcodec_get_hw_frames_parameters failed (%d), using copy path\n", err);
-			return;
+			Utils::Logf("Direct sampling: avcodec_get_hw_frames_parameters failed (%d)\n", err);
+			return false;
 		}
 
 		auto *frames_ctx = reinterpret_cast<AVHWFramesContext *>(frames_ref->data);
@@ -128,12 +122,12 @@ namespace moonlight_xbox_dx {
 		err = av_hwframe_ctx_init(frames_ref);
 		if (err < 0) {
 			// Most likely the driver won't allow BIND_DECODER | BIND_SHADER_RESOURCE
-			// on the same texture. Fall back to the copy path.
+			// on the same texture.
 			char e[256];
 			av_strerror(err, e, sizeof(e));
-			Utils::Logf("Direct sampling unavailable (av_hwframe_ctx_init: %s), using copy path\n", e);
+			Utils::Logf("Direct sampling unavailable (av_hwframe_ctx_init: %s)\n", e);
 			av_buffer_unref(&frames_ref);
-			return;
+			return false;
 		}
 
 		// Release any pool from a previous get_format call (e.g. a mid-stream format
@@ -142,8 +136,7 @@ namespace moonlight_xbox_dx {
 			av_buffer_unref(&avctx->hw_frames_ctx);
 		}
 		avctx->hw_frames_ctx = frames_ref; // transfer ownership to the codec
-		m_directSampling.store(true, std::memory_order_release);
-		Utils::Log("Direct sampling enabled: renderer will sample decoder surfaces without a per-frame copy\n");
+		return true;
 	}
 
     void FFMpegDecoder::CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config, bool framePacingImmediate) {
