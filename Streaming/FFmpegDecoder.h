@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <mutex>
 #include <queue>
 #include "../Common/StepTimer.h"
@@ -36,6 +35,12 @@ class FFMpegDecoder {
 	int SubmitDecodeUnit(PDECODE_UNIT decodeUnit);
 	static FFMpegDecoder *getInstance();
 	static DECODER_RENDERER_CALLBACKS getDecoder();
+
+	// Called from the get_format callback to set up a frame pool with
+	// D3D11_BIND_SHADER_RESOURCE so the renderer can sample decoder surfaces
+	// directly. Returns false on failure, which aborts decoding.
+	bool setupDirectSampleFramesContext(AVCodecContext *avctx);
+
 	int videoFormat, width, height, fps;
 	std::recursive_mutex m_mutex;
 

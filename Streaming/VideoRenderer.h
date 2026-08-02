@@ -5,6 +5,9 @@
 #include "State\MoonlightClient.h"
 #include "State\StreamConfiguration.h"
 #include <atomic>
+#include <array>
+#include <unordered_map>
+#include <vector>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -46,11 +49,10 @@ namespace moonlight_xbox_dx
 		void bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC frameDesc);
 		void SetHDR(bool enabled);
 		void Stop();
-		ID3D11Texture2D* GenerateTexture();
-
 
 	private:
-		bool setupVideoTexture(D3D11_TEXTURE2D_DESC frameDesc);
+		const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>*
+			getDirectSampleSrvs(ID3D11Texture2D* texture, UINT slice, const D3D11_TEXTURE2D_DESC& desc);
 		void setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc);
 		void getFramePremultipliedCscConstants(const AVFrame* frame, std::array<float, 9> &cscMatrix, std::array<float, 3> &offsets);
 		void getFrameChromaCositingOffsets(const AVFrame* frame, std::array<float, 2> &chromaOffsets);
@@ -64,14 +66,12 @@ namespace moonlight_xbox_dx
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_VideoVertexBuffer;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_indexBuffer;
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>	m_vertexShader;
-		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShaderYUV420;
+		// Texture2DArray YUV->RGB shader, samples the decoder surfaces directly
+		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShaderYUV420Array;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_cscConstantBuffer;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>  m_samplerState;
 		Windows::Graphics::Display::Core::HdmiDisplayMode^ m_lastDisplayMode;
 		Windows::Graphics::Display::Core::HdmiDisplayMode^ m_currentDisplayMode;
-
-		Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_VideoTexture;
-		std::array<std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>, 1> m_VideoTextureResourceViews;
 
 		// Variables used with the rendering loop.
 		DXGI_HDR_METADATA_HDR10 m_lastHdr10;
@@ -81,8 +81,6 @@ namespace moonlight_xbox_dx
 		StreamConfiguration^ configuration;
 
 		DECODER_PARAMETERS m_DecoderParams{};
-		int m_TextureAlignment;
-		DXGI_FORMAT m_TextureFormat;
 		UINT m_TextureWidth;
 		UINT m_TextureHeight;
 		int m_DisplayWidth;
@@ -97,6 +95,12 @@ namespace moonlight_xbox_dx
 		AVColorTransferCharacteristic m_LastColorTrc = AVCOL_TRC_UNSPECIFIED;
 		AVColorSpace m_LastColorSpace = AVCOL_SPC_UNSPECIFIED;
 		AVChromaLocation m_LastChromaLocation = AVCHROMA_LOC_UNSPECIFIED;
+
+		// Cache of SRVs over the ffmpeg decoder's array texture(s). Keyed by the
+		// underlying ID3D11Texture2D*; the inner vector is indexed by array slice,
+		// each holding the (luma, chroma) pair.
+		std::unordered_map<ID3D11Texture2D*,
+			std::vector<std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>>> m_DirectSampleSrvs;
 	};
 }
 

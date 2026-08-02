@@ -85,6 +85,60 @@ namespace moonlight_xbox_dx {
 		Utils::Logf(shouldPrefixThisMessage ? "[ffmpeg] %s" : "%s", lineBuffer);
 	}
 
+	// ffmpeg calls this to let us pick the output pixel format. We use it as the
+	// hook to allocate a D3D11VA frame pool with D3D11_BIND_SHADER_RESOURCE so the
+	// renderer can sample decoder surfaces directly (skipping a per-frame copy).
+	static enum AVPixelFormat ff_get_format(AVCodecContext *avctx, const enum AVPixelFormat *pix_fmts) {
+		for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
+			if (*p == AV_PIX_FMT_D3D11) {
+				auto *me = reinterpret_cast<FFMpegDecoder *>(avctx->opaque);
+				if (me->setupDirectSampleFramesContext(avctx)) {
+					return AV_PIX_FMT_D3D11;
+				}
+				return AV_PIX_FMT_NONE;
+			}
+		}
+		return AV_PIX_FMT_NONE;
+	}
+
+	// Allocate the hwaccel frame pool ourselves so we can add D3D11_BIND_SHADER_RESOURCE
+	// to its textures, which the renderer requires to sample decoder surfaces directly.
+	bool FFMpegDecoder::setupDirectSampleFramesContext(AVCodecContext *avctx) {
+		AVBufferRef *frames_ref = nullptr;
+		int err = avcodec_get_hw_frames_parameters(avctx, avctx->hw_device_ctx, AV_PIX_FMT_D3D11, &frames_ref);
+		if (err < 0 || frames_ref == nullptr) {
+			Utils::Logf("Direct sampling: avcodec_get_hw_frames_parameters failed (%d)\n", err);
+			return false;
+		}
+
+		auto *frames_ctx = reinterpret_cast<AVHWFramesContext *>(frames_ref->data);
+		auto *d3d11_frames = reinterpret_cast<AVD3D11VAFramesContext *>(frames_ctx->hwctx);
+
+		// Default is D3D11_BIND_DECODER only. Add SHADER_RESOURCE so we can create SRVs
+		// over the decoder surfaces. This keeps the pool as a single array texture
+		// (decoding requires that), just with an extra bind flag.
+		d3d11_frames->BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+
+		err = av_hwframe_ctx_init(frames_ref);
+		if (err < 0) {
+			// Most likely the driver won't allow BIND_DECODER | BIND_SHADER_RESOURCE
+			// on the same texture.
+			char e[256];
+			av_strerror(err, e, sizeof(e));
+			Utils::Logf("Direct sampling unavailable (av_hwframe_ctx_init: %s)\n", e);
+			av_buffer_unref(&frames_ref);
+			return false;
+		}
+
+		// Release any pool from a previous get_format call (e.g. a mid-stream format
+		// change) before taking ownership of the new one, so we don't leak it.
+		if (avctx->hw_frames_ctx) {
+			av_buffer_unref(&avctx->hw_frames_ctx);
+		}
+		avctx->hw_frames_ctx = frames_ref; // transfer ownership to the codec
+		return true;
+	}
+
     void FFMpegDecoder::CompleteInitialization(const std::shared_ptr<DX::DeviceResources>& res, STREAM_CONFIGURATION *config, bool framePacingImmediate) {
 		this->m_deviceResources = res;
 		this->fps = config->fps;
@@ -150,6 +204,8 @@ namespace moonlight_xbox_dx {
 		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 		av_buffer_unref(&hw_device_ctx);
 		decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
+		// get_format lets us allocate a frame pool we can sample directly (no per-frame copy)
+		decoder_ctx->get_format = ff_get_format;
 		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
 		decoder_ctx->pkt_timebase.num = 1;
 		decoder_ctx->pkt_timebase.den = 90000;

@@ -1,10 +1,11 @@
 ﻿#include "pch.h"
 #include "VideoRenderer.h"
+#include "Pacer.h"
 #include <State\MoonlightClient.h>
 #include "..\Common\DirectXHelper.h"
-#include <Streaming\FFMpegDecoder.h>
 #include <Utils.hpp>
 #include "..\Common\ModalDialog.xaml.h"
+#include "..\Plot\ImGuiPlots.h"
 
 #include <d3d11shader.h>
 #include <d3dcompiler.h>
@@ -81,7 +82,7 @@ void VideoRenderer::Update(DX::StepTimer const& timer)
 
 }
 
-static inline std::vector<DXGI_FORMAT> getVideoTextureSRVFormats(DXGI_FORMAT fmt)
+static inline std::vector<DXGI_FORMAT> getPlaneSRVFormats(DXGI_FORMAT fmt)
 {
 	if (fmt == DXGI_FORMAT_P010) {
 		return { DXGI_FORMAT_R16_UNORM, DXGI_FORMAT_R16G16_UNORM };
@@ -100,7 +101,10 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	}
 
 	auto *ctx = m_deviceResources->GetD3DDeviceContext();
-	auto *dev = m_deviceResources->GetD3DDevice();
+
+#if defined(_DEBUG)
+	Pacer::instance().StartGpuTimerForFrame();
+#endif
 
 	// Clear the back buffer
 	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
@@ -119,23 +123,23 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ffmpegTexture->GetDesc(&ffmpegDesc);
 
 	bool hasChanged = hasFrameFormatChanged(frame);
-	if (hasChanged) {
-		setupVideoTexture(ffmpegDesc);
-	}
 
-	// SRV 0 is always mapped to the video texture
-	UINT srvIndex = 0;
-	// Copy this frame into our video texture
-	ctx->CopySubresourceRegion1(m_VideoTexture.Get(), 0, 0, 0, 0,
-	                            (ID3D11Resource *)frame->data[0], (int)(intptr_t)frame->data[1],
-	                            nullptr, D3D11_COPY_DISCARD);
+	// Sample the decoder's array texture straight into the YUV->RGB shader.
+	// frame->data[1] is the slice of the decoder's array texture holding this frame.
+	UINT slice = (UINT)(intptr_t)frame->data[1];
+	const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>* frameSrvPair =
+	    getDirectSampleSrvs(ffmpegTexture, slice, ffmpegDesc);
+	if (!frameSrvPair) {
+		// SRV creation failed; nothing we can render this frame
+		return false;
+	}
 
 	// Setup shader
 	ctx->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 	ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	ctx->IASetInputLayout(m_inputLayout.Get());
 	ctx->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-	ctx->PSSetShader(m_pixelShaderYUV420.Get(), nullptr, 0);
+	ctx->PSSetShader(m_pixelShaderYUV420Array.Get(), nullptr, 0);
 
 	if (hasChanged) {
 		setupVertexBuffer(ffmpegDesc);
@@ -148,12 +152,16 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ctx->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
 	// Bind SRVs for this frame
-	ID3D11ShaderResourceView* frameSrvs[] = { m_VideoTextureResourceViews[srvIndex][0].Get(), m_VideoTextureResourceViews[srvIndex][1].Get() };
+	ID3D11ShaderResourceView* frameSrvs[] = { (*frameSrvPair)[0].Get(), (*frameSrvPair)[1].Get() };
 	ctx->PSSetShaderResources(0, 2, frameSrvs);
 	ctx->PSSetConstantBuffers(0, 1, m_cscConstantBuffer.GetAddressOf());
 
 	// Draw the video
 	ctx->DrawIndexed(6, 0, 0);
+
+#if defined(_DEBUG)
+	Pacer::instance().EndGpuTimerForFrame();
+#endif
 
 	// Unbind SRVs for this frame
 	ID3D11ShaderResourceView* nullSrvs[2] = {};
@@ -181,6 +189,17 @@ bool VideoRenderer::Render(AVFrame *frame) {
 
 		m_LastColorTrc = frame->color_trc;
 	}
+
+#if defined(_DEBUG)
+	// This is the average GPU time as of a few frames ago
+	auto gpuTimer = Pacer::instance().GetGpuPerformanceTimer();
+	float gpuMs = gpuTimer->GetFrameTime();
+	ImGuiPlots::instance().observeFloat(PLOT_ETC, (float)gpuMs);
+	m_deviceResources->GetStats()->SubmitGpuTime(
+		gpuTimer->GetMinFrameTime(),
+		gpuTimer->GetMaxFrameTime(),
+		gpuTimer->GetAvgFrameTime());
+#endif
 
 	return true;
 }
@@ -218,15 +237,15 @@ void VideoRenderer::CreateDeviceDependentResources()
 			, "Input Layout Creation");
 	}
 
-	// Pixel shader
+	// Texture2DArray pixel shader, samples the decoder's output surfaces directly
 	{
-		auto pixelShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_yuv420_pixel.fxc");
+		auto pixelShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_yuv420_pixel_array.fxc");
 		DX::ThrowIfFailed(
 		    m_deviceResources->GetD3DDevice()->CreatePixelShader(
 		        pixelShaderBytecode.data(),
 		        pixelShaderBytecode.size(),
 		        nullptr,
-				&m_pixelShaderYUV420
+				&m_pixelShaderYUV420Array
 			)
 			, "Pixel Shader Creation");
 	}
@@ -280,7 +299,7 @@ void VideoRenderer::CreateDeviceDependentResources()
 
     DISPATCH_THREADPOOL(([this, devRes = m_deviceResources, cfg = configuration] {
         int status = this->client->StartStreaming(devRes, cfg);
-		
+
 		if (status != 0) {
 			Utils::Logf("StartStreaming failed with status %d\n", status);
 			m_loadingSuccessful.store(false, std::memory_order_release);
@@ -301,11 +320,14 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_loadingSuccessful.store(false, std::memory_order_release);
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
-	m_pixelShaderYUV420.Reset();
+	m_pixelShaderYUV420Array.Reset();
 	m_cscConstantBuffer.Reset();
 	m_VideoVertexBuffer.Reset();
 	m_samplerState.Reset();
 	m_indexBuffer.Reset();
+
+	// Drop SRVs over decoder surfaces; the pool is owned by ffmpeg and is going away.
+	m_DirectSampleSrvs.clear();
 }
 
 void VideoRenderer::scaleSourceToDestinationSurface(IRECT* src, IRECT* dst)
@@ -331,49 +353,42 @@ void VideoRenderer::screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, 
 	dst->h = (float)src->h / (viewportHeight / 2.0f);
 }
 
-bool VideoRenderer::setupVideoTexture(D3D11_TEXTURE2D_DESC frameDesc)
+const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>*
+VideoRenderer::getDirectSampleSrvs(ID3D11Texture2D* texture, UINT slice, const D3D11_TEXTURE2D_DESC& desc)
 {
-	m_TextureWidth = frameDesc.Width;
-	m_TextureHeight = frameDesc.Height;
-	m_TextureFormat = frameDesc.Format;
-	assert(m_TextureWidth > 0 && m_TextureHeight > 0);
+	auto it = m_DirectSampleSrvs.find(texture);
+	if (it == m_DirectSampleSrvs.end()) {
+		// Build the (luma, chroma) SRV pair for every slice of this array texture once.
+		std::vector<std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>> slices(desc.ArraySize);
+		auto formats = getPlaneSRVFormats(desc.Format);
 
-	D3D11_TEXTURE2D_DESC texDesc = {};
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+		srvDesc.Texture2DArray.MostDetailedMip = 0;
+		srvDesc.Texture2DArray.MipLevels = 1;
+		srvDesc.Texture2DArray.ArraySize = 1;
 
-	texDesc.Width = m_TextureWidth;
-	texDesc.Height = m_TextureHeight;
-	texDesc.MipLevels = 1;
-	texDesc.ArraySize = 1;
-	texDesc.Format = m_TextureFormat;
-	texDesc.SampleDesc.Quality = 0;
-	texDesc.SampleDesc.Count = 1;
-	texDesc.Usage = D3D11_USAGE_DEFAULT;
-	texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	texDesc.CPUAccessFlags = 0;
-	texDesc.MiscFlags = 0;
-
-	m_VideoTexture.Reset();
-	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&texDesc, nullptr, &m_VideoTexture));
-
-	// Create SRVs for the texture
-	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = 1;
-	size_t srvIndex = 0;
-	for (DXGI_FORMAT srvFormat : getVideoTextureSRVFormats(frameDesc.Format)) {
-		assert(srvIndex < m_VideoTextureResourceViews[0].size());
-
-		m_VideoTextureResourceViews[0][srvIndex].Reset();
-
-		srvDesc.Format = srvFormat;
-		DX::ThrowIfFailed(
-		    m_deviceResources->GetD3DDevice()->CreateShaderResourceView(m_VideoTexture.Get(), &srvDesc, &m_VideoTextureResourceViews[0][srvIndex]));
-
-		srvIndex++;
+		auto* dev = m_deviceResources->GetD3DDevice();
+		for (UINT s = 0; s < desc.ArraySize; s++) {
+			srvDesc.Texture2DArray.FirstArraySlice = s;
+			for (size_t plane = 0; plane < formats.size() && plane < 2; plane++) {
+				srvDesc.Format = formats[plane];
+				HRESULT hr = dev->CreateShaderResourceView(texture, &srvDesc, &slices[s][plane]);
+				if (FAILED(hr)) {
+					Utils::Logf("Direct sampling SRV creation failed (slice %u, plane %zu, 0x%08X)\n",
+					            s, plane, (unsigned)hr);
+					return nullptr;
+				}
+			}
+		}
+		it = m_DirectSampleSrvs.emplace(texture, std::move(slices)).first;
 	}
 
-	return true;
+	if (slice >= it->second.size()) {
+		// Out of range slice index; should never happen, but stay safe.
+		return nullptr;
+	}
+	return &it->second[slice];
 }
 
 // Create our fixed vertex buffer for video rendering

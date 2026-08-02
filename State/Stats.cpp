@@ -8,7 +8,10 @@ using namespace moonlight_xbox_dx;
 
 Stats::Stats() :
 	m_avgQueueSize(0.0),
-	m_avgMbpsSmoothed(0.0)
+	m_avgMbpsSmoothed(0.0),
+	m_minGpuTimeMs(0.0f),
+	m_maxGpuTimeMs(0.0f),
+	m_avgGpuTimeMs(0.0f)
 {
 	ZeroMemory(&m_ActiveWndVideoStats, sizeof(VIDEO_STATS));
 	ZeroMemory(&m_LastWndVideoStats, sizeof(VIDEO_STATS));
@@ -147,6 +150,13 @@ void Stats::SubmitRenderStats(double preWaitTimeMs, double renderTimeMs, double 
 	// Only shown in debug builds
 	m_ActiveWndVideoStats.totalPreWaitTimeUs += static_cast<uint64_t>(preWaitTimeMs * 1000);
 	m_ActiveWndVideoStats.totalPresentTimeUs += static_cast<uint64_t>(presentTimeMs * 1000);
+}
+
+void Stats::SubmitGpuTime(float minGpuTimeMs, float maxGpuTimeMs, float avgGpuTimeMs) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_minGpuTimeMs = minGpuTimeMs;
+	m_maxGpuTimeMs = maxGpuTimeMs;
+	m_avgGpuTimeMs = avgGpuTimeMs;
 }
 
 /// private methods
@@ -323,7 +333,7 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 	if (stats.framesWithHostProcessingLatency > 0) {
 		ret = snprintf(&output[offset],
 					   length - offset,
-					   "Host processing latency min/max/average: %.1f/%.1f/%.1f ms\n",
+					   "Host processing latency min/max/avg: %.1f/%.1f/%.1f ms\n",
 					   (double)stats.minHostProcessingLatency / 10,
 					   (double)stats.maxHostProcessingLatency / 10,
 					   (double)stats.totalHostProcessingLatency / 10 / stats.framesWithHostProcessingLatency);
@@ -391,9 +401,11 @@ void Stats::formatVideoStats(DX::StepTimer const& timer, VIDEO_STATS& stats, cha
 					   "------\n"
 					   "Missed present rate: %.2f%%\n"
 					   "PreWait/Render: %.2f/%.2f ms\n",
+					   "GPU render cost min/max/avg: %.2f/%.2f/%.2f ms\n"
 					   stats.hitDeadlines ? ((double)stats.missedDeadlines / (stats.missedDeadlines + stats.hitDeadlines)) * 100 : 0.0f,
 					   (double)stats.totalPreWaitTimeUs / 1000.0 / stats.renderedFrames,
-					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames);
+					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames,
+					   m_minGpuTimeMs, m_maxGpuTimeMs, m_avgGpuTimeMs);
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;

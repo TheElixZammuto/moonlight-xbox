@@ -390,6 +390,7 @@
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="Common\DirectXHelper.cpp" />
     <ClCompile Include="Common\TextConsole.cpp" />
     <ClCompile Include="Converters\BoolToTextConverter.cpp" />
     <ClCompile Include="Keyboard\kbda1.cpp" />
@@ -622,7 +623,7 @@
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>
-    <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc">
+    <None Include="Assets\Shader\d3d11_yuv420_pixel_array.fxc">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>
