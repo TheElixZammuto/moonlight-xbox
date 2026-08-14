@@ -13,3 +13,7 @@
 [submodule "third_party/pyrowave"]
 	path = third_party/pyrowave
 	url = https://github.com/andygrundman/pyrowave.git
+[submodule "third_party/tracy-xbox"]
+	path = third_party/tracy-xbox
+	url = https://github.com/andygrundman/tracy.git
+	branch = andyg.xbox-uwp
