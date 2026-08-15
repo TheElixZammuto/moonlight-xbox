@@ -90,7 +90,9 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 	m_StreamFps = streamFps;
 	m_RefreshRate = refreshRate;
 	m_FramePacingImmediate.store(framePacingImmediate, std::memory_order_release);
+#ifdef _DEBUG
 	m_GpuPerformanceTimer = std::make_unique<DX::GpuPerformanceTimer>(res);
+#endif
 
 	m_FrameCadence.init(m_RefreshRate > 0.0 ? m_RefreshRate : 60.0, static_cast<double>(streamFps));
 
@@ -239,6 +241,7 @@ void Pacer::updateFrameStats() {
 // Main render thread
 
 void Pacer::waitForFrame(double timeoutMs) {
+	ZoneScopedC(tracy::Color::Cyan);
 	if (!running()) return;
 
 	// Wait for a decoded frame to be available
@@ -265,6 +268,7 @@ bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 // Pros: lowest latency, output framerate matches input framerate
 // Cons: only works well on Xbox Series for some reason
 bool Pacer::renderModeImmediate(std::shared_ptr<VideoRenderer> &sceneRenderer) {
+	ZoneScopedC(tracy::Color::Red);
 	AVFrame *newFrame = FrameQueue::instance().dequeue();
 	if (!newFrame) {
 		return false; // no frame, don't Present()
@@ -314,6 +318,7 @@ bool Pacer::renderModeImmediate(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 // Cons: higher latency
 //       more difficult to control queue size, requires additional frame drop logic
 bool Pacer::renderModeDisplayLocked(std::shared_ptr<VideoRenderer> &sceneRenderer) {
+	ZoneScopedC(tracy::Color::Red);
 	// Consume frame(s) according to cadence
 	int advanceCount = m_FrameCadence.decideAdvanceCount();
 
@@ -368,6 +373,7 @@ bool Pacer::renderModeDisplayLocked(std::shared_ptr<VideoRenderer> &sceneRendere
 
 // called by render thread, returns true if we waited, false if we missed the target
 bool Pacer::waitBeforePresent(int64_t target) {
+	ZoneScopedC(tracy::Color::Blue);
 	if (!running()) return false;
 
 	int64_t now = QpcNow();
@@ -398,6 +404,7 @@ int64_t Pacer::getCurrentFramePts() {
 
 // called by decoder thread
 void Pacer::submitFrame(AVFrame *frame) {
+	ZoneScoped;
 	// Update cadence from pts if available
 	if (frame->pts) {
 		m_FrameCadence.observeFramePts(frame->pts);

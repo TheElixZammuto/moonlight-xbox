@@ -46,8 +46,14 @@ void StatsRenderer::Update(DX::StepTimer const &timer) {
 void StatsRenderer::Render(bool showImGui) {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	if (m_visible) {
-		m_console->Render();
+		{
+			ZoneScopedN("StatsRender");
+			TracyD3D11Zone(g_tracyCtx11, "StatsRender");
+			m_console->Render();
+		}
 		if (showImGui) {
+			ZoneScopedN("GraphsRender");
+			TracyD3D11Zone(g_tracyCtx11, "GraphsRender");
 			RenderGraphs();
 		}
 	}

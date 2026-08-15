@@ -43,6 +43,7 @@ static MoonlightApp^ GetAppById(MoonlightHost^ host, int appId) {
 AppPage::AppPage()
 {
 	InitializeComponent();
+
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &AppPage::OnLoaded);

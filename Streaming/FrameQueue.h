@@ -63,8 +63,8 @@ class FrameQueue {
 
 	// Members
 
-	mutable std::mutex _mutex;
-	std::condition_variable _cv;
+	mutable TracyLockable(std::mutex, _mutex);
+	std::condition_variable_any _cv;
 
 	std::vector<AVFrame*> _buffer;
 	int _capacity;

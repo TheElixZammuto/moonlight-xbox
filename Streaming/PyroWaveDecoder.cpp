@@ -147,6 +147,7 @@ void PyroWaveDecoder::ApplyFrameColor(AVFrame *frame, const DECODE_UNIT *decodeU
 // flagged it as starting with a record. RTP fragments may split PyroWave
 // records, so the whole decode unit is parsed at once.
 bool PyroWaveDecoder::AssembleDecodeUnit(PDECODE_UNIT decodeUnit) {
+	ZoneScoped;
 	constexpr int kMaxFrameBytes = 64 * 1024 * 1024;
 	if (decodeUnit->fullLength < 8 || decodeUnit->fullLength > kMaxFrameBytes ||
 	    decodeUnit->fullLength % sizeof(uint32_t) != 0) {
@@ -196,6 +197,7 @@ int PyroWaveDecoder::DecodeFailed(const char *reason) {
 
 // Called by the VideoDec thread (CAPABILITY_DIRECT_SUBMIT)
 int PyroWaveDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
+	ZoneScoped;
 	LARGE_INTEGER decodeStart, decodeEnd;
 	QueryPerformanceCounter(&decodeStart);
 	if (m_StreamEpochQpc == 0)

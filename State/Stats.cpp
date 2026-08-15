@@ -495,22 +495,5 @@ void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, cha
 #if defined(_DEBUG)
 	// Developer-only stats that might be too confusing
 	// If you add lines here, add more height pixels in StatsRenderer::CreateWindowSizeDependentResources()
-	if (stats.renderedFrames != 0) {
-		ret = snprintf(&output[offset],
-					   length - offset,
-					   "------\n"
-					   "Missed present rate: %.2f%%\n"
-					   "PreWait/Render: %.2f/%.2f ms\n" stats.hitDeadlines
-						   ? ((double)stats.missedDeadlines / (stats.missedDeadlines + stats.hitDeadlines)) * 100
-						   : 0.0f,
-					   (double)stats.totalPreWaitTimeUs / 1000.0 / stats.renderedFrames,
-					   (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames);
-		if (ret < 0 || (size_t)ret >= (length - offset)) {
-			Utils::Log("Error: stringifyVideoStats length overflow\n");
-			return;
-		}
-
-		offset += ret;
-	}
 #endif
 }

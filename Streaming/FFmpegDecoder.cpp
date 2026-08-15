@@ -297,6 +297,18 @@ namespace moonlight_xbox_dx {
 
     // Called by the VideoDec thread
 	int FFMpegDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
+		// moonlight-common-c owns this thread and calls us with CAPABILITY_DIRECT_SUBMIT, so
+		// this runs on the receive thread and there is no thread entry point of ours to name
+		// it from. SetThreadName allocates and prepends to a global list on every call with
+		// no dedup, so it must happen exactly once per thread rather than once per frame.
+		static thread_local bool threadNamed = false;
+		if (!threadNamed) {
+			threadNamed = true;
+			tracy::SetThreadName("Video decode");
+		}
+
+		ZoneScoped;
+
 		LARGE_INTEGER decodeStart, decodeEnd;
 		PLENTRY entry = decodeUnit->bufferList;
 		int length = 0;

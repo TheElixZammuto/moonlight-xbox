@@ -96,6 +96,8 @@ static inline std::vector<DXGI_FORMAT> getPlaneSRVFormats(DXGI_FORMAT fmt)
 bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
 bool VideoRenderer::Render(AVFrame *frame) {
+	ZoneScopedN("VideoRender");
+	TracyD3D11Zone(g_tracyCtx11, "VideoRender");
 	// Loading is asynchronous. Only draw geometry after it's loaded.
 	if (!m_loadingComplete.load(std::memory_order_acquire) && !m_loadingSuccessful.load(std::memory_order_acquire)) {
 		return true;

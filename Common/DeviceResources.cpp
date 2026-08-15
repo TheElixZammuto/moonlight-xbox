@@ -6,6 +6,7 @@
 #include <Pages/StreamPage.xaml.h>
 #include <Streaming/FFmpegDecoder.h>
 #include <Plot/ImGuiPlots.h>
+#include <Utils.hpp>
 
 using namespace moonlight_xbox_dx;
 using namespace D2D1;
@@ -189,6 +190,28 @@ void DX::DeviceResources::CreateDeviceResources()
 	DX::ThrowIfFailed(
 		context.As(&m_d3dContext)
 		);
+
+#if defined(_DEBUG)
+	{
+		// The DXGI info queue above only reports DXGI-level problems. Invalid D3D11 calls --
+		// misused queries, for instance -- are reported here instead, and otherwise surface
+		// only as a bare __debugbreak() inside the driver with no message and no user frames.
+		ComPtr<ID3D11InfoQueue> d3dInfoQueue;
+		HRESULT infoQueueHr = m_d3dDevice.As(&d3dInfoQueue);
+		moonlight_xbox_dx::Utils::Logf(
+			"D3D11 debug layer: creationFlags=0x%08X infoQueue=%s\n",
+			creationFlags,
+			SUCCEEDED(infoQueueHr) ? "yes" : "NO (messages will not be reported)");
+		if (SUCCEEDED(infoQueueHr))
+		{
+			d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+			d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+			// Warnings are noisy but this is where query misuse tends to be reported, so they
+			// are logged without breaking.
+			d3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, false);
+		}
+	}
+#endif
 }
 
 // These resources need to be recreated every time the window size is changed.
@@ -524,6 +547,7 @@ void DX::DeviceResources::Trim()
 // Present the contents of the swap chain to the screen.
 void DX::DeviceResources::Present()
 {
+	ZoneScoped;
 	int64_t beforePresentQpc = QpcNow();
 
 	HRESULT hr = m_swapChain->Present(0, 0);

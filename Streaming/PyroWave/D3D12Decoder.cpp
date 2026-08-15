@@ -15,6 +15,14 @@ void LogMessage(void *, const char *msg) {
 } // namespace
 
 Decoder::~Decoder() {
+#ifdef TRACY_ENABLE_D3D12
+	// we've lost the connection, clean up
+	if (g_tracyCtx12) {
+		TracyD3D12Destroy(g_tracyCtx12);
+		g_tracyCtx12 = nullptr;
+	}
+#endif
+
 	// Drain the queue so nothing below is released while the GPU still uses it.
 	if (m_queue && m_decodeFence && m_waitEvent) {
 		m_queue->Signal(m_decodeFence.Get(), ++m_decodeValue);
@@ -141,6 +149,10 @@ bool Decoder::Init(ID3D11Device *device11, ID3D11DeviceContext *context11, int w
 		m_timestampReadback.Reset();
 	}
 
+#ifdef TRACY_ENABLE_D3D12
+	g_tracyCtx12 = TracyD3D12Context(m_device.Get(), m_queue.Get());
+#endif
+
 	m_planes.resize(poolSize);
 	return true;
 }
@@ -213,27 +225,33 @@ bool Decoder::Decode(ID3D11DeviceContext *context11, PyroWaveFrameSet *set) {
 	sub.allocator->Reset();
 	m_list->Reset(sub.allocator.Get(), nullptr);
 
-	// 2. Decode on the D3D12 queue once D3D11 is done with the planes.
-	m_queue->Wait(m_releaseFenceOn12.Get(), m_releaseValue);
+	{
+		TracyD3D12Zone(g_tracyCtx12, m_list.Get(), "PyroWave wait D3D11");
+		// 2. Decode on the D3D12 queue once D3D11 is done with the planes.
+		m_queue->Wait(m_releaseFenceOn12.Get(), m_releaseValue);
+	}
 
 	const UINT64 decodeValue = m_decodeValue + 1;
 	if (m_timestamps)
 		m_list->EndQuery(m_timestamps.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 2 * slot);
 
-	// The shared planes carry ALLOW_SIMULTANEOUS_ACCESS, so they promote from COMMON
-	// to UNORDERED_ACCESS implicitly and decay back after execution.
-	Planes &planes = m_planes[set->index];
-	pyrowave_d3d12_gpu_buffers buffers = { { planes.tex[0].Get(), planes.tex[1].Get(), planes.tex[2].Get() } };
-	pyrowave_d3d12_result res =
-	    pyrowave_d3d12_decoder_decode_gpu_buffer(m_pwDecoder, m_list.Get(), &buffers, m_decodeFence.Get(), decodeValue);
-	if (res != PYROWAVE_D3D12_SUCCESS) {
-		Utils::Logf("PyroWave D3D12: decode failed: %s\n", pyrowave_d3d12_result_to_string(res));
-		m_list->Close();
-		// Nothing was submitted; keep the queue's fence sequence consistent anyway.
-		m_queue->Signal(m_decodeFence.Get(), ++m_decodeValue);
-		sub.fenceValue = m_decodeValue;
-		m_nextSubmission = (slot + 1) % kInFlight;
-		return false;
+	{
+		TracyD3D12Zone(g_tracyCtx12, m_list.Get(), "PyroWave decode");
+		// The shared planes carry ALLOW_SIMULTANEOUS_ACCESS, so they promote from COMMON
+		// to UNORDERED_ACCESS implicitly and decay back after execution.
+		Planes &planes = m_planes[set->index];
+		pyrowave_d3d12_gpu_buffers buffers = { { planes.tex[0].Get(), planes.tex[1].Get(), planes.tex[2].Get() } };
+		pyrowave_d3d12_result res =
+			pyrowave_d3d12_decoder_decode_gpu_buffer(m_pwDecoder, m_list.Get(), &buffers, m_decodeFence.Get(), decodeValue);
+		if (res != PYROWAVE_D3D12_SUCCESS) {
+			Utils::Logf("PyroWave D3D12: decode failed: %s\n", pyrowave_d3d12_result_to_string(res));
+			m_list->Close();
+			// Nothing was submitted; keep the queue's fence sequence consistent anyway.
+			m_queue->Signal(m_decodeFence.Get(), ++m_decodeValue);
+			sub.fenceValue = m_decodeValue;
+			m_nextSubmission = (slot + 1) % kInFlight;
+			return false;
+		}
 	}
 
 	if (m_timestamps) {
@@ -251,8 +269,14 @@ bool Decoder::Decode(ID3D11DeviceContext *context11, PyroWaveFrameSet *set) {
 	sub.fenceValue = decodeValue;
 	m_nextSubmission = (slot + 1) % kInFlight;
 
-	// 3. Later D3D11 work (the draw that presents this frame) waits for the decode.
-	m_context4->Wait(m_decodeFenceOn11.Get(), decodeValue);
+	{
+		TracyD3D12Zone(g_tracyCtx12, m_list.Get(), "PyroWave wait decode fence");
+		// 3. Later D3D11 work (the draw that presents this frame) waits for the decode.
+		m_context4->Wait(m_decodeFenceOn11.Get(), decodeValue);
+	}
+
+	TracyD3D12Collect(g_tracyCtx12);
+
 	return true;
 }
 

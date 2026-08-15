@@ -49,6 +49,8 @@ void LogRenderer::Render()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	if (m_visible) {
+		ZoneScopedN("LogRender");
+		TracyD3D11Zone(g_tracyCtx11, "LogRender");
 		m_console->Render();
 		m_warningConsole->Render();
 	}
