@@ -24,6 +24,14 @@ namespace moonlight_xbox_dx {
 		bool enableKeyboard = false;
 		bool shouldAutoConnect = false;
 
+		// Protocol (URI scheme) launch support, filled by App::OnActivated
+		bool pendingProtocolHostSelect = false;
+		std::wstring pendingProtocolHost;
+		int pendingProtocolAppId = -1;
+		std::wstring pendingProtocolAppName;
+		bool pendingProtocolResume = false;
+		Platform::String^ launchOnExitUri;
+
 		bool WakeHost(MoonlightHost^ host);
 		void Validate_WoL(MoonlightHost^ host);
 		std::string WoL_Payload(std::string macAddress);

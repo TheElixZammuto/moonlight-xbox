@@ -223,6 +223,10 @@ void HostSelectorPage::OnStateLoaded() {
 			a->UpdateHostInfo(false);
 		}
 	}).then([this]() {
+		if (GetApplicationState()->pendingProtocolHostSelect) {
+			this->HandleProtocolHostSelect();
+			return;
+		}
 		if (GetApplicationState()->autostartInstance.size() > 0) {
 			auto pii = Utils::StringFromStdString(GetApplicationState()->autostartInstance);
 			for (unsigned int i = 0; i < GetApplicationState()->SavedHosts->Size; i++) {
@@ -250,6 +254,62 @@ void HostSelectorPage::OnStateLoaded() {
 			Utils::Log("HostSelectorPage OnStateLoaded task unknown exception");
 		}
 	});
+}
+
+// The host query can match the instance id, the computer name or the hostname/IP
+void HostSelectorPage::HandleProtocolHostSelect() {
+	auto state = GetApplicationState();
+	state->pendingProtocolHostSelect = false;
+	std::wstring query = state->pendingProtocolHost;
+
+	MoonlightHost^ target = nullptr;
+	if (query.empty()) {
+		if (state->SavedHosts->Size == 1) {
+			target = state->SavedHosts->GetAt(0);
+		}
+		else if (state->autostartInstance.size() > 0) {
+			auto pii = Utils::StringFromStdString(state->autostartInstance);
+			for (unsigned int i = 0; i < state->SavedHosts->Size; i++) {
+				auto host = state->SavedHosts->GetAt(i);
+				if (host->InstanceId != nullptr && host->InstanceId->Equals(pii)) {
+					target = host;
+					break;
+				}
+			}
+		}
+	}
+	else {
+		auto matches = [&query](Platform::String^ value) {
+			return value != nullptr && _wcsicmp(value->Data(), query.c_str()) == 0;
+		};
+		for (unsigned int i = 0; i < state->SavedHosts->Size; i++) {
+			auto host = state->SavedHosts->GetAt(i);
+			if (matches(host->InstanceId) || matches(host->ComputerName) || matches(host->LastHostname)) {
+				target = host;
+				break;
+			}
+		}
+	}
+
+	// Drop the pending app request too, so it doesn't leak into a later manual host selection
+	if (target == nullptr || !target->Connected) {
+		Utils::Log(target == nullptr
+			? "Protocol activation: no saved host matched the requested host\n"
+			: "Protocol activation: the requested host is not reachable\n");
+		state->pendingProtocolAppId = -1;
+		state->pendingProtocolAppName.clear();
+		state->pendingProtocolResume = false;
+		return;
+	}
+
+	auto that = this;
+	MoonlightHost^ host = target;
+	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+		Windows::UI::Core::CoreDispatcherPriority::High,
+		ref new Windows::UI::Core::DispatchedHandler([that, host]() {
+			that->Connect(host);
+		})
+	);
 }
 
 void HostSelectorPage::Connect(MoonlightHost^ host) {

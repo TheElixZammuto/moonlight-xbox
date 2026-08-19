@@ -6,6 +6,7 @@
 #include "pch.h"
 #include <Utils.hpp>
 #include "MoonlightWelcome.xaml.h"
+#include "Pages\StreamPage.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -85,9 +86,135 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	auto state = GetApplicationState();
 	auto that = this;
 	state->Init().then([that](){
+		that->m_stateLoaded = true;
 		that->m_menuPage->OnStateLoaded();
 	});
 	displayRequest->RequestActive();
+}
+
+namespace {
+	// Parsed from a protocol activation, e.g. moonlight:?host=192.168.1.10&appName=Desktop&launchOnExit=retropass:
+	struct ProtocolLaunchRequest {
+		bool hasTarget = false;
+		std::wstring host;
+		int appId = -1;
+		std::wstring appName;
+		bool resume = false;
+		bool hasLaunchOnExit = false;
+		Platform::String^ launchOnExit;
+	};
+
+	// Flag-style parameters count as enabled when present without a value
+	bool IsTruthyParam(Platform::String^ value) {
+		if (value == nullptr || value->IsEmpty()) return true;
+		return _wcsicmp(value->Data(), L"true") == 0 || _wcsicmp(value->Data(), L"1") == 0 || _wcsicmp(value->Data(), L"yes") == 0;
+	}
+
+	ProtocolLaunchRequest ParseProtocolUri(Windows::Foundation::Uri^ uri) {
+		ProtocolLaunchRequest request;
+		Windows::Foundation::WwwFormUrlDecoder^ query = nullptr;
+		try {
+			query = uri->QueryParsed;
+		} catch (...) {
+			moonlight_xbox_dx::Utils::Log("Protocol activation: failed to parse query string\n");
+			return request;
+		}
+		if (query == nullptr) return request;
+		for (unsigned int i = 0; i < query->Size; i++) {
+			auto entry = query->GetAt(i);
+			if (entry == nullptr || entry->Name == nullptr) continue;
+			const wchar_t* name = entry->Name->Data();
+			Platform::String^ value = entry->Value;
+			bool hasValue = value != nullptr && !value->IsEmpty();
+			if (_wcsicmp(name, L"host") == 0 && hasValue) {
+				request.host = value->Data();
+				request.hasTarget = true;
+			} else if (_wcsicmp(name, L"appId") == 0 && hasValue) {
+				request.appId = (int)wcstol(value->Data(), nullptr, 10);
+				request.hasTarget = true;
+			} else if (_wcsicmp(name, L"appName") == 0 && hasValue) {
+				request.appName = value->Data();
+				request.hasTarget = true;
+			} else if (_wcsicmp(name, L"desktop") == 0) {
+				if (IsTruthyParam(value)) {
+					request.appName = L"Desktop";
+					request.hasTarget = true;
+				}
+			} else if (_wcsicmp(name, L"resume") == 0) {
+				if (IsTruthyParam(value)) {
+					request.resume = true;
+					request.hasTarget = true;
+				}
+			} else if (_wcsicmp(name, L"launchOnExit") == 0 && hasValue) {
+				// Return URI provided by the launching frontend (e.g. "retropass:"), passed through as-is
+				request.launchOnExit = value;
+				request.hasLaunchOnExit = true;
+			}
+		}
+		return request;
+	}
+}
+
+/// <summary>
+/// Invoked when the application is activated through a URI scheme (moonlight:).
+/// </summary>
+void App::OnActivated(Windows::ApplicationModel::Activation::IActivatedEventArgs^ e)
+{
+	if (e->Kind != Windows::ApplicationModel::Activation::ActivationKind::Protocol) {
+		return;
+	}
+	auto protocolArgs = dynamic_cast<Windows::ApplicationModel::Activation::ProtocolActivatedEventArgs^>(e);
+	if (protocolArgs == nullptr || protocolArgs->Uri == nullptr) {
+		return;
+	}
+	moonlight_xbox_dx::Utils::Logf("Protocol activation: %S\n", protocolArgs->Uri->AbsoluteUri->Data());
+
+	ProtocolLaunchRequest request = ParseProtocolUri(protocolArgs->Uri);
+
+	auto rootFrame = dynamic_cast<Frame^>(Window::Current->Content);
+	bool isColdStart = (rootFrame == nullptr);
+	if (rootFrame == nullptr)
+	{
+		rootFrame = ref new Frame();
+		rootFrame->NavigationFailed += ref new Windows::UI::Xaml::Navigation::NavigationFailedEventHandler(this, &App::OnNavigationFailed);
+		Window::Current->Content = rootFrame;
+	}
+
+	// Never interrupt an active streaming session, just bring the window to the foreground
+	if (dynamic_cast<StreamPage^>(rootFrame->Content) != nullptr) {
+		moonlight_xbox_dx::Utils::Log("Protocol activation ignored: a stream is currently active\n");
+		Window::Current->Activate();
+		return;
+	}
+
+	auto state = GetApplicationState();
+	state->pendingProtocolHostSelect = request.hasTarget;
+	state->pendingProtocolHost = request.host;
+	state->pendingProtocolAppId = request.appId;
+	state->pendingProtocolAppName = request.appName;
+	state->pendingProtocolResume = request.resume;
+	if (request.hasLaunchOnExit) {
+		state->launchOnExitUri = request.launchOnExit;
+	}
+
+	rootFrame->Navigate(TypeName(HostSelectorPage::typeid));
+	rootFrame->BackStack->Clear();
+	m_menuPage = dynamic_cast<HostSelectorPage^>(rootFrame->Content);
+
+	Window::Current->Activate();
+	if (isColdStart) {
+		displayRequest->RequestActive();
+	}
+
+	auto that = this;
+	if (!m_stateLoaded) {
+		state->Init().then([that]() {
+			that->m_stateLoaded = true;
+			that->m_menuPage->OnStateLoaded();
+		});
+	} else {
+		m_menuPage->OnStateLoaded();
+	}
 }
 /// <summary>
 /// Invoked when application execution is being suspended.  Application state is saved

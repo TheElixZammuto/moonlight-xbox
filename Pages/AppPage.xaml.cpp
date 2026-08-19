@@ -118,7 +118,44 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 		}
 	});
 
-	if (host->AutostartID >= 0 && GetApplicationState()->shouldAutoConnect) {
+	auto state = GetApplicationState();
+	bool hasProtocolRequest = state->pendingProtocolAppId >= 0 || !state->pendingProtocolAppName.empty() || state->pendingProtocolResume;
+	if (hasProtocolRequest) {
+		int requestedAppId = state->pendingProtocolAppId;
+		std::wstring requestedAppName = state->pendingProtocolAppName;
+		bool resumeRequested = state->pendingProtocolResume;
+		state->pendingProtocolAppId = -1;
+		state->pendingProtocolAppName.clear();
+		state->pendingProtocolResume = false;
+
+		// Dispatched at High priority so this runs after UpdateApps() has filled the Apps list
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+			Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, requestedAppId, requestedAppName, resumeRequested]() {
+				int targetId = -1;
+				if (resumeRequested && host->CurrentlyRunningAppId != 0) {
+					targetId = host->CurrentlyRunningAppId;
+				}
+				if (targetId < 0 && requestedAppId >= 0) {
+					targetId = requestedAppId;
+				}
+				if (targetId < 0 && !requestedAppName.empty()) {
+					for (unsigned int i = 0; i < host->Apps->Size; ++i) {
+						auto app = host->Apps->GetAt(i);
+						if (app != nullptr && app->Name != nullptr && _wcsicmp(app->Name->Data(), requestedAppName.c_str()) == 0) {
+							targetId = app->Id;
+							break;
+						}
+					}
+					if (targetId < 0) {
+						Utils::Log("Protocol activation: no app matched the requested name, staying on the app list\n");
+					}
+				}
+				if (targetId >= 0) {
+					this->Connect(targetId);
+				}
+			}));
+	}
+	else if (host->AutostartID >= 0 && GetApplicationState()->shouldAutoConnect) {
 		GetApplicationState()->shouldAutoConnect = false;
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
 			Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this]() {

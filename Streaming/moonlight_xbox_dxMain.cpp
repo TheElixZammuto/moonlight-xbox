@@ -871,6 +871,30 @@ void moonlight_xbox_dxMain::CloseApp() {
 
 void moonlight_xbox_dxMain::ExitStreamPage() {
 
+	// If a frontend launched us with a launchOnExit return URI, go back to it and exit
+	auto state = GetApplicationState();
+	Platform::String ^ returnUri = state->launchOnExitUri;
+	if (returnUri != nullptr && !returnUri->IsEmpty()) {
+		state->launchOnExitUri = nullptr;
+		try {
+			auto uri = ref new Windows::Foundation::Uri(returnUri);
+			concurrency::create_task(Windows::System::Launcher::LaunchUriAsync(uri)).then([](concurrency::task<bool> t) {
+				try {
+					if (t.get()) {
+						Windows::ApplicationModel::Core::CoreApplication::Exit();
+					} else {
+						Utils::Log("ExitStreamPage: failed to launch the return URI\n");
+					}
+				} catch (...) {
+					Utils::Log("ExitStreamPage: failed to launch the return URI\n");
+				}
+			});
+		} catch (...) {
+			Utils::Log("ExitStreamPage: the return URI is not a valid URI\n");
+		}
+		// Keep navigating back below so the app is in a sane state if the launch fails
+	}
+
 	bool reachedAppPage = false;
 
 	try {
