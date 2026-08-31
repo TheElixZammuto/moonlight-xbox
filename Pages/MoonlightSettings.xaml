@@ -58,7 +58,9 @@
                 <ComboBox XYFocusLeft="{x:Bind KeyboardEnable}" Grid.Column="7" Grid.Row="0" x:Name="KeyboardLayoutSelector" SelectionChanged="LayoutSelector_SelectionChanged"></ComboBox>
                 <TextBlock>Layout</TextBlock>
             </StackPanel>
-            <Button x:Name="WelcomeButton" Grid.Row="7" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
+            <TextBlock Grid.Column="0" Grid.Row="7">Game Tile Size:</TextBlock>
+            <Slider Grid.Row="7" Grid.Column="1" Value="{x:Bind State.TileScale}" x:DefaultBindMode="TwoWay" Minimum="25" Maximum="150" StepFrequency="5"/>
+            <Button x:Name="WelcomeButton" Grid.Row="8" Grid.Column="1" Click="WelcomeButton_Click">Open Welcome Wizard</Button>
         </Grid>
     </StackPanel>
 </Page>
