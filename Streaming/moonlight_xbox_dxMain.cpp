@@ -690,6 +690,11 @@ void moonlight_xbox_dxMain::SetGuideButtonDown(uint32_t hostId, bool isDown) {
 	state.SetGuideButtonDown(isDown);
 }
 
+void moonlight_xbox_dxMain::SetShareButtonDown(uint32_t hostId, bool isDown) {
+	auto &state = FindGamepadStateByHostId(hostId);
+	state.SetShareButtonDown(isDown);
+}
+
 uint16_t moonlight_xbox_dxMain::MakeActiveMask() {
 	uint16_t activeMask = 0;
 	for (int i = 0; i < MAX_GAMEPADS; ++i) {
@@ -777,7 +782,9 @@ void moonlight_xbox_dxMain::SendGamepadArrival(GamepadState &state) {
 	if (state.didSendArrival) return;
 
 	uint8_t type = IsXbox() ? LI_CTYPE_XBOX : LI_CTYPE_UNKNOWN;
-	uint32_t supportedButtonFlags = A_FLAG | B_FLAG | X_FLAG | Y_FLAG | BACK_FLAG | PLAY_FLAG | LS_CLK_FLAG | RS_CLK_FLAG | UP_FLAG | DOWN_FLAG | LEFT_FLAG | RIGHT_FLAG | LB_FLAG | RB_FLAG;
+	uint32_t supportedButtonFlags =
+	    A_FLAG | B_FLAG | X_FLAG | Y_FLAG | BACK_FLAG | PLAY_FLAG | LS_CLK_FLAG | RS_CLK_FLAG |
+	    UP_FLAG | DOWN_FLAG | LEFT_FLAG | RIGHT_FLAG | LB_FLAG | RB_FLAG | MISC_FLAG;
 	uint32_t capabilities = LI_CCAP_ANALOG_TRIGGERS | LI_CCAP_RUMBLE | LI_CCAP_TRIGGER_RUMBLE;
 	int rc = LiSendControllerArrivalEvent(state.hostId, MakeActiveMask(), type, supportedButtonFlags, capabilities);
 	if (rc != 0) {
@@ -927,6 +934,18 @@ void moonlight_xbox_dxMain::SendGuideButton(int duration) {
 	});
 }
 
+void moonlight_xbox_dxMain::SendShareButton(int duration) {
+	concurrency::create_async([duration, this]() {
+		// We change the state of the fake Share button, which will be included in the regular controller packets
+		auto &state = FindFirstGamepad();
+		SetShareButtonDown(state.hostId, true);
+
+		Sleep(duration);
+
+		SetShareButtonDown(state.hostId, false);
+	});
+}
+
 void moonlight_xbox_dxMain::SendWinAltB() {
 	// Win-Alt-B = Toggle HDR
 	concurrency::create_async([this]() {
@@ -1032,9 +1051,12 @@ void moonlight_xbox_dxMain::SendGamepadReadingForState(GamepadState &state, Game
 			}
 		}
 
-		// add Guide button if it's being virtually held down by quick menu
+		// add virtual buttons held down by quick menu actions
 		if (state.GetGuideButtonDown()) {
 			buttonFlags |= SPECIAL_FLAG;
+		}
+		if (state.GetShareButtonDown()) {
+			buttonFlags |= MISC_FLAG;
 		}
 
 		LiSendMultiControllerEvent(

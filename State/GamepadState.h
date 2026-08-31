@@ -31,10 +31,12 @@ struct GamepadState {
 	int64_t lastRefreshedQpc;                   // timestamp of last refresh
 	bool didSendArrival;                        // do we need to send LiSendControllerArrivalEvent?
 	std::atomic<bool> isGuideButtonDown{false}; // are we currently holding down the (virtual) Guide button?
+	std::atomic<bool> isShareButtonDown{false}; // are we currently holding down the (virtual) Share button?
 
 	Windows::Gaming::Input::GamepadReading reading;
 	Windows::Gaming::Input::GamepadReading previousReading;
 	bool previousGuideButtonDown;
+	bool previousShareButtonDown;
 	GamepadComboState combo;
 
 	short ltX, ltY, rtX, rtY;   // after a call to normalizeAxes() these are
@@ -74,7 +76,9 @@ struct GamepadState {
 		lastRefreshedQpc = 0;
 		didSendArrival = false;
 		isGuideButtonDown.store(false);
+		isShareButtonDown.store(false);
 		previousGuideButtonDown = false;
+		previousShareButtonDown = false;
 		reading = EmptyReading();
 		previousReading = EmptyReading();
 		ltX = ltY = rtX = rtY = 0;
@@ -104,6 +108,14 @@ struct GamepadState {
 
 	bool GetGuideButtonDown() {
 		return isGuideButtonDown.load();
+	}
+
+	void SetShareButtonDown(bool isDown) {
+		isShareButtonDown.store(isDown);
+	}
+
+	bool GetShareButtonDown() {
+		return isShareButtonDown.load();
 	}
 
 	ComboResult GetComboResult(int comboTimeoutMs) {
@@ -276,6 +288,12 @@ struct GamepadState {
 			return true;
 		}
 
+		bool shareButtonDown = isShareButtonDown.load();
+		if (shareButtonDown != previousShareButtonDown) {
+			previousShareButtonDown = shareButtonDown;
+			return true;
+		}
+
 		return false;
 	}
 
@@ -333,10 +351,11 @@ struct GamepadState {
 		char buttons[128];
 		DumpButtons(reading.Buttons, buttons, sizeof(buttons));
 		moonlight_xbox_dx::Utils::Logf(
-		    "GamepadState[localId: %d, hostId: %d] buttons: %s %s axes: %d %d, %d %d, triggers: %d %d, combo{ state: %d, viewPressed: %d, menuPressed: %d, startTime: %d }\n",
+		    "GamepadState[localId: %d, hostId: %d] buttons: %s %s %s axes: %d %d, %d %d, triggers: %d %d, combo{ state: %d, viewPressed: %d, menuPressed: %d, startTime: %d }\n",
 		    localId, hostId,
 		    buttons,
 		    isGuideButtonDown.load() ? "Guide" : "",
+		    isShareButtonDown.load() ? "Share" : "",
 		    ltX, ltY, rtX, rtY,
 		    lTrig, rTrig,
 		    combo.comboState, combo.viewPressed, combo.menuPressed, combo.startTime);

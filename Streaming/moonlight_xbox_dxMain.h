@@ -35,6 +35,7 @@ namespace moonlight_xbox_dx
 		void CloseApp();
 		void ExitStreamPage();
 		void SendGuideButton(int duration);
+		void SendShareButton(int duration);
 		void SendWinAltB();
 		bool ToggleLogs();
 		bool ToggleStats();
@@ -75,6 +76,7 @@ namespace moonlight_xbox_dx
 		GamepadState& FindFirstGamepad();
 		uint16_t MakeActiveMask();
 		void SetGuideButtonDown(uint32_t hostId, bool isDown);
+		void SetShareButtonDown(uint32_t hostId, bool isDown);
 		void DumpGamepads();
 		void RefreshGamepads();
 		void SendGamepadArrival(GamepadState& state);
