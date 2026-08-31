@@ -529,6 +529,7 @@ void moonlight_xbox_dxMain::ProcessInput() {
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	uint16_t gamepadCount = gamepads->Size;
 	moonlightClient->SetGamepadCount(gamepadCount);
+	UpdateShareButton();
 
 	for (UINT i = 0; i < gamepadCount; i++) {
 		auto &state = this->FindGamepadState(i);
@@ -688,11 +689,6 @@ void moonlight_xbox_dxMain::ProcessInput() {
 void moonlight_xbox_dxMain::SetGuideButtonDown(uint32_t hostId, bool isDown) {
 	auto &state = FindGamepadStateByHostId(hostId);
 	state.SetGuideButtonDown(isDown);
-}
-
-void moonlight_xbox_dxMain::SetShareButtonDown(uint32_t hostId, bool isDown) {
-	auto &state = FindGamepadStateByHostId(hostId);
-	state.SetShareButtonDown(isDown);
 }
 
 uint16_t moonlight_xbox_dxMain::MakeActiveMask() {
@@ -935,15 +931,9 @@ void moonlight_xbox_dxMain::SendGuideButton(int duration) {
 }
 
 void moonlight_xbox_dxMain::SendShareButton(int duration) {
-	concurrency::create_async([duration, this]() {
-		// We change the state of the fake Share button, which will be included in the regular controller packets
-		auto &state = FindFirstGamepad();
-		SetShareButtonDown(state.hostId, true);
-
-		Sleep(duration);
-
-		SetShareButtonDown(state.hostId, false);
-	});
+	if (duration > 0) {
+		m_pendingShareButtonDuration.store(duration, std::memory_order_release);
+	}
 }
 
 void moonlight_xbox_dxMain::SendWinAltB() {
@@ -1027,6 +1017,47 @@ GamepadState &moonlight_xbox_dxMain::FindFirstGamepad() {
 
 	static GamepadState nullState;
 	return nullState;
+}
+
+void moonlight_xbox_dxMain::UpdateShareButton() {
+	const int64_t now = QpcNow();
+
+	if (m_shareButtonGamepad != nullptr) {
+		auto &state = FindGamepadStateByGamepad(m_shareButtonGamepad);
+		if (state.controller != m_shareButtonGamepad) {
+			m_shareButtonGamepad = nullptr;
+			m_shareButtonReleaseQpc = 0;
+		} else if (now >= m_shareButtonReleaseQpc) {
+			state.SetShareButtonDown(false);
+			m_shareButtonGamepad = nullptr;
+			m_shareButtonReleaseQpc = 0;
+		}
+	}
+
+	const int duration = m_pendingShareButtonDuration.exchange(0, std::memory_order_acq_rel);
+	if (duration <= 0) {
+		return;
+	}
+
+	auto &state = FindFirstGamepad();
+	if (state.controller == nullptr) {
+		return;
+	}
+
+	const int64_t releaseQpc = now + MsToQpc(duration);
+	if (m_shareButtonGamepad != state.controller) {
+		if (m_shareButtonGamepad != nullptr) {
+			auto &previousState = FindGamepadStateByGamepad(m_shareButtonGamepad);
+			if (previousState.controller == m_shareButtonGamepad) {
+				previousState.SetShareButtonDown(false);
+			}
+		}
+		m_shareButtonGamepad = state.controller;
+		m_shareButtonReleaseQpc = releaseQpc;
+	} else {
+		m_shareButtonReleaseQpc = std::max(m_shareButtonReleaseQpc, releaseQpc);
+	}
+	state.SetShareButtonDown(true);
 }
 
 void moonlight_xbox_dxMain::SendGamepadReadingForState(GamepadState &state, GamepadReading &reading) {

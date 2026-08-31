@@ -70,13 +70,16 @@ namespace moonlight_xbox_dx
 
 		// Gamepad handling
 		std::array<GamepadState, MAX_GAMEPADS> m_GamepadState;
+		std::atomic<int> m_pendingShareButtonDuration{0};
+		Windows::Gaming::Input::Gamepad^ m_shareButtonGamepad = nullptr;
+		int64_t m_shareButtonReleaseQpc = 0;
 		GamepadState& FindGamepadState(uint32_t localId);
 		GamepadState& FindGamepadStateByHostId(uint32_t hostId);
 		GamepadState& FindGamepadStateByGamepad(Windows::Gaming::Input::Gamepad^ gamepad);
 		GamepadState& FindFirstGamepad();
 		uint16_t MakeActiveMask();
 		void SetGuideButtonDown(uint32_t hostId, bool isDown);
-		void SetShareButtonDown(uint32_t hostId, bool isDown);
+		void UpdateShareButton();
 		void DumpGamepads();
 		void RefreshGamepads();
 		void SendGamepadArrival(GamepadState& state);
