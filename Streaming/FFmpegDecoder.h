@@ -96,7 +96,7 @@ class FFMpegDecoder {
 	void CaptureWriteFrame(const CapturePacket &packet, uint32_t rtpTimestamp, bool isKeyFrame);
 	void CaptureClose();
 	void CaptureAbort();
-	static int CaptureAvioWrite(void *opaque, const uint8_t *buf, int size);
+	static int CaptureAvioWrite(void *opaque, uint8_t *buf, int size);
 
 	const AVCodec *decoder;
 	AVCodecContext *decoder_ctx;

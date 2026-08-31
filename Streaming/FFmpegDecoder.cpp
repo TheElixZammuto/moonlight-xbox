@@ -539,7 +539,7 @@ void FFMpegDecoder::DrainCaptureQueue() {
 }
 
 // ffmpeg writer
-int FFMpegDecoder::CaptureAvioWrite(void* opaque, const uint8_t* buf, int size) {
+int FFMpegDecoder::CaptureAvioWrite(void* opaque, uint8_t* buf, int size) {
 	auto* me = reinterpret_cast<FFMpegDecoder*>(opaque);
 	if (size <= 0) {
 		return 0;
