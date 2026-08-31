@@ -38,7 +38,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Connection and Pairing
 - Application List fetching
 - Video Streaming (configurable on a host-basis in the settings)
-- Gamepad Input (with Rumble and a mouse mode to move the pointer using the gamepad)
+- Gamepad Input (with Rumble, battery reporting, and a mouse mode to move the pointer using the gamepad)
 - Keyboard (both on-screen and using an Hardware one)
 - Graceful Disconnection
 - Host configuration (for resolution and bitrate) and saved host history

@@ -30,7 +30,13 @@ struct GamepadState {
 	uint8_t hostId;                             // index this host is mapped to on the host, used for all commands
 	int64_t lastRefreshedQpc;                   // timestamp of last refresh
 	bool didSendArrival;                        // do we need to send LiSendControllerArrivalEvent?
+	int64_t lastArrivalAttemptQpc;
 	std::atomic<bool> isGuideButtonDown{false}; // are we currently holding down the (virtual) Guide button?
+	int64_t lastBatteryPollQpc;
+	uint8_t lastBatteryState;
+	uint8_t lastBatteryPercentage;
+	bool didSendBattery;
+	bool batteryReportingUnsupported;
 
 	Windows::Gaming::Input::GamepadReading reading;
 	Windows::Gaming::Input::GamepadReading previousReading;
@@ -73,7 +79,13 @@ struct GamepadState {
 		localId = hostId = 0;
 		lastRefreshedQpc = 0;
 		didSendArrival = false;
+		lastArrivalAttemptQpc = 0;
 		isGuideButtonDown.store(false);
+		lastBatteryPollQpc = 0;
+		lastBatteryState = 0;
+		lastBatteryPercentage = 0;
+		didSendBattery = false;
+		batteryReportingUnsupported = false;
 		previousGuideButtonDown = false;
 		reading = EmptyReading();
 		previousReading = EmptyReading();

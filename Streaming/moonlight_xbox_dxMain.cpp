@@ -18,6 +18,7 @@ using namespace DirectX;
 using namespace Platform::Collections;
 using namespace Windows::Foundation;
 using namespace Windows::Gaming::Input;
+using namespace Windows::System::Power;
 using namespace Windows::System::Threading;
 using namespace Windows::UI::ViewManagement::Core;
 
@@ -379,6 +380,47 @@ void moonlight_xbox_dxMain::Update() {
 
 // Gamepad handling
 
+static constexpr int64_t kArrivalRetryIntervalMs = 1000;
+static constexpr int64_t kBatteryPollIntervalMs = 120 * 1000;
+
+struct ControllerBatteryState {
+	uint8_t state = LI_BATTERY_STATE_UNKNOWN;
+	uint8_t percentage = LI_BATTERY_PERCENTAGE_UNKNOWN;
+};
+
+static ControllerBatteryState ReadControllerBattery(Gamepad ^ controller) {
+	ControllerBatteryState battery;
+	auto report = controller->TryGetBatteryReport();
+	if (report == nullptr) {
+		return battery;
+	}
+
+	auto remaining = report->RemainingCapacityInMilliwattHours;
+	auto full = report->FullChargeCapacityInMilliwattHours;
+	if (remaining != nullptr && full != nullptr && full->Value > 0) {
+		const double capacity = static_cast<double>(remaining->Value) / full->Value;
+		battery.percentage = static_cast<uint8_t>(std::clamp(std::lround(capacity * 100.0), 0L, 100L));
+	}
+
+	switch (report->Status) {
+	case BatteryStatus::NotPresent:
+		battery.state = LI_BATTERY_STATE_NOT_PRESENT;
+		battery.percentage = LI_BATTERY_PERCENTAGE_UNKNOWN;
+		break;
+	case BatteryStatus::Discharging:
+		battery.state = LI_BATTERY_STATE_DISCHARGING;
+		break;
+	case BatteryStatus::Charging:
+		battery.state = LI_BATTERY_STATE_CHARGING;
+		break;
+	case BatteryStatus::Idle:
+		battery.state = battery.percentage == 100 ? LI_BATTERY_STATE_FULL : LI_BATTERY_STATE_NOT_CHARGING;
+		break;
+	}
+
+	return battery;
+}
+
 static inline bool isPressed(GamepadButtons buttons, GamepadButtons b) {
 	return (buttons & b) == b;
 }
@@ -532,6 +574,16 @@ void moonlight_xbox_dxMain::ProcessInput() {
 
 	for (UINT i = 0; i < gamepadCount; i++) {
 		auto &state = this->FindGamepadState(i);
+		if (state.controller == nullptr) {
+			continue;
+		}
+		if (!state.didSendArrival) {
+			state.didSendArrival = SendGamepadArrival(state);
+			if (!state.didSendArrival) {
+				continue;
+			}
+		}
+		UpdateGamepadBattery(state);
 		auto result = state.GetComboResult(50); // hold buttons for a short time for View + Menu combo
 
 		if (result.comboTriggered) {
@@ -727,9 +779,7 @@ void moonlight_xbox_dxMain::RefreshGamepads() {
 				state.localId = localId;
 				state.lastRefreshedQpc = now;
 				if (!state.didSendArrival) {
-					SendGamepadArrival(state);
-					state.didSendArrival = true;
-					Utils::Logf("RefreshGamepads: sent arrival packet for Gamepad #%d\n", localId);
+					state.didSendArrival = SendGamepadArrival(state);
 				}
 				found = true;
 				break;
@@ -749,8 +799,7 @@ void moonlight_xbox_dxMain::RefreshGamepads() {
 					state.lastRefreshedQpc = now;
 					state.reading = EmptyReading();
 					state.previousReading = EmptyReading();
-					SendGamepadArrival(state);
-					state.didSendArrival = true;
+					state.didSendArrival = SendGamepadArrival(state);
 					Utils::Logf("RefreshGamepads: added new Gamepad #%d in host slot %d\n", state.localId, state.hostId);
 					break;
 				}
@@ -772,17 +821,67 @@ void moonlight_xbox_dxMain::RefreshGamepads() {
 	}
 }
 
-void moonlight_xbox_dxMain::SendGamepadArrival(GamepadState &state) {
+bool moonlight_xbox_dxMain::SendGamepadArrival(GamepadState &state) {
 	// Only ever send this once
-	if (state.didSendArrival) return;
+	if (state.didSendArrival) return true;
+
+	const int64_t now = QpcNow();
+	if (state.lastArrivalAttemptQpc != 0 && now - state.lastArrivalAttemptQpc < MsToQpc(kArrivalRetryIntervalMs)) {
+		return false;
+	}
+	state.lastArrivalAttemptQpc = now;
 
 	uint8_t type = IsXbox() ? LI_CTYPE_XBOX : LI_CTYPE_UNKNOWN;
 	uint32_t supportedButtonFlags = A_FLAG | B_FLAG | X_FLAG | Y_FLAG | BACK_FLAG | PLAY_FLAG | LS_CLK_FLAG | RS_CLK_FLAG | UP_FLAG | DOWN_FLAG | LEFT_FLAG | RIGHT_FLAG | LB_FLAG | RB_FLAG;
-	uint32_t capabilities = LI_CCAP_ANALOG_TRIGGERS | LI_CCAP_RUMBLE | LI_CCAP_TRIGGER_RUMBLE;
+	uint32_t capabilities = LI_CCAP_ANALOG_TRIGGERS | LI_CCAP_RUMBLE | LI_CCAP_TRIGGER_RUMBLE | LI_CCAP_BATTERY_STATE;
 	int rc = LiSendControllerArrivalEvent(state.hostId, MakeActiveMask(), type, supportedButtonFlags, capabilities);
 	if (rc != 0) {
-		Utils::Logf("LiSendControllerArrivalEvent error: %d\n", rc);
+		Utils::Logf("SendGamepadArrival: failed for Gamepad #%d in host slot %d: %d\n", state.localId, state.hostId, rc);
+		return false;
 	}
+
+	Utils::Logf("SendGamepadArrival: sent for Gamepad #%d in host slot %d\n", state.localId, state.hostId);
+	return true;
+}
+
+void moonlight_xbox_dxMain::UpdateGamepadBattery(GamepadState &state) {
+	if (state.controller == nullptr || state.batteryReportingUnsupported) {
+		return;
+	}
+
+	const int64_t now = QpcNow();
+	if (state.lastBatteryPollQpc != 0 && now - state.lastBatteryPollQpc < MsToQpc(kBatteryPollIntervalMs)) {
+		return;
+	}
+	state.lastBatteryPollQpc = now;
+
+	ControllerBatteryState battery;
+	try {
+		battery = ReadControllerBattery(state.controller);
+	} catch (Platform::Exception ^ exception) {
+		Utils::Logf("UpdateGamepadBattery: failed to read Gamepad #%d battery: 0x%08X\n", state.localId, static_cast<unsigned>(exception->HResult));
+		return;
+	}
+
+	if (state.didSendBattery && battery.state == state.lastBatteryState && battery.percentage == state.lastBatteryPercentage) {
+		return;
+	}
+
+	const int rc = LiSendControllerBatteryEvent(state.hostId, battery.state, battery.percentage);
+	if (rc == LI_ERR_UNSUPPORTED) {
+		state.batteryReportingUnsupported = true;
+		Utils::Logf("UpdateGamepadBattery: host does not support battery reporting for Gamepad #%d\n", state.localId);
+		return;
+	}
+	if (rc != 0) {
+		Utils::Logf("UpdateGamepadBattery: failed to send Gamepad #%d battery: %d\n", state.localId, rc);
+		return;
+	}
+
+	state.lastBatteryState = battery.state;
+	state.lastBatteryPercentage = battery.percentage;
+	state.didSendBattery = true;
+	Utils::Logf("UpdateGamepadBattery: sent Gamepad #%d state %d at %d%%\n", state.localId, battery.state, battery.percentage);
 }
 
 // Renders the current frame according to the current application state.
