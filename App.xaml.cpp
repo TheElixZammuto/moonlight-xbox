@@ -8,6 +8,9 @@
 #include "MoonlightWelcome.xaml.h"
 #include "Pages\StreamPage.xaml.h"
 
+#include <cerrno>
+#include <climits>
+
 using namespace moonlight_xbox_dx;
 
 using namespace Platform;
@@ -35,6 +38,56 @@ App::App()
 	Suspending += ref new SuspendingEventHandler(this, &App::OnSuspending);
 	Resuming += ref new EventHandler<Object^>(this, &App::OnResuming);
 	displayRequest = ref new Windows::System::Display::DisplayRequest();
+}
+
+void App::InitializeState()
+{
+	if (m_stateLoaded) {
+		if (m_menuPage != nullptr) {
+			m_menuPage->OnStateLoaded();
+		}
+		return;
+	}
+
+	if (m_initStarted) {
+		return;
+	}
+
+	m_initStarted = true;
+	auto that = this;
+	try {
+		m_initTask = GetApplicationState()->Init();
+	}
+	catch (const std::exception& ex) {
+		m_initStarted = false;
+		moonlight_xbox_dx::Utils::Logf("Application state initialization exception: %s\n", ex.what());
+		return;
+	}
+	catch (...) {
+		m_initStarted = false;
+		moonlight_xbox_dx::Utils::Log("Application state initialization unknown exception\n");
+		return;
+	}
+
+	m_initTask.then([that](Concurrency::task<void> initTask) {
+		try {
+			initTask.get();
+			that->m_stateLoaded = true;
+			if (that->m_menuPage != nullptr) {
+				that->m_menuPage->OnStateLoaded();
+			}
+		}
+		catch (const std::exception& ex) {
+			that->m_initStarted = false;
+			moonlight_xbox_dx::Utils::Logf("Application state initialization exception: %s\n", ex.what());
+			return;
+		}
+		catch (...) {
+			that->m_initStarted = false;
+			moonlight_xbox_dx::Utils::Log("Application state initialization unknown exception\n");
+			return;
+		}
+	}, Concurrency::task_continuation_context::get_current_winrt_context());
 }
 
 /// <summary>
@@ -82,18 +135,11 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 	}
 	// Ensure the current window is active
 	Window::Current->Activate();
-	//Start the state
-	auto state = GetApplicationState();
-	auto that = this;
-	state->Init().then([that](){
-		that->m_stateLoaded = true;
-		that->m_menuPage->OnStateLoaded();
-	});
+	InitializeState();
 	displayRequest->RequestActive();
 }
 
 namespace {
-	// Parsed from a protocol activation, e.g. moonlight:?host=192.168.1.10&appName=Desktop&launchOnExit=retropass:
 	struct ProtocolLaunchRequest {
 		bool hasTarget = false;
 		std::wstring host;
@@ -104,7 +150,6 @@ namespace {
 		Platform::String^ launchOnExit;
 	};
 
-	// Flag-style parameters count as enabled when present without a value
 	bool IsTruthyParam(Platform::String^ value) {
 		if (value == nullptr || value->IsEmpty()) return true;
 		return _wcsicmp(value->Data(), L"true") == 0 || _wcsicmp(value->Data(), L"1") == 0 || _wcsicmp(value->Data(), L"yes") == 0;
@@ -130,8 +175,16 @@ namespace {
 				request.host = value->Data();
 				request.hasTarget = true;
 			} else if (_wcsicmp(name, L"appId") == 0 && hasValue) {
-				request.appId = (int)wcstol(value->Data(), nullptr, 10);
-				request.hasTarget = true;
+				wchar_t* end = nullptr;
+				const wchar_t* begin = value->Data();
+				errno = 0;
+				long parsed = wcstol(begin, &end, 10);
+				if (errno != ERANGE && end != begin && *end == L'\0' && parsed > 0 && parsed <= INT_MAX) {
+					request.appId = static_cast<int>(parsed);
+					request.hasTarget = true;
+				} else {
+					moonlight_xbox_dx::Utils::Log("Protocol activation: ignoring invalid appId\n");
+				}
 			} else if (_wcsicmp(name, L"appName") == 0 && hasValue) {
 				request.appName = value->Data();
 				request.hasTarget = true;
@@ -146,7 +199,6 @@ namespace {
 					request.hasTarget = true;
 				}
 			} else if (_wcsicmp(name, L"launchOnExit") == 0 && hasValue) {
-				// Return URI provided by the launching frontend (e.g. "retropass:"), passed through as-is
 				request.launchOnExit = value;
 				request.hasLaunchOnExit = true;
 			}
@@ -155,9 +207,6 @@ namespace {
 	}
 }
 
-/// <summary>
-/// Invoked when the application is activated through a URI scheme (moonlight:).
-/// </summary>
 void App::OnActivated(Windows::ApplicationModel::Activation::IActivatedEventArgs^ e)
 {
 	if (e->Kind != Windows::ApplicationModel::Activation::ActivationKind::Protocol) {
@@ -180,7 +229,6 @@ void App::OnActivated(Windows::ApplicationModel::Activation::IActivatedEventArgs
 		Window::Current->Content = rootFrame;
 	}
 
-	// Never interrupt an active streaming session, just bring the window to the foreground
 	if (dynamic_cast<StreamPage^>(rootFrame->Content) != nullptr) {
 		moonlight_xbox_dx::Utils::Log("Protocol activation ignored: a stream is currently active\n");
 		Window::Current->Activate();
@@ -188,33 +236,39 @@ void App::OnActivated(Windows::ApplicationModel::Activation::IActivatedEventArgs
 	}
 
 	auto state = GetApplicationState();
+	state->pendingProtocolHostSelect = false;
+	state->pendingProtocolHost.clear();
+	state->pendingProtocolAppId = -1;
+	state->pendingProtocolAppName.clear();
+	state->pendingProtocolResume = false;
+	state->launchOnExitUri = nullptr;
+
+	if (!rootFrame->Navigate(TypeName(HostSelectorPage::typeid))) {
+		moonlight_xbox_dx::Utils::Log("Protocol activation: navigation to HostSelectorPage failed\n");
+		Window::Current->Activate();
+		return;
+	}
+	rootFrame->BackStack->Clear();
+	m_menuPage = dynamic_cast<HostSelectorPage^>(rootFrame->Content);
+	if (m_menuPage == nullptr) {
+		moonlight_xbox_dx::Utils::Log("Protocol activation: HostSelectorPage instance unavailable\n");
+		Window::Current->Activate();
+		return;
+	}
+
 	state->pendingProtocolHostSelect = request.hasTarget;
 	state->pendingProtocolHost = request.host;
 	state->pendingProtocolAppId = request.appId;
 	state->pendingProtocolAppName = request.appName;
 	state->pendingProtocolResume = request.resume;
-	if (request.hasLaunchOnExit) {
-		state->launchOnExitUri = request.launchOnExit;
-	}
-
-	rootFrame->Navigate(TypeName(HostSelectorPage::typeid));
-	rootFrame->BackStack->Clear();
-	m_menuPage = dynamic_cast<HostSelectorPage^>(rootFrame->Content);
+	state->launchOnExitUri = request.hasTarget && request.hasLaunchOnExit ? request.launchOnExit : nullptr;
 
 	Window::Current->Activate();
 	if (isColdStart) {
 		displayRequest->RequestActive();
 	}
 
-	auto that = this;
-	if (!m_stateLoaded) {
-		state->Init().then([that]() {
-			that->m_stateLoaded = true;
-			that->m_menuPage->OnStateLoaded();
-		});
-	} else {
-		m_menuPage->OnStateLoaded();
-	}
+	InitializeState();
 }
 /// <summary>
 /// Invoked when application execution is being suspended.  Application state is saved

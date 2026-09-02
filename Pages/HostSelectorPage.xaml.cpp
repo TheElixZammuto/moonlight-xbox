@@ -243,7 +243,7 @@ void HostSelectorPage::OnStateLoaded() {
 				}
 			}
 		}
-	}).then([this](concurrency::task<void> t) {
+	}, Concurrency::task_continuation_context::get_current_winrt_context()).then([this](concurrency::task<void> t) {
 		try {
 			t.get();
 		}
@@ -256,7 +256,6 @@ void HostSelectorPage::OnStateLoaded() {
 	});
 }
 
-// The host query can match the instance id, the computer name or the hostname/IP
 void HostSelectorPage::HandleProtocolHostSelect() {
 	auto state = GetApplicationState();
 	state->pendingProtocolHostSelect = false;
@@ -291,14 +290,21 @@ void HostSelectorPage::HandleProtocolHostSelect() {
 		}
 	}
 
-	// Drop the pending app request too, so it doesn't leak into a later manual host selection
 	if (target == nullptr || !target->Connected) {
 		Utils::Log(target == nullptr
 			? "Protocol activation: no saved host matched the requested host\n"
 			: "Protocol activation: the requested host is not reachable\n");
+		ContentDialog^ dialog = ref new ContentDialog();
+		dialog->Title = "Protocol Launch Failed";
+		dialog->Content = target == nullptr
+			? "No saved host matched the requested host."
+			: "The requested host is not reachable.";
+		dialog->PrimaryButtonText = "OK";
+		concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
 		state->pendingProtocolAppId = -1;
 		state->pendingProtocolAppName.clear();
 		state->pendingProtocolResume = false;
+		state->launchOnExitUri = nullptr;
 		return;
 	}
 

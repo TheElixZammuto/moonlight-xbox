@@ -128,7 +128,6 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 		state->pendingProtocolAppName.clear();
 		state->pendingProtocolResume = false;
 
-		// Dispatched at High priority so this runs after UpdateApps() has filled the Apps list
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
 			Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, requestedAppId, requestedAppName, resumeRequested]() {
 				int targetId = -1;
