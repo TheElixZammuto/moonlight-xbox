@@ -167,16 +167,9 @@ namespace moonlight_xbox_dx {
 		this->ffmpeg_buffer_size = 0;
 		this->m_StreamEpochQpc = 0;
 
-
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)
-		avcodec_register_all();
-#endif
-
 		// Increase log level until the first frame is decoded
-		av_log_set_level(AV_LOG_INFO);
-
+		av_log_set_level(AV_LOG_VERBOSE);
 		av_log_set_callback(&ffmpeg_log_callback);
-#pragma warning(suppress : 4996)
 
 		if (videoFormat & VIDEO_FORMAT_MASK_H264) {
 			decoder = avcodec_find_decoder(AV_CODEC_ID_H264);
@@ -420,7 +413,6 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
 		decoder_callbacks_sdl.submitDecodeUnit = submitDecodeUnit;
 		decoder_callbacks_sdl.capabilities = CAPABILITY_DIRECT_SUBMIT | CAPABILITY_INTRA_REFRESH;
-		//decoder_callbacks_sdl.capabilities = CAPABILITY_DIRECT_SUBMIT | CAPABILITY_REFERENCE_FRAME_INVALIDATION_HEVC;
 		return decoder_callbacks_sdl;
 	}
 }

@@ -172,9 +172,22 @@ void AppPage::Connect(int appId) {
 	config->audioBuffer = host->AudioBuffer;
 	config->enableStats = host->EnableStats;
 	config->enableGraphs = host->EnableGraphs;
+
 	if (config->enableHDR) {
-		host->VideoCodec = "HEVC (H.265)";
+		config->videoCodec = "HEVC (H.265)";
 	}
+
+	if (IsXbox() && config->videoCodec == "H.264") {
+		// The hardware h264 decoder on both Xbox generations only supports up to 1080p60
+		if (config->width > 1920) {
+			config->width = 1920;
+			config->height = 1080;
+		}
+		if (config->FPS > 60) {
+			config->FPS = 60;
+		}
+	}
+
 	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 	if (!result) {
 		printf("C");

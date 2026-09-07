@@ -67,6 +67,10 @@
             </ComboBox>
             <TextBlock Grid.Row="6" Grid.Column="0">Video Codecs</TextBlock>
             <ComboBox Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}"  Grid.Row="6"  Grid.Column="1"></ComboBox>
+            <TextBlock
+                Name="CodecDesc" Grid.Row="6" Grid.Column="2">
+                H.264 is limited to 1080p60 SDR.
+            </TextBlock>
 
             <TextBlock Grid.Row="7" Grid.Column="0" >Enable HDR:</TextBlock>
             <CheckBox
