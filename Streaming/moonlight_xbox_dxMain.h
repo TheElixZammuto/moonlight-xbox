@@ -77,7 +77,8 @@ namespace moonlight_xbox_dx
 		void SetGuideButtonDown(uint32_t hostId, bool isDown);
 		void DumpGamepads();
 		void RefreshGamepads();
-		void SendGamepadArrival(GamepadState& state);
+		bool SendGamepadArrival(GamepadState& state);
+		void UpdateGamepadBattery(GamepadState& state);
 		void SendGamepadReadingForState(GamepadState& state, Windows::Gaming::Input::GamepadReading& reading);
 	};
 }
