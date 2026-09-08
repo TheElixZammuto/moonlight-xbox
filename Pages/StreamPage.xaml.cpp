@@ -161,7 +161,15 @@ void StreamPage::flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml:
 
 void StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e)
 {
-	if (m_main != nullptr) m_main->SetFlyoutOpened(false);
+	const int shareButtonDuration = m_pendingShareButtonDuration;
+	m_pendingShareButtonDuration = 0;
+
+	if (m_main != nullptr) {
+		m_main->SetFlyoutOpened(false);
+		if (shareButtonDuration > 0) {
+			m_main->SendShareButton(shareButtonDuration);
+		}
+	}
 }
 
 void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -316,6 +324,20 @@ void StreamPage::guideButtonShort_Click(Platform::Object^ sender, Windows::UI::X
 void StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->m_main->SendGuideButton(3000);
+}
+
+
+void StreamPage::shareButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	m_pendingShareButtonDuration = 500;
+	ActionsFlyout->Hide();
+}
+
+
+void StreamPage::shareButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	m_pendingShareButtonDuration = 3000;
+	ActionsFlyout->Hide();
 }
 
 

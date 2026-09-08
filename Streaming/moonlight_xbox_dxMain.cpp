@@ -529,6 +529,7 @@ void moonlight_xbox_dxMain::ProcessInput() {
 	auto gamepads = Windows::Gaming::Input::Gamepad::Gamepads;
 	uint16_t gamepadCount = gamepads->Size;
 	moonlightClient->SetGamepadCount(gamepadCount);
+	UpdateShareButton();
 
 	for (UINT i = 0; i < gamepadCount; i++) {
 		auto &state = this->FindGamepadState(i);
@@ -777,7 +778,9 @@ void moonlight_xbox_dxMain::SendGamepadArrival(GamepadState &state) {
 	if (state.didSendArrival) return;
 
 	uint8_t type = IsXbox() ? LI_CTYPE_XBOX : LI_CTYPE_UNKNOWN;
-	uint32_t supportedButtonFlags = A_FLAG | B_FLAG | X_FLAG | Y_FLAG | BACK_FLAG | PLAY_FLAG | LS_CLK_FLAG | RS_CLK_FLAG | UP_FLAG | DOWN_FLAG | LEFT_FLAG | RIGHT_FLAG | LB_FLAG | RB_FLAG;
+	uint32_t supportedButtonFlags =
+	    A_FLAG | B_FLAG | X_FLAG | Y_FLAG | BACK_FLAG | PLAY_FLAG | LS_CLK_FLAG | RS_CLK_FLAG |
+	    UP_FLAG | DOWN_FLAG | LEFT_FLAG | RIGHT_FLAG | LB_FLAG | RB_FLAG | MISC_FLAG;
 	uint32_t capabilities = LI_CCAP_ANALOG_TRIGGERS | LI_CCAP_RUMBLE | LI_CCAP_TRIGGER_RUMBLE;
 	int rc = LiSendControllerArrivalEvent(state.hostId, MakeActiveMask(), type, supportedButtonFlags, capabilities);
 	if (rc != 0) {
@@ -927,6 +930,12 @@ void moonlight_xbox_dxMain::SendGuideButton(int duration) {
 	});
 }
 
+void moonlight_xbox_dxMain::SendShareButton(int duration) {
+	if (duration > 0) {
+		m_pendingShareButtonDuration.store(duration, std::memory_order_release);
+	}
+}
+
 void moonlight_xbox_dxMain::SendWinAltB() {
 	// Win-Alt-B = Toggle HDR
 	concurrency::create_async([this]() {
@@ -1010,6 +1019,47 @@ GamepadState &moonlight_xbox_dxMain::FindFirstGamepad() {
 	return nullState;
 }
 
+void moonlight_xbox_dxMain::UpdateShareButton() {
+	const int64_t now = QpcNow();
+
+	if (m_shareButtonGamepad != nullptr) {
+		auto &state = FindGamepadStateByGamepad(m_shareButtonGamepad);
+		if (state.controller != m_shareButtonGamepad) {
+			m_shareButtonGamepad = nullptr;
+			m_shareButtonReleaseQpc = 0;
+		} else if (now >= m_shareButtonReleaseQpc) {
+			state.SetShareButtonDown(false);
+			m_shareButtonGamepad = nullptr;
+			m_shareButtonReleaseQpc = 0;
+		}
+	}
+
+	const int duration = m_pendingShareButtonDuration.exchange(0, std::memory_order_acq_rel);
+	if (duration <= 0) {
+		return;
+	}
+
+	auto &state = FindFirstGamepad();
+	if (state.controller == nullptr) {
+		return;
+	}
+
+	const int64_t releaseQpc = now + MsToQpc(duration);
+	if (m_shareButtonGamepad != state.controller) {
+		if (m_shareButtonGamepad != nullptr) {
+			auto &previousState = FindGamepadStateByGamepad(m_shareButtonGamepad);
+			if (previousState.controller == m_shareButtonGamepad) {
+				previousState.SetShareButtonDown(false);
+			}
+		}
+		m_shareButtonGamepad = state.controller;
+		m_shareButtonReleaseQpc = releaseQpc;
+	} else {
+		m_shareButtonReleaseQpc = std::max(m_shareButtonReleaseQpc, releaseQpc);
+	}
+	state.SetShareButtonDown(true);
+}
+
 void moonlight_xbox_dxMain::SendGamepadReadingForState(GamepadState &state, GamepadReading &reading) {
 	// This method must NOT change the reading
 	state.reading = reading;
@@ -1032,9 +1082,12 @@ void moonlight_xbox_dxMain::SendGamepadReadingForState(GamepadState &state, Game
 			}
 		}
 
-		// add Guide button if it's being virtually held down by quick menu
+		// add virtual buttons held down by quick menu actions
 		if (state.GetGuideButtonDown()) {
 			buttonFlags |= SPECIAL_FLAG;
+		}
+		if (state.GetShareButtonDown()) {
+			buttonFlags |= MISC_FLAG;
 		}
 
 		LiSendMultiControllerEvent(

@@ -47,6 +47,16 @@
                                     <FontIcon Glyph="&#xe80f;" />
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="shareButtonShort" Text="Share Button (short)" Click="shareButtonShort_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE898;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="shareButtonLong" Text="Share Button (long)" Click="shareButtonLong_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE898;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
                             <MenuFlyoutItem x:Name="toggleHDR_WinAltB" Text="Toggle HDR (Win-Alt-B)" Click="toggleHDR_WinAltB_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                                 <MenuFlyoutItem.Icon>
                                     <FontIcon Glyph="&#xe706;" />
