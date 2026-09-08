@@ -9,7 +9,6 @@
 #include "../Streaming/FFMpegDecoder.h"
 #include <Utils.hpp>
 #include <KeyboardControl.xaml.h>
-#include "../Common/ModalDialog.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -262,37 +261,18 @@ void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Cor
 }
 
 void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
-	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
-	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
-	if (this->m_main) {
-		// trigger the server disconnected flow which will cleanly exit the loop and call StopRenderLoop()
-		this->m_main->moonlightClient->SetConnectionTerminated();
+	if (this->m_main == nullptr) {
+		return;
 	}
 
-	auto that = this;
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
+	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
 
-	auto progressToken = ::moonlight_xbox_dx::ModalDialog::ShowProgressDialogToken(nullptr, Utils::StringFromStdString("Closing..."));
+	this->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	this->m_progressRing->IsActive = true;
+	this->m_stepText->Text = "Closing...";
 
-	concurrency::create_task(concurrency::create_async([that, progressToken]() {
-		try {
-			if (that->m_main) {
-				that->m_main->CloseApp();
-			}
-		} catch (...) {
-		}
-	})).then([that, progressToken](concurrency::task<void> t) {
-		try {
-			t.get();
-
-			// UI is sent back to HostSelectorPage in StartRenderLoop(), after the loop exits
-			// All we need to do is close the progress dialog
-
-			DISPATCH_UI([progressToken] {
-				::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
-			});
-		} catch (...) {
-		}
-	});
+	this->m_main->RequestDisconnectAndClose();
 }
 
 void StreamPage::Keyboard_OnKeyDown(KeyboardControl^ sender, KeyEvent^ e)

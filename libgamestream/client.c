@@ -27,8 +27,10 @@
 #include <Limelight.h>
 
 #include <sys/stat.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
 #ifdef _WIN32
@@ -833,28 +835,111 @@ int gs_start_app(PSERVER_DATA server, STREAM_CONFIGURATION *config, int appId, b
 
 int gs_quit_app(PSERVER_DATA server) {
   int ret = GS_OK;
+  int length;
+  long parsedCurrentGame;
   char url[4096];
+  char* currentGameEnd = NULL;
   uuid_t uuid;
   char uuid_str[UUID_STRLEN];
   char* result = NULL;
+  char* currentGameText = NULL;
+  char* stateText = NULL;
+  const char* busySuffix = "_SERVER_BUSY";
+  CURL* curl = NULL;
   PHTTP_DATA data = http_create_data();
   if (data == NULL)
     return GS_OUT_OF_MEMORY;
 
+  if (server == NULL || server->serverInfo.address == NULL || server->httpsPort == 0) {
+    gs_error = "Invalid host state for the quit request";
+    ret = GS_INVALID;
+    goto cleanup;
+  }
+
   uuid_generate_random(&uuid);
   uuid_unparse(&uuid, uuid_str);
-  snprintf(url, sizeof(url), "https://%s:%u/cancel?uniqueid=%s&uuid=%s", server->serverInfo.address, server->httpsPort, unique_id, uuid_str);
-  CURL* curl = get_curl_handle();
+  length = snprintf(url, sizeof(url), "https://%s:%u/cancel?uniqueid=%s&uuid=%s",
+                    server->serverInfo.address, server->httpsPort, unique_id, uuid_str);
+  if (length < 0 || (size_t)length >= sizeof(url)) {
+    gs_error = "Quit request URL is too long";
+    ret = GS_INVALID;
+    goto cleanup;
+  }
+
+  curl = get_curl_handle();
+  if (curl == NULL) {
+    ret = GS_OUT_OF_MEMORY;
+    goto cleanup;
+  }
+
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 5000L);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 30000L);
   if ((ret = http_request(curl, url, data)) != GS_OK)
     goto cleanup;
 
-  if ((ret = xml_status(data->memory, data->size) != GS_OK))
+  ret = xml_status(data->memory, data->size);
+  if (ret != GS_OK)
     goto cleanup;
-  else if ((ret = xml_search(data->memory, data->size, "cancel", &result)) != GS_OK)
+
+  ret = xml_search(data->memory, data->size, "cancel", &result);
+  if (ret != GS_OK)
     goto cleanup;
 
   if (strcmp(result, "0") == 0) {
+    gs_error = "The host rejected the quit request";
     ret = GS_FAILED;
+    goto cleanup;
+  }
+
+  // Confirm the host no longer reports a running app.
+  uuid_generate_random(&uuid);
+  uuid_unparse(&uuid, uuid_str);
+  length = snprintf(url, sizeof(url), "https://%s:%u/serverinfo?uniqueid=%s&uuid=%s",
+                    server->serverInfo.address, server->httpsPort, unique_id, uuid_str);
+  if (length < 0 || (size_t)length >= sizeof(url)) {
+    ret = GS_INVALID;
+    goto cleanup;
+  }
+
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 10000L);
+  if ((ret = http_request(curl, url, data)) != GS_OK)
+    goto cleanup;
+
+  ret = xml_status(data->memory, data->size);
+  if (ret != GS_OK)
+    goto cleanup;
+
+  ret = xml_search(data->memory, data->size, "currentgame", &currentGameText);
+  if (ret != GS_OK)
+    goto cleanup;
+
+  ret = xml_search(data->memory, data->size, "state", &stateText);
+  if (ret != GS_OK)
+    goto cleanup;
+
+  if (currentGameText[0] == '\0' || stateText[0] == '\0') {
+    gs_error = "The host returned incomplete state after the quit request";
+    ret = GS_INVALID;
+    goto cleanup;
+  }
+
+  errno = 0;
+  parsedCurrentGame = strtol(currentGameText, &currentGameEnd, 10);
+  if (errno == ERANGE || currentGameEnd == currentGameText || *currentGameEnd != '\0' ||
+      parsedCurrentGame < 0 || parsedCurrentGame > INT_MAX) {
+    gs_error = "The host returned an invalid current game after the quit request";
+    ret = GS_INVALID;
+    goto cleanup;
+  }
+
+  size_t stateLength = strlen(stateText);
+  size_t suffixLength = strlen(busySuffix);
+  bool serverBusy = stateLength >= suffixLength &&
+                    strcmp(stateText + stateLength - suffixLength, busySuffix) == 0;
+  server->currentGame = serverBusy ? (int)parsedCurrentGame : 0;
+  if (server->currentGame != 0) {
+    gs_error = "The host is still reporting a running app after the quit request";
+    ret = GS_WRONG_STATE;
     goto cleanup;
   }
 
@@ -862,8 +947,15 @@ int gs_quit_app(PSERVER_DATA server) {
   if (result != NULL)
     free(result);
 
+  if (currentGameText != NULL)
+    free(currentGameText);
+
+  if (stateText != NULL)
+    free(stateText);
+
   http_free_data(data);
-  http_cleanup(curl);
+  if (curl != NULL)
+    http_cleanup(curl);
   return ret;
 }
 

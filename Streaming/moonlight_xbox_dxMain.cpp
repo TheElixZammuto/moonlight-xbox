@@ -28,10 +28,10 @@ extern "C" {
 
 // Loads and initializes application assets when the application is loaded.
 moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources> &deviceResources, StreamPage ^ streamPage, MoonlightClient *client, StreamConfiguration ^ configuration)
-    : m_deviceResources(deviceResources),
+    : moonlightClient(client),
+      m_deviceResources(deviceResources),
       m_pointerLocationX(0.0f),
-      m_streamPage(streamPage),
-      moonlightClient(client) {
+      m_streamPage(streamPage) {
 
 	Platform::String ^ appName = configuration->appName ? "'" + configuration->appName + "'" : "App";
 	DISPATCH_UI(([streamPage, appName]() {
@@ -326,8 +326,12 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 		StopRenderLoop(); // also stops input
 		Disconnect();
 
-		DISPATCH_UI([this]() {
-			ExitStreamPage();
+		if (m_quitAppAfterDisconnect.exchange(false, std::memory_order_acq_rel)) {
+			CloseApp();
+		}
+
+		DISPATCH_UI([]() {
+			moonlight_xbox_dxMain::ExitStreamPage();
 		});
 	});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
@@ -865,11 +869,39 @@ void moonlight_xbox_dxMain::Disconnect() {
 	m_sceneRenderer->Stop();
 }
 
+void moonlight_xbox_dxMain::RequestDisconnectAndClose() {
+	if (!m_quitAppAfterDisconnect.exchange(true, std::memory_order_acq_rel)) {
+		moonlightClient->SetConnectionTerminated();
+	}
+}
+
 void moonlight_xbox_dxMain::CloseApp() {
 	moonlightClient->StopApp();
 }
 
 void moonlight_xbox_dxMain::ExitStreamPage() {
+
+	auto state = GetApplicationState();
+	Platform::String ^ returnUri = state->launchOnExitUri;
+	if (returnUri != nullptr && !returnUri->IsEmpty()) {
+		state->launchOnExitUri = nullptr;
+		try {
+			auto uri = ref new Windows::Foundation::Uri(returnUri);
+			concurrency::create_task(Windows::System::Launcher::LaunchUriAsync(uri)).then([](concurrency::task<bool> t) {
+				try {
+					if (t.get()) {
+						Windows::ApplicationModel::Core::CoreApplication::Exit();
+					} else {
+						Utils::Log("ExitStreamPage: failed to launch the return URI\n");
+					}
+				} catch (...) {
+					Utils::Log("ExitStreamPage: failed to launch the return URI\n");
+				}
+			});
+		} catch (...) {
+			Utils::Log("ExitStreamPage: the return URI is not a valid URI\n");
+		}
+	}
 
 	bool reachedAppPage = false;
 
