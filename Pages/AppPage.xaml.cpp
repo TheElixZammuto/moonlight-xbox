@@ -57,6 +57,15 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 	host->UpdateHostInfo(true);
 	host->UpdateApps();
 
+	// Tile size may have been changed in Settings while we were away.
+	if (host->Apps != nullptr) {
+		for (auto a : host->Apps) {
+			a->OnPropertyChanged("TileWidth");
+			a->OnPropertyChanged("TileHeight");
+			a->OnPropertyChanged("TilePadding");
+		}
+	}
+
 	// Start background polling for app running state and connectivity
 	continueAppFetch.store(true);
 	wasConnected.store(host->Connected);

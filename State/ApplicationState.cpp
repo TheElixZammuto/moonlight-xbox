@@ -29,6 +29,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("marginWidth"))this->ScreenMarginWidth = stateJson["marginWidth"];
 				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
 				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
+				if (stateJson.contains("tileScale"))this->TileScale = stateJson["tileScale"];
 				if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
@@ -87,6 +88,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		stateJson["marginWidth"] = std::max(0, std::min(that->ScreenMarginWidth, 250));
 		stateJson["marginHeight"] = std::max(0, std::min(that->ScreenMarginHeight, 250));
 		stateJson["mouseSensitivity"] = std::max(1, std::min(that->MouseSensitivity, 16));
+		stateJson["tileScale"] = std::max(25, std::min(that->TileScale, 150));
 		stateJson["firstTime"] = that->FirstTime;
 		stateJson["enableKeyboard"] = that->EnableKeyboard;
 		stateJson["keyboardLayout"] = Utils::PlatformStringToStdString(that->KeyboardLayout);
