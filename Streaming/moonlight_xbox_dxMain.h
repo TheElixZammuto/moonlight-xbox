@@ -5,7 +5,11 @@
 #include "Streaming\VideoRenderer.h"
 #include "Streaming\LogRenderer.h"
 #include "Streaming\StatsRenderer.h"
-#include "Pages\StreamPage.xaml.h"
+
+namespace moonlight_xbox_dx
+{
+	ref class StreamPage;
+}
 
 // Xbox supports 8 controllers, this ought to be enough for anyone.
 #define MAX_GAMEPADS 8
@@ -32,8 +36,9 @@ namespace moonlight_xbox_dx
 		virtual void OnDeviceLost();
 		virtual void OnDeviceRestored();
 		void Disconnect();
+		void RequestDisconnectAndClose();
 		void CloseApp();
-		void ExitStreamPage();
+		static void ExitStreamPage();
 		void SendGuideButton(int duration);
 		void SendWinAltB();
 		bool ToggleLogs();
@@ -66,6 +71,7 @@ namespace moonlight_xbox_dx
 		float m_pointerLocationX;
 		bool insideFlyout = false;
 		StreamPage^ m_streamPage;
+		std::atomic<bool> m_quitAppAfterDisconnect{ false };
 
 		// Gamepad handling
 		std::array<GamepadState, MAX_GAMEPADS> m_GamepadState;

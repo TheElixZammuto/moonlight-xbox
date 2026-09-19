@@ -18,12 +18,17 @@ namespace moonlight_xbox_dx
 	public:
 		App();
 		virtual void OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEventArgs^ e) override;
+		virtual void OnActivated(Windows::ApplicationModel::Activation::IActivatedEventArgs^ e) override;
 		void OnStateLoaded();
 	private:
+		void InitializeState();
 		void OnSuspending(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ e);
 		void OnResuming(Platform::Object ^sender, Platform::Object ^args);
 		void OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Navigation::NavigationFailedEventArgs ^e);
 		HostSelectorPage^ m_menuPage;
 		Windows::System::Display::DisplayRequest^ displayRequest;
+		bool m_initStarted = false;
+		bool m_stateLoaded = false;
+		Concurrency::task<void> m_initTask;
 	};
 }

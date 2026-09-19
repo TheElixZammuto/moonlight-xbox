@@ -197,7 +197,11 @@ MoonlightClient::~MoonlightClient() {
 }
 
 void MoonlightClient::StopApp() {
-	gs_quit_app(&serverData);
+	int status = gs_quit_app(&serverData);
+	if (status != GS_OK) {
+		Utils::Logf("MoonlightClient::StopApp failed with status %d: %s\n",
+		            status, gs_error != nullptr ? gs_error : "Unknown error");
+	}
 }
 int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration^ sConfig) {
 	g_connectionTerminated.store(false, std::memory_order_release);
