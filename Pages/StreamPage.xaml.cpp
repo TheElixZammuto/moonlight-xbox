@@ -21,6 +21,7 @@ using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
 using namespace Windows::Gaming::Input;
 using namespace Windows::Graphics::Display;
+using namespace Windows::Graphics::Display::Core;
 using namespace Windows::System::Threading;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Input;
@@ -79,6 +80,18 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 	gamepadAddedHandler = Gamepad::GamepadAdded += ref new EventHandler<Gamepad^>(this, &StreamPage::OnGamepadAdded);
 	gamepadRemovedHandler = Gamepad::GamepadRemoved += ref new EventHandler<Gamepad ^>(this, &StreamPage::OnGamepadRemoved);
 
+	if (IsXbox() && m_hdmiInfo == nullptr) {
+		auto hdmi = HdmiDisplayInformation::GetForCurrentView();
+		if (hdmi != nullptr) {
+			// Watch for HDMI display changes
+			m_hdmiHandler = hdmi->DisplayModesChanged +=
+				ref new TypedEventHandler<HdmiDisplayInformation^, Platform::Object^>(this, &StreamPage::OnHdmiDisplayModesChanged);
+
+			m_hdmiInfo = hdmi;
+			Utils::Log("HDMI display listener attached\n");
+		}
+	}
+
 	try {
 		m_deviceResources->SetSwapChainPanel(swapChainPanel);
 	} catch (...) {
@@ -115,6 +128,11 @@ void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::Rou
 
 	Gamepad::GamepadAdded -= gamepadAddedHandler;
 	Gamepad::GamepadRemoved -= gamepadRemovedHandler;
+
+	if (m_hdmiInfo != nullptr) {
+		m_hdmiInfo->DisplayModesChanged -= m_hdmiHandler;
+		m_hdmiInfo = nullptr;
+	}
 
 	if (this->m_main) {
 
@@ -428,6 +446,8 @@ void StreamPage::UpdateAudioGlitchText() {
 		"Glitch count: " + std::to_string(Stats::instance().GetAudioGlitchCount()));
 }
 
+// Event handlers
+
 void StreamPage::OnPropertyChanged(Platform::String^ propertyName)
 {
 	PropertyChanged(this, ref new Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
@@ -451,3 +471,11 @@ void StreamPage::RequestRefreshGamepads() {
 	m_refreshGamepads.store(true, std::memory_order_release);
 }
 
+void StreamPage::OnHdmiDisplayModesChanged(HdmiDisplayInformation^, Platform::Object^) {
+	Utils::Log("HDMI display mode changed, requesting refresh\n");
+	m_refreshDisplay.store(true, std::memory_order_release);
+}
+
+bool StreamPage::ShouldRefreshDisplay() {
+	return m_refreshDisplay.exchange(false);
+}

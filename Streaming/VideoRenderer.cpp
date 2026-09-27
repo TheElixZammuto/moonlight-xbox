@@ -159,7 +159,7 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ID3D11ShaderResourceView* nullSrvs[2] = {};
 	ctx->PSSetShaderResources(0, 2, nullSrvs);
 
-	if (frame->color_trc != m_LastColorTrc) {
+	if (frame->color_trc != m_LastColorTrc || m_NeedsRefresh) {
 		DXGI_COLOR_SPACE_TYPE colorspace = {};
 
 		if (frame->color_trc == AVCOL_TRC_SMPTE2084) {
@@ -180,6 +180,12 @@ bool VideoRenderer::Render(AVFrame *frame) {
 		}
 
 		m_LastColorTrc = frame->color_trc;
+
+		if (m_NeedsRefresh) {
+			// Ensure HDR is set correctly after an HDMI change event
+			m_NeedsRefresh = false;
+			SetHDR(frame->color_trc == AVCOL_TRC_SMPTE2084);
+		}
 	}
 
 	return true;
@@ -658,6 +664,11 @@ void VideoRenderer::bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC fra
 				constBuf.chromaUVMax[0], constBuf.chromaUVMax[1]);
 
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&constDesc, &constData, &m_cscConstantBuffer));
+}
+
+void VideoRenderer::RequestRefreshColorspace()
+{
+	m_NeedsRefresh = true;
 }
 
 void VideoRenderer::SetHDR(bool enabled)

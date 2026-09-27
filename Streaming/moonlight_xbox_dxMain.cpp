@@ -823,6 +823,12 @@ bool moonlight_xbox_dxMain::Render() {
 		return false;
 	}
 
+	// A display change event may have happened, and this can result in a colorspace mismatch.
+	// Reset the TRC value so that VideoRenderer will call SetColorSpace1() and ensure the correct display mode.
+	if (m_streamPage->ShouldRefreshDisplay()) {
+		m_sceneRenderer->RequestRefreshColorspace();
+	}
+
 	// Render the scene objects.
 	bool showImGui = m_deviceResources->GetShowImGui();
 

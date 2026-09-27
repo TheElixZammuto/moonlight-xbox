@@ -47,6 +47,7 @@ namespace moonlight_xbox_dx
 		void screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, int viewportWidth, int viewportHeight);
 		bool Render(AVFrame* frame);
 		void bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC frameDesc);
+		void RequestRefreshColorspace();
 		void SetHDR(bool enabled);
 		void Stop();
 
@@ -79,6 +80,7 @@ namespace moonlight_xbox_dx
 	    std::atomic<bool> m_loadingSuccessful;
 		MoonlightClient *client;
 		StreamConfiguration^ configuration;
+		bool m_NeedsRefresh = false;
 
 		DECODER_PARAMETERS m_DecoderParams{};
 		UINT m_TextureWidth;

@@ -30,6 +30,7 @@ namespace moonlight_xbox_dx
 		void OnPropertyChanged(Platform::String^ propertyName);
 		bool ShouldRefreshGamepads();
 		void RequestRefreshGamepads();
+		bool ShouldRefreshDisplay();
 
 		property bool CaptureMode {
 			bool get() { return m_captureMode; }
@@ -184,6 +185,13 @@ namespace moonlight_xbox_dx
 		std::atomic<bool> m_refreshGamepads{false};
 		void OnGamepadAdded(Platform::Object^, Windows::Gaming::Input::Gamepad^ args);
 		void OnGamepadRemoved(Platform::Object^, Windows::Gaming::Input::Gamepad^ args);
+
+		Windows::Graphics::Display::Core::HdmiDisplayInformation^ m_hdmiInfo;
+		Windows::Foundation::EventRegistrationToken m_hdmiHandler{};
+		std::atomic<bool> m_refreshDisplay{false};
+		void OnHdmiDisplayModesChanged(Windows::Graphics::Display::Core::HdmiDisplayInformation^, Platform::Object^);
+
+
 
 		bool m_captureMode = false;
         bool m_mouseMode = false;
