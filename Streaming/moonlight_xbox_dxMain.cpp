@@ -951,6 +951,41 @@ void moonlight_xbox_dxMain::OnKeyUp(unsigned short virtualKey, char modifiers) {
 	moonlightClient->KeyUp(virtualKey, modifiers);
 }
 
+void moonlight_xbox_dxMain::OnMouseMoved(int deltaX, int deltaY) {
+        if (moonlightClient == nullptr || insideFlyout || (deltaX == 0 && deltaY == 0)) return;
+
+        // LiSendMouseMoveEvent takes signed 16-bit deltas. Hardware events are normally
+        // much smaller, but clamp malformed/accumulated input instead of wrapping it.
+        const int minDelta = (std::numeric_limits<short>::min)();
+        const int maxDelta = (std::numeric_limits<short>::max)();
+        deltaX = (std::max)(minDelta, (std::min)(deltaX, maxDelta));
+        deltaY = (std::max)(minDelta, (std::min)(deltaY, maxDelta));
+        moonlightClient->SendMousePosition(static_cast<float>(deltaX), static_cast<float>(deltaY));
+}
+
+void moonlight_xbox_dxMain::OnMouseButton(int button, bool pressed) {
+	if (moonlightClient == nullptr || (insideFlyout && pressed)) return;
+
+	if (pressed) {
+		moonlightClient->SendMousePressed(button);
+	} else {
+		moonlightClient->SendMouseReleased(button);
+	}
+}
+
+void moonlight_xbox_dxMain::OnMouseWheel(int delta, bool horizontal) {
+	if (moonlightClient == nullptr || insideFlyout || delta == 0) return;
+
+	const int minDelta = (std::numeric_limits<short>::min)();
+	const int maxDelta = (std::numeric_limits<short>::max)();
+	delta = (std::max)(minDelta, (std::min)(delta, maxDelta));
+	if (horizontal) {
+		moonlightClient->SendScrollH(static_cast<float>(delta));
+	} else {
+		moonlightClient->SendScroll(static_cast<float>(delta));
+	}
+}
+
 void moonlight_xbox_dxMain::SendGuideButton(int duration) {
 	concurrency::create_async([duration, this]() {
 		// We change the state of the fake guide button, which will be included in the regular controller packets

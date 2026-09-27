@@ -28,6 +28,9 @@ namespace moonlight_xbox_dx
 		bool keyboardMode = false;
 		void OnKeyDown(unsigned short virtualKey, char modifiers);
 		void OnKeyUp(unsigned short virtualKey, char modifiers);
+		void OnMouseMoved(int deltaX, int deltaY);
+		void OnMouseButton(int button, bool pressed);
+		void OnMouseWheel(int delta, bool horizontal);
 		// IDeviceNotify
 		virtual void OnDeviceLost();
 		virtual void OnDeviceRestored();

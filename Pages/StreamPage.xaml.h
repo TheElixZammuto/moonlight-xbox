@@ -161,6 +161,12 @@ namespace moonlight_xbox_dx
 		void OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
 		void disconnectAndCloseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		Windows::Foundation::EventRegistrationToken keyDownHandler, keyUpHandler;
+		Windows::Foundation::EventRegistrationToken mouseMovedHandler;
+		bool m_mouseMovedSubscribed = false;
+		void OnMouseMoved(Windows::Devices::Input::MouseDevice^ sender, Windows::Devices::Input::MouseEventArgs^ args);
+		void OnPointerButtonChanged(Platform::Object^ sender, Windows::UI::Core::PointerEventArgs^ args);
+		void OnPointerWheelChanged(Platform::Object^ sender, Windows::UI::Core::PointerEventArgs^ args);
+		void HidePointerCursor();
 		void Keyboard_OnKeyDown(moonlight_xbox_dx::KeyboardControl^ sender, moonlight_xbox_dx::KeyEvent^ e);
 		void Keyboard_OnKeyUp(moonlight_xbox_dx::KeyboardControl^ sender, moonlight_xbox_dx::KeyEvent^ e);
 		void guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);

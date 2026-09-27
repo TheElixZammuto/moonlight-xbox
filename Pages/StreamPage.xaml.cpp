@@ -5,13 +5,13 @@
 
 #include "pch.h"
 #include "StreamPage.xaml.h"
+#include <KeyboardControl.xaml.h>
+#include <Utils.hpp>
+#include "../Common/ModalDialog.xaml.h"
 #include "../Plot/ImGuiPlots.h"
 #include "../Streaming/AudioPlayer.h"
-#include "../Streaming/FrameQueue.h"
 #include "../Streaming/FFMpegDecoder.h"
-#include <Utils.hpp>
-#include <KeyboardControl.xaml.h>
-#include "../Common/ModalDialog.xaml.h"
+#include "../Streaming/FrameQueue.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -19,6 +19,7 @@ using namespace Platform;
 using namespace Platform::Collections;
 using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
+using namespace Windows::Devices::Input;
 using namespace Windows::Gaming::Input;
 using namespace Windows::Graphics::Display;
 using namespace Windows::Graphics::Display::Core;
@@ -36,23 +37,25 @@ using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
 using namespace concurrency;
 
-StreamPage::StreamPage():
-	m_windowVisible(true),
-	m_coreInput(nullptr)
-{
+StreamPage::StreamPage()
+    : m_windowVisible(true),
+      m_coreInput(nullptr) {
 	InitializeComponent();
 
-	DisplayInformation^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
+	DisplayInformation ^ currentDisplayInformation = DisplayInformation::GetForCurrentView();
 	NavigationCacheMode = Windows::UI::Xaml::Navigation::NavigationCacheMode::Enabled;
 	swapChainPanel->SizeChanged +=
-		ref new SizeChangedEventHandler(this, &StreamPage::OnSwapChainPanelSizeChanged);
+	    ref new SizeChangedEventHandler(this, &StreamPage::OnSwapChainPanelSizeChanged);
 	m_deviceResources = std::make_shared<DX::DeviceResources>();
+	HidePointerCursor();
 }
 
+void StreamPage::HidePointerCursor() {
+	auto window = CoreWindow::GetForCurrentThread();
+	if (window != nullptr) window->PointerCursor = nullptr;
+}
 
-
-void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequestedEventArgs^ args)
-{
+void StreamPage::OnBackRequested(Platform::Object ^ e, Windows::UI::Core::BackRequestedEventArgs ^ args) {
 	// UWP on Xbox One triggers a back request whenever the B
 	// button is pressed which can result in the app being
 	// suspended if unhandled
@@ -60,6 +63,7 @@ void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequ
 }
 
 void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	HidePointerCursor();
 
 	this->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 	this->m_progressRing->IsActive = true;
@@ -73,11 +77,26 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 
-	keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyDown));
-	keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^>(this, &StreamPage::OnKeyUp));
+	keyDownHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown += ref new Windows::Foundation::TypedEventHandler < Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^ > (this, &StreamPage::OnKeyDown));
+	keyUpHandler = (Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp += ref new Windows::Foundation::TypedEventHandler < Windows::UI::Core::CoreWindow ^, Windows::UI::Core::KeyEventArgs ^ > (this, &StreamPage::OnKeyUp));
+
+	// MouseDevice reports relative hardware motion. Button and wheel events are
+	// registered below on the panel's dedicated CoreIndependentInputSource.
+	// Keep physical mouse input separate from
+	// the gamepad's mouse mode so it works throughout the stream.
+	try {
+		auto mouseDevice = MouseDevice::GetForCurrentView();
+		if (mouseDevice != nullptr && !m_mouseMovedSubscribed) {
+			mouseMovedHandler = mouseDevice->MouseMoved += ref new TypedEventHandler <MouseDevice^, MouseEventArgs^> (this, &StreamPage::OnMouseMoved);
+			m_mouseMovedSubscribed = true;
+		}
+	} catch (Platform::Exception ^ e) {
+		Utils::Logf("StreamPage::Page_Loaded: Unable to initialize mouse movement: %s\n",
+		            Utils::PlatformStringToStdString(e->Message));
+	}
 
 	// Detect gamepad connection and disconnection events
-	gamepadAddedHandler = Gamepad::GamepadAdded += ref new EventHandler<Gamepad^>(this, &StreamPage::OnGamepadAdded);
+	gamepadAddedHandler = Gamepad::GamepadAdded += ref new EventHandler<Gamepad ^>(this, &StreamPage::OnGamepadAdded);
 	gamepadRemovedHandler = Gamepad::GamepadRemoved += ref new EventHandler<Gamepad ^>(this, &StreamPage::OnGamepadRemoved);
 
 	if (IsXbox() && m_hdmiInfo == nullptr) {
@@ -85,7 +104,8 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 		if (hdmi != nullptr) {
 			// Watch for HDMI display changes
 			m_hdmiHandler = hdmi->DisplayModesChanged +=
-				ref new TypedEventHandler<HdmiDisplayInformation^, Platform::Object^>(this, &StreamPage::OnHdmiDisplayModesChanged);
+			    ref new TypedEventHandler < HdmiDisplayInformation ^
+			    , Platform::Object ^ > (this, &StreamPage::OnHdmiDisplayModesChanged);
 
 			m_hdmiInfo = hdmi;
 			Utils::Log("HDMI display listener attached\n");
@@ -98,6 +118,27 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 		Utils::Log("StreamPage::Page_Loaded: SetSwapChainPanel failed\n");
 	}
 
+	// Pointer events on a SwapChainPanel must be consumed through an independent
+	// input source to work reliably with DirectX content. The source must be
+	// created and pumped from a non-UI thread.
+	if (m_inputLoopWorker == nullptr) {
+		auto inputHandler = ref new WorkItemHandler([this](IAsyncAction ^) {
+			try {
+				auto coreInput = swapChainPanel->CreateCoreIndependentInputSource(CoreInputDeviceTypes::Mouse);
+				m_coreInput = coreInput;
+				coreInput->PointerCursor = nullptr;
+				coreInput->IsInputEnabled = true;
+				coreInput->PointerPressed += ref new TypedEventHandler<Platform::Object^, PointerEventArgs^>(this, &StreamPage::OnPointerButtonChanged);
+				coreInput->PointerReleased += ref new TypedEventHandler<Platform::Object^, PointerEventArgs^>(this, &StreamPage::OnPointerButtonChanged);
+				coreInput->PointerWheelChanged += ref new TypedEventHandler<Platform::Object^, PointerEventArgs^>(this, &StreamPage::OnPointerWheelChanged);
+				coreInput->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessUntilQuit);
+			} catch (Platform::Exception ^ e) {
+				Utils::Logf("StreamPage input worker failed: %s\n", Utils::PlatformStringToStdString(e->Message));
+			}
+		});
+		m_inputLoopWorker = ThreadPool::RunAsync(inputHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
+	}
+
 	Platform::WeakReference weakThis(this);
 	DISPATCH_UI([weakThis] {
 		auto that = weakThis.Resolve<StreamPage>();
@@ -107,24 +148,44 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 			that->m_main->CreateDeviceDependentResources();
 			that->m_main->CreateWindowSizeDependentResources();
 			that->m_main->StartRenderLoop();
-        } catch (const std::exception &ex) {
+		} catch (const std::exception &ex) {
 			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", ex.what());
-        } catch (const std::string &string) {
+		} catch (const std::string &string) {
 			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", string);
-        } catch (Platform::Exception ^ e) {
-            Platform::String ^ errorMsg = ref new Platform::String();
-            errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
-            errorMsg = errorMsg->Concat(errorMsg, Utils::StringPrintf("%x", e->HResult));
+		} catch (Platform::Exception ^ e) {
+			Platform::String ^ errorMsg = ref new Platform::String();
+			errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
+			errorMsg = errorMsg->Concat(errorMsg, Utils::StringPrintf("%x", e->HResult));
 			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", Utils::PlatformStringToStdString(errorMsg));
-        } catch (...) {
-            Utils::Log("StreamPage::Page_Loaded: Exception when starting stream. Exception: Generic Exception");
-        }
+		} catch (...) {
+			Utils::Log("StreamPage::Page_Loaded: Exception when starting stream. Exception: Generic Exception");
+		}
 	});
 }
 
 void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
+
+	if (m_mouseMovedSubscribed) {
+		try {
+			auto mouseDevice = MouseDevice::GetForCurrentView();
+			if (mouseDevice != nullptr) {
+				mouseDevice->MouseMoved -= mouseMovedHandler;
+			}
+		} catch (Platform::Exception ^) {
+		}
+		m_mouseMovedSubscribed = false;
+	}
+
+	if (m_coreInput != nullptr) {
+		m_coreInput->Dispatcher->StopProcessEvents();
+		m_coreInput = nullptr;
+	}
+	if (m_inputLoopWorker != nullptr) {
+		m_inputLoopWorker->Cancel();
+		m_inputLoopWorker = nullptr;
+	}
 
 	Gamepad::GamepadAdded -= gamepadAddedHandler;
 	Gamepad::GamepadRemoved -= gamepadRemovedHandler;
@@ -154,13 +215,11 @@ void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::Rou
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
 }
 
-StreamPage::~StreamPage()
-{
+StreamPage::~StreamPage() {
 }
 
-void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e)
-{
-	if (m_main == nullptr || m_deviceResources == nullptr)return;
+void StreamPage::OnSwapChainPanelSizeChanged(Object ^ sender, Windows::UI::Xaml::SizeChangedEventArgs ^ e) {
+	if (m_main == nullptr || m_deviceResources == nullptr) return;
 	Utils::Logf("StreamPage::OnSwapChainPanelSizeChanged( NewSize: %f x %f )\n", e->NewSize.Width, e->NewSize.Height);
 	critical_section::scoped_lock lock(m_main->GetCriticalSection());
 	m_deviceResources->SetLogicalSize(e->NewSize);
@@ -168,51 +227,43 @@ void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::
 	m_main->CreateWindowSizeDependentResources();
 }
 
-
-void StreamPage::flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::flyoutButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	// Capture stops itself when it hits the size limit, so resync the menu text.
 	this->CaptureMode = FFMpegDecoder::instance().IsCaptureActive();
 
-	Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout((FrameworkElement^)sender);
+	Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout((FrameworkElement ^) sender);
 	m_main->SetFlyoutOpened(true);
 }
 
-
-void StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e)
-{
+void StreamPage::ActionsFlyout_Closed(Platform::Object ^ sender, Platform::Object ^ e) {
 	if (m_main != nullptr) m_main->SetFlyoutOpened(false);
 }
 
-void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::toggleMouseButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	SetMouseMode(!this->m_mouseMode);
 }
 
-void StreamPage::SetMouseMode(bool enabled)
-{
+void StreamPage::SetMouseMode(bool enabled) {
 	this->MouseMode = enabled;
 	if (m_main) m_main->mouseMode = this->MouseMode;
 }
 
-void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::showKeyboardButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	if (!m_main) return;
 	if (GetApplicationState()->EnableKeyboard) {
 		m_main->keyboardMode = true;
 
 		this->Dispatcher->RunAsync(
-			Windows::UI::Core::CoreDispatcherPriority::Normal,
-			ref new Windows::UI::Core::DispatchedHandler([this]() {
-				this->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
-			}));
+		    Windows::UI::Core::CoreDispatcherPriority::Normal,
+		    ref new Windows::UI::Core::DispatchedHandler([this]() {
+			    this->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+		    }));
 	} else {
 		CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
 	}
 }
 
-void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::toggleLogsButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	bool isVisible = m_main->ToggleLogs();
 	SetShowLogs(isVisible);
 }
@@ -230,22 +281,20 @@ void StreamPage::SetShowStats(bool enabled) {
 	this->ShowStats = enabled;
 }
 
-void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs ^ e) {
 
-	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
+	configuration = dynamic_cast<StreamConfiguration ^>(e->Parameter);
 	SetStreamConfig(configuration);
 
-	if (configuration == nullptr)return;
+	if (configuration == nullptr) return;
 
 	SetCaptureMode(false);
 	SetMouseMode(false);
 	SetShowLogs(false);
 	SetShowStats(configuration->enableStats);
-
 }
 
-void StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::disonnectButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyUp -= keyUpHandler;
 
@@ -253,9 +302,8 @@ void StreamPage::disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xa
 	this->m_main->moonlightClient->SetConnectionTerminated();
 }
 
-void StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
-{
-	//Ignore Gamepad input
+void StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow ^ sender, Windows::UI::Core::KeyEventArgs ^ e) {
+	// Ignore Gamepad input
 	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
 		return;
 	}
@@ -263,13 +311,11 @@ void StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::C
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
-	this->m_main->OnKeyDown((unsigned short)e->VirtualKey,modifiers);
+	this->m_main->OnKeyDown((unsigned short)e->VirtualKey, modifiers);
 }
 
-
-void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ e)
-{
-	//Ignore Gamepad input
+void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow ^ sender, Windows::UI::Core::KeyEventArgs ^ e) {
+	// Ignore Gamepad input
 	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
 		return;
 	}
@@ -277,8 +323,80 @@ void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Cor
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
-	this->m_main->OnKeyUp((unsigned short) e->VirtualKey, modifiers);
+	this->m_main->OnKeyUp((unsigned short)e->VirtualKey, modifiers);
+}
 
+void StreamPage::OnMouseMoved(MouseDevice ^ sender, MouseEventArgs ^ e) {
+	if (m_main == nullptr || e == nullptr) {
+		return;
+	}
+
+	HidePointerCursor();
+	const auto delta = e->MouseDelta;
+	m_main->OnMouseMoved(delta.X, delta.Y);
+}
+
+void StreamPage::OnPointerButtonChanged(Platform::Object ^ sender, PointerEventArgs ^ e) {
+	if (m_main == nullptr || e == nullptr || e->CurrentPoint == nullptr) {
+		return;
+	}
+	auto point = e->CurrentPoint;
+	if (point == nullptr || point->PointerDevice->PointerDeviceType != PointerDeviceType::Mouse) return;
+
+	int button = 0;
+	bool pressed = false;
+	switch (point->Properties->PointerUpdateKind) {
+	case PointerUpdateKind::LeftButtonPressed:
+		button = BUTTON_LEFT;
+		pressed = true;
+		break;
+	case PointerUpdateKind::LeftButtonReleased:
+		button = BUTTON_LEFT;
+		break;
+	case PointerUpdateKind::MiddleButtonPressed:
+		button = BUTTON_MIDDLE;
+		pressed = true;
+		break;
+	case PointerUpdateKind::MiddleButtonReleased:
+		button = BUTTON_MIDDLE;
+		break;
+	case PointerUpdateKind::RightButtonPressed:
+		button = BUTTON_RIGHT;
+		pressed = true;
+		break;
+	case PointerUpdateKind::RightButtonReleased:
+		button = BUTTON_RIGHT;
+		break;
+	case PointerUpdateKind::XButton1Pressed:
+		button = BUTTON_X1;
+		pressed = true;
+		break;
+	case PointerUpdateKind::XButton1Released:
+		button = BUTTON_X1;
+		break;
+	case PointerUpdateKind::XButton2Pressed:
+		button = BUTTON_X2;
+		pressed = true;
+		break;
+	case PointerUpdateKind::XButton2Released:
+		button = BUTTON_X2;
+		break;
+	default:
+		return;
+	}
+
+	m_main->OnMouseButton(button, pressed);
+}
+
+void StreamPage::OnPointerWheelChanged(Platform::Object ^ sender, PointerEventArgs ^ e) {
+	if (m_main == nullptr || e == nullptr || e->CurrentPoint == nullptr) {
+		return;
+	}
+	auto point = e->CurrentPoint;
+	if (point == nullptr || point->PointerDevice->PointerDeviceType != PointerDeviceType::Mouse) return;
+
+	auto properties = point->Properties;
+	m_main->OnMouseWheel(properties->MouseWheelDelta, properties->IsHorizontalMouseWheel);
 }
 
 void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
@@ -315,37 +433,27 @@ void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windo
 	});
 }
 
-void StreamPage::Keyboard_OnKeyDown(KeyboardControl^ sender, KeyEvent^ e)
-{
+void StreamPage::Keyboard_OnKeyDown(KeyboardControl ^ sender, KeyEvent ^ e) {
 	this->m_main->OnKeyDown(e->VirtualKey, e->Modifiers);
 }
 
-
-void StreamPage::Keyboard_OnKeyUp(KeyboardControl^ sender, KeyEvent^ e)
-{
+void StreamPage::Keyboard_OnKeyUp(KeyboardControl ^ sender, KeyEvent ^ e) {
 	this->m_main->OnKeyUp(e->VirtualKey, e->Modifiers);
 }
 
-
-void StreamPage::guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::guideButtonShort_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	this->m_main->SendGuideButton(500);
 }
 
-
-void StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::guideButtonLong_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	this->m_main->SendGuideButton(3000);
 }
 
-
-void StreamPage::toggleHDR_WinAltB_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::toggleHDR_WinAltB_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	this->m_main->SendWinAltB();
 }
 
-void StreamPage::resetDecoder_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::resetDecoder_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	// start with a fresh IDR
 	LiRequestIdrFrame();
 
@@ -354,20 +462,17 @@ void StreamPage::resetDecoder_Click(Platform::Object^ sender, Windows::UI::Xaml:
 	ImGuiPlots::instance().clearData(PLOT_QUEUED_FRAMES);
 }
 
-void StreamPage::toggleFramePacing_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::toggleFramePacing_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	// thread safe atomic bool
 	bool isImmediate = Pacer::instance().getPacingImmediate();
 	Pacer::instance().setPacingImmediate(isImmediate ? false : true);
 }
 
-void StreamPage::toggleCapture_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void StreamPage::toggleCapture_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	SetCaptureMode(!this->CaptureMode);
 }
 
-void StreamPage::SetCaptureMode(bool wanted)
-{
+void StreamPage::SetCaptureMode(bool wanted) {
 	this->CaptureMode = wanted;
 	FFMpegDecoder::instance().SetCapture(wanted);
 }
@@ -441,25 +546,21 @@ void StreamPage::UpdateAudioGlitchText() {
 		return;
 	}
 
-
 	m_audioGlitchText->Text = Utils::StringFromStdString(
-		"Glitch count: " + std::to_string(Stats::instance().GetAudioGlitchCount()));
+	    "Glitch count: " + std::to_string(Stats::instance().GetAudioGlitchCount()));
 }
 
 // Event handlers
 
-void StreamPage::OnPropertyChanged(Platform::String^ propertyName)
-{
+void StreamPage::OnPropertyChanged(Platform::String ^ propertyName) {
 	PropertyChanged(this, ref new Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 }
 
-void StreamPage::OnGamepadAdded(Platform::Object^ sender, Gamepad^ gamepad)
-{
+void StreamPage::OnGamepadAdded(Platform::Object ^ sender, Gamepad ^ gamepad) {
 	m_refreshGamepads.store(true, std::memory_order_release);
 }
 
-void StreamPage::OnGamepadRemoved(Platform::Object^ sender, Gamepad^ gamepad)
-{
+void StreamPage::OnGamepadRemoved(Platform::Object ^ sender, Gamepad ^ gamepad) {
 	m_refreshGamepads.store(true, std::memory_order_release);
 }
 
@@ -471,7 +572,7 @@ void StreamPage::RequestRefreshGamepads() {
 	m_refreshGamepads.store(true, std::memory_order_release);
 }
 
-void StreamPage::OnHdmiDisplayModesChanged(HdmiDisplayInformation^, Platform::Object^) {
+void StreamPage::OnHdmiDisplayModesChanged(HdmiDisplayInformation ^, Platform::Object ^) {
 	Utils::Log("HDMI display mode changed, requesting refresh\n");
 	m_refreshDisplay.store(true, std::memory_order_release);
 }
