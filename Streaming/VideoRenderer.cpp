@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "VideoRenderer.h"
 #include "Pacer.h"
 #include <State\MoonlightClient.h>

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "ShaderStructures.h"
 #include "Common\StepTimer.h"
