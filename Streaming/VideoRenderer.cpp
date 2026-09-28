@@ -120,11 +120,20 @@ bool VideoRenderer::Render(AVFrame *frame) {
 
 	bool hasChanged = hasFrameFormatChanged(frame);
 
-	// Sample the decoder's array texture straight into the YUV->RGB shader.
-	// frame->data[1] is the slice of the decoder's array texture holding this frame.
 	UINT slice = (UINT)(intptr_t)frame->data[1];
-	const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>* frameSrvPair =
-	    getDirectSampleSrvs(ffmpegTexture, slice, ffmpegDesc);
+	const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>* frameSrvPair;
+	if (IsXboxOne()) {
+		// Restore the separate sampling texture used by 1.18.1 on Xbox One.
+		// Do not create shader-resource views over decoder-owned arrays here.
+		if (hasChanged || !m_CopyTexture) {
+			setupCopyTexture(ffmpegDesc);
+		}
+		ctx->CopySubresourceRegion1(m_CopyTexture.Get(), 0, 0, 0, 0,
+		                           ffmpegTexture, slice, nullptr, D3D11_COPY_DISCARD);
+		frameSrvPair = &m_CopySrvs;
+	} else {
+		frameSrvPair = getDirectSampleSrvs(ffmpegTexture, slice, ffmpegDesc);
+	}
 	if (!frameSrvPair) {
 		// SRV creation failed; nothing we can render this frame
 		return false;
@@ -135,7 +144,7 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	ctx->IASetInputLayout(m_inputLayout.Get());
 	ctx->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-	ctx->PSSetShader(m_pixelShaderYUV420Array.Get(), nullptr, 0);
+	ctx->PSSetShader(IsXboxOne() ? m_pixelShaderYUV420Copy.Get() : m_pixelShaderYUV420Array.Get(), nullptr, 0);
 
 	if (hasChanged) {
 		setupVertexBuffer(ffmpegDesc);
@@ -182,9 +191,14 @@ bool VideoRenderer::Render(AVFrame *frame) {
 		m_LastColorTrc = frame->color_trc;
 
 		if (m_NeedsRefresh) {
-			// Ensure HDR is set correctly after an HDMI change event
 			m_NeedsRefresh = false;
-			SetHDR(frame->color_trc == AVCOL_TRC_SMPTE2084);
+			// On Xbox One keep HDMI mode switching in the existing stream HDR
+			// callback. Render() holds the decoder/D3D lock, so a synchronous
+			// display-mode request here stalls both rendering and decoding.
+			// Refresh only the swap-chain colorspace on this path.
+			if (!IsXboxOne()) {
+				SetHDR(frame->color_trc == AVCOL_TRC_SMPTE2084);
+			}
 		}
 	}
 
@@ -224,15 +238,18 @@ void VideoRenderer::CreateDeviceDependentResources()
 			, "Input Layout Creation");
 	}
 
-	// Texture2DArray pixel shader, samples the decoder's output surfaces directly
+	// Xbox One uses the original Texture2D shader with a separate copy texture.
 	{
-		auto pixelShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_yuv420_pixel_array.fxc");
+		auto pixelShaderBytecode = DX::ReadData(IsXboxOne()
+		    ? L"Assets\\Shader\\d3d11_yuv420_pixel.fxc"
+		    : L"Assets\\Shader\\d3d11_yuv420_pixel_array.fxc");
+		auto& pixelShader = IsXboxOne() ? m_pixelShaderYUV420Copy : m_pixelShaderYUV420Array;
 		DX::ThrowIfFailed(
 		    m_deviceResources->GetD3DDevice()->CreatePixelShader(
 		        pixelShaderBytecode.data(),
 		        pixelShaderBytecode.size(),
 		        nullptr,
-				&m_pixelShaderYUV420Array
+				pixelShader.ReleaseAndGetAddressOf()
 			)
 			, "Pixel Shader Creation");
 	}
@@ -308,6 +325,9 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
 	m_pixelShaderYUV420Array.Reset();
+	m_pixelShaderYUV420Copy.Reset();
+	for (auto& srv : m_CopySrvs) srv.Reset();
+	m_CopyTexture.Reset();
 	m_cscConstantBuffer.Reset();
 	m_VideoVertexBuffer.Reset();
 	m_samplerState.Reset();
@@ -338,6 +358,35 @@ void VideoRenderer::screenSpaceToNormalizedDeviceCoords(IRECT* src, FRECT* dst, 
 	dst->y = ((float)src->y / (viewportHeight / 2.0f)) - 1.0f;
 	dst->w = (float)src->w / (viewportWidth / 2.0f);
 	dst->h = (float)src->h / (viewportHeight / 2.0f);
+}
+
+void VideoRenderer::setupCopyTexture(const D3D11_TEXTURE2D_DESC& frameDesc)
+{
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = frameDesc.Width;
+	desc.Height = frameDesc.Height;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = frameDesc.Format;
+	desc.SampleDesc.Count = 1;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	auto* dev = m_deviceResources->GetD3DDevice();
+	for (auto& srv : m_CopySrvs) srv.Reset();
+	DX::ThrowIfFailed(dev->CreateTexture2D(&desc, nullptr, m_CopyTexture.ReleaseAndGetAddressOf()),
+	                 "Copy texture creation");
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+	auto formats = getPlaneSRVFormats(desc.Format);
+	for (size_t plane = 0; plane < m_CopySrvs.size(); ++plane) {
+		srvDesc.Format = formats[plane];
+		DX::ThrowIfFailed(dev->CreateShaderResourceView(m_CopyTexture.Get(), &srvDesc,
+		                                              m_CopySrvs[plane].ReleaseAndGetAddressOf()),
+		                 "Copy texture plane view creation");
+	}
 }
 
 const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>*

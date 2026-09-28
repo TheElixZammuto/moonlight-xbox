@@ -52,6 +52,7 @@ namespace moonlight_xbox_dx
 		void Stop();
 
 	private:
+		void setupCopyTexture(const D3D11_TEXTURE2D_DESC& frameDesc);
 		const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>*
 			getDirectSampleSrvs(ID3D11Texture2D* texture, UINT slice, const D3D11_TEXTURE2D_DESC& desc);
 		void setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc);
@@ -69,6 +70,9 @@ namespace moonlight_xbox_dx
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>	m_vertexShader;
 		// Texture2DArray YUV->RGB shader, samples the decoder surfaces directly
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShaderYUV420Array;
+		Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShaderYUV420Copy;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_CopyTexture;
+		std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2> m_CopySrvs;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_cscConstantBuffer;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>  m_samplerState;
 		Windows::Graphics::Display::Core::HdmiDisplayMode^ m_lastDisplayMode;

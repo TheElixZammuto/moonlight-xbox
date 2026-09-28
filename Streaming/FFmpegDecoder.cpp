@@ -229,8 +229,13 @@ namespace moonlight_xbox_dx {
 		decoder_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 		av_buffer_unref(&hw_device_ctx);
 		decoder_ctx->pix_fmt = AV_PIX_FMT_D3D11;
-		// get_format lets us allocate a frame pool we can sample directly (no per-frame copy)
-		decoder_ctx->get_format = ff_get_format;
+		// Keep Xbox One on the decoder-only pool used before direct sampling.
+		// The renderer copies these surfaces into a separate shader resource.
+		if (!IsXboxOne()) {
+			decoder_ctx->get_format = ff_get_format;
+		}
+		Utils::Logf("Video rendering path: %s\n",
+		            IsXboxOne() ? "copy (Xbox One compatibility)" : "direct sampling");
 		decoder_ctx->sw_pix_fmt = (videoFormat & VIDEO_FORMAT_MASK_10BIT) ? AV_PIX_FMT_P010 : AV_PIX_FMT_NV12;
 		decoder_ctx->pkt_timebase.num = 1;
 		decoder_ctx->pkt_timebase.den = 90000;
