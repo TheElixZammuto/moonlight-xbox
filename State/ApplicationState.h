@@ -12,6 +12,7 @@ namespace moonlight_xbox_dx {
 		int screenMarginW;
 		int screenMarginH;
 		int mouseSensitivity = 3;
+		int tileScale = 100;
 		Platform::String^ keyboardLayout;
 		bool firstTime;
 		bool alternateCombination;
@@ -92,6 +93,46 @@ namespace moonlight_xbox_dx {
 			void set(int value) {
 				this->mouseSensitivity = value;
 				OnPropertyChanged("MouseSensitivity");
+			}
+		}
+
+		// Size of the game tiles on the app grid, as a percentage of the
+		// original 225x300 artwork box. 100 leaves the grid unchanged.
+		property int TileScale
+		{
+			int get()
+			{
+				return this->tileScale;
+			};
+			void set(int value) {
+				if (value < 25) value = 25;
+				if (value > 150) value = 150;
+				this->tileScale = value;
+				OnPropertyChanged("TileScale");
+				OnPropertyChanged("TileWidth");
+				OnPropertyChanged("TileHeight");
+				OnPropertyChanged("TilePadding");
+			}
+		}
+
+		property double TileWidth
+		{
+			double get() { return 225.0 * this->tileScale / 100.0; }
+		}
+
+		property double TileHeight
+		{
+			double get() { return 300.0 * this->tileScale / 100.0; }
+		}
+
+		// Keep the gap between tiles proportional so small tiles pack tightly.
+		property Windows::UI::Xaml::Thickness TilePadding
+		{
+			Windows::UI::Xaml::Thickness get()
+			{
+				double p = 16.0 * this->tileScale / 100.0;
+				if (p < 4.0) p = 4.0;
+				return { p, p, p, p };
 			}
 		}
 

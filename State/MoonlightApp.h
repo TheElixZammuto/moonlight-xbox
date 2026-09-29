@@ -43,6 +43,23 @@ namespace moonlight_xbox_dx {
             }
         }
 
+        // Tile geometry, read from the shared application state so each
+        // tile honours the user's tile-size setting.
+        property double TileWidth
+        {
+            double get();
+        }
+
+        property double TileHeight
+        {
+            double get();
+        }
+
+        property Windows::UI::Xaml::Thickness TilePadding
+        {
+            Windows::UI::Xaml::Thickness get();
+        }
+
         property bool CurrentlyRunning
         {
             bool get() { return this->currentlyRunning; }
