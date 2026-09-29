@@ -53,10 +53,16 @@ class FFMpegDecoder {
 	void SetCapture(bool wanted);
 	bool IsCaptureActive() const;
 
-	// Called from the get_format callback to set up a frame pool with
-	// D3D11_BIND_SHADER_RESOURCE so the renderer can sample decoder surfaces
-	// directly. Returns false on failure, which aborts decoding.
-	bool setupDirectSampleFramesContext(AVCodecContext *avctx);
+	// True once the decoder's frame pool has been allocated with
+	// D3D11_BIND_SHADER_RESOURCE, which lets the renderer sample decoder
+	// surfaces directly and skip the per-frame texture copy. Resolved during
+	// the first decode (get_format) and only ever read on the render thread.
+	bool directSamplingEnabled() const { return m_directSampling.load(std::memory_order_acquire); }
+
+	// Called from the get_format callback to try to set up a frame pool that the
+	// renderer can sample directly. On any failure it leaves avctx->hw_frames_ctx
+	// untouched so ffmpeg falls back to its default (copy) pool.
+	void trySetupDirectSampleFramesContext(AVCodecContext *avctx);
 
 	int videoFormat, width, height, fps;
 	std::recursive_mutex m_mutex;
@@ -108,6 +114,7 @@ class FFMpegDecoder {
 	std::shared_ptr<DX::DeviceResources> m_deviceResources;
 	int m_LastFrameNumber;
 	int64_t m_StreamEpochQpc;
+	std::atomic<bool> m_directSampling{false};
 
 	// m_CaptureState is atomic so the decode thread can skip the capture path with
 	// a single relaxed load, but every *change* to it happens under
