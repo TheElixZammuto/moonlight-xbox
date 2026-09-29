@@ -209,7 +209,6 @@ namespace moonlight_xbox_dx {
 			return -1;
 		}
 		decoder_ctx->opaque = this;
-		decoder_ctx->extra_hw_frames = 5;
 
 		AVBufferRef* hw_device_ctx = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
 		device_ctx = reinterpret_cast<AVHWDeviceContext*>(hw_device_ctx->data);
