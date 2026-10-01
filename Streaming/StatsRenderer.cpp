@@ -19,12 +19,14 @@ StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources> &deviceR
       m_mutex(),
       m_visible(false) {
 	m_console->SetForegroundColor(Colors::Yellow);
+	m_console->SetCachedGeometry(true);
 	// m_console->SetDebugOutput(true);
 
 	CreateDeviceDependentResources();
 }
 
 void StatsRenderer::Update(DX::StepTimer const &timer) {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	// We let the Stats class always process even if not visible. Most of the time
 	// it will simply accumulate stats during its 1-second window period. Each second,
 	// when it determines the user-visible text should be updated, it will update outputStr and return true.
@@ -220,6 +222,16 @@ void StatsRenderer::CreateWindowSizeDependentResources() {
 
 void StatsRenderer::ReleaseDeviceDependentResources() {
 	m_console->ReleaseDevice();
+}
+
+bool StatsRenderer::GetVisible() {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	return m_visible;
+}
+
+void StatsRenderer::SetVisible(bool visible) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_visible = visible;
 }
 
 void StatsRenderer::ToggleVisible() {
