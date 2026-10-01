@@ -14,7 +14,9 @@
 
 #include "SpriteBatch.h"
 #include "SpriteFont.h"
+#include "CommonStates.h"
 
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -46,7 +48,8 @@ namespace DX
 
         void SetWindow(const RECT& layout);
 
-        void XM_CALLCONV SetForegroundColor(DirectX::FXMVECTOR color) { DirectX::XMStoreFloat4(&m_textColor, color); }
+        void XM_CALLCONV SetForegroundColor(DirectX::FXMVECTOR color);
+        void SetCachedGeometry(bool enabled);
 
         void SetDebugOutput(bool debug) { m_debugOutput = debug; }
 
@@ -63,6 +66,9 @@ namespace DX
     private:
         void ProcessString(_In_z_ const wchar_t* str);
         void IncrementLine();
+        void CreateCachedResources();
+        void RebuildCachedGeometry();
+        void DrawCachedGeometry();
 
         RECT                                            m_layout;
         DirectX::XMFLOAT4                               m_textColor;
@@ -81,7 +87,25 @@ namespace DX
 
         std::unique_ptr<DirectX::SpriteBatch>           m_batch;
         std::unique_ptr<DirectX::SpriteFont>            m_font;
+        std::unique_ptr<DirectX::CommonStates>          m_cachedStates;
         Microsoft::WRL::ComPtr<ID3D11DeviceContext>     m_context;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_fontSheet;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader>      m_cachedVS;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader>       m_cachedPS;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout>       m_cachedInputLayout;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>            m_cachedTransform;
+        Microsoft::WRL::ComPtr<ID3D11Buffer>            m_cachedVertices;
+        unsigned int                                    m_cachedVertexCount = 0;
+        unsigned int                                    m_cachedVertexCapacity = 0;
+        float                                           m_inverseSheetWidth = 0;
+        float                                           m_inverseSheetHeight = 0;
+        bool                                            m_cacheGeometry = false;
+        bool                                            m_cacheDirty = true;
+        bool                                            m_hasViewport = false;
+        D3D11_VIEWPORT                                  m_viewport{};
+        float                                           m_transformWidth = 0;
+        float                                           m_transformHeight = 0;
+        DXGI_MODE_ROTATION                              m_rotation = DXGI_MODE_ROTATION_IDENTITY;
 
         std::mutex                                      m_mutex;
     };

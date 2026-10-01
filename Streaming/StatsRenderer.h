@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -18,14 +19,8 @@ class StatsRenderer
 	void Update(DX::StepTimer const &timer);
 	void Render(bool showImGui);
 	void RenderGraphs();
-	bool GetVisible()
-	{
-		return m_visible;
-	}
-	void SetVisible(bool visible)
-	{
-		m_visible = visible;
-	}
+	bool GetVisible();
+	void SetVisible(bool visible);
 	void ToggleVisible();
 
   private:
