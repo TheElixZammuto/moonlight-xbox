@@ -80,6 +80,8 @@ void Pacer::deinit() {
 }
 
 void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps, double refreshRate, bool framePacingImmediate) {
+	// The render loop can query pacing before decoder initialization finishes.
+	std::scoped_lock<std::mutex> lock(m_FrameStatsLock);
 	m_Stopping.store(false, std::memory_order_release);
 	m_DeviceResources = res;
 	m_StreamFps = streamFps;
@@ -96,6 +98,8 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 	m_vhcount = 0;
 	m_vhidx = 0;
 	std::fill(m_vhistory.begin(), m_vhistory.end(), 0);
+	m_LastSyncRefreshCount = 0;
+	m_LastSyncQpc = 0;
 	m_VsyncIntervalQpc = 0;
 	m_LastSyncTarget = 0;
 	m_ewmaVsyncDriftQpc = MsToQpc(0.0001);
@@ -145,17 +149,16 @@ void Pacer::updateFrameStats() {
 	// After we've presented a couple of frames, we can obtain the true vsync interval
 	DXGI_FRAME_STATISTICS stats;
 	if (m_DeviceResources->GetSwapChain()->GetFrameStatistics(&stats) == S_OK &&
-	    (stats.SyncRefreshCount != 0 || stats.SyncQPCTime.QuadPart != 0ULL)) {
+	    stats.SyncRefreshCount != 0 && stats.SyncQPCTime.QuadPart > 0) {
 		UINT srcPassed = 0;
-		if (stats.SyncRefreshCount && m_LastSyncRefreshCount) {
-			srcPassed = stats.SyncRefreshCount - m_LastSyncRefreshCount;
-		}
-		m_LastSyncRefreshCount = stats.SyncRefreshCount;
-
 		int64_t sqtPassed = 0;
-		if (stats.SyncQPCTime.QuadPart && m_LastSyncQpc) {
+		// Only compare consecutive hardware samples from the same timing epoch.
+		if (m_LastSyncRefreshCount != 0 && m_LastSyncQpc > 0 &&
+		    stats.SyncRefreshCount > m_LastSyncRefreshCount && stats.SyncQPCTime.QuadPart > m_LastSyncQpc) {
+			srcPassed = stats.SyncRefreshCount - m_LastSyncRefreshCount;
 			sqtPassed = stats.SyncQPCTime.QuadPart - m_LastSyncQpc;
 		}
+		m_LastSyncRefreshCount = stats.SyncRefreshCount;
 		m_LastSyncQpc = stats.SyncQPCTime.QuadPart;
 
 		// compare with the last sync target we used in waitBeforePresent
@@ -172,6 +175,7 @@ void Pacer::updateFrameStats() {
 		// If any vsyncs have passed, we can calculate a very accurate interval
 		if (srcPassed && sqtPassed) {
 			const int64_t intervalQpc = sqtPassed / srcPassed;
+			if (intervalQpc <= 0) return;
 
 			// use average from past 10 intervals
 			if (m_vhcount == VSYNC_HISTORY_SIZE) {
@@ -194,7 +198,7 @@ void Pacer::updateFrameStats() {
 	} else {
 		// We have a chicken and the egg problem here in that no frame stats are available before presenting real frames,
 		// so we need to fake some numbers early on so Pacer can at least limp through a few frames.
-		double vsyncRR = m_RefreshRate;
+		double vsyncRR = m_RefreshRate > 0.0 ? m_RefreshRate : 60.0;
 
 		if (IsXbox()) {
 			if (vsyncRR >= 120.0) {
@@ -208,6 +212,8 @@ void Pacer::updateFrameStats() {
 			}
 		}
 
+		// A synthetic timestamp must not be paired with an earlier hardware count.
+		m_LastSyncRefreshCount = 0;
 		m_LastSyncQpc = QpcNow();
 		m_VsyncIntervalQpc = MsToQpc(1000.0 / vsyncRR);
 
@@ -401,7 +407,7 @@ int64_t Pacer::getNextVBlankQpc(int64_t *now) {
 	int64_t target = 0, interval = 0;
 	*now = QpcNow();
 
-	if (m_LastSyncQpc == 0 || m_VsyncIntervalQpc == 0) {
+	if (m_LastSyncQpc <= 0 || m_VsyncIntervalQpc <= 0) {
 		// Fallback until vsyncHardware spins up
 		double rr = m_RefreshRate > 0.0 ? m_RefreshRate : 60.0;
 		interval = MsToQpc(1000.0 / rr);
@@ -410,8 +416,9 @@ int64_t Pacer::getNextVBlankQpc(int64_t *now) {
 		interval = m_VsyncIntervalQpc;
 		int64_t next = m_LastSyncQpc + static_cast<int64_t>(m_ewmaVsyncDriftQpc);
 
-		while (next < *now) {
-			next += interval;
+		// Advance in constant time, even after a long gap between sessions.
+		if (next <= *now) {
+			next = *now + interval - ((*now - next) % interval);
 		}
 		target = next;
 	}
