@@ -43,6 +43,7 @@ Pacer &Pacer::instance() {
 	return inst;
 }
 
+/// Initialize the singleton with no active stream or hardware timing history.
 Pacer::Pacer()
     : m_Running(false),
       m_DeviceResources(),
@@ -79,6 +80,7 @@ void Pacer::deinit() {
 	Utils::Logf("Pacer: deinit\n");
 }
 
+/// Reset per-stream timing under the statistics lock before starting the pacing worker.
 void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps, double refreshRate, bool framePacingImmediate) {
 	// The render loop can query pacing before decoder initialization finishes.
 	std::scoped_lock<std::mutex> lock(m_FrameStatsLock);
@@ -142,7 +144,8 @@ void Pacer::vsyncHardware() {
 	Utils::Logf("vsyncHardware stats thread stopped\n");
 }
 
-// based on mpv's d3d11_get_vsync()
+/// Update the vsync estimate from consecutive hardware samples, or seed fallback timing.
+// Based on mpv's d3d11_get_vsync().
 void Pacer::updateFrameStats() {
 	std::scoped_lock<std::mutex> lock(m_FrameStatsLock);
 
@@ -400,8 +403,8 @@ void Pacer::submitFrame(AVFrame *frame) {
 
 // Misc helper functions
 
-// Caller often needs now and the vsync interval, since this needs locking
-// the logic is confined to this function.
+/// Return a future presentation deadline and capture the current QPC under the timing lock.
+/// Xbox fallback timing uses the same refresh-rate mapping as updateFrameStats().
 int64_t Pacer::getNextVBlankQpc(int64_t *now) {
 	std::scoped_lock<std::mutex> lock(m_FrameStatsLock);
 	int64_t target = 0, interval = 0;
@@ -410,6 +413,17 @@ int64_t Pacer::getNextVBlankQpc(int64_t *now) {
 	if (m_LastSyncQpc <= 0 || m_VsyncIntervalQpc <= 0) {
 		// Fallback until vsyncHardware spins up
 		double rr = m_RefreshRate > 0.0 ? m_RefreshRate : 60.0;
+		if (IsXbox()) {
+			if (rr >= 120.0) {
+				rr = 60.0;
+			} else if (rr >= 119.0) {
+				rr = 59.94;
+			} else if (rr >= 60.0) {
+				rr = 60.0;
+			} else if (rr >= 59.0) {
+				rr = 59.94;
+			}
+		}
 		interval = MsToQpc(1000.0 / rr);
 		target = *now + interval;
 	} else {
