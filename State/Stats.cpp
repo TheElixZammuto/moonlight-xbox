@@ -2,6 +2,7 @@
 #include "Stats.h"
 #include "Utils.hpp"
 #include "../Plot/ImGuiPlots.h"
+#include "../Streaming/AudioPlayer.h"
 #include "../Streaming/FFMpegDecoder.h"
 
 using namespace moonlight_xbox_dx;
@@ -16,8 +17,7 @@ Stats::Stats() :
 	m_bwTracker(10, 250),
 	m_avgQueueSize(0.0),
 	m_avgMbpsSmoothed(0.0),
-	m_gpuTimeMs(0.0f),
-	m_audioGlitchCount(0)
+	m_gpuTimeMs(0.0f)
 {
 	Reset();
 }
@@ -29,7 +29,6 @@ void Stats::Reset()
 	m_avgQueueSize = 1.0f;
 	m_avgMbpsSmoothed = 0.0;
 	m_gpuTimeMs = 0.0f;
-	m_audioGlitchCount = 0;
 
 	ZeroMemory(&m_ActiveWndVideoStats, sizeof(VIDEO_STATS));
 	ZeroMemory(&m_LastWndVideoStats, sizeof(VIDEO_STATS));
@@ -120,21 +119,6 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT deco
 		ImGuiPlots::instance().observeFloat(PLOT_HOST_FRAMETIME, (float)(delta90k / 90.0f));
 	}
 	lastHostPts = (uint32_t)decodeUnit->rtpTimestamp;
-}
-
-void Stats::SubmitAudioGlitch() {
-	std::lock_guard<std::mutex> lock(m_mutex);
-	++m_audioGlitchCount;
-}
-
-uint32_t Stats::GetAudioGlitchCount() {
-	std::lock_guard<std::mutex> lock(m_mutex);
-	return m_audioGlitchCount;
-}
-
-void Stats::ResetAudioGlitchCount() {
-	std::lock_guard<std::mutex> lock(m_mutex);
-	m_audioGlitchCount = 0;
 }
 
 // Time in milliseconds we spent decoding one frame, it is added up to later be divided by decodedFrames
@@ -418,7 +402,7 @@ void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, cha
 		               rttString,
 		               decodeTimeStr,
 		               m_avgQueueSize,
-		               ImGuiPlots::instance().getAvg(PLOT_AUDIO_BUFFER_MS),
+					   ImGuiPlots::instance().getAvg(PLOT_AUDIO_BUFFER_MS),
 		               stats.renderedFrames ? (double)stats.totalPacerTimeUs / 1000.0 / stats.renderedFrames : 0.0f,
 		               stats.renderedFrames ? (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames : 0.0f,
 		               stats.renderedFrames ? (double)stats.totalPresentTimeUs / 1000.0 / stats.renderedFrames : 0.0f);

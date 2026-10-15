@@ -69,9 +69,6 @@ namespace moonlight_xbox_dx
 		void SubmitPresentPacing(double presentDisplayMs);
 		void SubmitRenderStats(double preWaitTimeMs, double renderTimeMs, double presentTimeMs, bool hitDeadline);
 		void SubmitGpuTime(float gpuTimeMs);
-		void SubmitAudioGlitch();
-		uint32_t GetAudioGlitchCount();
-		void ResetAudioGlitchCount();
 
 	private:
 		Stats();
@@ -91,6 +88,5 @@ namespace moonlight_xbox_dx
 		float                                m_avgQueueSize;
 		double                               m_avgMbpsSmoothed;
 		float                                m_gpuTimeMs;
-		uint32_t                             m_audioGlitchCount;
 	};
 }

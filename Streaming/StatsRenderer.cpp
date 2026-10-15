@@ -163,7 +163,7 @@ void StatsRenderer::RenderGraphs() {
 
 	// 3rd row for quickly graphing something if needed
 	// ImGui::Dummy(ImVec2(1.0f, itemSpacingY));
-	// draw_plot(PLOT_ETC, graphW, graphH);
+	// draw_plot(PLOT_AUDIO_BUFFER_MS, graphW, graphH);
 
 	ImGui::End();
 }

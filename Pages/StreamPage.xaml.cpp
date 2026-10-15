@@ -443,7 +443,8 @@ void StreamPage::UpdateAudioGlitchText() {
 
 
 	m_audioGlitchText->Text = Utils::StringFromStdString(
-		"Glitch count: " + std::to_string(Stats::instance().GetAudioGlitchCount()));
+		"Glitches: " + std::to_string(AudioPlayer::instance().GetGlitchCount()) +
+		" / Drops to reduce latency: " + std::to_string(AudioPlayer::instance().GetLatencyDropCount()));
 }
 
 // Event handlers

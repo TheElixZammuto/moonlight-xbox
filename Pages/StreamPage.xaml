@@ -113,7 +113,7 @@
                                                 <TextBlock Grid.Column="4" Text="50ms" HorizontalAlignment="Right" />
                                             </Grid>
                                             <TextBlock FontSize="12px" Text="Small buffer sizes are more likely to have audio glitches." VerticalAlignment="Center" />
-                                            <TextBlock x:Name="audioGlitchText" FontSize="12px" VerticalAlignment="Center" Loaded="audioGlitchText_Loaded" Text="Glitch count: 0" />
+                                            <TextBlock x:Name="audioGlitchText" FontSize="12px" VerticalAlignment="Center" Loaded="audioGlitchText_Loaded" Text="Glitches: 0 / Drops to reduce latency: 0" />
                                         </StackPanel>
                                     </ControlTemplate>
                                 </MenuFlyoutItem.Template>
