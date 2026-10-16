@@ -328,6 +328,8 @@
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="State\DiscoveryProbeState.h" />
+    <ClInclude Include="Common\DeviceWatcherHelper.h" />
     <ClInclude Include="Common\imconfig.moonlight.h" />
     <ClInclude Include="Common\TextConsole.h" />
     <ClInclude Include="Converters\BoolToTextConverter.h" />
@@ -390,6 +392,7 @@
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="Common\DeviceWatcherHelper.cpp" />
     <ClCompile Include="Common\DirectXHelper.cpp" />
     <ClCompile Include="Common\TextConsole.cpp" />
     <ClCompile Include="Converters\BoolToTextConverter.cpp" />

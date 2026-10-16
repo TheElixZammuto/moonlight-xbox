@@ -1,9 +1,11 @@
+// clang-format off
 #include "pch.h"
+// clang-format on
 #include "MoonlightHost.h"
 #include "State\MoonlightClient.h"
 
 namespace moonlight_xbox_dx {
-	MoonlightHost::MoonlightHost(Platform::String ^host) {
+	MoonlightHost::MoonlightHost(Platform::String^ host) {
 		lastHostname = host;
 		resolution = ref new ScreenResolution(1920, 1080);
 		loading = true;
@@ -14,13 +16,31 @@ namespace moonlight_xbox_dx {
 		}
 	}
 
+	void MoonlightHost::ApplyHostInfo(MoonlightHost^ source) {
+		// Called on the UI thread after a temporary host has completed its probe.
+		// Keep this host's stream settings and any existing client in use by the app page.
+		if (client == nullptr) {
+			client = source->client;
+			source->client = nullptr;
+		}
+		LastHostname = source->LastHostname;
+		InstanceId = source->InstanceId;
+		ComputerName = source->ComputerName;
+		ServerAddress = source->ServerAddress;
+		MacAddress = source->MacAddress;
+		Paired = source->Paired;
+		CurrentlyRunningAppId = source->CurrentlyRunningAppId;
+		Connected = source->Connected;
+		Loading = false;
+	}
+
 	void MoonlightHost::UpdateHostInfo(bool showLoading) {
 		if (showLoading) this->Loading = true;
 		bool status = this->Connect() == 0;
 		this->Connected = status;
 		if (status) {
 			this->Paired = client->IsPaired();
-		    this->CurrentlyRunningAppId = client->GetRunningAppID();
+			this->CurrentlyRunningAppId = client->GetRunningAppID();
 			this->InstanceId = client->GetInstanceID();
 			if (this->Connected) {
 				this->ComputerName = client->GetComputerName();
@@ -31,8 +51,7 @@ namespace moonlight_xbox_dx {
 		if (showLoading) this->Loading = false;
 	}
 
-	int MoonlightHost::Connect()
-	{
+	int MoonlightHost::Connect() {
 		if (client == nullptr) {
 			client = new MoonlightClient();
 		}
@@ -43,20 +62,22 @@ namespace moonlight_xbox_dx {
 	}
 
 	void MoonlightHost::UpdateApps() {
-	    auto apps = client->GetApplications();
-	    Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, apps]() {
+		auto apps = client->GetApplications();
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, apps]() {
 			Apps->Clear();
 			for (auto a : apps) {
 				if (a->Id == CurrentlyRunningAppId) a->CurrentlyRunning = true;
 				Apps->Append(a);
 			}
-		}));
-    }
+			}));
+	}
 
 	void MoonlightHost::UpdateAppRunningStates() {
 		try {
 			UpdateHostInfo(false);
-		} catch (...) { }
+		}
+		catch (...) {
+		}
 
 		int runningId = this->CurrentlyRunningAppId;
 
@@ -68,19 +89,16 @@ namespace moonlight_xbox_dx {
 					bool shouldRun = (existing->Id == runningId);
 					if (existing->CurrentlyRunning != shouldRun) existing->CurrentlyRunning = shouldRun;
 				}
-			}));
+				}));
 	}
 
-	void MoonlightHost::Unpair()
-	{
+	void MoonlightHost::Unpair() {
 		client->Unpair();
 	}
 
-
-	void MoonlightHost::OnPropertyChanged(Platform::String^ propertyName)
-	{
+	void MoonlightHost::OnPropertyChanged(Platform::String^ propertyName) {
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, propertyName]() {
-			PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
-		}));
+			PropertyChanged(this, ref new Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+			}));
 	}
-}
+} // namespace moonlight_xbox_dx

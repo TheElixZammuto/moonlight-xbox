@@ -13,6 +13,8 @@ namespace moonlight_xbox_dx {
 		void Log(const char* msg);
 		void Log(const std::string_view& msg);
 		void Logf(const char* msg, ...);
+		void DumpDeviceInformation(Windows::Devices::Enumeration::DeviceInformation^ info);
+		void DumpDeviceInformation(Windows::Devices::Enumeration::DeviceInformationUpdate^ update);
 
 		std::vector<std::wstring> GetLogLines();
 		Platform::String^ StringFromChars(const char* chars);

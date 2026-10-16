@@ -1,310 +1,340 @@
 #pragma once
+
+// clang-format off
 #include "pch.h"
+// clang-format on
 #include "State\MoonlightClient.h"
 #include "State\ScreenResolution.h"
 namespace moonlight_xbox_dx {
 
-    [Windows::UI::Xaml::Data::Bindable]
-    public ref class MoonlightHost sealed : Windows::UI::Xaml::Data::INotifyPropertyChanged
-    {
-    private:
-        Platform::String^ instanceId;
-        Platform::String^ lastHostname;
-        Platform::String^ computerName;
-        Platform::String^ serverAddress;
-        Platform::String^ macAddress;
-        bool paired;
-        bool connected;
-        bool loading = true;
-        bool wolPolling = false;
-        bool playAudioOnPC = false;
-        MoonlightClient* client;
-        int currentlyRunningAppId;
-        int bitrate = 20000;
-        ScreenResolution^ resolution;
-        int fps = 60;
-        int autostartID = -1;
-        Platform::String^ videoCodec = "H.265";
-        Platform::String^ audioConfig = "Stereo";
-        Platform::String^ framePacing = "";
-        Platform::String^ audioBuffer = "30 ms";
-        int packetSize = 1392;
-        bool enableHDR = false;
-        bool enableSOPS = false;
-        bool enableStats = false;
-        bool enableGraphs = true;
-        Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
-    public:
-        //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
-        virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
-        void OnPropertyChanged(Platform::String^ propertyName);
-        MoonlightHost(Platform::String ^host);
+	[Windows::UI::Xaml::Data::Bindable] public ref class MoonlightHost sealed : Windows::UI::Xaml::Data::INotifyPropertyChanged {
+	private:
+		Platform::String^ instanceId;
+		Platform::String^ lastHostname;
+		Platform::String^ computerName;
+		Platform::String^ serverAddress;
+		Platform::String^ macAddress;
+		bool paired;
+		bool connected;
+		bool loading = true;
+		bool wolPolling = false;
+		bool playAudioOnPC = false;
+		MoonlightClient* client = nullptr;
+		int currentlyRunningAppId;
+		int bitrate = 20000;
+		ScreenResolution^ resolution;
+		int fps = 60;
+		int autostartID = -1;
+		Platform::String^ videoCodec = "H.265";
+		Platform::String^ audioConfig = "Stereo";
+		Platform::String^ framePacing = "";
+		Platform::String^ audioBuffer = "30 ms";
+		int packetSize = 1392;
+		bool enableHDR = false;
+		bool enableSOPS = false;
+		bool enableStats = false;
+		bool enableGraphs = true;
+		Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
+	internal: void ApplyHostInfo(MoonlightHost^ source);
 
-        void UpdateHostInfo(bool showLoading);
-        int Connect();
-        void Unpair();
-        void UpdateApps();
-    void UpdateAppRunningStates();
-        property Platform::String^ InstanceId
-        {
-            Platform::String^ get() { return this->instanceId; }
-            void set(Platform::String^ value) {
-                this->instanceId = value;
-                OnPropertyChanged("InstanceId");
-            }
-        }
-        property Platform::String^ LastHostname
-        {
-            Platform::String^ get() { return this->lastHostname; }
-            void set(Platform::String^ value) {
-                this->lastHostname = value;
-                OnPropertyChanged("LastHostname");
-            }
-        }
+	public:
+		// Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
+		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
+		void OnPropertyChanged(Platform::String^ propertyName);
+		MoonlightHost(Platform::String^ host);
 
-        property Platform::String^ ComputerName
-        {
-            Platform::String^ get() { return this->computerName; }
-            void set(Platform::String^ value) {
-                this->computerName = value;
-                OnPropertyChanged("ComputerName");
-            }
-        }
+		void UpdateHostInfo(bool showLoading);
+		int Connect();
+		void Unpair();
+		void UpdateApps();
+		void UpdateAppRunningStates();
+		property Platform::String^ InstanceId {
+			Platform::String^ get() {
+				return this->instanceId;
+			}
+			void set(Platform::String^ value) {
+				this->instanceId = value;
+				OnPropertyChanged("InstanceId");
+			}
+		}
+		property Platform::String^ LastHostname {
+			Platform::String^ get() {
+				return this->lastHostname;
+			}
+			void set(Platform::String^ value) {
+				this->lastHostname = value;
+				OnPropertyChanged("LastHostname");
+			}
+		}
 
-        property Platform::String^ ServerAddress
-        {
-            Platform::String^ get() { return this->serverAddress; }
-            void set(Platform::String^ value) {
-                this->serverAddress = value;
-                OnPropertyChanged("ServerAddress");
-            }
-        }
+		property Platform::String^ ComputerName {
+			Platform::String^ get() {
+				return this->computerName;
+			}
+			void set(Platform::String^ value) {
+				this->computerName = value;
+				OnPropertyChanged("ComputerName");
+			}
+		}
 
-        property Platform::String^ MacAddress
-        {
-            Platform::String^ get() { return this->macAddress; }
-            void set(Platform::String^ value) {
-                this->macAddress = value;
-                OnPropertyChanged("MacAddress");
-            }
-        }
+		property Platform::String^ ServerAddress {
+			Platform::String^ get() {
+				return this->serverAddress;
+			}
+			void set(Platform::String^ value) {
+				this->serverAddress = value;
+				OnPropertyChanged("ServerAddress");
+			}
+		}
 
-        property bool Paired
-        {
-            bool get() { return this->paired; }
-            void set(bool value) {
-                this->paired = value;
-                OnPropertyChanged("Paired");
-                OnPropertyChanged("NotPaired");
-                OnPropertyChanged("Connected");
-                OnPropertyChanged("NotConnected");
-            }
-        }
+		property Platform::String^ MacAddress {
+			Platform::String^ get() {
+				return this->macAddress;
+			}
+			void set(Platform::String^ value) {
+				this->macAddress = value;
+				OnPropertyChanged("MacAddress");
+			}
+		}
 
-        property bool Connected
-        {
-            bool get() { return this->connected; }
-            void set(bool value) {
-                this->connected = value;
-                OnPropertyChanged("Connected");
-                OnPropertyChanged("NotConnected");
-                OnPropertyChanged("NotPaired");
-            }
-        }
+		property bool Paired {
+			bool get() {
+				return this->paired;
+			}
+			void set(bool value) {
+				this->paired = value;
+				OnPropertyChanged("Paired");
+				OnPropertyChanged("NotPaired");
+				OnPropertyChanged("Connected");
+				OnPropertyChanged("NotConnected");
+			}
+		}
 
-        property bool NotConnected
-        {
-            bool get() { return !this->connected; }
-        }
+		property bool Connected {
+			bool get() {
+				return this->connected;
+			}
+			void set(bool value) {
+				this->connected = value;
+				OnPropertyChanged("Connected");
+				OnPropertyChanged("NotConnected");
+				OnPropertyChanged("NotPaired");
+			}
+		}
 
-        property bool NotPaired
-        {
-            bool get() { return this->connected && !this->paired; }
-        }
+		property bool NotConnected {
+			bool get() {
+				return !this->connected;
+			}
+		}
 
-        property bool Loading
-        {
-            bool get() { return this->loading; }
-            void set(bool value) {
-                this->loading = value;
-                OnPropertyChanged("Loading");
-                OnPropertyChanged("LoadingVisibility");
-                OnPropertyChanged("Connected");
-                OnPropertyChanged("NotConnected");
-                OnPropertyChanged("NotPaired");
-                OnPropertyChanged("Paired");
-            }
-        }
+		property bool NotPaired {
+			bool get() {
+				return this->connected && !this->paired;
+			}
+		}
 
-        property Windows::UI::Xaml::Visibility LoadingVisibility
-        {
-            Windows::UI::Xaml::Visibility get() { return this->loading ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed; }
-        }
+		property bool Loading {
+			bool get() {
+				return this->loading;
+			}
+			void set(bool value) {
+				this->loading = value;
+				OnPropertyChanged("Loading");
+				OnPropertyChanged("LoadingVisibility");
+				OnPropertyChanged("Connected");
+				OnPropertyChanged("NotConnected");
+				OnPropertyChanged("NotPaired");
+				OnPropertyChanged("Paired");
+			}
+		}
 
-        property bool WolPolling
-        {
-            bool get() { return this->wolPolling; }
-            void set(bool value) {
-                this->wolPolling = value;
-                OnPropertyChanged("WolPolling");
-                OnPropertyChanged("WolPollingVisibility");
-            }
-        }
+		property Windows::UI::Xaml::Visibility LoadingVisibility {
+			Windows::UI::Xaml::Visibility get() {
+				return this->loading ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+			}
+		}
 
-        property Windows::UI::Xaml::Visibility WolPollingVisibility
-        {
-            Windows::UI::Xaml::Visibility get() { return this->wolPolling ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed; }
-        }
+		property bool WolPolling {
+			bool get() {
+				return this->wolPolling;
+			}
+			void set(bool value) {
+				this->wolPolling = value;
+				OnPropertyChanged("WolPolling");
+				OnPropertyChanged("WolPollingVisibility");
+			}
+		}
 
-        property int CurrentlyRunningAppId
-        {
-            int get() { return this->currentlyRunningAppId; }
-            void set(int value) {
-                this->currentlyRunningAppId = value;
-                OnPropertyChanged("CurrentlyRunningAppId");
-            }
-        }
+		property Windows::UI::Xaml::Visibility WolPollingVisibility {
+			Windows::UI::Xaml::Visibility get() {
+				return this->wolPolling ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+			}
+		}
 
-        property int AutostartID
-        {
-            int get() { return this->autostartID; }
-            void set(int value) {
-                this->autostartID = value;
-                OnPropertyChanged("AutostartID");
-            }
-        }
+		property int CurrentlyRunningAppId {
+			int get() {
+				return this->currentlyRunningAppId;
+			}
+			void set(int value) {
+				this->currentlyRunningAppId = value;
+				OnPropertyChanged("CurrentlyRunningAppId");
+			}
+		}
 
-        property ScreenResolution^ Resolution
-        {
-            ScreenResolution^ get() { return this->resolution; }
-            void set(ScreenResolution^ value) {
-                this->resolution = value;
-                OnPropertyChanged("ScreenResolution");
-            }
-        }
+		property int AutostartID {
+			int get() {
+				return this->autostartID;
+			}
+			void set(int value) {
+				this->autostartID = value;
+				OnPropertyChanged("AutostartID");
+			}
+		}
 
-        property int Bitrate
-        {
-            int get() { return this->bitrate; }
-            void set(int value) {
-                this->bitrate = value;
-                OnPropertyChanged("Bitrate");
-            }
-        }
+		property ScreenResolution^ Resolution {
+			ScreenResolution^ get() {
+				return this->resolution;
+			}
+			void set(ScreenResolution^ value) {
+				this->resolution = value;
+				OnPropertyChanged("ScreenResolution");
+			}
+		}
 
-        property int FPS
-        {
-            int get() { return this->fps; }
-            void set(int value) {
-                if (fps == value)return;
-                this->fps = value;
-                OnPropertyChanged("FPS");
-            }
-        }
+		property int Bitrate {
+			int get() {
+				return this->bitrate;
+			}
+			void set(int value) {
+				this->bitrate = value;
+				OnPropertyChanged("Bitrate");
+			}
+		}
 
-        property Platform::String^ VideoCodec
-        {
-            Platform::String^ get() { return this->videoCodec; }
-            void set(Platform::String^ value) {
-                if (videoCodec == value)return;
-                this->videoCodec = value;
-                OnPropertyChanged("VideoCodec");
-            }
-        }
+		property int FPS {
+			int get() {
+				return this->fps;
+			}
+			void set(int value) {
+				if (fps == value) return;
+				this->fps = value;
+				OnPropertyChanged("FPS");
+			}
+		}
 
-        property Platform::String^ AudioConfig
-        {
-            Platform::String^ get() { return this->audioConfig; }
-            void set(Platform::String^ value) {
-                if (audioConfig == value)return;
-                this->audioConfig = value;
-                OnPropertyChanged("AudioConfig");
-            }
-        }
+		property Platform::String^ VideoCodec {
+			Platform::String^ get() {
+				return this->videoCodec;
+			}
+			void set(Platform::String^ value) {
+				if (videoCodec == value) return;
+				this->videoCodec = value;
+				OnPropertyChanged("VideoCodec");
+			}
+		}
 
-        property Platform::String^ FramePacing
-        {
-            Platform::String^ get() { return this->framePacing; }
-            void set(Platform::String^ value) {
-                if (framePacing == value)return;
-                this->framePacing = value;
-                OnPropertyChanged("FramePacing");
-            }
-        }
+		property Platform::String^ AudioConfig {
+			Platform::String^ get() {
+				return this->audioConfig;
+			}
+			void set(Platform::String^ value) {
+				if (audioConfig == value) return;
+				this->audioConfig = value;
+				OnPropertyChanged("AudioConfig");
+			}
+		}
 
-        property Platform::String^ AudioBuffer
-        {
-            Platform::String^ get() { return this->audioBuffer; }
-            void set(Platform::String^ value) {
-                if (audioBuffer == value) return;
-                this->audioBuffer = value;
-                OnPropertyChanged("AudioBuffer");
-            }
-        }
+		property Platform::String^ FramePacing {
+			Platform::String^ get() {
+				return this->framePacing;
+			}
+			void set(Platform::String^ value) {
+				if (framePacing == value) return;
+				this->framePacing = value;
+				OnPropertyChanged("FramePacing");
+			}
+		}
 
-        property int PacketSize
-        {
-            int get() { return this->packetSize; }
-            void set(int value) {
-                if (packetSize == value) return;
-                this->packetSize = value;
-                OnPropertyChanged("PacketSize");
-            }
-        }
+		property Platform::String^ AudioBuffer {
+			Platform::String^ get() {
+				return this->audioBuffer;
+			}
+			void set(Platform::String^ value) {
+				if (audioBuffer == value) return;
+				this->audioBuffer = value;
+				OnPropertyChanged("AudioBuffer");
+			}
+		}
 
-        property Windows::Foundation::Collections::IVector<MoonlightApp^>^ Apps {
-            Windows::Foundation::Collections::IVector<MoonlightApp^>^ get() {
-                if (this->apps == nullptr)
-                {
-                    this->apps = ref new Platform::Collections::Vector<MoonlightApp^>();
-                }
-                return this->apps;
-            }
-        }
+		property int PacketSize {
+			int get() {
+				return this->packetSize;
+			}
+			void set(int value) {
+				if (packetSize == value) return;
+				this->packetSize = value;
+				OnPropertyChanged("PacketSize");
+			}
+		}
 
-        property bool PlayAudioOnPC
-        {
-            bool get() { return this->playAudioOnPC; }
-            void set(bool value) {
-                this->playAudioOnPC = value;
-                OnPropertyChanged("PlayAudioOnPC");
-            }
-        }
+		property Windows::Foundation::Collections::IVector<MoonlightApp^>^ Apps {
+			Windows::Foundation::Collections::IVector<MoonlightApp^>^ get() {
+				if (this->apps == nullptr) {
+					this->apps = ref new Platform::Collections::Vector<MoonlightApp^>();
+				}
+				return this->apps;
+			}
+		}
 
-        property bool EnableHDR
-        {
-            bool get() { return this->enableHDR; }
-            void set(bool value) {
-                this->enableHDR = value;
-                OnPropertyChanged("EnableHDR");
-            }
-        }
+		property bool PlayAudioOnPC {
+			bool get() {
+				return this->playAudioOnPC;
+			}
+			void set(bool value) {
+				this->playAudioOnPC = value;
+				OnPropertyChanged("PlayAudioOnPC");
+			}
+		}
 
-        property bool EnableSOPS
-        {
-            bool get() { return this->enableSOPS; }
-            void set(bool value) {
-                this->enableSOPS = value;
-                OnPropertyChanged("EnableSOPS");
-            }
-        }
+		property bool EnableHDR {
+			bool get() {
+				return this->enableHDR;
+			}
+			void set(bool value) {
+				this->enableHDR = value;
+				OnPropertyChanged("EnableHDR");
+			}
+		}
 
-        property bool EnableStats
-        {
-            bool get() { return this->enableStats; }
-            void set(bool value) {
-                this->enableStats = value;
-                OnPropertyChanged("EnableStats");
-            }
-        }
+		property bool EnableSOPS {
+			bool get() {
+				return this->enableSOPS;
+			}
+			void set(bool value) {
+				this->enableSOPS = value;
+				OnPropertyChanged("EnableSOPS");
+			}
+		}
 
-        property bool EnableGraphs
-        {
-            bool get() { return this->enableGraphs; }
-            void set(bool value) {
-                this->enableGraphs = value;
-                OnPropertyChanged("EnableGraphs");
-            }
-        }
-    };
-}
+		property bool EnableStats {
+			bool get() {
+				return this->enableStats;
+			}
+			void set(bool value) {
+				this->enableStats = value;
+				OnPropertyChanged("EnableStats");
+			}
+		}
+
+		property bool EnableGraphs {
+			bool get() {
+				return this->enableGraphs;
+			}
+			void set(bool value) {
+				this->enableGraphs = value;
+				OnPropertyChanged("EnableGraphs");
+			}
+		}
+	};
+} // namespace moonlight_xbox_dx

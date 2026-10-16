@@ -92,7 +92,7 @@ query_callback(int sock, const struct sockaddr* from, size_t addrlen, mdns_entry
 		mdns_string_t addrstr =
 			ipv4_address_to_string(namebuffer, sizeof(namebuffer), &addr, sizeof(addr));
 		hostnames.emplace(key,std::string(addrstr.str));
-		
+
 	}
 	if (ports.count(key) && hostnames.count(key)) {
 		auto hostname = hostnames[key];

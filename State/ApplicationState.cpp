@@ -1,84 +1,103 @@
+// clang-format off
 #include "pch.h"
+// clang-format on
 #include "ApplicationState.h"
 #include <Utils.hpp>
 #include <nlohmann/json.hpp>
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#include <WinSock2.h>
 #include <WS2tcpip.h>
-#include <sstream>
+#include <WinSock2.h>
 #include <algorithm>
+#include <sstream>
 
 using namespace Windows::Storage;
-Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
-{
+Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init() {
 	auto that = this;
 	this->SavedHosts->Clear();
 	StorageFolder^ storageFolder = ApplicationData::Current->LocalFolder;
 	return concurrency::create_task(storageFolder->CreateFileAsync("state.json", CreationCollisionOption::OpenIfExists)).then([](StorageFile^ file) {
 		return FileIO::ReadTextAsync(file);
-		}).then([this](Concurrency::task<Platform::String^> jsonTask) {
-			this->FirstTime = true;
-			Platform::String^ jsonFile = jsonTask.get();
-			if (jsonFile != nullptr && jsonFile->Length() > 0) {
-				nlohmann::json stateJson = nlohmann::json::parse(jsonFile);
-				if (stateJson.contains("firstTime"))this->FirstTime = stateJson["firstTime"];
-				if (stateJson.contains("enableKeyboard"))this->EnableKeyboard = stateJson["enableKeyboard"];
-				if (stateJson.contains("keyboardLayout"))this->KeyboardLayout = Utils::StringFromStdString(stateJson["keyboardLayout"]);
-				if (stateJson.contains("autostartInstance"))this->autostartInstance = stateJson["autostartInstance"];
-				if (stateJson.contains("marginWidth"))this->ScreenMarginWidth = stateJson["marginWidth"];
-				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
-				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
-				if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
-				for (auto a : stateJson["hosts"]) {
-					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
-					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
-					if (a.contains("width") && a.contains("height")) {
-						h->Resolution = ref new ScreenResolution(a["width"], a["height"]);
-					}
-					if (a.contains("bitrate"))h->Bitrate = a["bitrate"];
-					if (a.contains("fps"))h->FPS = a["fps"];
-					if (a.contains("audioConfig"))h->AudioConfig = Utils::StringFromStdString(a["audioConfig"].get<std::string>());
-					if (a.contains("videoCodec"))h->VideoCodec = Utils::StringFromStdString(a["videoCodec"].get<std::string>());
-					if (a.contains("framePacing"))h->FramePacing = Utils::StringFromStdString(a["framePacing"].get<std::string>());
-					if (a.contains("audioBuffer"))h->AudioBuffer = Utils::StringFromStdString(a["audioBuffer"].get<std::string>());
-					if (a.contains("packetSize"))h->PacketSize = a["packetSize"];
-					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
-					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
-					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
-					if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
-					if (a.contains("enable_sops")) h->EnableSOPS = a["enable_sops"].get<bool>();
-					if (a.contains("enable_stats")) h->EnableStats = a["enable_stats"].get<bool>();
-					if (a.contains("enable_graphs")) h->EnableGraphs = a["enable_graphs"].get<bool>();
-					if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());
-					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
-					else h->ComputerName = h->LastHostname;
-					this->SavedHosts->Append(h);
+		})
+		.then([this](Concurrency::task<Platform::String^> jsonTask) {
+		this->FirstTime = true;
+		Platform::String^ jsonFile = jsonTask.get();
+		if (jsonFile != nullptr && jsonFile->Length() > 0) {
+			nlohmann::json stateJson = nlohmann::json::parse(jsonFile);
+			if (stateJson.contains("firstTime")) this->FirstTime = stateJson["firstTime"];
+			if (stateJson.contains("enableKeyboard")) this->EnableKeyboard = stateJson["enableKeyboard"];
+			if (stateJson.contains("keyboardLayout")) this->KeyboardLayout = Utils::StringFromStdString(stateJson["keyboardLayout"]);
+			if (stateJson.contains("autostartInstance")) this->autostartInstance = stateJson["autostartInstance"];
+			if (stateJson.contains("marginWidth")) this->ScreenMarginWidth = stateJson["marginWidth"];
+			if (stateJson.contains("marginHeight")) this->ScreenMarginHeight = stateJson["marginHeight"];
+			if (stateJson.contains("mouseSensitivity")) this->MouseSensitivity = stateJson["mouseSensitivity"];
+			if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
+			for (auto a : stateJson["hosts"]) {
+				MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
+				if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
+				if (a.contains("width") && a.contains("height")) {
+					h->Resolution = ref new ScreenResolution(a["width"], a["height"]);
 				}
+				if (a.contains("bitrate")) h->Bitrate = a["bitrate"];
+				if (a.contains("fps")) h->FPS = a["fps"];
+				if (a.contains("audioConfig")) h->AudioConfig = Utils::StringFromStdString(a["audioConfig"].get<std::string>());
+				if (a.contains("videoCodec")) h->VideoCodec = Utils::StringFromStdString(a["videoCodec"].get<std::string>());
+				if (a.contains("framePacing")) h->FramePacing = Utils::StringFromStdString(a["framePacing"].get<std::string>());
+				if (a.contains("audioBuffer")) h->AudioBuffer = Utils::StringFromStdString(a["audioBuffer"].get<std::string>());
+				if (a.contains("packetSize")) h->PacketSize = a["packetSize"];
+				if (a.contains("autoStartID")) h->AutostartID = a["autoStartID"];
+				if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
+				if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
+				if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
+				if (a.contains("enable_sops")) h->EnableSOPS = a["enable_sops"].get<bool>();
+				if (a.contains("enable_stats")) h->EnableStats = a["enable_stats"].get<bool>();
+				if (a.contains("enable_graphs")) h->EnableGraphs = a["enable_graphs"].get<bool>();
+				if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());
+				if (a.contains("macaddress"))
+					h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
+				else
+					h->ComputerName = h->LastHostname;
+				this->SavedHosts->Append(h);
 			}
-		});
+		}
+			});
 }
 
 bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
 	MoonlightHost^ host = ref new MoonlightHost(hostname);
 	host->UpdateHostInfo(false);
-	if (!host->Connected)return false;
-	for (auto h : SavedHosts) {
-		if (host->InstanceId == h->InstanceId) {
-			h->LastHostname = host->LastHostname;
-			UpdateFile();
-			return true;
+	if (!host->Connected) return false;
+	auto dispatcher = Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher;
+	auto applyResult = ref new Windows::UI::Core::DispatchedHandler([this, host]() {
+		// Parallel probes commit on one thread, including duplicate checks and persistence.
+		for (auto saved : SavedHosts) {
+			bool sameIdentity = host->InstanceId != nullptr && !host->InstanceId->IsEmpty() && host->InstanceId == saved->InstanceId;
+			bool missingIdentity = saved->InstanceId == nullptr || saved->InstanceId->IsEmpty();
+			if (sameIdentity || (missingIdentity && host->LastHostname == saved->LastHostname)) {
+				bool metadataChanged = saved->LastHostname != host->LastHostname || saved->InstanceId != host->InstanceId ||
+					saved->ComputerName != host->ComputerName || saved->ServerAddress != host->ServerAddress || saved->MacAddress != host->MacAddress;
+				saved->ApplyHostInfo(host);
+				Utils::Logf("[Hosts] Available: %s (%s)\n", Utils::PlatformStringToStdString(saved->ComputerName).c_str(),
+					Utils::PlatformStringToStdString(saved->LastHostname).c_str());
+				if (metadataChanged) UpdateFile();
+				return;
+			}
 		}
-	}
-	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,host]() {
+		host->Loading = false;
 		SavedHosts->Append(host);
-	}));
-	UpdateFile();
+		UpdateFile();
+		});
+	if (dispatcher->HasThreadAccess) {
+		applyResult();
+	}
+	else {
+		// AddHost's callers run on workers. Wait for the UI commit before reporting success.
+		concurrency::create_task(dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, applyResult)).get();
+	}
 	return true;
 }
 
-Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
-{
+Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile() {
 	auto that = this;
 	StorageFolder^ storageFolder = ApplicationData::Current->LocalFolder;
 	return concurrency::create_task(storageFolder->CreateFileAsync("state.json", CreationCollisionOption::OpenIfExists)).then([that](StorageFile^ file) {
@@ -115,8 +134,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["serverAddress"] = Utils::PlatformStringToStdString(host->ServerAddress);
 
 			std::string macAddr = Utils::PlatformStringToStdString(host->MacAddress);
-			if (macAddr != "00:00:00:00:00:00" && macAddr != "")
-			{
+			if (macAddr != "00:00:00:00:00:00" && macAddr != "") {
 				hostJson["macaddress"] = macAddr;
 			}
 
@@ -128,7 +146,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 }
 
 void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
-	if (host == nullptr)return;
+	if (host == nullptr) return;
 	unsigned int index;
 	bool found = SavedHosts->IndexOf(host, &index);
 	SavedHosts->RemoveAt(index);
@@ -141,30 +159,28 @@ void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
 	UpdateFile();
 }
 
-void moonlight_xbox_dx::ApplicationState::OnPropertyChanged(Platform::String^ propertyName)
-{
-	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,propertyName]() {
-		PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
-	}));
+void moonlight_xbox_dx::ApplicationState::OnPropertyChanged(Platform::String^ propertyName) {
+	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, propertyName]() {
+		PropertyChanged(this, ref new Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+		}));
 }
 
 moonlight_xbox_dx::ApplicationState^ __stateInstance;
 
 moonlight_xbox_dx::ApplicationState^ moonlight_xbox_dx::GetApplicationState() {
-	if (__stateInstance == nullptr)__stateInstance = ref new moonlight_xbox_dx::ApplicationState();
+	if (__stateInstance == nullptr) __stateInstance = ref new moonlight_xbox_dx::ApplicationState();
 	return __stateInstance;
 }
 
-bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
-{
+bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host) {
 	Validate_WoL(host);
 	std::string wolPayload = WoL_Payload(Utils::PlatformStringToStdString(host->MacAddress));
 	int descriptor = Open_Socket();
 	auto addressList = Build_Unique_Addresses(host);
 
 	std::vector<int> ports = {
-		9, // Standard WOL port (privileged port)
-		47009, // Port opened by Moonlight Internet Hosting Tool for WoL (non-privileged port)
+		9,                                // Standard WOL port (privileged port)
+		47009,                            // Port opened by Moonlight Internet Hosting Tool for WoL (non-privileged port)
 		47998, 47999, 48000, 48002, 48010 // Ports opened by GFE
 	};
 
@@ -174,8 +190,7 @@ bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 		for (int j = 0; j < ports.size(); j++) {
 			bool sendResult = Send_Payload(descriptor, wolPayload, addressList[i], ports[j]);
 
-			if (sendResult)
-			{
+			if (sendResult) {
 				result = true;
 			}
 		}
@@ -185,10 +200,8 @@ bool moonlight_xbox_dx::ApplicationState::WakeHost(MoonlightHost^ host)
 	return result;
 }
 
-void moonlight_xbox_dx::ApplicationState::Validate_WoL(MoonlightHost^ host)
-{
-	if (host == nullptr || host->Connected)
-	{
+void moonlight_xbox_dx::ApplicationState::Validate_WoL(MoonlightHost^ host) {
+	if (host == nullptr || host->Connected) {
 		Throw_Error("Host is already connected.");
 	}
 
@@ -207,8 +220,7 @@ void moonlight_xbox_dx::ApplicationState::Validate_WoL(MoonlightHost^ host)
 	return;
 }
 
-std::string moonlight_xbox_dx::ApplicationState::WoL_Payload(std::string macAddress)
-{
+std::string moonlight_xbox_dx::ApplicationState::WoL_Payload(std::string macAddress) {
 	std::string etherAddr;
 	std::string cleanMac;
 
@@ -236,8 +248,7 @@ std::string moonlight_xbox_dx::ApplicationState::WoL_Payload(std::string macAddr
 	return payload;
 }
 
-int moonlight_xbox_dx::ApplicationState::Open_Socket()
-{
+int moonlight_xbox_dx::ApplicationState::Open_Socket() {
 	int descriptor = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (descriptor < 0)
 		Throw_Error("Failed to open socket");
@@ -250,27 +261,22 @@ int moonlight_xbox_dx::ApplicationState::Open_Socket()
 	return descriptor;
 }
 
-std::vector<std::string> moonlight_xbox_dx::ApplicationState::Build_Unique_Addresses(MoonlightHost^ host)
-{
+std::vector<std::string> moonlight_xbox_dx::ApplicationState::Build_Unique_Addresses(MoonlightHost^ host) {
 	std::vector<std::string> addresses;
 
-	if (host->ServerAddress)
-	{
+	if (host->ServerAddress) {
 		addresses.push_back(Utils::PlatformStringToStdString(host->ServerAddress));
 	}
 
-	if (host->LastHostname)
-	{
+	if (host->LastHostname) {
 		auto hostnameSplit = Split_IP_Address(Utils::PlatformStringToStdString(host->LastHostname), ':');
 		std::string hostIp = hostnameSplit.first;
 		addresses.push_back(hostIp);
 	}
 
-	if (inet_addr(Utils::PlatformStringToStdString(host->ServerAddress).c_str()) != -1)
-	{
+	if (inet_addr(Utils::PlatformStringToStdString(host->ServerAddress).c_str()) != -1) {
 		std::string broadcastIP = Get_Broadcast_IP(Utils::PlatformStringToStdString(host->ServerAddress));
-		if (broadcastIP != "")
-		{
+		if (broadcastIP != "") {
 			addresses.push_back(broadcastIP);
 		}
 	}
@@ -281,8 +287,7 @@ std::vector<std::string> moonlight_xbox_dx::ApplicationState::Build_Unique_Addre
 	return addresses;
 }
 
-bool moonlight_xbox_dx::ApplicationState::Send_Payload(int descriptor, std::string payload, std::string address, int port)
-{
+bool moonlight_xbox_dx::ApplicationState::Send_Payload(int descriptor, std::string payload, std::string address, int port) {
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 
@@ -304,8 +309,7 @@ bool moonlight_xbox_dx::ApplicationState::Send_Payload(int descriptor, std::stri
 	return true;
 }
 
-std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ipAddress)
-{
+std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ipAddress) {
 	uint32_t subnetMask;
 	uint32_t ipAddress_int;
 	struct in_addr ip_addr;
@@ -315,8 +319,7 @@ std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ip
 		throw std::invalid_argument("The given IP address was invalid.\n");
 	}
 
-	if (splitIP.second > 0)
-	{
+	if (splitIP.second > 0) {
 		struct sockaddr_in sa;
 		inet_pton(AF_INET, splitIP.first.c_str(), &(sa.sin_addr));
 		ipAddress_int = sa.sin_addr.s_addr;
@@ -329,14 +332,14 @@ std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ip
 	}
 
 	ipAddress_int = ntohl(ip_addr.s_addr);
-	if ((ipAddress_int & 0xF0000000) == 0x00000000) { // Class A
-		subnetMask = 4278190080; // 255.0.0.0
+	if ((ipAddress_int & 0xF0000000) == 0x00000000) {        // Class A
+		subnetMask = 4278190080;                             // 255.0.0.0
 	}
 	else if ((ipAddress_int & 0xE0000000) == 0x80000000) { // Class B
-		subnetMask = 4294901760; // 255.255.0.0
+		subnetMask = 4294901760;                             // 255.255.0.0
 	}
 	else if ((ipAddress_int & 0xC0000000) == 0xC0000000) { // Class C
-		subnetMask = 4294967040; // 255.255.255.0
+		subnetMask = 4294967040;                             // 255.255.255.0
 	}
 	else {
 		Utils::Log("Could not determine subnet mask from IP address.\n");
@@ -357,8 +360,7 @@ std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ip
 	return ss3.str();
 }
 
-std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::Split_IP_Address(const std::string& address, char deliminator)
-{
+std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::Split_IP_Address(const std::string& address, char deliminator) {
 	std::stringstream ss(address);
 	std::string ip_address;
 	std::string port_str;
@@ -381,8 +383,7 @@ std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::Split_IP_Addres
 	}
 }
 
-void moonlight_xbox_dx::ApplicationState::Throw_Error(std::string message)
-{
+void moonlight_xbox_dx::ApplicationState::Throw_Error(std::string message) {
 	std::string msg = std::string() + message + "\n";
 	Utils::Log(msg.c_str());
 	throw std::runtime_error(message);

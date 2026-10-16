@@ -250,6 +250,11 @@ static int load_serverinfo(PSERVER_DATA server, bool https) {
 
   PHTTP_DATA data = http_create_data();
   CURL* curl = get_curl_handle();
+
+   // Use shorter timeouts for serverinfo so dead servers don't stall
+   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 1500L);
+   curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 3000L);
+
   if (data == NULL) {
     ret = GS_OUT_OF_MEMORY;
     goto cleanup;

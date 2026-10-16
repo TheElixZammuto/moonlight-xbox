@@ -1,0 +1,60 @@
+# editorconfig: http://editorconfig.org/
+# Adapted from https://github.com/microsoft/Windows-universal-samples/blob/main/.editorconfig
+
+# top-most .editorconfig file
+root = true
+
+# defaults for all files
+[*]
+charset = utf-8
+end_of_line = crlf
+indent_size = 4
+indent_style = tab
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# markdown, diff overrides
+# two trailing spaces are required for <br/> and hard line-breaks in markdown files
+# see: (https://daringfireball.net/projects/markdown/syntax#p) and (http://spec.commonmark.org/0.27/#hard-line-break)
+[*.{md,diff}]
+trim_trailing_whitespace = false
+
+[*.{md,xml,gprops,man,natvis}]
+indent_size = 2
+
+# manifest validation tool requires BOM
+[*.man]
+charset = utf-8-bom
+
+# XML-based MSBuild and Visual Studio files
+[*.{props,targets,settings,*proj,vcxitems,filters}]
+indent_size = 2
+
+# Exceptions to the above *proj wildcard
+[*.vdproj]
+indent_size = 4
+
+# Visual Studio uses hard tabs for SLN files, so don't fight it
+[*.sln]
+indent_style = tab
+
+# YAML overrides
+[*.{yml,yaml}]
+indent_size = 2
+
+# JSON formats
+[{*.json,*.testlist,testmd.definition}]
+indent_size = 2
+
+[*.{rc}]
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.{c,w}]
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.{cpp,h}]
+# Don't move pch.h
+cpp_include_cleanup_excluded_files = pch.h
+cpp_sort_includes_enabled = false
