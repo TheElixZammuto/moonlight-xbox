@@ -328,7 +328,6 @@
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="State\DiscoveryProbeState.h" />
     <ClInclude Include="Common\DeviceWatcherHelper.h" />
     <ClInclude Include="Common\imconfig.moonlight.h" />
     <ClInclude Include="Common\TextConsole.h" />
