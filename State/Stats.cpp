@@ -4,6 +4,7 @@
 #include "../Plot/ImGuiPlots.h"
 #include "../Streaming/AudioPlayer.h"
 #include "../Streaming/FFMpegDecoder.h"
+#include "../Streaming/PyroWaveDecoder.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -121,11 +122,32 @@ void Stats::SubmitVideoBytesAndReassemblyTime(uint32_t length, PDECODE_UNIT deco
 	lastHostPts = (uint32_t)decodeUnit->rtpTimestamp;
 }
 
-// Time in milliseconds we spent decoding one frame, it is added up to later be divided by decodedFrames
+// Time in milliseconds we spent decoding one frame, it is added up to later be divided by decodedFrames.
+// For GPU decoders (PyroWave) this is CPU submit time; see SubmitGpuDecodeMs for the GPU side.
 void Stats::SubmitDecodeMs(double decodeMs) {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_ActiveWndVideoStats.totalDecodeTimeMs += decodeMs;
 	m_ActiveWndVideoStats.decodedFrames++;
+}
+
+// Measured GPU execution time of one frame's decode (timestamp queries, PyroWave
+// only). Results arrive a few frames late and some frames are skipped; that's
+// fine for an average.
+void Stats::SubmitGpuDecodeMs(double gpuMs) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_ActiveWndVideoStats.totalGpuDecodeTimeMs += gpuMs;
+	m_ActiveWndVideoStats.gpuTimedFrames++;
+}
+
+// A PyroWave frame that lost packets: accepted if enough of it survived to be
+// rendered, rejected if it was dropped instead.
+void Stats::SubmitPyroWavePartialFrame(bool accepted) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	if (accepted) {
+		m_ActiveWndVideoStats.partialFramesAccepted++;
+	} else {
+		m_ActiveWndVideoStats.partialFramesRejected++;
+	}
 }
 
 void Stats::SubmitDroppedFrame(int count) {
@@ -184,11 +206,15 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.totalFrames += src.totalFrames;
 	dst.networkDroppedFrames += src.networkDroppedFrames;
 	dst.pacerDroppedFrames += src.pacerDroppedFrames;
+	dst.partialFramesAccepted += src.partialFramesAccepted;
+	dst.partialFramesRejected += src.partialFramesRejected;
 	dst.hitDeadlines += src.hitDeadlines;
 	dst.missedDeadlines += src.missedDeadlines;
 	dst.totalReassemblyTimeUs += src.totalReassemblyTimeUs;
 	dst.totalDecodeTimeMs += src.totalDecodeTimeMs;
 	dst.totalGPUTimeMs += src.totalGPUTimeMs;
+	dst.totalGpuDecodeTimeMs += src.totalGpuDecodeTimeMs;
+	dst.gpuTimedFrames += src.gpuTimedFrames;
 	dst.totalPacerTimeUs += src.totalPacerTimeUs;
 	dst.totalRenderTimeUs += src.totalRenderTimeUs;
 	dst.totalPreWaitTimeUs += src.totalPreWaitTimeUs;
@@ -233,6 +259,11 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 
 void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, char *output, size_t length) {
 	FFMpegDecoder &ffmpeg = FFMpegDecoder::instance();
+	PyroWaveDecoder &pyrowave = PyroWaveDecoder::instance();
+
+	int videoFormat = pyrowave.IsActive() ? pyrowave.videoFormat : ffmpeg.videoFormat;
+	int videoWidth = pyrowave.IsActive() ? pyrowave.width : ffmpeg.width;
+	int videoHeight = pyrowave.IsActive() ? pyrowave.height : ffmpeg.height;
 
 	int offset = 0;
 	const char *codecString;
@@ -241,7 +272,7 @@ void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, cha
 	// Start with an empty string
 	output[offset] = 0;
 
-	switch (ffmpeg.videoFormat) {
+	switch (videoFormat) {
 	case VIDEO_FORMAT_H264:
 		codecString = "H.264";
 		break;
@@ -298,6 +329,30 @@ void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, cha
 		}
 		break;
 
+	case VIDEO_FORMAT_PYROWAVE:
+		codecString = "PyroWave";
+		break;
+
+	case VIDEO_FORMAT_PYROWAVE_444:
+		codecString = "PyroWave 4:4:4";
+		break;
+
+	case VIDEO_FORMAT_PYROWAVE10_420:
+		if (LiGetCurrentHostDisplayHdrMode()) {
+			codecString = "PyroWave 10-bit HDR";
+		} else {
+			codecString = "PyroWave 10-bit SDR";
+		}
+		break;
+
+	case VIDEO_FORMAT_PYROWAVE10_444:
+		if (LiGetCurrentHostDisplayHdrMode()) {
+			codecString = "PyroWave 10-bit HDR 4:4:4";
+		} else {
+			codecString = "PyroWave 10-bit SDR 4:4:4";
+		}
+		break;
+
 	default:
 		codecString = "UNKNOWN";
 		break;
@@ -306,9 +361,9 @@ void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, cha
 	if (stats.receivedFps > 0) {
 		ret = snprintf(&output[offset],
 		               length - offset,
-		               "Video stream: %dx%d %.2f FPS (%s)\n",
-		               ffmpeg.width,
-		               ffmpeg.height,
+		               "Video: %dx%d %.2f FPS (%s)\n",
+		               videoWidth,
+		               videoHeight,
 		               stats.totalFps,
 		               codecString);
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
@@ -378,7 +433,14 @@ void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, cha
 			snprintf(rttString, sizeof(rttString), "N/A");
 		}
 
-		if (EnableGPUStats()) {
+		// GPU decode time is measured for PyroWave (timestamp queries); the ffmpeg
+		// path shows it only with EnableGPUStats.
+		if (stats.gpuTimedFrames > 0) {
+			snprintf(decodeTimeStr, sizeof(decodeTimeStr), "(CPU) %.2f/%.2f (GPU) %.2f ms",
+			         stats.decodedFrames ? (double)stats.totalReassemblyTimeUs / 1000.0 / stats.decodedFrames : 0.0f,
+			         stats.decodedFrames ? (double)stats.totalDecodeTimeMs / stats.decodedFrames : 0.0f,
+			         stats.totalGpuDecodeTimeMs / stats.gpuTimedFrames);
+		} else if (EnableGPUStats()) {
 			snprintf(decodeTimeStr, sizeof(decodeTimeStr), "(CPU) %.2f/%.2f (GPU) %.2f ms",
 			         stats.decodedFrames ? (double)stats.totalReassemblyTimeUs / 1000.0 / stats.decodedFrames : 0.0f,
 			         stats.decodedFrames ? (double)stats.totalDecodeTimeMs / stats.decodedFrames : 0.0f,
@@ -389,14 +451,27 @@ void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, cha
 			         stats.decodedFrames ? (double)stats.totalDecodeTimeMs / stats.decodedFrames : 0.0f);
 		}
 
+		// Partial frames lost packets; accepted ones were rendered instead of
+		// dropped. Hidden entirely on codecs that can't produce them.
+		char partialString[96];
+		if ((stats.partialFramesAccepted || stats.partialFramesRejected) && stats.totalFrames > 0) {
+			snprintf(partialString, sizeof(partialString), "Partial frames rendered/dropped: %.2f%%/%.2f%%\n",
+			         (double)stats.partialFramesAccepted / stats.totalFrames * 100,
+			         (double)stats.partialFramesRejected / stats.totalFrames * 100);
+		} else {
+			partialString[0] = '\0';
+		}
+
 		ret = snprintf(&output[offset],
 		               length - offset,
+		               "%s"
 		               "Frames dropped by your network connection: %.2f%%\n"
 		               "Frames dropped due to network jitter: %.2f%%\n"
 		               "Average network latency: %s\n"
 		               "Average reassembly/decoding time: %s\n"
 		               "Average frames in queue: %.1f, audio: %.2f ms\n"
 		               "Average frame queue/render/present: %.2f/%.2f/%.2f ms\n",
+		               partialString,
 		               stats.totalFrames ? (double)stats.networkDroppedFrames / stats.totalFrames * 100 : 0.0f,
 		               stats.totalFrames ? (double)stats.pacerDroppedFrames / stats.totalFrames * 100 : 0.0f,
 		               rttString,

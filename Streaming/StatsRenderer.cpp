@@ -5,6 +5,7 @@
 #include "../Plot/ImGuiPlots.h"
 #include "../Plot/PlotDesc.h"
 #include "FFMpegDecoder.h"
+#include "PyroWaveDecoder.h"
 #include "Utils.hpp"
 
 using namespace DirectX;
@@ -134,6 +135,12 @@ void StatsRenderer::RenderGraphs() {
 			scaleMin = plot.desc.scaleMin;
 		if (plot.desc.scaleMax != NULL)
 			scaleMax = plot.desc.scaleMax;
+
+		if (i == PLOT_BANDWIDTH) {
+			scaleMin = -0.1f;
+			//scaleMax = ((float)m_BitrateKbps * 1.2) / 1024.0f;
+			scaleMax = PyroWaveDecoder::instance().IsActive() ? 800.0f : 300.0f;
+		}
 
 		ImGui::PushID(i);
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.19f, 0.19f, 0.19f, opacity)); // dark

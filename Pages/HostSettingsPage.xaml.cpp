@@ -8,6 +8,7 @@
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
 #include <gamingdeviceinformation.h>
+#include <Limelight.h> // SCM_* server codec support bits
 #include <cmath> // sqrtf, lround
 using namespace Windows::UI::Core;
 
@@ -53,6 +54,29 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	AvailableFPS->Append(120);
 	AvailableVideoCodecs->Append("H.264");
 	AvailableVideoCodecs->Append("HEVC (H.265)");
+	// PyroWave options only appear when the server advertised support in its
+	// last serverinfo response AND this console can decode it. The Xbox One
+	// generation cannot: UWP there never exposes compute shaders.
+	if (!IsXboxOne() && (host->ServerCodecModeSupport & SCM_PYROWAVE)) {
+		AvailableVideoCodecs->Append("PyroWave 4:2:0");
+		if (host->ServerCodecModeSupport & SCM_PYROWAVE_444) {
+			AvailableVideoCodecs->Append("PyroWave 4:4:4");
+		}
+	}
+	// If the saved codec is no longer offered (e.g. PyroWave selected but the
+	// server lost support), fall back so the ComboBox isn't blank.
+	{
+		bool codecAvailable = false;
+		for (unsigned int i = 0; i < AvailableVideoCodecs->Size; i++) {
+			if (AvailableVideoCodecs->GetAt(i) == host->VideoCodec) {
+				codecAvailable = true;
+				break;
+			}
+		}
+		if (!codecAvailable) {
+			host->VideoCodec = "HEVC (H.265)";
+		}
+	}
 	AvailableAudioConfigs->Append("Stereo");
 	AvailableAudioConfigs->Append("Surround 5.1");
 	AvailableAudioConfigs->Append("Surround 7.1");
@@ -168,7 +192,7 @@ void HostSettingsPage::ResolutionSelector_SelectionChanged(Platform::Object^ sen
 
 	// Default to a new bitrate if a new resolution was chosen
 	if (selectedResolution->Width != host->Resolution->Width) {
-		host->Bitrate = getDefaultBitrate(selectedResolution->Width, selectedResolution->Height, host->FPS);
+		host->Bitrate = getDefaultBitrate(selectedResolution->Width, selectedResolution->Height, host->FPS, host->VideoCodec);
 	}
 
 	host->Resolution = selectedResolution;
@@ -181,7 +205,7 @@ void HostSettingsPage::FPSSelector_SelectionChanged(Platform::Object^ sender, Wi
 
 	// Default to a new bitrate if a new FPS was chosen
 	if (selectedFPS != host->FPS) {
-		host->Bitrate = getDefaultBitrate(host->Resolution->Width, host->Resolution->Height, selectedFPS);
+		host->Bitrate = getDefaultBitrate(host->Resolution->Width, host->Resolution->Height, selectedFPS, host->VideoCodec);
 	}
 
 	host->FPS = selectedFPS;
@@ -242,13 +266,26 @@ void HostSettingsPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Rou
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
 }
 
+void HostSettingsPage::CodecComboBox_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	if (e->AddedItems->Size == 0) return;
+	auto selectedCodec = (Platform::String^)e->AddedItems->GetAt(0);
+
+	// Default to a new bitrate if a new codec was chosen
+	if (selectedCodec != host->VideoCodec) {
+		host->Bitrate = getDefaultBitrate(host->Resolution->Width, host->Resolution->Height, host->FPS, selectedCodec);
+	}
+
+	host->VideoCodec = selectedCodec;
+}
+
 void HostSettingsPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
 }
 
-int HostSettingsPage::getDefaultBitrate(int width, int height, int fps)
+int HostSettingsPage::getDefaultBitrate(int width, int height, int fps, Platform::String^ codec)
 {
     // Don't scale bitrate linearly beyond 60 FPS. It's definitely not a linear
     // bitrate increase for frame rate once we get to values that high.
@@ -292,6 +329,24 @@ int HostSettingsPage::getDefaultBitrate(int width, int height, int fps)
             resolutionFactor = resTable[i-1].factor;
             break;
         }
+    }
+
+    // PyroWave is intra-only and needs far more bitrate than H.264/HEVC for the
+    // same quality: roughly 0.5 bits/pixel at the configured resolution and FPS.
+    if (codec == "PyroWave 4:2:0" || codec == "PyroWave 4:4:4") {
+        switch (height) {
+            case 2160:
+                resolutionFactor = 500;
+                break;
+            case 1440:
+                resolutionFactor = 250;
+                break;
+            default:
+                resolutionFactor = 125;
+                break;
+        }
+
+        frameRateFactor = fps / 120.0f;
     }
 
     return std::lround(resolutionFactor * frameRateFactor) * 1000;

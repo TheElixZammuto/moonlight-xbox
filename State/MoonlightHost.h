@@ -26,6 +26,7 @@ namespace moonlight_xbox_dx {
 		int fps = 60;
 		int autostartID = -1;
 		Platform::String^ videoCodec = "H.265";
+		int serverCodecModeSupport = 0;
 		Platform::String^ audioConfig = "Stereo";
 		Platform::String^ framePacing = "";
 		Platform::String^ audioBuffer = "30 ms";
@@ -231,6 +232,19 @@ namespace moonlight_xbox_dx {
 				if (videoCodec == value) return;
 				this->videoCodec = value;
 				OnPropertyChanged("VideoCodec");
+			}
+		}
+
+		// SCM_* bitmask from the last serverinfo fetch (not persisted);
+		// gates which codec options the settings page offers.
+		property int ServerCodecModeSupport {
+			int get() {
+				return this->serverCodecModeSupport;
+			}
+			void set(int value) {
+				if (serverCodecModeSupport == value) return;
+				this->serverCodecModeSupport = value;
+				OnPropertyChanged("ServerCodecModeSupport");
 			}
 		}
 

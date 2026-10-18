@@ -47,6 +47,7 @@ class MoonlightClient {
 	Platform::String ^ GetComputerName();
 	Platform::String ^ GetServerAddress();
 	Platform::String ^ GetServerMacAddress();
+	int GetServerCodecModeSupport();
 	std::function<void(int)> OnStatusUpdate;
 	std::function<void()> OnCompleted;
 	std::function<void(bool)> SetHDR;

@@ -2,6 +2,7 @@
 #include "VideoRenderer.h"
 #include "Pacer.h"
 #include <State\MoonlightClient.h>
+#include "PyroWave\FramePool.h"
 #include "..\Common\DirectXHelper.h"
 #include <Utils.hpp>
 #include "..\Common\ModalDialog.xaml.h"
@@ -110,6 +111,11 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	// because the render target view will be unbound by Present().
 	ctx->OMSetRenderTargets(1, renderTarget, nullptr);
 
+	// AV_PIX_FMT_YUV444P16 / YUV420P16 are the PyroWaveFramePool sentinels:
+	// data[0..2] are our own R16_UNORM plane textures, data[3] the PyroWaveFrameSet.
+	const bool isPyroWave = frame->format == AV_PIX_FMT_YUV444P16 ||
+	                        frame->format == AV_PIX_FMT_YUV420P16;
+
 	ID3D11Texture2D *ffmpegTexture = (ID3D11Texture2D *)(frame->data[0]);
 	if (!ffmpegTexture) {
 		// This sometimes happens when reconnecting
@@ -118,27 +124,20 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	D3D11_TEXTURE2D_DESC ffmpegDesc;
 	ffmpegTexture->GetDesc(&ffmpegDesc);
 
-	bool hasChanged = hasFrameFormatChanged(frame);
-
-	// Sample the decoder's array texture straight into the YUV->RGB shader.
-	// frame->data[1] is the slice of the decoder's array texture holding this frame.
-	UINT slice = (UINT)(intptr_t)frame->data[1];
-	const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>* frameSrvPair =
-	    getDirectSampleSrvs(ffmpegTexture, slice, ffmpegDesc);
-	if (!frameSrvPair) {
-		// SRV creation failed; nothing we can render this frame
-		return false;
-	}
-
 	// Setup shader
 	ctx->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 	ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	ctx->IASetInputLayout(m_inputLayout.Get());
 	ctx->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-	ctx->PSSetShader(m_pixelShaderYUV420Array.Get(), nullptr, 0);
+	ctx->PSSetShader(isPyroWave ? m_pixelShaderPyroWave.Get() : m_pixelShaderYUV420Array.Get(), nullptr, 0);
 
+	bool hasChanged = hasFrameFormatChanged(frame);
 	if (hasChanged) {
-		setupVertexBuffer(ffmpegDesc);
+		// PyroWave planes are exactly frame-sized (no decoder padding), so
+		// the full texture is sampled; ffmpeg textures can be padded.
+		float uMax = isPyroWave ? 1.0f : (ffmpegDesc.Width > 0 ? (float)m_DecoderParams.width / ffmpegDesc.Width : 1.0f);
+		float vMax = isPyroWave ? 1.0f : (ffmpegDesc.Height > 0 ? (float)m_DecoderParams.height / ffmpegDesc.Height : 1.0f);
+		setupVertexBuffer(ffmpegDesc, uMax, vMax);
 		bindColorConversion(frame, ffmpegDesc);
 	}
 
@@ -147,17 +146,37 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ctx->IASetVertexBuffers(0, 1, m_VideoVertexBuffer.GetAddressOf(), &stride, &offset);
 	ctx->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-	// Bind SRVs for this frame
-	ID3D11ShaderResourceView* frameSrvs[] = { (*frameSrvPair)[0].Get(), (*frameSrvPair)[1].Get() };
-	ctx->PSSetShaderResources(0, 2, frameSrvs);
+	// Bind SRVs for this frame and draw
+	if (isPyroWave) {
+		// PyroWave planes are sampled in place: the decoder queues a GPU wait
+		// for its decode on the immediate context, so the decode is ordered
+		// before this draw, and the pool recycles sets only via av_frame_free.
+		auto *set = reinterpret_cast<PyroWaveFrameSet *>(frame->data[3]);
+		ID3D11ShaderResourceView *frameSrvs[] = { set->srv[0].Get(), set->srv[1].Get(), set->srv[2].Get() };
+		ctx->PSSetShaderResources(0, 3, frameSrvs);
+	} else {
+		// Sample the decoder's array texture straight into the YUV->RGB shader.
+		// frame->data[1] is the slice of the decoder's array texture holding this frame.
+		UINT slice = (UINT)(intptr_t)frame->data[1];
+		const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>* frameSrvPair =
+			getDirectSampleSrvs(ffmpegTexture, slice, ffmpegDesc);
+		if (!frameSrvPair) {
+			// SRV creation failed; nothing we can render this frame
+			return false;
+		}
+
+		// Bind SRVs for this frame
+		ID3D11ShaderResourceView* frameSrvs[] = { (*frameSrvPair)[0].Get(), (*frameSrvPair)[1].Get() };
+		ctx->PSSetShaderResources(0, 2, frameSrvs);
+	}
 	ctx->PSSetConstantBuffers(0, 1, m_cscConstantBuffer.GetAddressOf());
 
 	// Draw the video
 	ctx->DrawIndexed(6, 0, 0);
 
 	// Unbind SRVs for this frame
-	ID3D11ShaderResourceView* nullSrvs[2] = {};
-	ctx->PSSetShaderResources(0, 2, nullSrvs);
+	ID3D11ShaderResourceView* nullSrvs[3] = {};
+	ctx->PSSetShaderResources(0, 3, nullSrvs);
 
 	if (frame->color_trc != m_LastColorTrc || m_NeedsRefresh) {
 		DXGI_COLOR_SPACE_TYPE colorspace = {};
@@ -237,6 +256,19 @@ void VideoRenderer::CreateDeviceDependentResources()
 			, "Pixel Shader Creation");
 	}
 
+	// Three-plane pixel shader (PyroWave path, 4:4:4 and 4:2:0)
+	{
+		auto pixelShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_pyrowave_pixel.fxc");
+		DX::ThrowIfFailed(
+		    m_deviceResources->GetD3DDevice()->CreatePixelShader(
+		        pixelShaderBytecode.data(),
+		        pixelShaderBytecode.size(),
+		        nullptr,
+		        &m_pixelShaderPyroWave
+			)
+			, "PyroWave Pixel Shader Creation");
+	}
+
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	auto w = CoreWindow::GetForCurrentThread();
 	m_DisplayWidth = (int)w->Bounds.Width;
@@ -308,6 +340,7 @@ void VideoRenderer::ReleaseDeviceDependentResources()
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
 	m_pixelShaderYUV420Array.Reset();
+	m_pixelShaderPyroWave.Reset();
 	m_cscConstantBuffer.Reset();
 	m_VideoVertexBuffer.Reset();
 	m_samplerState.Reset();
@@ -379,7 +412,7 @@ VideoRenderer::getDirectSampleSrvs(ID3D11Texture2D* texture, UINT slice, const D
 }
 
 // Create our fixed vertex buffer for video rendering
-void VideoRenderer::setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc)
+void VideoRenderer::setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc, float uMax, float vMax)
 {
 	// Scale video to the window size while preserving aspect ratio
 	IRECT src, dst;
@@ -398,9 +431,6 @@ void VideoRenderer::setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc)
 	m_TextureWidth = frameDesc.Width;
 	m_TextureHeight = frameDesc.Height;
 	assert(m_TextureWidth > 0 && m_TextureHeight > 0);
-
-	float uMax = m_TextureWidth > 0 ? (float)m_DecoderParams.width / m_TextureWidth : 1.0f;
-	float vMax = m_TextureHeight > 0 ? (float)m_DecoderParams.height / m_TextureHeight : 1.0f;
 
 	Utils::Logf("Setup vertex shader params: uMax %f, vMax %f\n", uMax, vMax);
 
@@ -650,11 +680,15 @@ void VideoRenderer::bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC fra
 	constBuf.chromaOffset[0] = chromaOffset[0] / m_TextureWidth;
 	constBuf.chromaOffset[1] = chromaOffset[1] / m_TextureHeight;
 
-	// Limit chroma texcoords to avoid sampling from alignment texels
-	constBuf.chromaUVMax[0] = m_DecoderParams.width != (int)m_TextureWidth ?
-	                              ((float)(m_DecoderParams.width - 1) / m_TextureWidth) : 1.0f;
-	constBuf.chromaUVMax[1] = m_DecoderParams.height != (int)m_TextureHeight ?
-	                              ((float)(m_DecoderParams.height - 1) / m_TextureHeight) : 1.0f;
+	// Limit chroma texcoords to avoid sampling from alignment texels.
+	// PyroWave planes (YUV444P16/YUV420P16 sentinels) are exactly
+	// frame-sized, so the full texture is always valid.
+	bool unpaddedPlanes = frame->format == AV_PIX_FMT_YUV444P16 ||
+	                      frame->format == AV_PIX_FMT_YUV420P16;
+	constBuf.chromaUVMax[0] = (unpaddedPlanes || m_DecoderParams.width == (int)m_TextureWidth) ?
+	                              1.0f : ((float)(m_DecoderParams.width - 1) / m_TextureWidth);
+	constBuf.chromaUVMax[1] = (unpaddedPlanes || m_DecoderParams.height == (int)m_TextureHeight) ?
+	                              1.0f : ((float)(m_DecoderParams.height - 1) / m_TextureHeight);
 
 	D3D11_SUBRESOURCE_DATA constData = {};
 	constData.pSysMem = &constBuf;

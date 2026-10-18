@@ -51,6 +51,18 @@
     <ClCompile Include="Streaming\VideoRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Streaming\PyroWave\FramePool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\PyroWave\D3D12Decoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\PyroWave\PyroWaveFraming.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\PyroWaveDecoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="State\MDNSHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -410,6 +422,18 @@
     <ClInclude Include="Streaming\VideoRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Streaming\PyroWave\FramePool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\PyroWave\D3D12Decoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\PyroWave\PyroWaveFraming.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\PyroWaveDecoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Streaming\LogRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -692,6 +716,7 @@
     </None>
     <None Include="Assets\Shader\d3d11_vertex.fxc" />
     <None Include="Assets\Shader\d3d11_yuv420_pixel_array.fxc" />
+    <None Include="Assets\Shader\d3d11_pyrowave_pixel.fxc" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="Pages\AppPage.xaml" />

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "FFMpegDecoder.h"
+#include "PyroWaveDecoder.h"
 #include "../Plot/ImGuiPlots.h"
 #include "StatsRenderer.h"
 
@@ -176,6 +177,11 @@ namespace moonlight_xbox_dx {
 	}
 
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
+		if (videoFormat & VIDEO_FORMAT_MASK_PYROWAVE) {
+			// Must never reach ffmpeg; initCallback routes these to PyroWaveDecoder
+			Utils::Log("FFMpegDecoder::Init called with a PyroWave format\n");
+			return -1;
+		}
 		this->videoFormat = videoFormat;
 		this->width = width;
 		this->height = height;
@@ -411,15 +417,28 @@ namespace moonlight_xbox_dx {
 	}
 
 	//Helpers
+	// PyroWave streams are routed to PyroWaveDecoder; everything else goes
+	// through ffmpeg. LiStartConnection only takes one callback set, so the
+	// branch lives here.
 	int initCallback(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) noexcept {
+		if (videoFormat & VIDEO_FORMAT_MASK_PYROWAVE) {
+			return PyroWaveDecoder::instance().Init(videoFormat, width, height, redrawRate);
+		}
 		return FFMpegDecoder::instance().Init(videoFormat, width, height, redrawRate, context, drFlags);
 	}
 
 	void cleanupCallback()noexcept {
+		if (PyroWaveDecoder::instance().IsActive()) {
+			PyroWaveDecoder::instance().Cleanup();
+			return;
+		}
 		FFMpegDecoder::instance().Cleanup();
 	}
 
 	int submitDecodeUnit(PDECODE_UNIT decodeUnit) noexcept {
+		if (PyroWaveDecoder::instance().IsActive()) {
+			return PyroWaveDecoder::instance().SubmitDecodeUnit(decodeUnit);
+		}
 		return FFMpegDecoder::instance().SubmitDecodeUnit(decodeUnit);
 	}
 
