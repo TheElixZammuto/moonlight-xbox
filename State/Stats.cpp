@@ -169,9 +169,10 @@ void Stats::SubmitPacerTime(int64_t pacerTimeQpc) {
 }
 
 // Present to display latency (how close to hitting vblank we are)
-void Stats::SubmitPresentPacing(double presentDisplayMs) {
+void Stats::SubmitPresentDisplayMs(double presentDisplayMs) {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_ActiveWndVideoStats.totalPresentDisplayMs += presentDisplayMs;
+	m_ActiveWndVideoStats.countPresentDisplayMs++;
 }
 
 // High-level render loop timings
@@ -220,6 +221,7 @@ void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_ST
 	dst.totalPreWaitTimeUs += src.totalPreWaitTimeUs;
 	dst.totalPresentTimeUs += src.totalPresentTimeUs;
 	dst.totalPresentDisplayMs += src.totalPresentDisplayMs;
+	dst.countPresentDisplayMs += src.countPresentDisplayMs;
 
 	if (dst.minHostProcessingLatency == 0) {
 		dst.minHostProcessingLatency = src.minHostProcessingLatency;
@@ -468,9 +470,9 @@ void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, cha
 		               "Frames dropped by your network connection: %.2f%%\n"
 		               "Frames dropped due to network jitter: %.2f%%\n"
 		               "Average network latency: %s\n"
-		               "Average reassembly/decoding time: %s\n"
+		               "Average reassembly/decode: %s\n"
 		               "Average frames in queue: %.1f, audio: %.2f ms\n"
-		               "Average frame queue/render/present: %.2f/%.2f/%.2f ms\n",
+		               "Average frame queue/render/present delay: %.2f/%.2f/%.2f ms\n",
 		               partialString,
 		               stats.totalFrames ? (double)stats.networkDroppedFrames / stats.totalFrames * 100 : 0.0f,
 		               stats.totalFrames ? (double)stats.pacerDroppedFrames / stats.totalFrames * 100 : 0.0f,
@@ -480,7 +482,7 @@ void Stats::formatVideoStats(DX::StepTimer const &timer, VIDEO_STATS &stats, cha
 					   ImGuiPlots::instance().getAvg(PLOT_AUDIO_BUFFER_MS),
 		               stats.renderedFrames ? (double)stats.totalPacerTimeUs / 1000.0 / stats.renderedFrames : 0.0f,
 		               stats.renderedFrames ? (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames : 0.0f,
-		               stats.renderedFrames ? (double)stats.totalPresentTimeUs / 1000.0 / stats.renderedFrames : 0.0f);
+		               stats.renderedFrames ? (double)stats.totalPresentDisplayMs / stats.countPresentDisplayMs : 0.0f);
 		if (ret < 0 || (size_t)ret >= (length - offset)) {
 			Utils::Log("Error: stringifyVideoStats length overflow\n");
 			return;

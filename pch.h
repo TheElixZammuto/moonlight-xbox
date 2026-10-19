@@ -116,16 +116,17 @@ static inline int64_t MsToQpc(double ms) {
 //#define FRAME_QUEUE_VERBOSE
 #endif
 
+#define FQLogForce(fmt, ...) moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+
 #ifdef FRAME_QUEUE_VERBOSE
-	#define FQLog(fmt, ...) \
-		moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+	#define FQLog(fmt, ...) FQLogForce(fmt, __VA_ARGS__)
 #else
 # ifdef FRAME_QUEUE_VERBOSE_LIMITED
 	#include <atomic>
 	static std::atomic<int> g_fqlog_counter{0};
 	#define FQLog(fmt, ...) \
         if (++g_fqlog_counter > 200 && g_fqlog_counter < 1000) \
-		    moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+			FQLogForce(fmt, __VA_ARGS__)
 # else
   	#if defined(_MSC_VER)
     	#define FQLog(...) __noop

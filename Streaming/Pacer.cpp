@@ -55,7 +55,8 @@ Pacer::Pacer()
       m_FrameCadence(),
       m_LastSyncRefreshCount(0),
       m_LastSyncQpc(0),
-      m_VsyncIntervalQpc(0) {
+      m_VsyncIntervalQpc(0),
+      m_PresentTracker(8) {
 }
 
 void Pacer::deinit() {
@@ -151,8 +152,11 @@ void Pacer::updateFrameStats() {
 
 	// After we've presented a couple of frames, we can obtain the true vsync interval
 	DXGI_FRAME_STATISTICS stats;
-	if (m_DeviceResources->GetSwapChain()->GetFrameStatistics(&stats) == S_OK &&
-	    stats.SyncRefreshCount != 0 && stats.SyncQPCTime.QuadPart > 0) {
+	HRESULT hr = m_DeviceResources->GetSwapChain()->GetFrameStatistics(&stats);
+	if (hr == DXGI_ERROR_FRAME_STATISTICS_DISJOINT) {
+		m_PresentTracker.Reset();
+	}
+	else if (hr == S_OK && stats.SyncRefreshCount != 0 && stats.SyncQPCTime.QuadPart > 0) {
 		UINT srcPassed = 0;
 		int64_t sqtPassed = 0;
 		// Only compare consecutive hardware samples from the same timing epoch.
@@ -197,6 +201,14 @@ void Pacer::updateFrameStats() {
 			      "driftQpc %lld (%fms), driftAvg %lld\n",
 			      m_LastSyncQpc, QpcToMs(m_VsyncIntervalQpc), 1000.0 / QpcToMs(m_VsyncIntervalQpc), m_VsyncIntervalQpc,
 			      driftQpc, QpcToMs(driftQpc), static_cast<int64_t>(m_ewmaVsyncDriftQpc));
+		}
+
+		// Compute present-to-display latency
+		if (auto entry = m_PresentTracker.Consume(stats)) {
+			int32_t refreshDelta = static_cast<int32_t>(stats.PresentRefreshCount - stats.SyncRefreshCount);
+			int64_t displayQpc = stats.SyncQPCTime.QuadPart + (refreshDelta * m_VsyncIntervalQpc);
+			double latencyMs = QpcToMs(displayQpc - entry->qpcBeforePresent);
+			Stats::instance().SubmitPresentDisplayMs(latencyMs);
 		}
 	} else {
 		// We have a chicken and the egg problem here in that no frame stats are available before presenting real frames,
@@ -399,6 +411,11 @@ void Pacer::submitFrame(AVFrame *frame) {
 	ImGuiPlots::instance().observeFloat(PLOT_DROPPED_PACER, (float)dropCount);
 	float avgQueueSize = ImGuiPlots::instance().observeFloatReturnAvg(PLOT_QUEUED_FRAMES, (float)FrameQueue::instance().count());
 	Stats::instance().SubmitAvgQueueSize(avgQueueSize);
+}
+
+void Pacer::recordPresent(UINT presentID, int64_t qpcBeforePresent) {
+	std::scoped_lock<std::mutex> lock(m_FrameStatsLock);
+	m_PresentTracker.Record(presentID, qpcBeforePresent);
 }
 
 // Misc helper functions

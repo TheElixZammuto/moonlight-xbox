@@ -524,7 +524,17 @@ void DX::DeviceResources::Trim()
 // Present the contents of the swap chain to the screen.
 void DX::DeviceResources::Present()
 {
+	int64_t beforePresentQpc = QpcNow();
+
 	HRESULT hr = m_swapChain->Present(0, 0);
+
+	if (hr == S_OK) {
+		UINT presentID;
+		if (SUCCEEDED(m_swapChain->GetLastPresentCount(&presentID))) {
+			// used to calculate present-to-display latency
+			Pacer::instance().recordPresent(presentID, beforePresentQpc);
+		}
+	}
 
 	// If the device was removed either by a disconnection or a driver upgrade, we
 	// must recreate all device resources.
