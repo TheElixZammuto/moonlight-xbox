@@ -67,10 +67,15 @@
             <ComboBox  Grid.Row="5"  Grid.Column="1" SelectedIndex="{x:Bind CurrentAppIndex,Mode=TwoWay}" Name="AutoStartSelector" SelectionChanged="AutoStartSelector_SelectionChanged">
             </ComboBox>
             <TextBlock Grid.Row="6" Grid.Column="0">Video Codecs</TextBlock>
-            <ComboBox Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}" SelectionChanged="CodecComboBox_SelectionChanged"  Grid.Row="6"  Grid.Column="1"></ComboBox>
+            <ComboBox Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=OneWay}" SelectionChanged="CodecComboBox_SelectionChanged"  Grid.Row="6"  Grid.Column="1"></ComboBox>
+
             <TextBlock
                 Name="CodecDesc" Grid.Row="6" Grid.Column="2">
                 H.264 is limited to 1080p60 SDR.
+            </TextBlock>
+            <TextBlock
+                Name="CodecDescPyroWave" Grid.Row="6" Grid.Column="2" Visibility="Collapsed">
+                Wired only, 500Mbps+ recommended. Host NIC should be set to 1Gbps.
             </TextBlock>
 
             <TextBlock Grid.Row="7" Grid.Column="0" >Enable HDR:</TextBlock>
@@ -78,8 +83,16 @@
                 Name="EnableHDRCheckbox" Grid.Row="7" Grid.Column="1"
                 IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}" />
             <TextBlock
+                Name="EnableHDRCheckboxDesc" Grid.Row="7" Grid.Column="2">
+                If checked, streams 10-bit HDR/SDR matching the host. Unchecked streams 8-bit SDR.
+            </TextBlock>
+            <TextBlock
                 Name="HDR4KNote" Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed">
                 HDR requires Xbox system resolution set to 4K.
+            </TextBlock>
+            <TextBlock
+                Name="HDRNotAvailNote" Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2" Visibility="Collapsed">
+                HDR is disabled or not supported by your display. Check Xbox Video Modes.
             </TextBlock>
 
             <TextBlock Grid.Row="8" Grid.Column="0" >Optimize host resolution:</TextBlock>

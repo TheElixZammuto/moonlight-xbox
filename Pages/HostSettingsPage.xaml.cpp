@@ -10,6 +10,7 @@
 #include <gamingdeviceinformation.h>
 #include <Limelight.h> // SCM_* server codec support bits
 #include <cmath> // sqrtf, lround
+
 using namespace Windows::UI::Core;
 
 using namespace moonlight_xbox_dx;
@@ -143,17 +144,40 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		}
 
 		// Disable HDR if console is not set to 4K
-		auto mode = HdmiDisplayInformation::GetForCurrentView()->GetCurrentDisplayMode();
+		HdmiDisplayInformation ^ hdmi = HdmiDisplayInformation::GetForCurrentView();
+		auto mode = hdmi->GetCurrentDisplayMode();
 		auto height = mode->ResolutionHeightInRawPixels;
-		if (height < 2160) {
+		bool has4K = height >= 2160;
+
+		// Make sure an HDR mode exists, in case HDR is unchecked in Xbox video settings.
+		bool hasHDR = false;
+		for (auto mode : hdmi->GetSupportedDisplayModes()) {
+			if (mode->IsSmpte2084Supported) {
+				hasHDR = true;
+				break;
+			}
+		}
+
+		if (!has4K) {
+			// HDR4KNote (not at 4K)
 			EnableHDRCheckbox->IsEnabled = false;
 			EnableHDRCheckbox->IsChecked = false;
-			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Visible;
-		} else {
-			EnableHDRCheckbox->IsEnabled = true;
-			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Visible;
+			HDRNotAvailNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+		} else if (!hasHDR) {
+			// HDRNotAvailNote (no HDR modes)
+			EnableHDRCheckbox->IsEnabled = false;
+			EnableHDRCheckbox->IsChecked = false;
 			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+			HDRNotAvailNote->Visibility = Windows::UI::Xaml::Visibility::Visible;
+			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+		} else {
+			// EnableHDRCheckboxDesc (explain 10-bit vs 8-bit)
+			EnableHDRCheckbox->IsEnabled = true;
+			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+			HDRNotAvailNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Visible;
 		}
 
 		// Disable graphs at 4K on Xbox One
@@ -271,9 +295,17 @@ void HostSettingsPage::CodecComboBox_SelectionChanged(Platform::Object^ sender, 
 	if (e->AddedItems->Size == 0) return;
 	auto selectedCodec = (Platform::String^)e->AddedItems->GetAt(0);
 
-	// Default to a new bitrate if a new codec was chosen
 	if (selectedCodec != host->VideoCodec) {
+		// Default to a new bitrate if a new codec was chosen
 		host->Bitrate = getDefaultBitrate(host->Resolution->Width, host->Resolution->Height, host->FPS, selectedCodec);
+	}
+
+	if (selectedCodec == "PyroWave 4:2:0" || selectedCodec == "PyroWave 4:4:4") {
+		CodecDescPyroWave->Visibility = Windows::UI::Xaml::Visibility::Visible;
+		CodecDesc->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+	} else {
+		CodecDescPyroWave->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+		CodecDesc->Visibility = Windows::UI::Xaml::Visibility::Visible;
 	}
 
 	host->VideoCodec = selectedCodec;
@@ -285,69 +317,69 @@ void HostSettingsPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::R
 	navigation->BackRequested -= m_back_cookie;
 }
 
-int HostSettingsPage::getDefaultBitrate(int width, int height, int fps, Platform::String^ codec)
-{
-    // Don't scale bitrate linearly beyond 60 FPS. It's definitely not a linear
-    // bitrate increase for frame rate once we get to values that high.
-    float frameRateFactor = (fps <= 60 ? fps : (std::sqrtf(fps / 60.f) * 60.f)) / 30.f;
+int HostSettingsPage::getDefaultBitrate(int width, int height, int fps, Platform::String^ codec) {
+	// Don't scale bitrate linearly beyond 60 FPS. It's definitely not a linear
+	// bitrate increase for frame rate once we get to values that high.
+	float frameRateFactor = (fps <= 60 ? fps : (std::sqrtf(fps / 60.f) * 60.f)) / 30.f;
 
-    // TODO: Collect some empirical data to see if these defaults make sense.
-    // We're just using the values that the Shield used, as we have for years.
-    static const struct resTable {
-        int pixels;
-        float factor;
-    } resTable[] {
-        { 1280 * 720, 5.0f },
-        { 1920 * 1080, 10.0f },
-        { 2560 * 1440, 20.0f },
-        { 3840 * 2160, 40.0f },
-        { -1, -1.0f },
-    };
+	// TODO: Collect some empirical data to see if these defaults make sense.
+	// We're just using the values that the Shield used, as we have for years.
+	static const struct resTable {
+		int pixels;
+		float factor;
+	} resTable[]{
+	    {1280 * 720, 5.0f},
+	    {1920 * 1080, 10.0f},
+	    {2560 * 1440, 20.0f},
+	    {3840 * 2160, 40.0f},
+	    {-1, -1.0f},
+	};
 
-    // Calculate the resolution factor by linear interpolation of the resolution table
-    float resolutionFactor;
-    int pixels = width * height;
-    for (int i = 0;; i++) {
-        if (pixels == resTable[i].pixels) {
-            // We can bail immediately for exact matches
-            resolutionFactor = resTable[i].factor;
-            break;
-        }
-        else if (pixels < resTable[i].pixels) {
-            if (i == 0) {
-                // Never go below the lowest resolution entry
-                resolutionFactor = resTable[i].factor;
-            }
-            else {
-                // Interpolate between the entry greater than the chosen resolution (i) and the entry less than the chosen resolution (i-1)
-                resolutionFactor = ((float)(pixels - resTable[i-1].pixels) / (resTable[i].pixels - resTable[i-1].pixels)) * (resTable[i].factor - resTable[i-1].factor) + resTable[i-1].factor;
-            }
-            break;
-        }
-        else if (resTable[i].pixels == -1) {
-            // Never go above the highest resolution entry
-            resolutionFactor = resTable[i-1].factor;
-            break;
-        }
-    }
+	// Calculate the resolution factor by linear interpolation of the resolution table
+	float resolutionFactor;
+	int pixels = width * height;
+	for (int i = 0;; i++) {
+		if (pixels == resTable[i].pixels) {
+			// We can bail immediately for exact matches
+			resolutionFactor = resTable[i].factor;
+			break;
+		} else if (pixels < resTable[i].pixels) {
+			if (i == 0) {
+				// Never go below the lowest resolution entry
+				resolutionFactor = resTable[i].factor;
+			} else {
+				// Interpolate between the entry greater than the chosen resolution (i) and the entry less than the chosen resolution (i-1)
+				resolutionFactor = ((float)(pixels - resTable[i - 1].pixels) / (resTable[i].pixels - resTable[i - 1].pixels)) * (resTable[i].factor - resTable[i - 1].factor) + resTable[i - 1].factor;
+			}
+			break;
+		} else if (resTable[i].pixels == -1) {
+			// Never go above the highest resolution entry
+			resolutionFactor = resTable[i - 1].factor;
+			break;
+		}
+	}
 
-    // PyroWave is intra-only and needs far more bitrate than H.264/HEVC for the
-    // same quality: roughly 0.5 bits/pixel at the configured resolution and FPS.
-    if (codec == "PyroWave 4:2:0" || codec == "PyroWave 4:4:4") {
-        switch (height) {
-            case 2160:
-                resolutionFactor = 500;
-                break;
-            case 1440:
-                resolutionFactor = 250;
-                break;
-            default:
-                resolutionFactor = 125;
-                break;
-        }
+	// PyroWave needs far more bitrate than H.264/HEVC.
+	// 8-bit vs 10-bit could also be considered but I'm just going to
+	// assume most people will use 10-bit.
+	//             4:2:0   4:4:4
+	// 4K120:        700     800
+	// 1440p120:     500     600
+	// 1080p120:     400     500
+	// 60fps:        / 2
+	if (codec == L"PyroWave 4:2:0" || codec == L"PyroWave 4:4:4") {
+		int bitrate = 0;
+		if (height <= 1080) {
+			bitrate = (codec == L"PyroWave 4:4:4") ? 500 : 400;
+		} else if (height <= 1440) {
+			bitrate = (codec == L"PyroWave 4:4:4") ? 600 : 500;
+		} else if (height <= 2160) {
+			bitrate = (codec == L"PyroWave 4:4:4") ? 800 : 700;
+		}
 
-        frameRateFactor = fps / 120.0f;
-    }
+		bitrate /= (120 / fps);
+		return bitrate * 1000;
+	}
 
-    return std::lround(resolutionFactor * frameRateFactor) * 1000;
+	return std::lround(resolutionFactor * frameRateFactor) * 1000;
 }

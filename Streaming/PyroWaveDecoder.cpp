@@ -234,7 +234,6 @@ int PyroWaveDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
 		return DropFrame(parseError.c_str());
 	}
 	if (m_parsed.partial && !m_parsed.coarseLevelIntact) {
-		Stats::instance().SubmitPyroWavePartialFrame(false);
 		return DropFrame("part of the coarsest wavelet level was lost");
 	}
 
@@ -244,17 +243,11 @@ int PyroWaveDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
 	m_decoder->Clear();
 	for (const auto &span : m_parsed.spans) {
 		if (!m_decoder->PushPacket(reinterpret_cast<const uint8_t *>(m_bitstream.data()) + span.offset, span.size)) {
-			if (m_parsed.partial) {
-				Stats::instance().SubmitPyroWavePartialFrame(false);
-			}
 			return DropFrame("codec rejected a record");
 		}
 	}
 
 	bool ready = m_decoder->DecodeIsReady(m_parsed.partial, kNumPristineBands, kMinimumPacketRatio);
-	if (m_parsed.partial) {
-		Stats::instance().SubmitPyroWavePartialFrame(ready);
-	}
 	if (!ready) {
 		return DropFrame("corrupt or incomplete bitstream");
 	}

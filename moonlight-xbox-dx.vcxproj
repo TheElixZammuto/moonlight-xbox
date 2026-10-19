@@ -390,6 +390,7 @@
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
     <ClInclude Include="Utils.hpp" />
     <ClInclude Include="Utils\FloatBuffer.h" />
+    <ClInclude Include="Utils\SlidingWindowCounter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.xaml.cpp">

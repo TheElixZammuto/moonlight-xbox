@@ -518,6 +518,9 @@
     <ClInclude Include="Common\DeviceWatcherHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Utils\SlidingWindowCounter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\LargeTile.scale-100.png">

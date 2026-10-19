@@ -305,12 +305,6 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 				double beforePresentMs = QpcToMs(t3 - t2);
 				Stats::instance().SubmitRenderStats(preWaitMs, renderMs, beforePresentMs, hitDeadline);
 
-				if (EnableGPUStats()) {
-					// Collect async GPU timing that was performed in VideoRenderer
-					auto gpuTimer = Pacer::instance().GetGpuPerformanceTimer();
-					Stats::instance().SubmitGpuTime(gpuTimer->GetFrameTime());
-				}
-
 				FQLog("render loop %.3fms %s%s%s pts:%.3fs frametime(c:%02.3fms h:%02.3fms) (Deadline %.3fms PreWait %.3fms (max %.3fms) + Render %.3fms (avg %.3f) + Present %.3fms)\n",
 				      QpcToMs(t3 - t0),                             // loop time
 				      hitDeadline ? " " : "M",                      // missed deadline?

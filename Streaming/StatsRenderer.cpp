@@ -20,7 +20,7 @@ StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources> &deviceR
       m_visible(false) {
 	m_console->SetForegroundColor(Colors::Yellow);
 	m_console->SetCachedGeometry(true);
-	// m_console->SetDebugOutput(true);
+	//m_console->SetDebugOutput(true);
 
 	CreateDeviceDependentResources();
 }
@@ -34,7 +34,7 @@ void StatsRenderer::Update(DX::StepTimer const &timer) {
 	wchar_t wideStr[2048];
 
 	if (Stats::instance().ShouldUpdateDisplay(timer, m_visible, outputStr, sizeof(outputStr))) {
-		size_t numChars = mbstowcs(wideStr, outputStr, 1024);
+		size_t numChars = mbstowcs(wideStr, outputStr, sizeof(outputStr));
 		if (numChars != -1) {
 			m_console->Clear();
 			m_console->Write(wideStr);
@@ -196,17 +196,17 @@ void StatsRenderer::CreateWindowSizeDependentResources() {
 	int right = m_displayWidth / 3;
 	int bottom = 0;
 
-	// 12 lines of text
+	// 13 lines of text (per line: 36 or 18)
 	if (m_displayHeight >= 2160) { // 24pt font
 		left = 20;
 		right = m_displayWidth / 2;
-		bottom = 446;
+		bottom = 468;
 	} else if (m_displayHeight >= 1440) { // 12pt font
 		left = 14;
-		bottom = 224;
+		bottom = 234;
 	} else {
 		left = 10;
-		bottom = 224;
+		bottom = 234;
 	}
 
 #if defined(_DEBUG)
