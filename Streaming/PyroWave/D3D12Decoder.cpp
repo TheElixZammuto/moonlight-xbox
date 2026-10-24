@@ -1,4 +1,6 @@
+// clang-format off
 #include "pch.h"
+// clang-format on
 #include "D3D12Decoder.h"
 #include "pyrowave_d3d12.h"
 #include <Utils.hpp>
@@ -201,6 +203,7 @@ void Decoder::Clear() {
 bool Decoder::Decode(ID3D11DeviceContext *context11, PyroWaveFrameSet *set) {
 	if (!OpenPlanes(set))
 		return false;
+	ZoneScoped;
 
 	// 1. Everything D3D11 has been given so far, including the renderer's reads of
 	//    this set from its previous trip through the pipeline, precedes this signal.

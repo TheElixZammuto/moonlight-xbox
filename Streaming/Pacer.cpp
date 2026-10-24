@@ -16,7 +16,7 @@
 //
 // 3 threads use this class:
 //
-// Decoder thread (run from moonlight-common-c because DIRECT_SUBMIT)
+// Decoder thread (run from moonlight-common-c)
 //   * calls submitFrame() to queue a new AVFrame to FrameQueue class via FrameQueue::instance().enqueue(frame)
 //   * Frames are dropped at enqueue time, in an alternating manner, when high water mark (default 2 + 1) is exceeded
 //   * IDR frames are never dropped
@@ -141,6 +141,7 @@ void Pacer::vsyncHardware() {
 		// tracks. This data is several frames out of date but it's enough to
 		// very precisely time present calls and to determine the vsync interval.
 		m_DeviceResources->GetDXGIOutput()->WaitForVBlank();
+		FrameMarkNamed("VBlank");
 		updateFrameStats();
 	}
 

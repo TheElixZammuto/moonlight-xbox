@@ -195,7 +195,7 @@ int PyroWaveDecoder::DecodeFailed(const char *reason) {
 	return DR_OK;
 }
 
-// Called by the VideoDec thread (CAPABILITY_DIRECT_SUBMIT)
+// Called by the VideoDec thread
 int PyroWaveDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
 	ZoneScoped;
 	LARGE_INTEGER decodeStart, decodeEnd;

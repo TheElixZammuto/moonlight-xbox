@@ -1,5 +1,6 @@
 // Copied from moonlight-qt (app/streaming/video/pyrowaveframing.cpp), which adapted it
 // from Nonary moonlight-qt vrr18 (record framing and partial recovery).
+
 #include "PyroWaveFraming.h"
 
 #include <pyrowave_bitstream.hpp>
@@ -7,6 +8,7 @@
 #include <cstring>
 #include <limits>
 #include <utility>
+#include <tracy/Tracy.hpp>
 
 namespace PyroWaveFraming {
 
@@ -182,6 +184,7 @@ bool walkRecordFrame(const uint8_t* data, size_t size, const SegmentMap& segment
                      bool coarseLevelKnown, const PyroWave::BlockLayout& layout,
                      Frame& frame, std::string& error)
 {
+    ZoneScoped;
     const uint32_t coarseBlocks = uint32_t(PyroWave::get_num_active_blocks(layout, 2));
     const size_t payloadSize = segments.payloadSize();
     const bool flagged = segments.recordStartsFlagged();
@@ -328,6 +331,7 @@ bool parse(const uint8_t* data, size_t size, const std::vector<Segment>& segment
 {
     // Keep the per-decoder span allocation across frames. All semantic state
     // is still reset, including after a failed or partial frame.
+    ZoneScoped;
     auto spans = std::move(frame.spans);
     spans.clear();
     frame = Frame();

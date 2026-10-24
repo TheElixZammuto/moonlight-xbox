@@ -297,16 +297,6 @@ namespace moonlight_xbox_dx {
 
     // Called by the VideoDec thread
 	int FFMpegDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
-		// moonlight-common-c owns this thread and calls us with CAPABILITY_DIRECT_SUBMIT, so
-		// this runs on the receive thread and there is no thread entry point of ours to name
-		// it from. SetThreadName allocates and prepends to a global list on every call with
-		// no dedup, so it must happen exactly once per thread rather than once per frame.
-		static thread_local bool threadNamed = false;
-		if (!threadNamed) {
-			threadNamed = true;
-			tracy::SetThreadName("Video decode");
-		}
-
 		ZoneScoped;
 
 		LARGE_INTEGER decodeStart, decodeEnd;
@@ -460,7 +450,10 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.setup = initCallback;
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
 		decoder_callbacks_sdl.submitDecodeUnit = submitDecodeUnit;
-		decoder_callbacks_sdl.capabilities = CAPABILITY_DIRECT_SUBMIT | CAPABILITY_INTRA_REFRESH;
+		// This used to run as CAPABILITY_DIRECT_SUBMIT but this combines the decoder time with
+		// the UDP receive/reassembly time. If we leave it out, decode gets a new thread and UDP
+		// doesn't have to wait for decode.
+		decoder_callbacks_sdl.capabilities = CAPABILITY_INTRA_REFRESH;
 		return decoder_callbacks_sdl;
 	}
 }
