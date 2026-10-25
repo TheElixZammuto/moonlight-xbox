@@ -210,6 +210,18 @@ namespace moonlight_xbox_dx {
 			void set(int value) {
 				this->bitrate = value;
 				OnPropertyChanged("Bitrate");
+				OnPropertyChanged("BitrateMbps");
+			}
+		}
+
+		property int BitrateMbps {
+			int get() {
+				return this->bitrate / 1000;
+			}
+			void set(int value) {
+				this->bitrate = value * 1000;
+				OnPropertyChanged("Bitrate");
+				OnPropertyChanged("BitrateMbps");
 			}
 		}
 
