@@ -259,11 +259,17 @@ void StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::C
 	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
 		return;
 	}
+	auto window = CoreWindow::GetForCurrentThread();
 	char modifiers = 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
-	this->m_main->OnKeyDown((unsigned short)e->VirtualKey,modifiers);
+	modifiers |= window->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
+	modifiers |= window->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
+	modifiers |= window->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
+	if (window->GetKeyState(Windows::System::VirtualKey::LeftWindows) == CoreVirtualKeyStates::Down ||
+		window->GetKeyState(Windows::System::VirtualKey::RightWindows) == CoreVirtualKeyStates::Down) {
+		Utils::Log("Windows key down\n");
+		modifiers |= MODIFIER_META;
+	}
+	this->m_main->OnKeyDown((unsigned short)e->VirtualKey, modifiers);
 }
 
 
@@ -273,12 +279,17 @@ void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Cor
 	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
 		return;
 	}
+	auto window = CoreWindow::GetForCurrentThread();
 	char modifiers = 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
-	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
-	this->m_main->OnKeyUp((unsigned short) e->VirtualKey, modifiers);
-
+	modifiers |= window->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
+	modifiers |= window->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
+	modifiers |= window->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
+	if (window->GetKeyState(Windows::System::VirtualKey::LeftWindows) == CoreVirtualKeyStates::Down ||
+		window->GetKeyState(Windows::System::VirtualKey::RightWindows) == CoreVirtualKeyStates::Down) {
+		Utils::Log("Windows key up\n");
+		modifiers |= MODIFIER_META;
+	}
+	this->m_main->OnKeyUp((unsigned short)e->VirtualKey, modifiers);
 }
 
 void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {

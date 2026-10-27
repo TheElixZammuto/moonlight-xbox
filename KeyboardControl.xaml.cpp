@@ -59,7 +59,10 @@ void KeyboardControl::UpdateKeys() {
 	((Button^)FindName("Key_E038"))->Background = toggleAlt ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
 	((Button^)FindName("Key_E01D"))->Background = toggleCtrl ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
 	((Button^)FindName("Key_1D"))->Background = toggleCtrl ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
-	
+	((Button^)FindName("Key_E05B"))->Background = toggleWin ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
+	((Button^)FindName("Key_E05C"))->Background = toggleWin ? (ref new SolidColorBrush((Windows::UI::Color)Resources->Lookup("SystemAccentColor"))) : (ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(16, 255, 255, 255)));
+
+
 	auto currentModifier = layout.pVkToWcharTable;
 	while (true) {
 		if (currentModifier->nModifications == 0)break;
@@ -96,7 +99,7 @@ void KeyboardControl::UpdateKeys() {
 				UpdateLabel(a->VirtualKey, a->wch[indexModifier >= 4 ? 0 : indexModifier]);
 				a++;
 			}
-		} 
+		}
 		else if (currentModifier->nModifications == 5) {
 			VK_TO_WCHARS5* a = (VK_TO_WCHARS5*)currentModifier->pVkToWchars;
 			while (true) {
@@ -137,6 +140,16 @@ void moonlight_xbox_dx::KeyboardControl::Click(Platform::Object^ sender, Windows
 		ev->VirtualKey = (unsigned short)Windows::System::VirtualKey::Control;
 		toggleCtrl ? OnKeyDown(this, ev) : OnKeyUp(this, ev);
 	}
+	else if (button->Name == "Key_E05B" || button->Name == "Key_E05C") {
+		if (!toggleWin) {
+			// Remember which Win key was pressed so the same one is released
+			winKey = button->Name == "Key_E05B" ? Windows::System::VirtualKey::LeftWindows : Windows::System::VirtualKey::RightWindows;
+		}
+		toggleWin = !toggleWin;
+		KeyEvent^ ev = ref new KeyEvent();
+		ev->VirtualKey = (unsigned short)winKey;
+		toggleWin ? OnKeyDown(this, ev) : OnKeyUp(this, ev);
+	}
 	else {
 		std::string name = Utils::PlatformStringToStdString(button->Name);
 		name = name.substr(name.find("_") + 1, 8);
@@ -157,7 +170,7 @@ void moonlight_xbox_dx::KeyboardControl::Click(Platform::Object^ sender, Windows
 		else {
 			ev->VirtualKey = layout.pusVSCtoVK[number];
 		}
-		int currentState = toggleShift + (toggleCtrl ? 2 : 0) + (toggleAlt ? 4 : 0);
+		int currentState = toggleShift + (toggleCtrl ? 2 : 0) + (toggleAlt ? 4 : 0) + (toggleWin ? 8 : 0);
 		ev->Modifiers = currentState;
 		OnKeyDown(this, ev);
 		OnKeyUp(this, ev);
@@ -177,6 +190,12 @@ void moonlight_xbox_dx::KeyboardControl::Click(Platform::Object^ sender, Windows
 			toggleAlt = false;
 			KeyEvent^ ev = ref new KeyEvent();
 			ev->VirtualKey = (unsigned short)Windows::System::VirtualKey::Menu;
+			OnKeyUp(this, ev);
+		}
+		if (toggleWin) {
+			toggleWin = false;
+			KeyEvent^ ev = ref new KeyEvent();
+			ev->VirtualKey = (unsigned short)winKey;
 			OnKeyUp(this, ev);
 		}
 	}

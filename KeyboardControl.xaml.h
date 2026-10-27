@@ -28,8 +28,8 @@ namespace moonlight_xbox_dx
 			void set(int v) { this->modifiers = v; }
 		}
 	private:
-		unsigned short virtualKey;
-		int modifiers;
+		unsigned short virtualKey = 0;
+		int modifiers = 0;
 	};
 
 	public delegate void SoftwareKeyboardDown(KeyboardControl^ sender, KeyEvent^ e);
@@ -49,6 +49,8 @@ namespace moonlight_xbox_dx
 		bool toggleShift = false;
 		bool toggleCtrl = false;
 		bool toggleAlt = false;
+		bool toggleWin = false;
+		Windows::System::VirtualKey winKey = Windows::System::VirtualKey::LeftWindows;
 		void UpdateLabel(int virtualCode, wchar_t c);
 		void Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
