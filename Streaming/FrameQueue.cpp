@@ -54,7 +54,7 @@ void FrameQueue::stop() {
 }
 
 std::size_t FrameQueue::count() const {
-	std::lock_guard<std::mutex> lock(_mutex);
+	std::lock_guard<LockableBase(std::mutex)> lock(_mutex);
 	return static_cast<std::size_t>(_count);
 }
 
@@ -63,7 +63,7 @@ bool FrameQueue::isEmpty() const {
 }
 
 void FrameQueue::clear() {
-	std::lock_guard<std::mutex> lock(_mutex);
+	std::lock_guard<LockableBase(std::mutex)> lock(_mutex);
 	// free all AVFrame in the queue
 	while (_count > 0) {
 		AVFrame *frame = popFrame();
@@ -74,12 +74,12 @@ void FrameQueue::clear() {
 }
 
 void FrameQueue::setHighWaterMark(int hwm) {
-	std::lock_guard<std::mutex> lock(_mutex);
+	std::lock_guard<LockableBase(std::mutex)> lock(_mutex);
 	_highWaterMark = hwm;
 }
 
 int FrameQueue::highWaterMark() const {
-	std::lock_guard<std::mutex> lock(_mutex);
+	std::lock_guard<LockableBase(std::mutex)> lock(_mutex);
 	return _highWaterMark;
 }
 
@@ -119,7 +119,7 @@ AVFrame* FrameQueue::peekFrame() {
 }
 
 void FrameQueue::enumerateFrames(const std::function<void(AVFrame *frame, std::size_t idx, bool &stop)> &func) const {
-	std::lock_guard<std::mutex> lock(_mutex);
+	std::lock_guard<LockableBase(std::mutex)> lock(_mutex);
 	bool stop = false;
 	for (int i = 0; i < _count; ++i) {
 		int idx = (_head + i) % _capacity;
@@ -176,7 +176,7 @@ int FrameQueue::unsafeEnqueue(AVFrame *frame, int frameDropTarget) {
 
 // Enqueue with simple alternate-drop logic
 int FrameQueue::enqueue(AVFrame *frame) {
-	std::lock_guard<std::mutex> lock(_mutex);
+	std::lock_guard<LockableBase(std::mutex)> lock(_mutex);
 	return unsafeEnqueue(frame, _highWaterMark);
 }
 
@@ -184,7 +184,7 @@ int FrameQueue::enqueue(AVFrame *frame) {
 // Optional param: wait until the queue contains N items
 // Optional timeout in milliseconds
 void FrameQueue::waitForEnqueue(int num) {
-	std::unique_lock<std::mutex> lock(_mutex);
+	std::unique_lock<LockableBase(std::mutex)> lock(_mutex);
 	while (!_paused.load(std::memory_order_acquire) && _count < num) {
 		// This waits forever until a frame arrives
 		_cv.wait(lock);
@@ -192,7 +192,7 @@ void FrameQueue::waitForEnqueue(int num) {
 }
 
 void FrameQueue::waitForEnqueue(int num, double timeoutMs) {
-	std::unique_lock<std::mutex> lock(_mutex);
+	std::unique_lock<LockableBase(std::mutex)> lock(_mutex);
 	auto deadline = std::chrono::steady_clock::now() +
 	                std::chrono::microseconds(static_cast<long long>(timeoutMs * 1000.0));
 
@@ -211,7 +211,7 @@ void FrameQueue::waitForEnqueue(int num, double timeoutMs) {
 }
 
 AVFrame* FrameQueue::dequeue() {
-	std::lock_guard<std::mutex> lock(_mutex);
+	std::lock_guard<LockableBase(std::mutex)> lock(_mutex);
 	AVFrame *frame = nullptr;
 
 	if (_count > 0) {

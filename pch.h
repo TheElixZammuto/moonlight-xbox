@@ -33,9 +33,51 @@
 #include <imgui_impl_uwp.h>
 #include <imgui_impl_dx11.h>
 
-#ifdef _DEBUG
+#if defined(_DEBUG)
 #include <dxgidebug.h>
+#include <d3d11sdklayers.h>
 #endif
+
+/// Tracy Config
+
+#include <tracy/Tracy.hpp>
+
+// Tracing D3D11 breaks with PyroWave
+//#define TRACY_ENABLE_D3D11
+
+// Something is also wrong with D3D12Collect
+//#define TRACY_ENABLE_D3D12
+
+// Tracy can get all our plot data but it looks bad and I'm not sure how to properly display it
+//#define TRACY_INCLUDE_PLOTS
+
+#ifdef TRACY_ENABLE_D3D11
+	#include <tracy/TracyD3D11.hpp>
+
+	// Special C++17 inline global variable for Tracy's D3D context, so it can be used from
+	// multiple files. Owned by the render thread: created and destroyed in StartRenderLoop().
+	inline TracyD3D11Ctx g_tracyCtx11 = nullptr;
+#else
+	#define TracyD3D11Zone __noop
+	#define TracyD3D11Destroy __noop
+	#define TracyD3D11Collect __noop
+	#define g_tracyCtx11 (0)
+#endif
+
+#ifdef TRACY_ENABLE_D3D12
+	#include <tracy/TracyD3D12.hpp>
+
+	// Special C++17 inline global variable for Tracy's D3D context, so it can be used from
+	// multiple files. Owned by the render thread: created and destroyed in StartRenderLoop().
+	inline TracyD3D12Ctx g_tracyCtx12 = nullptr;
+#else
+	#define TracyD3D12Zone __noop
+	#define TracyD3D12Destroy __noop
+	#define TracyD3D12Collect __noop
+	#define g_tracyCtx12 (0)
+#endif
+
+/// End Tracy
 
 // Helper for dispatching code to the UI thread
 #define DISPATCH_UI(LAMBDA)                                            \
@@ -116,16 +158,17 @@ static inline int64_t MsToQpc(double ms) {
 //#define FRAME_QUEUE_VERBOSE
 #endif
 
+#define FQLogForce(fmt, ...) moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+
 #ifdef FRAME_QUEUE_VERBOSE
-	#define FQLog(fmt, ...) \
-		moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+	#define FQLog(fmt, ...) FQLogForce(fmt, __VA_ARGS__)
 #else
 # ifdef FRAME_QUEUE_VERBOSE_LIMITED
 	#include <atomic>
 	static std::atomic<int> g_fqlog_counter{0};
 	#define FQLog(fmt, ...) \
         if (++g_fqlog_counter > 200 && g_fqlog_counter < 1000) \
-		    moonlight_xbox_dx::Utils::Logf("[%lu] " fmt, ::GetCurrentThreadId(), ##__VA_ARGS__)
+			FQLogForce(fmt, __VA_ARGS__)
 # else
   	#if defined(_MSC_VER)
     	#define FQLog(...) __noop

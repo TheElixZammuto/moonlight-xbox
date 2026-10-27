@@ -16,7 +16,7 @@
 //
 // 3 threads use this class:
 //
-// Decoder thread (run from moonlight-common-c because DIRECT_SUBMIT)
+// Decoder thread (run from moonlight-common-c)
 //   * calls submitFrame() to queue a new AVFrame to FrameQueue class via FrameQueue::instance().enqueue(frame)
 //   * Frames are dropped at enqueue time, in an alternating manner, when high water mark (default 2 + 1) is exceeded
 //   * IDR frames are never dropped
@@ -55,7 +55,8 @@ Pacer::Pacer()
       m_FrameCadence(),
       m_LastSyncRefreshCount(0),
       m_LastSyncQpc(0),
-      m_VsyncIntervalQpc(0) {
+      m_VsyncIntervalQpc(0),
+      m_PresentTracker(8) {
 }
 
 void Pacer::deinit() {
@@ -89,7 +90,9 @@ void Pacer::init(const std::shared_ptr<DX::DeviceResources> &res, int streamFps,
 	m_StreamFps = streamFps;
 	m_RefreshRate = refreshRate;
 	m_FramePacingImmediate.store(framePacingImmediate, std::memory_order_release);
+#ifdef _DEBUG
 	m_GpuPerformanceTimer = std::make_unique<DX::GpuPerformanceTimer>(res);
+#endif
 
 	m_FrameCadence.init(m_RefreshRate > 0.0 ? m_RefreshRate : 60.0, static_cast<double>(streamFps));
 
@@ -138,6 +141,7 @@ void Pacer::vsyncHardware() {
 		// tracks. This data is several frames out of date but it's enough to
 		// very precisely time present calls and to determine the vsync interval.
 		m_DeviceResources->GetDXGIOutput()->WaitForVBlank();
+		FrameMarkNamed("VBlank");
 		updateFrameStats();
 	}
 
@@ -151,8 +155,11 @@ void Pacer::updateFrameStats() {
 
 	// After we've presented a couple of frames, we can obtain the true vsync interval
 	DXGI_FRAME_STATISTICS stats;
-	if (m_DeviceResources->GetSwapChain()->GetFrameStatistics(&stats) == S_OK &&
-	    stats.SyncRefreshCount != 0 && stats.SyncQPCTime.QuadPart > 0) {
+	HRESULT hr = m_DeviceResources->GetSwapChain()->GetFrameStatistics(&stats);
+	if (hr == DXGI_ERROR_FRAME_STATISTICS_DISJOINT) {
+		m_PresentTracker.Reset();
+	}
+	else if (hr == S_OK && stats.SyncRefreshCount != 0 && stats.SyncQPCTime.QuadPart > 0) {
 		UINT srcPassed = 0;
 		int64_t sqtPassed = 0;
 		// Only compare consecutive hardware samples from the same timing epoch.
@@ -198,6 +205,14 @@ void Pacer::updateFrameStats() {
 			      m_LastSyncQpc, QpcToMs(m_VsyncIntervalQpc), 1000.0 / QpcToMs(m_VsyncIntervalQpc), m_VsyncIntervalQpc,
 			      driftQpc, QpcToMs(driftQpc), static_cast<int64_t>(m_ewmaVsyncDriftQpc));
 		}
+
+		// Compute present-to-display latency
+		if (auto entry = m_PresentTracker.Consume(stats)) {
+			int32_t refreshDelta = static_cast<int32_t>(stats.PresentRefreshCount - stats.SyncRefreshCount);
+			int64_t displayQpc = stats.SyncQPCTime.QuadPart + (refreshDelta * m_VsyncIntervalQpc);
+			double latencyMs = QpcToMs(displayQpc - entry->qpcBeforePresent);
+			Stats::instance().SubmitPresentDisplayMs(latencyMs);
+		}
 	} else {
 		// We have a chicken and the egg problem here in that no frame stats are available before presenting real frames,
 		// so we need to fake some numbers early on so Pacer can at least limp through a few frames.
@@ -227,6 +242,7 @@ void Pacer::updateFrameStats() {
 // Main render thread
 
 void Pacer::waitForFrame(double timeoutMs) {
+	ZoneScopedC(tracy::Color::Cyan);
 	if (!running()) return;
 
 	// Wait for a decoded frame to be available
@@ -253,6 +269,7 @@ bool Pacer::renderOnMainThread(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 // Pros: lowest latency, output framerate matches input framerate
 // Cons: only works well on Xbox Series for some reason
 bool Pacer::renderModeImmediate(std::shared_ptr<VideoRenderer> &sceneRenderer) {
+	ZoneScopedC(tracy::Color::Red);
 	AVFrame *newFrame = FrameQueue::instance().dequeue();
 	if (!newFrame) {
 		return false; // no frame, don't Present()
@@ -302,6 +319,7 @@ bool Pacer::renderModeImmediate(std::shared_ptr<VideoRenderer> &sceneRenderer) {
 // Cons: higher latency
 //       more difficult to control queue size, requires additional frame drop logic
 bool Pacer::renderModeDisplayLocked(std::shared_ptr<VideoRenderer> &sceneRenderer) {
+	ZoneScopedC(tracy::Color::Red);
 	// Consume frame(s) according to cadence
 	int advanceCount = m_FrameCadence.decideAdvanceCount();
 
@@ -356,6 +374,7 @@ bool Pacer::renderModeDisplayLocked(std::shared_ptr<VideoRenderer> &sceneRendere
 
 // called by render thread, returns true if we waited, false if we missed the target
 bool Pacer::waitBeforePresent(int64_t target) {
+	ZoneScopedC(tracy::Color::Blue);
 	if (!running()) return false;
 
 	int64_t now = QpcNow();
@@ -386,6 +405,7 @@ int64_t Pacer::getCurrentFramePts() {
 
 // called by decoder thread
 void Pacer::submitFrame(AVFrame *frame) {
+	ZoneScoped;
 	// Update cadence from pts if available
 	if (frame->pts) {
 		m_FrameCadence.observeFramePts(frame->pts);
@@ -399,6 +419,11 @@ void Pacer::submitFrame(AVFrame *frame) {
 	ImGuiPlots::instance().observeFloat(PLOT_DROPPED_PACER, (float)dropCount);
 	float avgQueueSize = ImGuiPlots::instance().observeFloatReturnAvg(PLOT_QUEUED_FRAMES, (float)FrameQueue::instance().count());
 	Stats::instance().SubmitAvgQueueSize(avgQueueSize);
+}
+
+void Pacer::recordPresent(UINT presentID, int64_t qpcBeforePresent) {
+	std::scoped_lock<std::mutex> lock(m_FrameStatsLock);
+	m_PresentTracker.Record(presentID, qpcBeforePresent);
 }
 
 // Misc helper functions

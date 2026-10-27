@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "FFMpegDecoder.h"
+#include "PyroWaveDecoder.h"
 #include "../Plot/ImGuiPlots.h"
 #include "StatsRenderer.h"
 
@@ -176,6 +177,11 @@ namespace moonlight_xbox_dx {
 	}
 
 	int FFMpegDecoder::Init(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) {
+		if (videoFormat & VIDEO_FORMAT_MASK_PYROWAVE) {
+			// Must never reach ffmpeg; initCallback routes these to PyroWaveDecoder
+			Utils::Log("FFMpegDecoder::Init called with a PyroWave format\n");
+			return -1;
+		}
 		this->videoFormat = videoFormat;
 		this->width = width;
 		this->height = height;
@@ -291,6 +297,8 @@ namespace moonlight_xbox_dx {
 
     // Called by the VideoDec thread
 	int FFMpegDecoder::SubmitDecodeUnit(PDECODE_UNIT decodeUnit) {
+		ZoneScoped;
+
 		LARGE_INTEGER decodeStart, decodeEnd;
 		PLENTRY entry = decodeUnit->bufferList;
 		int length = 0;
@@ -411,15 +419,28 @@ namespace moonlight_xbox_dx {
 	}
 
 	//Helpers
+	// PyroWave streams are routed to PyroWaveDecoder; everything else goes
+	// through ffmpeg. LiStartConnection only takes one callback set, so the
+	// branch lives here.
 	int initCallback(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags) noexcept {
+		if (videoFormat & VIDEO_FORMAT_MASK_PYROWAVE) {
+			return PyroWaveDecoder::instance().Init(videoFormat, width, height, redrawRate);
+		}
 		return FFMpegDecoder::instance().Init(videoFormat, width, height, redrawRate, context, drFlags);
 	}
 
 	void cleanupCallback()noexcept {
+		if (PyroWaveDecoder::instance().IsActive()) {
+			PyroWaveDecoder::instance().Cleanup();
+			return;
+		}
 		FFMpegDecoder::instance().Cleanup();
 	}
 
 	int submitDecodeUnit(PDECODE_UNIT decodeUnit) noexcept {
+		if (PyroWaveDecoder::instance().IsActive()) {
+			return PyroWaveDecoder::instance().SubmitDecodeUnit(decodeUnit);
+		}
 		return FFMpegDecoder::instance().SubmitDecodeUnit(decodeUnit);
 	}
 
@@ -429,7 +450,10 @@ namespace moonlight_xbox_dx {
 		decoder_callbacks_sdl.setup = initCallback;
 		decoder_callbacks_sdl.cleanup = cleanupCallback;
 		decoder_callbacks_sdl.submitDecodeUnit = submitDecodeUnit;
-		decoder_callbacks_sdl.capabilities = CAPABILITY_DIRECT_SUBMIT | CAPABILITY_INTRA_REFRESH;
+		// This used to run as CAPABILITY_DIRECT_SUBMIT but this combines the decoder time with
+		// the UDP receive/reassembly time. If we leave it out, decode gets a new thread and UDP
+		// doesn't have to wait for decode.
+		decoder_callbacks_sdl.capabilities = CAPABILITY_INTRA_REFRESH;
 		return decoder_callbacks_sdl;
 	}
 }

@@ -71,6 +71,7 @@ namespace moonlight_xbox_dx {
 	}
 
 	static void audioDecodeAndPlaySampleCallback(char *sampleData, int sampleLength) noexcept {
+		ZoneScoped;
 		if (!s_channelCount) {
 			Utils::Logf("AudioPlayer not initialized, can't decode\n");
 			return;

@@ -14,6 +14,7 @@ extern "C" {
 #include <string>
 #include <gamingdeviceinformation.h>
 #include "Streaming\FFMpegDecoder.h"
+#include "Streaming\PyroWaveDecoder.h"
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
@@ -263,11 +264,40 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	config.encryptionFlags = ENCFLG_AUDIO;
 	config.packetSize = sConfig->packetSize > 0 ? sConfig->packetSize : 1392;
 
+	// Advertised formats follow the user's codec selection. PyroWave is only
+	// offered when explicitly chosen (RTSP prefers it over everything on mutual
+	// capability, so always advertising it would force it on for any
+	// PyroWave-capable server); HEVC/H.264 stay advertised as fallback for
+	// servers without PyroWave support.
+	bool pyrowave420 = sConfig->videoCodec == "PyroWave 4:2:0";
+	bool pyrowave444 = sConfig->videoCodec == "PyroWave 4:4:4";
+	bool wantHevc = sConfig->videoCodec != "H.264";
+	if ((pyrowave420 || pyrowave444) && IsXboxOne()) {
+		// UWP on the Xbox One generation never exposes compute shaders, so the
+		// decoder cannot run there. The settings page hides PyroWave on these
+		// consoles; this catches a selection saved by another console, which must
+		// not be advertised or the stream would fail when the decoder rejects it.
+		Utils::Log("PyroWave codec selected but this console cannot run the decoder; advertising HEVC/H.264 instead\n");
+		pyrowave420 = pyrowave444 = false;
+	}
+
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
-	if (sConfig->videoCodec == "HEVC (H.265)" && !IsXboxOneVCR()) {
+	if (wantHevc && !IsXboxOneVCR()) {
 		config.supportedVideoFormats |= VIDEO_FORMAT_H265;
 		if (sConfig->enableHDR) {
 			config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
+		}
+	}
+	if (pyrowave420 || pyrowave444) {
+		config.supportedVideoFormats |= VIDEO_FORMAT_PYROWAVE;
+		if (sConfig->enableHDR) {
+			config.supportedVideoFormats |= VIDEO_FORMAT_PYROWAVE10_420;
+		}
+	}
+	if (pyrowave444) {
+		config.supportedVideoFormats |= VIDEO_FORMAT_PYROWAVE_444;
+		if (sConfig->enableHDR) {
+			config.supportedVideoFormats |= VIDEO_FORMAT_PYROWAVE10_444;
 		}
 	}
 
@@ -317,6 +347,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	callbacks.rumbleTriggers = connection_trigger_rumble;
 
 	FFMpegDecoder::instance().CompleteInitialization(res, &config, sConfig->framePacing == "Immediate");
+	PyroWaveDecoder::instance().CompleteInitialization(res, &config);
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
@@ -595,6 +626,10 @@ Platform::String ^ MoonlightClient::GetServerMacAddress() {
 		return nullptr;
 	}
 	return Utils::StringFromChars(serverData.macAddress);
+}
+
+int MoonlightClient::GetServerCodecModeSupport() {
+	return serverData.serverInfo.serverCodecModeSupport;
 }
 
 void MoonlightClient::KeyDown(unsigned short v, char modifiers) {

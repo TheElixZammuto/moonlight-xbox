@@ -228,6 +228,8 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 			Utils::Logf("Failed to set render thread priority: %d\n", GetLastError());
 		}
 
+		tracy::SetThreadName("Render");
+
 		int64_t t0 = 0, t1 = 0, t2 = 0, t3 = 0;
 		int64_t lastFramePts = 0, lastPresentTime = 0;
 		double frametimeMs = 0.0, hostFrametimeMs = 0.0;
@@ -235,6 +237,19 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 		const double alphaUp = 0.25;   // react faster when renderMs spikes upward
 		const double alphaDown = 0.05; // decay slowly when renderMs drops
 		double ewmaRenderMs = 3.0;     // Initial guess for render cost
+
+	#ifdef TRACY_ENABLE_D3D11
+		{
+			// Tracy's D3D11 context belongs to this thread: creating it drives the immediate
+			// context (it allocates queries and calibrates against the GPU clock), which the
+			// decoder thread also uses, so it takes the same lock as the rest of the loop.
+			// Creating it here rather than alongside the swapchain also means it is built
+			// exactly once, and only while the GPU is actually pumping frames.
+			auto guard = FFMpegDecoder::Lock();
+			g_tracyCtx11 = TracyD3D11Context(m_deviceResources->GetD3DDevice(),
+			                                 m_deviceResources->GetD3DDeviceContext());
+		}
+	#endif
 
 		// Calculate the updated frame and render once per vertical blanking interval.
 		while (action->Status == AsyncStatus::Started && !moonlightClient->IsConnectionTerminated()) {
@@ -254,6 +269,11 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 				{
 					// ffmpeg and Render both use the same D3D context
 					auto guard = FFMpegDecoder::Lock();
+					// Declared after the guard so its closing timestamp is still issued
+					// under the lock: a GPU zone writes to the immediate context at both
+					// ends of its scope.
+					ZoneScopedN("Render");
+					TracyD3D11Zone(g_tracyCtx11, "Render");
 					rendered = Render();
 					t2 = QpcNow();
 				}
@@ -272,10 +292,15 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 				}
 
 				{
+					ZoneScopedNC("Present", tracy::Color::Purple);
+
 					// lock is required around Present
 					auto guard = FFMpegDecoder::Lock();
 					m_deviceResources->Present();
+					FrameMark;
 				}
+
+				TracyD3D11Collect(g_tracyCtx11);
 
 				// Graph frametime only for new frames
 				bool isRepeatFrame = true;
@@ -305,12 +330,6 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 				double beforePresentMs = QpcToMs(t3 - t2);
 				Stats::instance().SubmitRenderStats(preWaitMs, renderMs, beforePresentMs, hitDeadline);
 
-				if (EnableGPUStats()) {
-					// Collect async GPU timing that was performed in VideoRenderer
-					auto gpuTimer = Pacer::instance().GetGpuPerformanceTimer();
-					Stats::instance().SubmitGpuTime(gpuTimer->GetFrameTime());
-				}
-
 				FQLog("render loop %.3fms %s%s%s pts:%.3fs frametime(c:%02.3fms h:%02.3fms) (Deadline %.3fms PreWait %.3fms (max %.3fms) + Render %.3fms (avg %.3f) + Present %.3fms)\n",
 				      QpcToMs(t3 - t0),                             // loop time
 				      hitDeadline ? " " : "M",                      // missed deadline?
@@ -328,7 +347,18 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 			}
 		}
 
+	#ifdef TRACY_ENABLE_D3D11
 		// we've lost the connection, clean up
+		if (g_tracyCtx11) {
+			// Destroying the context blocks until every outstanding timestamp query has been
+			// retired, so it has to happen here, on the thread that issued them, while the
+			// device is still alive.
+			auto guard = FFMpegDecoder::Lock();
+			TracyD3D11Destroy(g_tracyCtx11);
+			g_tracyCtx11 = nullptr;
+		}
+	#endif
+
 		StopRenderLoop(); // also stops input
 		Disconnect();
 

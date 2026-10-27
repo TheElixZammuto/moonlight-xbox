@@ -43,6 +43,7 @@ static MoonlightApp^ GetAppById(MoonlightHost^ host, int appId) {
 AppPage::AppPage()
 {
 	InitializeComponent();
+
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
 
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &AppPage::OnLoaded);
@@ -174,7 +175,8 @@ void AppPage::Connect(int appId) {
 	config->enableStats = host->EnableStats;
 	config->enableGraphs = host->EnableGraphs;
 
-	if (config->enableHDR) {
+	// H.264 has no 10-bit profile here; PyroWave and HEVC both handle HDR
+	if (config->enableHDR && config->videoCodec == "H.264") {
 		config->videoCodec = "HEVC (H.265)";
 	}
 

@@ -5,6 +5,7 @@
 #include "../Plot/ImGuiPlots.h"
 #include "../Plot/PlotDesc.h"
 #include "FFMpegDecoder.h"
+#include "PyroWaveDecoder.h"
 #include "Utils.hpp"
 
 using namespace DirectX;
@@ -18,12 +19,14 @@ StatsRenderer::StatsRenderer(const std::shared_ptr<DX::DeviceResources> &deviceR
       m_mutex(),
       m_visible(false) {
 	m_console->SetForegroundColor(Colors::Yellow);
-	// m_console->SetDebugOutput(true);
+	m_console->SetCachedGeometry(true);
+	//m_console->SetDebugOutput(true);
 
 	CreateDeviceDependentResources();
 }
 
 void StatsRenderer::Update(DX::StepTimer const &timer) {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	// We let the Stats class always process even if not visible. Most of the time
 	// it will simply accumulate stats during its 1-second window period. Each second,
 	// when it determines the user-visible text should be updated, it will update outputStr and return true.
@@ -31,7 +34,7 @@ void StatsRenderer::Update(DX::StepTimer const &timer) {
 	wchar_t wideStr[2048];
 
 	if (Stats::instance().ShouldUpdateDisplay(timer, m_visible, outputStr, sizeof(outputStr))) {
-		size_t numChars = mbstowcs(wideStr, outputStr, 1024);
+		size_t numChars = mbstowcs(wideStr, outputStr, sizeof(outputStr));
 		if (numChars != -1) {
 			m_console->Clear();
 			m_console->Write(wideStr);
@@ -43,8 +46,14 @@ void StatsRenderer::Update(DX::StepTimer const &timer) {
 void StatsRenderer::Render(bool showImGui) {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	if (m_visible) {
-		m_console->Render();
+		{
+			ZoneScopedN("StatsRender");
+			TracyD3D11Zone(g_tracyCtx11, "StatsRender");
+			m_console->Render();
+		}
 		if (showImGui) {
+			ZoneScopedN("GraphsRender");
+			TracyD3D11Zone(g_tracyCtx11, "GraphsRender");
 			RenderGraphs();
 		}
 	}
@@ -135,6 +144,12 @@ void StatsRenderer::RenderGraphs() {
 		if (plot.desc.scaleMax != NULL)
 			scaleMax = plot.desc.scaleMax;
 
+		if (i == PLOT_BANDWIDTH) {
+			scaleMin = -0.1f;
+			//scaleMax = ((float)m_BitrateKbps * 1.2) / 1024.0f;
+			scaleMax = PyroWaveDecoder::instance().IsActive() ? 800.0f : 300.0f;
+		}
+
 		ImGui::PushID(i);
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.19f, 0.19f, 0.19f, opacity)); // dark
 		ImGui::PushStyleColor(ImGuiCol_PlotLines, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));     // green
@@ -187,17 +202,17 @@ void StatsRenderer::CreateWindowSizeDependentResources() {
 	int right = m_displayWidth / 3;
 	int bottom = 0;
 
-	// 12 lines of text
+	// 13 lines of text (per line: 36 or 18)
 	if (m_displayHeight >= 2160) { // 24pt font
 		left = 20;
 		right = m_displayWidth / 2;
-		bottom = 446;
+		bottom = 468;
 	} else if (m_displayHeight >= 1440) { // 12pt font
 		left = 14;
-		bottom = 224;
+		bottom = 234;
 	} else {
 		left = 10;
-		bottom = 224;
+		bottom = 234;
 	}
 
 #if defined(_DEBUG)
@@ -213,6 +228,16 @@ void StatsRenderer::CreateWindowSizeDependentResources() {
 
 void StatsRenderer::ReleaseDeviceDependentResources() {
 	m_console->ReleaseDevice();
+}
+
+bool StatsRenderer::GetVisible() {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	return m_visible;
+}
+
+void StatsRenderer::SetVisible(bool visible) {
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_visible = visible;
 }
 
 void StatsRenderer::ToggleVisible() {

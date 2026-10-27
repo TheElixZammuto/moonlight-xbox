@@ -28,6 +28,7 @@ namespace moonlight_xbox_dx {
 		ComputerName = source->ComputerName;
 		ServerAddress = source->ServerAddress;
 		MacAddress = source->MacAddress;
+		ServerCodecModeSupport = source->ServerCodecModeSupport;
 		Paired = source->Paired;
 		CurrentlyRunningAppId = source->CurrentlyRunningAppId;
 		Connected = source->Connected;
@@ -46,6 +47,7 @@ namespace moonlight_xbox_dx {
 				this->ComputerName = client->GetComputerName();
 				this->ServerAddress = client->GetServerAddress();
 				this->MacAddress = client->GetServerMacAddress();
+				this->ServerCodecModeSupport = client->GetServerCodecModeSupport();
 			}
 		}
 		if (showLoading) this->Loading = false;
