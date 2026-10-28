@@ -5,6 +5,8 @@
 // clang-format on
 #include "Utils.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cwchar>
 #include <string>
@@ -263,6 +265,52 @@ namespace moonlight_xbox_dx {
 				result.size());
 
 			return result;
+		}
+
+		bool ParseHostPort(const std::string& input, std::string& host, int& port) {
+			auto first = input.find_first_not_of(" \t\r\n");
+			if (first == std::string::npos) return false;
+			auto last = input.find_last_not_of(" \t\r\n");
+			std::string s = input.substr(first, last - first + 1);
+
+			std::string portStr;
+			if (s[0] == '[') {
+				auto close = s.find(']');
+				if (close == std::string::npos) return false;
+				host = s.substr(1, close - 1);
+				auto rest = s.substr(close + 1);
+				if (!rest.empty()) {
+					if (rest[0] != ':') return false;
+					portStr = rest.substr(1);
+					if (portStr.empty()) return false;
+				}
+			}
+			else {
+				auto colons = std::count(s.begin(), s.end(), ':');
+				if (colons == 1) {
+					auto pos = s.find(':');
+					host = s.substr(0, pos);
+					portStr = s.substr(pos + 1);
+					if (portStr.empty()) return false;
+				}
+				else {
+					// No colon is a hostname/IPv4 address; 2+ colons is an unbracketed IPv6 literal.
+					host = s;
+				}
+			}
+
+			if (host.empty()) return false;
+
+			port = 0;
+			if (!portStr.empty()) {
+				if (portStr.size() > 5 || !std::all_of(portStr.begin(), portStr.end(), [](unsigned char c) { return std::isdigit(c) != 0; })) {
+					return false;
+				}
+				int value = std::stoi(portStr);
+				if (value < 1 || value > 65535) return false;
+				port = value;
+			}
+			return true;
 		}
 
 		bool ShowDevTools() {

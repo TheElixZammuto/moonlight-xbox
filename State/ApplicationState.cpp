@@ -264,18 +264,27 @@ int moonlight_xbox_dx::ApplicationState::Open_Socket() {
 std::vector<std::string> moonlight_xbox_dx::ApplicationState::Build_Unique_Addresses(MoonlightHost^ host) {
 	std::vector<std::string> addresses;
 
+	// Wake-on-LAN is sent over an IPv4 UDP socket (IPv6 has no broadcast), so IPv6 literals are skipped.
+	auto isIPv6Literal = [](const std::string& address) { return address.find(':') != std::string::npos; };
+
+	std::string serverAddress;
 	if (host->ServerAddress) {
-		addresses.push_back(Utils::PlatformStringToStdString(host->ServerAddress));
+		serverAddress = Utils::PlatformStringToStdString(host->ServerAddress);
+		if (!isIPv6Literal(serverAddress)) {
+			addresses.push_back(serverAddress);
+		}
 	}
 
 	if (host->LastHostname) {
-		auto hostnameSplit = Split_IP_Address(Utils::PlatformStringToStdString(host->LastHostname), ':');
-		std::string hostIp = hostnameSplit.first;
-		addresses.push_back(hostIp);
+		std::string hostIp;
+		int hostPort = 0;
+		if (Utils::ParseHostPort(Utils::PlatformStringToStdString(host->LastHostname), hostIp, hostPort) && !isIPv6Literal(hostIp)) {
+			addresses.push_back(hostIp);
+		}
 	}
 
-	if (inet_addr(Utils::PlatformStringToStdString(host->ServerAddress).c_str()) != -1) {
-		std::string broadcastIP = Get_Broadcast_IP(Utils::PlatformStringToStdString(host->ServerAddress));
+	if (!serverAddress.empty() && !isIPv6Literal(serverAddress) && inet_addr(serverAddress.c_str()) != INADDR_NONE) {
+		std::string broadcastIP = Get_Broadcast_IP(serverAddress);
 		if (broadcastIP != "") {
 			addresses.push_back(broadcastIP);
 		}
@@ -361,6 +370,16 @@ std::string moonlight_xbox_dx::ApplicationState::Get_Broadcast_IP(std::string ip
 }
 
 std::pair<std::string, int> moonlight_xbox_dx::ApplicationState::Split_IP_Address(const std::string& address, char deliminator) {
+	if (deliminator == ':') {
+		// host:port splitting must understand [IPv6]:port and bare IPv6 literals.
+		std::string host;
+		int port = 0;
+		if (!Utils::ParseHostPort(address, host, port)) {
+			throw std::invalid_argument("Invalid host or port format");
+		}
+		return { host, port };
+	}
+
 	std::stringstream ss(address);
 	std::string ip_address;
 	std::string port_str;

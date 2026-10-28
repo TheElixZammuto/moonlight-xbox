@@ -398,13 +398,24 @@ void HostSelectorPage::TryAddDiscoveredHost(DeviceInformation^ info) {
 	Platform::Array<String^>^ addresses;
 	addressValue->GetStringArray(&addresses);
 	String^ hostnamePlusPort = nullptr;
+	String^ portSuffix = L":" + Utils::StringFromStdString(std::to_string(port));
+	String^ ipv6Candidate = nullptr;
 	for (auto address : addresses) {
+		if (address == nullptr) continue;
 		IN_ADDR ipv4;
-		if (address != nullptr && InetPtonW(AF_INET, address->Data(), &ipv4) == 1) {
-			hostnamePlusPort = address + L":" + Utils::StringFromStdString(std::to_string(port));
+		IN6_ADDR ipv6;
+		if (InetPtonW(AF_INET, address->Data(), &ipv4) == 1) {
+			// Prefer IPv4 when the host advertises both.
+			hostnamePlusPort = address + portSuffix;
 			break;
 		}
+		// Link-local addresses are unusable without a scope id, so only take routable IPv6.
+		if (ipv6Candidate == nullptr && InetPtonW(AF_INET6, address->Data(), &ipv6) == 1 &&
+			!IN6_IS_ADDR_LINKLOCAL(&ipv6) && !IN6_IS_ADDR_LOOPBACK(&ipv6) && !IN6_IS_ADDR_UNSPECIFIED(&ipv6)) {
+			ipv6Candidate = L"[" + address + L"]" + portSuffix;
+		}
 	}
+	if (hostnamePlusPort == nullptr) hostnamePlusPort = ipv6Candidate;
 	if (hostnamePlusPort == nullptr) return;
 
 	auto endpoint = Utils::PlatformStringToStdString(hostnamePlusPort);
@@ -562,15 +573,9 @@ void HostSelectorPage::testConnectionButton_Click(Platform::Object^ sender, Wind
 	std::string hostname = Utils::PlatformStringToStdString(currentHost->LastHostname);
 	std::string hostOnly;
 	int port = 0;
-	try {
-		auto split = GetApplicationState()->Split_IP_Address(hostname, ':');
-		hostOnly = split.first;
-		port = split.second;
-	}
-	catch (...) {
-		// If parsing fails for any reason, fall back to original behaviour
-		auto pos = hostname.find(':');
-		hostOnly = (pos == std::string::npos) ? hostname : hostname.substr(0, pos);
+	if (!Utils::ParseHostPort(hostname, hostOnly, port)) {
+		// Malformed address: let getaddrinfo report the failure for the raw string.
+		hostOnly = hostname;
 		port = 0;
 	}
 

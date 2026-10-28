@@ -458,14 +458,17 @@ void connection_trigger_rumble(unsigned short controllerNumber, unsigned short l
 }
 
 int MoonlightClient::Connect(const char *hostname) {
-	this->hostname = (char *)malloc(2048 * sizeof(char));
-	strcpy_s(this->hostname, 2048, hostname);
-	if (strchr(this->hostname, ':') != 0) {
-		char portStr[2048];
-		strcpy_s(portStr, 2048, strchr(this->hostname, ':') + 1);
-		port = atoi(portStr);
-		*strchr(this->hostname, ':') = '\0';
+	// Accepts host, host:port, IPv4[:port], [IPv6][:port] and bare IPv6 literals.
+	std::string parsedHost;
+	int parsedPort = 0;
+	if (!Utils::ParseHostPort(hostname, parsedHost, parsedPort) || parsedHost.size() >= 2048) {
+		Utils::Logf("[Connect] Invalid host address: %s\n", hostname);
+		return GS_INVALID;
 	}
+	port = parsedPort;
+
+	this->hostname = (char *)malloc(2048 * sizeof(char));
+	strcpy_s(this->hostname, 2048, parsedHost.c_str());
 
 	Platform::String ^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
 	folderString = folderString->Concat(folderString, "\\");

@@ -43,6 +43,7 @@ typedef struct _SERVER_DATA {
   char* serverName;
   char* uniqueId;
   char* macAddress;
+  char urlAddress[256]; // serverInfo.address, bracketed if an IPv6 literal
 } SERVER_DATA, *PSERVER_DATA;
 
 int gs_init(PSERVER_DATA server, char* address, unsigned short httpPort, const char *keyDirectory, int logLevel, bool unsupported);

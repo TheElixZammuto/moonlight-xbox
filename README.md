@@ -13,7 +13,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 1. Open Microsoft Edge and click the "Get it from Microsoft" Button above 
 2. Downlad Moonlight UWP from the Microsoft Store
 3. Open Moonlight on Xbox and, if not already, your host app
-4. Press the "+" button, Insert your PC IP Address and press "Connect"
+4. Press the "+" button, Insert your PC IP Address (IPv4 or IPv6, e.g. `192.168.1.10`, `192.168.1.10:47989` or `[2001:db8::10]:47989`) and press "Connect"
 5. Pair if neeeded
 6. Choose from the list below the application you want to run
 7. ???
@@ -28,7 +28,7 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 1. Enable the Dev Mode on your Xbox https://docs.microsoft.com/en-us/windows/uwp/xbox-apps/devkit-activation
 2. Using the Device Portal, install the Application (moonlight-xbox-dx.msixbundle) and, in the following step, add the required dependencies (Microsoft.UI.Xaml.2.7.appx and Microsoft.VCLibs.x64.14.00.appx)
 3. Open Moonlight on Xbox and, if not already, your host app
-4. Your PC should already be on the list. If not, press the "+" button, Insert your PC IP Address and press "Connect"
+4. Your PC should already be on the list. If not, press the "+" button, Insert your PC IP Address (IPv4 or IPv6, e.g. `192.168.1.10`, `192.168.1.10:47989` or `[2001:db8::10]:47989`) and press "Connect"
 5. Pair if neeeded
 6. Choose from the list below the application you want to run
 7. ???
