@@ -8,6 +8,7 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     XYFocusKeyboardNavigation="Disabled"
+    PreviewKeyDown="Page_PreviewKeyDown"
     >
     <FlyoutBase.AttachedFlyout>
         <MenuFlyout x:Name="ActionsFlyout" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
@@ -24,6 +25,11 @@
             <MenuFlyoutItem x:Name="closeAndStartButton"  Click="closeAndStartButton_Click"  Text="Close Current App and Start" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                 <MenuFlyoutItem.Icon>
                     <SymbolIcon Symbol="Next" />
+                </MenuFlyoutItem.Icon>
+            </MenuFlyoutItem>
+            <MenuFlyoutItem x:Name="hideAppButton" Click="hideAppButton_Click" Text="Hide App" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
+                <MenuFlyoutItem.Icon>
+                    <FontIcon Glyph="&#xED1A;" />
                 </MenuFlyoutItem.Icon>
             </MenuFlyoutItem>
         </MenuFlyout>
@@ -44,6 +50,17 @@
                 <TextBlock VerticalAlignment="Center" Padding="8" FontSize="20" Text="{x:Bind Host.ComputerName}"></TextBlock>
             </StackPanel>
             <StackPanel  Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="8" Orientation="Horizontal" Spacing="16">
+                <TextBox TabIndex="4" x:Name="SearchBox" Width="280" PlaceholderText="Search apps (press Y)" IsTextPredictionEnabled="False" TextChanged="SearchBox_TextChanged" />
+                <ToggleButton TabIndex="5" x:Name="sortAppsButton" Click="sortAppsButton_Click" ToolTipService.ToolTip="Sort A to Z">
+                    <ToggleButton.Content>
+                        <SymbolIcon Symbol="Sort" />
+                    </ToggleButton.Content>
+                </ToggleButton>
+                <ToggleButton TabIndex="6" x:Name="showHiddenButton" Click="showHiddenButton_Click" Visibility="Collapsed" ToolTipService.ToolTip="Show hidden apps">
+                    <ToggleButton.Content>
+                        <SymbolIcon Symbol="View" />
+                    </ToggleButton.Content>
+                </ToggleButton>
                 <Button TabIndex="2" x:Name="settingsButton" Click="settingsButton_Click">
                     <Button.Content>
                         <SymbolIcon Symbol="Setting" />
@@ -51,7 +68,7 @@
                 </Button>
             </StackPanel>
         </Grid>
-        <GridView Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind Host.Apps}" IsRightTapEnabled="True" IsItemClickEnabled="True" ItemClick="AppsGrid_ItemClick" RightTapped="AppsGrid_RightTapped" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <GridView Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind FilteredApps}" IsRightTapEnabled="True" IsItemClickEnabled="True" ItemClick="AppsGrid_ItemClick" RightTapped="AppsGrid_RightTapped" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal"
@@ -62,7 +79,7 @@
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="local:MoonlightApp" x:DefaultBindMode="OneWay">
                     <StackPanel>
-                        <StackPanel Padding="16" VerticalAlignment="Center">
+                        <StackPanel Padding="16" VerticalAlignment="Center" Opacity="{x:Bind TileOpacity}">
                             <Image Source="{x:Bind ImagePath}" Stretch="Fill" Height="300" Width="225"/>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Stretch">
                                 <Image Source="ms-appx:///Assets/play.svg" Visibility="{x:Bind CurrentlyRunning}" Width="24" Height="24" />
@@ -73,6 +90,7 @@
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
+        <TextBlock Grid.Row="1" x:Name="noAppsText" Text="No apps found" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
         <TextBlock Grid.Row="2" TextAlignment="Center">
             <Bold>Useful Shortcuts:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xEDE3;</Run>+<Run FontFamily="Segoe Fluent Icons">&#xEECA;</Run> for toggling Menu and enabling mouse mode.<LineBreak></LineBreak>
             <Bold>In Mouse mode:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run> Left click <Run FontFamily="Segoe Fluent Icons">&#xF096;</Run> Right click <Run FontFamily="Segoe Fluent Icons">&#xF095;</Run> Show Keyboard <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run> Guide/Xbox button<LineBreak></LineBreak>

@@ -5,6 +5,7 @@
 // clang-format on
 #include "State\MoonlightClient.h"
 #include "State\ScreenResolution.h"
+#include <set>
 namespace moonlight_xbox_dx {
 
 	[Windows::UI::Xaml::Data::Bindable] public ref class MoonlightHost sealed : Windows::UI::Xaml::Data::INotifyPropertyChanged {
@@ -37,6 +38,8 @@ namespace moonlight_xbox_dx {
 		bool enableGraphs = true;
 		Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
 	internal: void ApplyHostInfo(MoonlightHost^ source);
+		std::set<int> hiddenAppIds;
+		bool sortAppsByName = false;
 
 	public:
 		// Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/

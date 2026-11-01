@@ -46,6 +46,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init() {
 				if (a.contains("audioBuffer")) h->AudioBuffer = Utils::StringFromStdString(a["audioBuffer"].get<std::string>());
 				if (a.contains("packetSize")) h->PacketSize = a["packetSize"];
 				if (a.contains("autoStartID")) h->AutostartID = a["autoStartID"];
+				if (a.contains("hiddenApps")) h->hiddenAppIds = a["hiddenApps"].get<std::set<int>>();
+				if (a.contains("sortAppsByName")) h->sortAppsByName = a["sortAppsByName"].get<bool>();
 				if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
 				if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
 				if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
@@ -126,6 +128,8 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile() {
 			hostJson["audioBuffer"] = Utils::PlatformStringToStdString(host->AudioBuffer);
 			hostJson["packetSize"] = host->PacketSize;
 			hostJson["autoStartID"] = host->AutostartID;
+			hostJson["hiddenApps"] = host->hiddenAppIds;
+			hostJson["sortAppsByName"] = host->sortAppsByName;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
 			hostJson["enable_hdr"] = host->EnableHDR;
 			hostJson["enable_sops"] = host->EnableSOPS;
