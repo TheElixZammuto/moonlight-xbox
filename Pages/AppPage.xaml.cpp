@@ -77,6 +77,12 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 			try {
 				if (that->host != nullptr) {
 					that->host->UpdateAppRunningStates();
+					Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+						Windows::UI::Core::CoreDispatcherPriority::Normal,
+						ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+							auto inner = weakThis.Resolve<AppPage>();
+							if (inner != nullptr) inner->UpdateFilteredApps();
+						}));
 					if (that->wasConnected.load() && !that->host->Connected) {
 						that->wasConnected.store(false);
 
@@ -159,7 +165,7 @@ void AppPage::UpdateFilteredApps() {
 	for (auto app : host->Apps) {
 		bool hidden = host->hiddenAppIds.count(app->Id) > 0;
 		if (app->Hidden != hidden) app->Hidden = hidden;
-		if (hidden && !showHidden) continue;
+		if (hidden && !showHidden && !app->CurrentlyRunning) continue;
 
 		if (!query->IsEmpty() && app->Name != nullptr &&
 		    FindNLSStringEx(LOCALE_NAME_INVARIANT, FIND_FROMSTART | LINGUISTIC_IGNORECASE, app->Name->Data(), -1, query->Data(), -1, NULL, NULL, NULL, 0) < 0) {
@@ -176,6 +182,8 @@ void AppPage::UpdateFilteredApps() {
 			return CompareStringEx(LOCALE_NAME_INVARIANT, LINGUISTIC_IGNORECASE, lhs->Name->Data(), -1, rhs->Name->Data(), -1, NULL, NULL, 0) == CSTR_LESS_THAN;
 		});
 	}
+
+	std::stable_partition(matches.begin(), matches.end(), [](MoonlightApp^ app) { return app->CurrentlyRunning; });
 
 	// Only touch the grid when the result changed, so typing doesn't drop focus or scroll position
 	bool changed = matches.size() != FilteredApps->Size;
