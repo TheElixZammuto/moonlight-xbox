@@ -25,6 +25,7 @@ namespace moonlight_xbox_dx
 		std::atomic<bool> wasConnected{ false };
 		Windows::Foundation::Collections::IVector<MoonlightApp^>^ filteredApps;
 		Windows::Foundation::EventRegistrationToken m_appsChangedToken;
+		bool m_filterUpdatePending = false;
 		void UpdateFilteredApps();
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;

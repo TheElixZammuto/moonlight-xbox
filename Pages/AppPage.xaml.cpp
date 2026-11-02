@@ -151,7 +151,17 @@ void AppPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs
 }
 
 void AppPage::OnAppsChanged(Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^ sender, Windows::Foundation::Collections::IVectorChangedEventArgs^ e) {
-	UpdateFilteredApps();
+	// A host refresh appends apps one at a time, so wait for the whole batch before rebuilding the grid
+	if (m_filterUpdatePending) return;
+	m_filterUpdatePending = true;
+
+	Platform::WeakReference weakThis(this);
+	this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+		auto that = weakThis.Resolve<AppPage>();
+		if (that == nullptr) return;
+		that->m_filterUpdatePending = false;
+		that->UpdateFilteredApps();
+	}));
 }
 
 // Host->Apps always stays complete, since running-app checks need the hidden apps too
