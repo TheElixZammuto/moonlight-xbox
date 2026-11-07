@@ -7,7 +7,7 @@ diff --git a/libavcodec/dxva2.c b/libavcodec/dxva2.c
 @@ -33,6 +33,11 @@
  #include "decode.h"
  #include "dxva2_internal.h"
-
+ 
 +/* D3D11VA-only builds may not include the D3D9 error definitions. */
 +#ifndef D3DERR_WASSTILLDRAWING
 +#define D3DERR_WASSTILLDRAWING ((HRESULT)0x8876021c)
