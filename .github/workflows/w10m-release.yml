@@ -1,5 +1,7 @@
 name: W10M Release
 
+# CI debug iteration branch; remove this marker after validation.
+
 # GitHub-hosted Windows runner.
 # The runner image does not include v141 ARM/UWP or Windows SDK 15063, so the
 # workflow installs them before building. This makes the job slower than a
