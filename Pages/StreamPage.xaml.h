@@ -1,4 +1,4 @@
-﻿//
+//
 // DirectXPage.xaml.h
 // Declaration of the DirectXPage class.
 //
@@ -12,7 +12,7 @@
 #include "KeyboardControl.xaml.h"
 #include "Converters\BoolToTextConverter.h"
 
-using namespace Microsoft::UI::Xaml::Controls;
+// muxc removed for W10M (system XAML only)
 using namespace Windows::UI::Xaml::Controls;
 namespace moonlight_xbox_dx
 {
@@ -100,8 +100,8 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-		property Microsoft::UI::Xaml::Controls::ProgressRing^ m_progressRing {
-		    Microsoft::UI::Xaml::Controls::ProgressRing ^ get() {
+		property Windows::UI::Xaml::Controls::ProgressRing^ m_progressRing {
+		    Windows::UI::Xaml::Controls::ProgressRing ^ get() {
 				return this->MainProgressRing;
 			}
 		}
@@ -137,6 +137,26 @@ namespace moonlight_xbox_dx
 		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;
 		Windows::UI::Core::CoreIndependentInputSource^ m_coreInput;
 	    Windows::Foundation::EventRegistrationToken m_back_cookie;
+	    // W10M: touch pointer events on the swap chain panel act as a
+	    // trackpad for the host cursor; physical mice pass through in
+	    // relative mode via MouseDevice.
+	    Windows::Foundation::EventRegistrationToken m_pointerPressedCookie;
+	    Windows::Foundation::EventRegistrationToken m_pointerMovedCookie;
+	    Windows::Foundation::EventRegistrationToken m_pointerReleasedCookie;
+	    Windows::Devices::Input::MouseDevice^ m_mouseDevice;
+	    Windows::Foundation::EventRegistrationToken m_mouseMovedCookie;
+	    Windows::Foundation::EventRegistrationToken m_visibleBoundsChangedCookie;
+	    int m_activePointerButton = 0;
+	    // Touch cursor mode state (trackpad style: slide = relative cursor move,
+	    // tap = click at the cursor). Physical mice are absolute and share the
+	    // same cursor coordinates.
+	    bool m_touchIsDown = false;
+	    Windows::Foundation::Point m_touchDownPos = { 0, 0 };
+	    Windows::Foundation::Point m_touchLastPos = { 0, 0 };
+	    uint64_t m_touchDownMs = 0;
+	    int m_touchPointerId = -1;
+	    int m_cursorX = 640;
+	    int m_cursorY = 360;
 
 		// Resources used to render the DirectX content in the XAML page background.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
@@ -146,6 +166,11 @@ namespace moonlight_xbox_dx
 	    void Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e);
 
 		void OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
+		void OnPointerPressed(Platform::Object^ sender, Windows::UI::Xaml::Input::PointerRoutedEventArgs^ e);
+		void OnPointerMoved(Platform::Object^ sender, Windows::UI::Xaml::Input::PointerRoutedEventArgs^ e);
+		void OnPointerReleased(Platform::Object^ sender, Windows::UI::Xaml::Input::PointerRoutedEventArgs^ e);
+		void OnMouseMovedRelative(Windows::Devices::Input::MouseDevice^ sender, Windows::Devices::Input::MouseEventArgs^ args);
+		void OnVisibleBoundsChanged(Windows::UI::ViewManagement::ApplicationView^ sender, Platform::Object^ args);
 		void flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e);
 		void toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);

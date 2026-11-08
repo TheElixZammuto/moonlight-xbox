@@ -2,7 +2,6 @@
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
 #include <windows.ui.xaml.media.dxinterop.h>
-#include <winrt/Windows.UI.Core.h>
 #include <Pages/StreamPage.xaml.h>
 #include <Streaming/FFmpegDecoder.h>
 #include <Plot/ImGuiPlots.h>
@@ -57,7 +56,11 @@ namespace ScreenRotation
 
 // Constructor for DeviceResources.
 DX::DeviceResources::DeviceResources() :
-	m_backBufferFormat(DXGI_FORMAT_R10G10B10A2_UNORM), // 10-bit for HDR
+	// 10-bit for HDR on desktop/Xbox. W10M's FL 9_3 driver rejects R10G10B10A2
+	// as a composition back buffer (CreateSwapChainForComposition -> E_INVALIDARG),
+	// so the phone gets plain 8-bit BGRA.
+	m_backBufferFormat(Utils::IsWindowsPhone() ? DXGI_FORMAT_B8G8R8A8_UNORM
+	                                           : DXGI_FORMAT_R10G10B10A2_UNORM),
 	m_screenViewport(),
 	m_d3dFeatureLevel(D3D_FEATURE_LEVEL_11_1),
 	m_d3dRenderTargetSize(),
@@ -158,6 +161,55 @@ void DX::DeviceResources::CreateDeviceResources()
 		&m_d3dFeatureLevel,			// Returns feature level of device created.
 		&context					// Returns the device immediate context.
 		);
+
+	Utils::Logf("D3D11CreateDevice -> 0x%08X, feature level 0x%04X\n",
+		static_cast<unsigned>(hr), static_cast<unsigned>(m_d3dFeatureLevel));
+
+	// W10M probe: what does the FL 9_3 device expose for hardware video
+	// decode + VideoProcessor? This decides whether the VideoProcessorBlt
+	// render path is viable on the phone.
+	if (SUCCEEDED(hr))
+	{
+		UINT fmtSupport = 0;
+		HRESULT hrFmt = device->CheckFormatSupport(DXGI_FORMAT_NV12, &fmtSupport);
+		Utils::Logf("NV12 CheckFormatSupport -> 0x%08X flags=0x%08X [DECODER_OUT=%d VP_IN=%d VP_OUT=%d SHADER=%d]\n",
+			static_cast<unsigned>(hrFmt), fmtSupport,
+			(fmtSupport & D3D11_FORMAT_SUPPORT_DECODER_OUTPUT) ? 1 : 0,
+			(fmtSupport & D3D11_FORMAT_SUPPORT_VIDEO_PROCESSOR_INPUT) ? 1 : 0,
+			(fmtSupport & D3D11_FORMAT_SUPPORT_VIDEO_PROCESSOR_OUTPUT) ? 1 : 0,
+			(fmtSupport & D3D11_FORMAT_SUPPORT_SHADER_SAMPLE) ? 1 : 0);
+
+		ComPtr<ID3D11VideoDevice> videoDevice;
+		HRESULT hrVd = device.As(&videoDevice);
+		Utils::Logf("ID3D11VideoDevice QI -> 0x%08X\n", static_cast<unsigned>(hrVd));
+		if (SUCCEEDED(hrVd))
+		{
+			struct DecodeProfileProbe { const char* name; GUID guid; };
+			// H264 profile GUIDs are absent from the 15063 SDK headers; these are
+			// the standard DXVA2_ModeH264_C/E values.
+			const DecodeProfileProbe probes[] = {
+				{ "H264_MAIN",   {0x1b81be66,0xa0c7,0x11d3,{0xb9,0x84,0x00,0xc0,0x4f,0x2e,0x73,0xc5}} },
+				{ "H264_HIGH",   {0x1b81be68,0xa0c7,0x11d3,{0xb9,0x84,0x00,0xc0,0x4f,0x2e,0x73,0xc5}} },
+				{ "HEVC_MAIN",   D3D11_DECODER_PROFILE_HEVC_VLD_MAIN },
+				{ "HEVC_MAIN10", D3D11_DECODER_PROFILE_HEVC_VLD_MAIN10 },
+			};
+			for (const auto& p : probes)
+			{
+				BOOL supported = FALSE;
+				HRESULT hrP = videoDevice->CheckVideoDecoderFormat(&p.guid, DXGI_FORMAT_NV12, &supported);
+				Utils::Logf("DecodeProfile %s (NV12) -> 0x%08X supported=%d\n",
+					p.name, static_cast<unsigned>(hrP), supported ? 1 : 0);
+			}
+
+			ComPtr<ID3D11VideoProcessorEnumerator> vpEnum;
+			D3D11_VIDEO_PROCESSOR_CONTENT_DESC vpDesc = {};
+			vpDesc.InputFrameFormat = D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE;
+			vpDesc.InputWidth = 1920; vpDesc.InputHeight = 1080;
+			vpDesc.OutputWidth = 1920; vpDesc.OutputHeight = 1080;
+			HRESULT hrVp = videoDevice->CreateVideoProcessorEnumerator(&vpDesc, &vpEnum);
+			Utils::Logf("CreateVideoProcessorEnumerator -> 0x%08X\n", static_cast<unsigned>(hrVp));
+		}
+	}
 
 	if (FAILED(hr))
 	{
@@ -272,8 +324,13 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		swapChainDesc.SampleDesc.Quality = 0;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		//Check moonlight-stream/moonlight-qt/app/streaming/video/ffmpeg-renderers/d3d11va.cpp for rationale
-		swapChainDesc.BufferCount = 5;
-		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		// W10M: the phone's DXGI rejects FLIP_DISCARD (a desktop 1607+ DXGI 1.4
+		// feature); FLIP_SEQUENTIAL is the flip model Windows Phone supports,
+		// and at FL 9_3 the buffer count is capped at 2. If even FLIP_SEQUENTIAL
+		// is rejected by CreateSwapChainForComposition, fall back to the legacy
+		// BitBlt model (SEQUENTIAL), which every 9_3 device accepts.
+		swapChainDesc.BufferCount = 2;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 		swapChainDesc.Flags = 0;
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
@@ -282,38 +339,52 @@ void DX::DeviceResources::CreateWindowSizeDependentResources()
 		ComPtr<IDXGIDevice3> dxgiDevice;
 		DX::ThrowIfFailed(
 			m_d3dDevice.As(&dxgiDevice)
-			);
+			, "d3dDevice As<IDXGIDevice3>");
 
 		ComPtr<IDXGIAdapter> dxgiAdapter;
 		DX::ThrowIfFailed(
 			dxgiDevice->GetAdapter(&dxgiAdapter)
-			);
+			, "dxgiDevice GetAdapter");
 
-		DX::ThrowIfFailed(
-		    dxgiAdapter->EnumOutputs(0, &m_dxgiOutput));
+		// W10M: phone adapters expose no display outputs; treat as optional.
+		HRESULT enumOutputHr = dxgiAdapter->EnumOutputs(0, &m_dxgiOutput);
+		Utils::Logf("EnumOutputs(0) -> 0x%08X\n", static_cast<unsigned>(enumOutputHr));
 
 		ComPtr<IDXGIFactory4> dxgiFactory;
 		DX::ThrowIfFailed(
 			dxgiAdapter->GetParent(IID_PPV_ARGS(&dxgiFactory))
-			);
+			, "dxgiFactory GetParent");
 
 		// When using XAML interop, the swap chain must be created for composition.
 		ComPtr<IDXGISwapChain1> swapChain;
-		DX::ThrowIfFailed(
-			dxgiFactory->CreateSwapChainForComposition(
+		HRESULT createScHr = dxgiFactory->CreateSwapChainForComposition(
 				m_d3dDevice.Get(),
 				&swapChainDesc,
 				nullptr,
 				&swapChain
-			)
-		);
+			);
+		if (FAILED(createScHr) && swapChainDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL) {
+			Utils::Logf("CreateSwapChainForComposition(FLIP_SEQUENTIAL) rejected 0x%08X; retrying legacy SEQUENTIAL\n",
+				static_cast<unsigned>(createScHr));
+			swapChain = nullptr;
+			swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_SEQUENTIAL;
+			swapChainDesc.BufferCount = 1;
+			swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+			createScHr = dxgiFactory->CreateSwapChainForComposition(
+				m_d3dDevice.Get(),
+				&swapChainDesc,
+				nullptr,
+				&swapChain
+			);
+		}
+		DX::ThrowIfFailed(createScHr, "CreateSwapChainForComposition");
 
 		Utils::Logf("CreateSwapChainForComposition(%d x %d)\n",
 			lround(m_d3dRenderTargetSize.Width), lround(m_d3dRenderTargetSize.Height));
 
 		DX::ThrowIfFailed(
-			swapChain.As<IDXGISwapChain4>(&m_swapChain)
-		);
+			swapChain.As<IDXGISwapChain2>(&m_swapChain)
+			, "swapChain As<IDXGISwapChain2>");
 
 		// Associate swap chain with SwapChainPanel
 		// UI changes will need to be dispatched back to the UI thread
@@ -651,7 +722,24 @@ void DX::DeviceResources::ImGui_Init(const ComPtr<ISwapChainPanelNative>& panelN
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 
-		io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", m_pixelHeight == 2160 ? 36.0f : 18.0f);
+		float fontPx = m_pixelHeight == 2160 ? 36.0f : 18.0f;
+		ImFont* imguiFont = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", fontPx);
+		if (!imguiFont) {
+			// W10M: C:\\Windows\\Fonts is not readable from a UWP app; load the
+			// copy bundled in Assets instead. AddFontFromMemoryTTF takes ownership
+			// of the buffer, so hand it a malloc copy, not vector data.
+			auto fontData = DX::ReadData(L"Assets\\Fonts\\segoeui.ttf");
+			if (!fontData.empty()) {
+				void* fontBuf = malloc(fontData.size());
+				memcpy(fontBuf, fontData.data(), fontData.size());
+				imguiFont = io.Fonts->AddFontFromMemoryTTF(fontBuf, static_cast<int>(fontData.size()), fontPx);
+				Utils::Logf("ImGui font from Assets: %s (%d bytes)\n", imguiFont ? "ok" : "FAILED", (int)fontData.size());
+			}
+		}
+		if (!imguiFont) {
+			Utils::Log("ImGui: falling back to default font\n");
+			io.Fonts->AddFontDefault();
+		}
 
 		io.ConfigFlags |= ImGuiConfigFlags_NoKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
@@ -667,6 +755,16 @@ void DX::DeviceResources::ImGui_Init(const ComPtr<ISwapChainPanelNative>& panelN
 		// Setup Platform/Renderer backends
 		ImGui_ImplUwp_InitForSwapChainPanel(static_cast<void*>(panelNative.Get()));
 		ImGui_ImplDX11_Init(m_d3dDevice.Get(), m_d3dContext.Get());
+
+		Utils::Logf("ImGui_Init done: ctx=%p fonts=%d sources=%d font=%p\n",
+			(void*)ImGui::GetCurrentContext(), io.Fonts->Fonts.Size, io.Fonts->Sources.Size, (void*)imguiFont);
+
+		// Pre-build the font atlas HERE (instead of on the first render frame) so
+		// any stb_truetype problem surfaces on the UI thread, right after a log line.
+		unsigned char* atlasPixels = nullptr;
+		int atlasW = 0, atlasH = 0;
+		io.Fonts->GetTexDataAsRGBA32(&atlasPixels, &atlasW, &atlasH);
+		Utils::Logf("ImGui atlas build: %dx%d ready=%d\n", atlasW, atlasH, io.Fonts->TexReady ? 1 : 0);
 
 		m_imguiRunning = true;
 	}

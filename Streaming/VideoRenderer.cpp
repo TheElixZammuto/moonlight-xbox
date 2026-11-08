@@ -102,7 +102,86 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	if (!m_loadingComplete.load(std::memory_order_acquire) && !m_loadingSuccessful.load(std::memory_order_acquire)) {
 		return true;
 	}
+	if (Utils::IsWindowsPhone()) {
+		return RenderW10M(frame);
+	}
+	return RenderDesktop(frame);
+}
 
+// W10M (FL 9_3): sample the flat NV12 copy the decode thread produced, with
+// level_9_3 shaders. Self-contained: no PyroWave, no HDR/color_trc handling.
+bool VideoRenderer::RenderW10M(AVFrame *frame) {
+	auto *ctx = m_deviceResources->GetD3DDeviceContext();
+
+	// Clear the back buffer
+	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
+	ctx->ClearRenderTargetView(renderTarget[0], Colors::Black);
+
+	// Bind the back buffer. This needs to be done each time,
+	// because the render target view will be unbound by Present().
+	ctx->OMSetRenderTargets(1, renderTarget, nullptr);
+
+	ID3D11Texture2D *frameTexture = (ID3D11Texture2D *)(frame->data[0]);
+	if (!frameTexture) {
+		// This sometimes happens when reconnecting
+		return false;
+	}
+	D3D11_TEXTURE2D_DESC texDesc;
+	frameTexture->GetDesc(&texDesc);
+
+	// Setup shader
+	ctx->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+	ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	ctx->IASetInputLayout(m_inputLayout.Get());
+	ctx->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+	ctx->PSSetShader(m_pixelShaderYUV420_93.Get(), nullptr, 0);
+
+	if (hasFrameFormatChanged(frame)) {
+		// Use the frame's actual dimensions, not m_DecoderParams: the stream
+		// resolution (1280x720 on W10M) can differ from the UI configuration.
+		float uMax = texDesc.Width > 0 ? (float)frame->width / texDesc.Width : 1.0f;
+		float vMax = texDesc.Height > 0 ? (float)frame->height / texDesc.Height : 1.0f;
+		setupVertexBuffer(texDesc, uMax, vMax);
+		bindColorConversion(frame, texDesc);
+	}
+	else {
+		// Track display size changes (e.g. the forced landscape rotation on
+		// W10M) so the letterboxing follows the swap chain.
+		auto logicalSize = m_deviceResources->GetLogicalSize();
+		if ((int)logicalSize.Width != m_DisplayWidth || (int)logicalSize.Height != m_DisplayHeight) {
+			m_DisplayWidth = (int)logicalSize.Width;
+			m_DisplayHeight = (int)logicalSize.Height;
+			float uMax = texDesc.Width > 0 ? (float)frame->width / texDesc.Width : 1.0f;
+			float vMax = texDesc.Height > 0 ? (float)frame->height / texDesc.Height : 1.0f;
+			setupVertexBuffer(texDesc, uMax, vMax);
+		}
+	}
+
+	UINT stride = sizeof(VERTEX);
+	UINT offset = 0;
+	ctx->IASetVertexBuffers(0, 1, m_VideoVertexBuffer.GetAddressOf(), &stride, &offset);
+	ctx->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+	const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>* frameSrvPair =
+		getFlatSrvs(frameTexture);
+	if (!frameSrvPair) {
+		// SRV creation failed; nothing we can render this frame
+		return false;
+	}
+	ID3D11ShaderResourceView *frameSrvs[] = { (*frameSrvPair)[0].Get(), (*frameSrvPair)[1].Get() };
+	ctx->PSSetShaderResources(0, 2, frameSrvs);
+	ctx->PSSetConstantBuffers(0, 1, m_cscConstantBuffer.GetAddressOf());
+	ctx->DrawIndexed(6, 0, 0);
+
+	// Unbind SRVs for this frame
+	ID3D11ShaderResourceView* nullSrvs[3] = {};
+	ctx->PSSetShaderResources(0, 3, nullSrvs);
+	return true;
+}
+
+// Desktop (Xbox/PC) pipeline: direct sampling of decoder array textures,
+// PyroWave support and HDR color handling.
+bool VideoRenderer::RenderDesktop(AVFrame *frame) {
 	auto *ctx = m_deviceResources->GetD3DDeviceContext();
 
 	// Clear the back buffer
@@ -192,8 +271,12 @@ bool VideoRenderer::Render(AVFrame *frame) {
 		}
 
 		UINT colorSpaceSupport = 0;
-		if (colorspace && SUCCEEDED(m_deviceResources->GetSwapChain()->CheckColorSpaceSupport(colorspace, &colorSpaceSupport)) && (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)) {
-			DX::ThrowIfFailed(m_deviceResources->GetSwapChain()->SetColorSpace1(colorspace));
+		// SetColorSpace1/CheckColorSpaceSupport are IDXGISwapChain4-only; QI locally
+		// and skip HDR silently on DXGI 1.4-era systems (e.g. W10M).
+		Microsoft::WRL::ComPtr<IDXGISwapChain4> sc4;
+		if (colorspace && SUCCEEDED(m_deviceResources->GetSwapChain()->QueryInterface(IID_PPV_ARGS(&sc4)))
+			&& SUCCEEDED(sc4->CheckColorSpaceSupport(colorspace, &colorSpaceSupport)) && (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)) {
+			DX::ThrowIfFailed(sc4->SetColorSpace1(colorspace));
 			Utils::Logf("Colorspace changed to %s\n",
 			            colorspace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020
 			                ? "DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020"
@@ -216,6 +299,125 @@ void VideoRenderer::CreateDeviceDependentResources()
 {
 	Utils::Log("Started with creation of DXView\n");
 
+	if (Utils::IsWindowsPhone()) {
+		CreateDeviceDependentResourcesW10M();
+		return;
+	}
+	CreateDeviceDependentResourcesDesktop();
+}
+
+// W10M (FL 9_3) path. Fully self-contained: no HDMI/HDR APIs, no PyroWave,
+// no VideoProcessor; its own level_9_3 shader bytecode and exactly one
+// StartStreaming dispatch. Nothing in here may be shared with the desktop
+// path - fall-through sharing caused double-init crashes.
+void VideoRenderer::CreateDeviceDependentResourcesW10M()
+{
+	Utils::Log("VideoRenderer: W10M 9_3 shader sampling path\n");
+
+	auto w = CoreWindow::GetForCurrentThread();
+	m_DisplayWidth = (int)w->Bounds.Width;
+	m_DisplayHeight = (int)w->Bounds.Height;
+
+	// Vertex shader (level_9_3 bytecode, built with fxc)
+	{
+		auto vertexShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_vertex_93.fxc");
+		DX::ThrowIfFailed(
+		    m_deviceResources->GetD3DDevice()->CreateVertexShader(
+		        vertexShaderBytecode.data(),
+		        vertexShaderBytecode.size(),
+		        nullptr,
+				&m_vertexShader
+			)
+			, "Vertex Shader Creation");
+
+		static const D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
+		    {
+				{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		    };
+
+		DX::ThrowIfFailed(
+		    m_deviceResources->GetD3DDevice()->CreateInputLayout(
+		        vertexDesc,
+		        ARRAYSIZE(vertexDesc),
+		        vertexShaderBytecode.data(),
+		        vertexShaderBytecode.size(),
+				&m_inputLayout
+			)
+			, "Input Layout Creation");
+	}
+
+	// Pixel shader (level_9_3 bytecode, samples the flat NV12 planes as Texture2D)
+	{
+		auto pixelShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_yuv420_pixel_93.fxc");
+		DX::ThrowIfFailed(
+		    m_deviceResources->GetD3DDevice()->CreatePixelShader(
+		        pixelShaderBytecode.data(),
+		        pixelShaderBytecode.size(),
+		        nullptr,
+				&m_pixelShaderYUV420_93
+			)
+			, "Pixel Shader Creation (9_3)");
+	}
+
+	// NOTE: intentionally NO HDMI/HDR setup, no PyroWave shader, no
+	// VideoDevice/VideoProcessor here - those are desktop-only device-state
+	// interfaces and must never run on the phone path.
+
+	// We use a common sampler for all pixel shaders
+	{
+		D3D11_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.MipLODBias = 0.0f;
+		samplerDesc.MaxAnisotropy = 1;
+		samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+		samplerDesc.MinLOD = 0.0f;
+		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&samplerDesc,  &m_samplerState));
+	}
+
+	// We use a common index buffer for all geometry
+	{
+		const int indexes[] = { 0, 1, 2, 3, 2, 1 };
+		D3D11_BUFFER_DESC indexBufferDesc = {};
+		indexBufferDesc.ByteWidth = sizeof(indexes);
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = sizeof(int);
+
+		D3D11_SUBRESOURCE_DATA indexBufferData = {};
+		indexBufferData.pSysMem = indexes;
+		indexBufferData.SysMemPitch = sizeof(int);
+
+		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
+	}
+
+	DISPATCH_THREADPOOL(([this, devRes = m_deviceResources, cfg = configuration] {
+		int status = this->client->StartStreaming(devRes, cfg);
+
+		if (status != 0) {
+			Utils::Logf("StartStreaming failed with status %d\n", status);
+			m_loadingSuccessful.store(false, std::memory_order_release);
+			m_loadingComplete.store(true, std::memory_order_release);
+			return;
+		}
+
+        m_loadingSuccessful.store(true, std::memory_order_release);
+        m_loadingComplete.store(true, std::memory_order_release);
+        Utils::Log("Loading Complete!\n");
+    }));
+}
+
+// Desktop path (Xbox/PC): full-featured pipeline with SM5 shaders, HDMI/HDR
+// and the PyroWave codec. Own StartStreaming dispatch.
+void VideoRenderer::CreateDeviceDependentResourcesDesktop()
+{
 	// Vertex shader
 	{
 		auto vertexShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_vertex.fxc");
@@ -271,7 +473,13 @@ void VideoRenderer::CreateDeviceDependentResources()
 			, "PyroWave Pixel Shader Creation");
 	}
 
-	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = nullptr;
+	try {
+		hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+	}
+	catch (...) {
+		Utils::Log("HdmiDisplayInformation unavailable\n");
+	}
 	auto w = CoreWindow::GetForCurrentThread();
 	m_DisplayWidth = (int)w->Bounds.Width;
 	m_DisplayHeight = (int)w->Bounds.Height;
@@ -318,8 +526,8 @@ void VideoRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
 	}
 
-    DISPATCH_THREADPOOL(([this, devRes = m_deviceResources, cfg = configuration] {
-        int status = this->client->StartStreaming(devRes, cfg);
+	DISPATCH_THREADPOOL(([this, devRes = m_deviceResources, cfg = configuration] {
+		int status = this->client->StartStreaming(devRes, cfg);
 
 		if (status != 0) {
 			Utils::Logf("StartStreaming failed with status %d\n", status);
@@ -328,28 +536,44 @@ void VideoRenderer::CreateDeviceDependentResources()
 			return;
 		}
 
-        m_loadingSuccessful.store(true, std::memory_order_release);
-        m_loadingComplete.store(true, std::memory_order_release);
-        Utils::Log("Loading Complete!\n");
-    }));
+		m_loadingSuccessful.store(true, std::memory_order_release);
+		m_loadingComplete.store(true, std::memory_order_release);
+		Utils::Log("Loading Complete!\n");
+	}));
 }
 
 void VideoRenderer::ReleaseDeviceDependentResources()
 {
-	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+	if (!Utils::IsWindowsPhone()) {
+		Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
+	}
 	m_loadingComplete.store(false, std::memory_order_release);
 	m_loadingSuccessful.store(false, std::memory_order_release);
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
 	m_pixelShaderYUV420Array.Reset();
+	m_pixelShaderYUV420_93.Reset();
+	m_FlatSrvs.clear();
+	m_VPInputViews.clear();
 	m_pixelShaderPyroWave.Reset();
 	m_cscConstantBuffer.Reset();
 	m_VideoVertexBuffer.Reset();
 	m_samplerState.Reset();
 	m_indexBuffer.Reset();
+	m_videoDevice.Reset();
+	m_videoContext.Reset();
+	m_videoProcessor.Reset();
+	m_vpEnumerator.Reset();
+	m_vpOutputView.Reset();
+	m_vpMiddleTex.Reset();
+	m_vpBackBufferTex.Reset();
+	m_vpFlatNV12.Reset();
+	m_vpOutWidth = 0;
+	m_vpOutHeight = 0;
 
 	// Drop SRVs over decoder surfaces; the pool is owned by ffmpeg and is going away.
 	m_DirectSampleSrvs.clear();
+	m_VPInputViews.clear();
 }
 
 void VideoRenderer::scaleSourceToDestinationSurface(IRECT* src, IRECT* dst)
@@ -411,6 +635,36 @@ VideoRenderer::getDirectSampleSrvs(ID3D11Texture2D* texture, UINT slice, const D
 		return nullptr;
 	}
 	return &it->second[slice];
+}
+
+// W10M: SRV pair for a plain (non-array) NV12 texture - the format itself
+// selects the plane (R8_UNORM = luma, R8G8_UNORM = chroma).
+const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>*
+VideoRenderer::getFlatSrvs(ID3D11Texture2D* texture)
+{
+	auto it = m_FlatSrvs.find(texture);
+	if (it == m_FlatSrvs.end()) {
+		std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2> srvs;
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
+
+		srvDesc.Format = DXGI_FORMAT_R8_UNORM; // NV12 luma plane
+		HRESULT hr = m_deviceResources->GetD3DDevice()->CreateShaderResourceView(texture, &srvDesc, &srvs[0]);
+		if (FAILED(hr)) {
+			Utils::Logf("Flat SRV (Y) creation failed 0x%08X\n", (unsigned)hr);
+			return nullptr;
+		}
+		srvDesc.Format = DXGI_FORMAT_R8G8_UNORM; // NV12 chroma plane
+		hr = m_deviceResources->GetD3DDevice()->CreateShaderResourceView(texture, &srvDesc, &srvs[1]);
+		if (FAILED(hr)) {
+			Utils::Logf("Flat SRV (UV) creation failed 0x%08X\n", (unsigned)hr);
+			return nullptr;
+		}
+		it = m_FlatSrvs.emplace(texture, srvs).first;
+	}
+	return &it->second;
 }
 
 // Create our fixed vertex buffer for video rendering
@@ -685,12 +939,14 @@ void VideoRenderer::bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC fra
 	// Limit chroma texcoords to avoid sampling from alignment texels.
 	// PyroWave planes (YUV444P16/YUV420P16 sentinels) are exactly
 	// frame-sized, so the full texture is always valid.
+	// Use the frame's actual dimensions (the stream resolution can differ
+	// from the UI configuration, e.g. 1280x720 forced on W10M).
 	bool unpaddedPlanes = frame->format == AV_PIX_FMT_YUV444P16 ||
 	                      frame->format == AV_PIX_FMT_YUV420P16;
-	constBuf.chromaUVMax[0] = (unpaddedPlanes || m_DecoderParams.width == (int)m_TextureWidth) ?
-	                              1.0f : ((float)(m_DecoderParams.width - 1) / m_TextureWidth);
-	constBuf.chromaUVMax[1] = (unpaddedPlanes || m_DecoderParams.height == (int)m_TextureHeight) ?
-	                              1.0f : ((float)(m_DecoderParams.height - 1) / m_TextureHeight);
+	constBuf.chromaUVMax[0] = (unpaddedPlanes || frame->width == (int)m_TextureWidth) ?
+	                              1.0f : ((float)(frame->width - 1) / m_TextureWidth);
+	constBuf.chromaUVMax[1] = (unpaddedPlanes || frame->height == (int)m_TextureHeight) ?
+	                              1.0f : ((float)(frame->height - 1) / m_TextureHeight);
 
 	D3D11_SUBRESOURCE_DATA constData = {};
 	constData.pSysMem = &constBuf;
@@ -728,5 +984,148 @@ void VideoRenderer::SetHDR(bool enabled)
 
 void VideoRenderer::Stop() {
 	// nothing to do
+}
+
+// ---- W10M FL 9_3 path -----------------------------------------------
+
+// Cached VP input view over one decoded array-texture slice.
+Microsoft::WRL::ComPtr<ID3D11VideoProcessorInputView> VideoRenderer::getInputView(ID3D11Texture2D* texture, UINT slice)
+{
+	auto& slices = m_VPInputViews[texture];
+	if (slice >= slices.size()) {
+		slices.resize(slice + 1);
+	}
+	if (!slices[slice]) {
+		D3D11_VIDEO_PROCESSOR_INPUT_VIEW_DESC ivDesc = {};
+		ivDesc.ViewDimension = D3D11_VPIV_DIMENSION_TEXTURE2D;
+		ivDesc.Texture2D.MipSlice = slice; // array slice for Texture2D arrays
+		HRESULT hr = m_videoDevice->CreateVideoProcessorInputView(
+			texture, m_vpEnumerator.Get(), &ivDesc, slices[slice].ReleaseAndGetAddressOf());
+		if (FAILED(hr)) {
+			Utils::Logf("CreateVideoProcessorInputView(slice %u) failed 0x%08X\n", slice, (unsigned)hr);
+			return nullptr;
+		}
+	}
+	return slices[slice];
+}
+
+// Draw one decoded frame: NV12 array slice -> VideoProcessorBlt -> back buffer.
+bool VideoRenderer::RenderVideoProcessor(AVFrame *frame)
+{
+	if (frame->format != AV_PIX_FMT_D3D11) {
+		// PyroWave/other CPU formats never reach a W10M stream (H.264-only),
+		// but stay defensive.
+		return false;
+	}
+	ID3D11Texture2D *ffmpegTexture = (ID3D11Texture2D *)(frame->data[0]);
+	if (!ffmpegTexture || !m_videoProcessor) {
+		return false;
+	}
+	UINT slice = (UINT)(intptr_t)frame->data[1];
+
+	// W10M: the decoder surface is a BIND_DECODER|BIND_SHADER_RESOURCE array
+	// texture (see the ffmpeg frames-pool hook). Copy the slice into a plain
+	// NV12 texture first so the VPIV never wraps a decoder-bound surface;
+	// the Qualcomm 9_3 UMD crashed inside VideoProcessorBlt on the direct
+	// path (3 identical dumps at qcdx11um8626+0x5b59c).
+	auto *ctx = m_deviceResources->GetD3DDeviceContext();
+	if (!m_vpFlatNV12) {
+		D3D11_TEXTURE2D_DESC decDesc = {};
+		ffmpegTexture->GetDesc(&decDesc);
+		decDesc.ArraySize = 1;
+		decDesc.MipLevels = 1;
+		decDesc.SampleDesc.Count = 1;
+		decDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		decDesc.MiscFlags = 0;
+		decDesc.CPUAccessFlags = 0;
+		DX::ThrowIfFailed(
+			m_deviceResources->GetD3DDevice()->CreateTexture2D(&decDesc, nullptr, &m_vpFlatNV12)
+			, "CreateTexture2D(VP flat NV12)");
+		Utils::Logf("VP flat NV12 copy target created %ux%u\n", decDesc.Width, decDesc.Height);
+	}
+	ctx->CopySubresourceRegion(m_vpFlatNV12.Get(), 0, 0, 0, 0, ffmpegTexture, slice, nullptr);
+	ffmpegTexture = m_vpFlatNV12.Get();
+	slice = 0;
+
+	// Letterbox clear, then the driver blits over the video rect.
+	ID3D11RenderTargetView* renderTarget[] = { m_deviceResources->GetBackBufferRenderTargetView() };
+	ctx->ClearRenderTargetView(renderTarget[0], Colors::Black);
+
+	auto inView = getInputView(ffmpegTexture, slice);
+	if (!inView) {
+		return false;
+	}
+
+	// Output view sits on an intermediate render target, NOT on the swap chain's
+	// FLIP_SEQUENTIAL back buffer: the Qualcomm FL 9_3 UMD crashes inside
+	// VideoProcessorBlt when it writes a composition back buffer directly
+	// (qcdx11um8626+0x5b59c, reproducible across dumps 8084/1628). Blit to a
+	// plain BGRA8 render target instead and CopyResource it to the back buffer.
+	DXGI_SWAP_CHAIN_DESC1 scDesc = {};
+	m_deviceResources->GetSwapChain()->GetDesc1(&scDesc);
+	if (!m_vpOutputView || scDesc.Width != m_vpOutWidth || scDesc.Height != m_vpOutHeight) {
+		ComPtr<ID3D11Texture2D> backBuffer;
+		DX::ThrowIfFailed(
+			m_deviceResources->GetSwapChain()->GetBuffer(0, IID_PPV_ARGS(&backBuffer))
+			, "GetBuffer(0)");
+		D3D11_TEXTURE2D_DESC bbDesc = {};
+		backBuffer->GetDesc(&bbDesc);
+
+		D3D11_TEXTURE2D_DESC midDesc = bbDesc;
+		midDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+		midDesc.MiscFlags = 0;
+		DX::ThrowIfFailed(
+			m_deviceResources->GetD3DDevice()->CreateTexture2D(&midDesc, nullptr, &m_vpMiddleTex)
+			, "CreateTexture2D(VP middle RT)");
+
+		D3D11_VIDEO_PROCESSOR_OUTPUT_VIEW_DESC ovDesc = {};
+		ovDesc.ViewDimension = D3D11_VPOV_DIMENSION_TEXTURE2D;
+		m_vpOutputView.Reset();
+		DX::ThrowIfFailed(
+			m_videoDevice->CreateVideoProcessorOutputView(
+				m_vpMiddleTex.Get(), m_vpEnumerator.Get(), &ovDesc, &m_vpOutputView)
+			, "CreateVideoProcessorOutputView");
+		m_vpBackBufferTex = backBuffer;
+		m_vpOutWidth = scDesc.Width;
+		m_vpOutHeight = scDesc.Height;
+		Utils::Logf("VP output view on %ux%u middle RT (back buffer %ux%u)\n",
+			m_vpOutWidth, m_vpOutHeight, bbDesc.Width, bbDesc.Height);
+	}
+
+	// Source: the visible part of the (possibly padded) decoder surface.
+	RECT src = { 0, 0, (LONG)m_DecoderParams.width, (LONG)m_DecoderParams.height };
+	// Destination: letterboxed into the back buffer, aspect preserved.
+	LONG bbW = (LONG)m_vpOutWidth, bbH = (LONG)m_vpOutHeight;
+	double s = std::min((double)bbW / m_DecoderParams.width, (double)bbH / m_DecoderParams.height);
+	LONG dstW = lround(m_DecoderParams.width * s);
+	LONG dstH = lround(m_DecoderParams.height * s);
+	RECT dst = { (bbW - dstW) / 2, (bbH - dstH) / 2, (bbW - dstW) / 2 + dstW, (bbH - dstH) / 2 + dstH };
+	m_videoContext->VideoProcessorSetStreamSourceRect(m_videoProcessor.Get(), 0, TRUE, &src);
+	m_videoContext->VideoProcessorSetStreamDestRect(m_videoProcessor.Get(), 0, TRUE, &dst);
+
+	D3D11_VIDEO_PROCESSOR_STREAM stream = {};
+	stream.Enable = TRUE;
+	stream.pInputSurface = inView.Get();
+
+	static bool s_vpFirstFrameLogged = false;
+	if (!s_vpFirstFrameLogged) {
+		Utils::Log("VP: blt begin\n");
+	}
+	HRESULT hr = m_videoContext->VideoProcessorBlt(m_videoProcessor.Get(), m_vpOutputView.Get(), 0, 1, &stream);
+	if (FAILED(hr)) {
+		Utils::Logf("VideoProcessorBlt failed 0x%08X\n", (unsigned)hr);
+		return false;
+	}
+	if (!s_vpFirstFrameLogged) {
+		Utils::Log("VP: blt ok\n");
+	}
+
+	// Blit landed on the middle RT; copy it onto the swap chain back buffer.
+	ctx->CopyResource(m_vpBackBufferTex.Get(), m_vpMiddleTex.Get());
+	if (!s_vpFirstFrameLogged) {
+		Utils::Log("VP: present copy ok\n");
+		s_vpFirstFrameLogged = true;
+	}
+	return true;
 }
 

@@ -6,16 +6,17 @@ $script:Failures = @()
 # ============================
 
 # vcpkg
-$Triplet = "x64-uwp"
+$Triplet = "arm-uwp"
 $VcpkgManifestMode = "on"
 
 # SDK / Toolchain
 $WindowsSDK = "10.0"
+$WindowsSDKVersion = "10.0.15063.0"
 $ForceGenerator = $null   # Default: "Visual Studio 17 2022"
 
 # Certificate
 $CertFileName = "moonlight-xbox-dx_TemporaryKey.pfx"
-$CertSubject = "CN=MoonlightXbox"
+$CertSubject = "CN=CE07B73A-712E-4E05-932B-D08CE2C8A87C"
 $CertPassword = "moonlight"
 
 function Step {
@@ -124,9 +125,8 @@ function Detect-VS {
 
     # Required components
     $required = @(
-        "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",    # Desktop C++
-        "Microsoft.VisualStudio.ComponentGroup.UWP.VC",         # UWP C++
-        "Microsoft.VisualStudio.Component.Windows10SDK.19041"   # Windows 10 SDK
+        "Microsoft.VisualStudio.Component.VC.v141.ARM",          # v141 ARM C++
+        "Microsoft.VisualStudio.ComponentGroup.UWP.VC.v141"      # v141 UWP C++
     )
 
     $missing = @()
@@ -145,9 +145,9 @@ function Detect-VS {
         }
 
         Write-Host "`nTo fix this, open the Visual Studio Installer and enable:" -ForegroundColor Yellow
-        Write-Host "  • Universal Windows Platform development" -ForegroundColor Yellow
-        Write-Host "  • Desktop development with C++" -ForegroundColor Yellow
-        Write-Host "  • Windows 10 SDK (10.0.19041 or newer)" -ForegroundColor Yellow
+        Write-Host "  • MSVC v141 - VS 2017 C++ ARM build tools" -ForegroundColor Yellow
+        Write-Host "  • MSVC v141 - VS 2017 C++ UWP tools" -ForegroundColor Yellow
+        Write-Host "  • Windows 10 SDK 10.0.15063 (standalone installer)" -ForegroundColor Yellow
 
         Record-Failure "Required Visual Studio components missing"
         return $null
@@ -218,6 +218,15 @@ Run-IfNeeded "Updating git submodules" {
     if ($LASTEXITCODE -ne 0) { throw "git submodule update failed" }
 }
 
+# --- STEP 2b: Apply submodule patches ----------------------------------------
+
+Try-Step "Applying submodule patches" {
+    & "$PSScriptRoot\apply-submodule-patches.cmd"
+    if ($LASTEXITCODE -ne 0) {
+        throw "apply-submodule-patches failed with exit code $LASTEXITCODE"
+    }
+}
+
 # --- STEP 3: Bootstrap vcpkg --------------------------------------------------
 
 Run-IfNeeded "Bootstrapping vcpkg" {
@@ -249,6 +258,11 @@ Run-IfNeeded "Configuring moonlight-common-c" {
           -DCMAKE_TOOLCHAIN_FILE="$PSScriptRoot/vcpkg/scripts/buildsystems/vcpkg.cmake" `
           -DVCPKG_TARGET_TRIPLET="$Triplet" `
           -G "$CMakeGenerator" `
+          -A "ARM,version=$WindowsSDKVersion" `
+          -T v141 `
+          -DCMAKE_C_FLAGS="/I$PSScriptRoot/w10m-compat /I$PSScriptRoot/third_party/moonlight-common-c /I$PSScriptRoot/third_party/moonlight-common-c/enet/include /wd4028" `
+          -DCMAKE_CXX_FLAGS="/I$PSScriptRoot/w10m-compat" `
+          -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY `
           -DCMAKE_SYSTEM_NAME="WindowsStore" `
           -DCMAKE_SYSTEM_VERSION="$WindowsSDK" `
           -DTARGET_UWP=ON `
@@ -266,6 +280,11 @@ Run-IfNeeded "Configuring libgamestream" {
           -DCMAKE_TOOLCHAIN_FILE="$PSScriptRoot/vcpkg/scripts/buildsystems/vcpkg.cmake" `
           -DVCPKG_TARGET_TRIPLET="$Triplet" `
           -G "$CMakeGenerator" `
+          -A "ARM,version=$WindowsSDKVersion" `
+          -T v141 `
+          -DCMAKE_C_FLAGS="/I$PSScriptRoot/w10m-compat /I$PSScriptRoot/third_party/moonlight-common-c /I$PSScriptRoot/third_party/moonlight-common-c/enet/include /wd4028" `
+          -DCMAKE_CXX_FLAGS="/I$PSScriptRoot/w10m-compat" `
+          -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY `
           -DCMAKE_SYSTEM_NAME="WindowsStore" `
           -DCMAKE_SYSTEM_VERSION="$WindowsSDK" `
           -DTARGET_UWP=ON `
@@ -468,16 +487,14 @@ Run-IfNeeded "Updating appxmanifest with certificate info" {
     if (-not (Test-Path $manifestPath)) { return $false }
     [xml]$manifest = Get-Content $manifestPath
     $pub = $manifest.Package.Identity.Publisher
-    $display = $manifest.Package.Properties.PublisherDisplayName
-    if (($pub -eq $CertSubject) -and ($display -eq 'MoonlightXbox')) { return $false }
+    if ($pub -eq $CertSubject) { return $false }
     return $true
 } {
     $manifestPath = "$PSScriptRoot\Package.appxmanifest"
     if (Test-Path $manifestPath) {
         [xml]$manifest = Get-Content $manifestPath
 
-        $manifest.Package.Identity.Publisher = "CN=MoonlightXbox"
-        $manifest.Package.Properties.PublisherDisplayName = "MoonlightXbox"
+        $manifest.Package.Identity.Publisher = $CertSubject
 
         $manifest.Save($manifestPath)
     }

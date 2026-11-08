@@ -1,0 +1,26 @@
+diff --git a/public/common/TracySystem.cpp b/public/common/TracySystem.cpp
+index fe7b05a747c38800030cccce6e08e6dc1bc63561..cfef4c6376a901b1d8e20445f3f8608aaf74c5f3 100644
+--- a/public/common/TracySystem.cpp
++++ b/public/common/TracySystem.cpp
+@@ -14,6 +14,7 @@
+ #  endif
+ #  include <windows.h>
+ #  include <malloc.h>
++#  include <stdlib.h> // W10M (15063): getenv no longer pulled in transitively
+ #  if !defined TRACY_WIN32_NO_DESKTOP
+ #    include <lmcons.h>
+ #    include <security.h>
+@@ -339,6 +340,13 @@ TRACY_API const char* GetThreadName( uint32_t id )
+   return buf;
+ }
+ 
++#if defined TRACY_UWP && defined(_MSC_VER) && !defined(_CRT_USE_WINAPI_FAMILY_DESKTOP_APP)
++// W10M (15063 SDK): getenv is hidden behind _CRT_USE_WINAPI_FAMILY_DESKTOP_APP in
++// the headers, but the symbol is exported by api-ms-win-crt-environment-l1-1-0,
++// which UWP apps link normally. Declare it here.
++extern "C" __declspec(dllimport) char* __cdecl getenv( char const* _VarName );
++#endif
++
+ TRACY_API const char* GetEnvVar( const char* name )
+ {
+ #if defined TRACY_UWP

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "ShaderStructures.h"
 #include "Common\StepTimer.h"
@@ -59,6 +59,33 @@ namespace moonlight_xbox_dx
 		void getFrameChromaCositingOffsets(const AVFrame* frame, std::array<float, 2> &chromaOffsets);
 		bool hasFrameFormatChanged(const AVFrame* frame);
 
+		// ---- W10M FL 9_3 path: hardware decode + 9_3 shader sampling ----
+		// Fully self-contained: no HDMI/HDR/PyroWave/VideoProcessor, own shader
+		// bytecode, own dispatch. Shared fall-through code caused double-init
+		// crashes, so nothing in here may be shared with the desktop path.
+		void CreateDeviceDependentResourcesW10M();
+		void CreateDeviceDependentResourcesDesktop();
+		bool RenderW10M(AVFrame* frame);
+		bool RenderDesktop(AVFrame* frame);
+		bool RenderVideoProcessor(AVFrame* frame);
+		const std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>* getFlatSrvs(ID3D11Texture2D* texture);
+		Microsoft::WRL::ComPtr<ID3D11VideoProcessorInputView> getInputView(ID3D11Texture2D* texture, UINT slice);
+
+		Microsoft::WRL::ComPtr<ID3D11VideoDevice>				m_videoDevice;
+		Microsoft::WRL::ComPtr<ID3D11VideoContext>				m_videoContext;
+		Microsoft::WRL::ComPtr<ID3D11VideoProcessorEnumerator>	m_vpEnumerator;
+		Microsoft::WRL::ComPtr<ID3D11VideoProcessor>			m_videoProcessor;
+		Microsoft::WRL::ComPtr<ID3D11VideoProcessorOutputView>	m_vpOutputView;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D>					m_vpMiddleTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D>					m_vpBackBufferTex;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D>					m_vpFlatNV12;
+		UINT m_vpOutWidth = 0;
+		UINT m_vpOutHeight = 0;
+		// VP input views over the decoder's NV12 array textures, keyed by the
+		// texture pointer and indexed by array slice (mirrors m_DirectSampleSrvs).
+		std::unordered_map<ID3D11Texture2D*,
+			std::vector<Microsoft::WRL::ComPtr<ID3D11VideoProcessorInputView>>> m_VPInputViews;
+
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
@@ -69,6 +96,11 @@ namespace moonlight_xbox_dx
 		Microsoft::WRL::ComPtr<ID3D11VertexShader>	m_vertexShader;
 		// Texture2DArray YUV->RGB shader, samples the decoder surfaces directly
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShaderYUV420Array;
+		// level_9_3 variant (plain Texture2D planes) for the W10M path
+		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShaderYUV420_93;
+		// Flat-texture SRV pairs (TEXTURE2D view, R8 + R8G8) for the W10M path
+		std::unordered_map<ID3D11Texture2D*,
+			std::array<Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>, 2>> m_FlatSrvs;
 		Microsoft::WRL::ComPtr<ID3D11PixelShader>	m_pixelShaderPyroWave; // 3-plane path, 4:4:4 + 4:2:0
 		Microsoft::WRL::ComPtr<ID3D11Buffer>		m_cscConstantBuffer;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>  m_samplerState;

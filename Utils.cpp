@@ -9,6 +9,8 @@
 #include <cctype>
 #include <chrono>
 #include <cwchar>
+#include <ctime>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -66,6 +68,23 @@ namespace moonlight_xbox_dx {
 				std::wstring string = GetCurrentTimestamp() + NarrowToWideString(msg);
 				OutputDebugString(string.c_str());
 				TracyMessage(msg.data(), msg.size());
+				// W10M: persist logs to LocalState\app.log so failures can be
+				// pulled over SSH without the in-app overlay.
+				{
+					static std::wstring logFilePath;
+					if (logFilePath.empty()) {
+						auto folder = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+						logFilePath = std::wstring(folder->Data()) + L"\\app.log";
+					}
+					std::ofstream file(logFilePath.c_str(), std::ios::app | std::ios::binary);
+					if (file.is_open()) {
+						for (wchar_t ch : string) {
+							char c = (ch >= 0 && ch <= 0x7F) ? static_cast<char>(ch) : '?';
+							file.put(c);
+						}
+						file.put('\n');
+					}
+				}
 				{
 					std::unique_lock<std::mutex> lk(logMutex);
 					if (logLines.size() == LOG_LINES) {
@@ -225,6 +244,19 @@ namespace moonlight_xbox_dx {
 
 		std::string PlatformStringToStdString(Platform::String^ input) {
 			return WideToNarrowString(std::wstring(input->Begin()));
+		}
+
+		bool IsWindowsPhone() {
+			static bool cached = []() {
+				try {
+					auto family = Windows::System::Profile::AnalyticsInfo::VersionInfo->DeviceFamily;
+					return family != nullptr && wcscmp(family->Data(), L"Windows.Mobile") == 0;
+				}
+				catch (...) {
+					return false;
+				}
+			}();
+			return cached;
 		}
 
 		std::string WideToNarrowString(const std::wstring_view& str) {

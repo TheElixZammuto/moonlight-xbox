@@ -74,6 +74,7 @@ int uuid_generate_random(uuid_t *uuid) {
 int uuid_unparse(uuid_t *uuid, char str[37]) {
 	sprintf(str,
 		"%02lx-%02lx-%02lx-%02lx",
-		uuid->Data1,uuid->Data2,uuid->Data3,uuid->Data4		
+		uuid->Data1,uuid->Data2,uuid->Data3,uuid->Data4
 	);
+	return 0;
 }

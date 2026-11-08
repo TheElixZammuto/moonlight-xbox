@@ -45,7 +45,10 @@ if(VCPKG_TARGET_IS_MINGW)
 elseif(VCPKG_TARGET_IS_LINUX)
     string(APPEND OPTIONS " --target-os=linux --enable-pthreads")
 elseif(VCPKG_TARGET_IS_UWP)
-    string(APPEND OPTIONS " --target-os=win32 --enable-w32threads --enable-d3d11va --enable-d3d12va --enable-mediafoundation")
+    # W10M port: mediafoundation needs MFCreateAlignedMemoryBuffer (SDK 16299+;
+    # we target 15063) and the app decodes via d3d11va anyway. d3d12va is
+    # useless without D3D12 on Windows 10 Mobile.
+    string(APPEND OPTIONS " --target-os=win32 --enable-w32threads --enable-d3d11va")
 elseif(VCPKG_TARGET_IS_WINDOWS)
     string(APPEND OPTIONS " --target-os=win32 --enable-w32threads --enable-d3d11va --enable-d3d12va --enable-dxva2 --enable-mediafoundation")
 elseif(VCPKG_TARGET_IS_OSX)

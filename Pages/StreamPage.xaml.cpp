@@ -10,6 +10,11 @@
 #include "../Streaming/FrameQueue.h"
 #include "../Streaming/FFMpegDecoder.h"
 #include <Utils.hpp>
+
+extern "C" {
+#include <Limelight.h>
+}
+
 #include <KeyboardControl.xaml.h>
 #include "../Common/ModalDialog.xaml.h"
 #include "../Utils/TracyBootstrap.h"
@@ -27,7 +32,6 @@ using namespace Windows::System::Threading;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Input;
 using namespace Windows::UI::ViewManagement;
-using namespace Windows::UI::ViewManagement::Core;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls::Primitives;
@@ -61,8 +65,11 @@ void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequ
 {
 	// UWP on Xbox One triggers a back request whenever the B
 	// button is pressed which can result in the app being
-	// suspended if unhandled
+	// suspended if unhandled. On the phone the hardware Back key
+	// lands here too: while streaming, back means disconnect and
+	// return to the host list.
 	args->Handled = true;
+	disconnectAndCloseButton_Click(nullptr, nullptr);
 }
 
 void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
@@ -76,6 +83,65 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs ^>(this, &StreamPage::OnBackRequested);
+
+	if (Utils::IsWindowsPhone()) {
+		// Fullscreen hides BOTH the status bar and the virtual navigation bar;
+		// StatusBar::HideAsync alone leaves the nav bar eating 92px of the
+		// panel width and the swap chain shows a black strip beside it.
+		try {
+			if (!Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->TryEnterFullScreenMode()) {
+				Utils::Log("EnterFullScreenMode returned false\n");
+			}
+		} catch (...) {
+			Utils::Log("EnterFullScreenMode failed\n");
+		}
+		// Minimal: a single edge swipe only shows a small edge affordance;
+		// the nav bar no longer pops up on every touch (bounds were
+		// flapping 592x360 <-> 640x360 while touching, letterboxing the
+		// video into a bottom strip each time).
+		try {
+			Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->FullScreenSystemOverlayMode =
+				Windows::UI::ViewManagement::FullScreenSystemOverlayMode::Minimal;
+		} catch (...) {
+			Utils::Log("FullScreenSystemOverlayMode failed\n");
+		}
+		// Draw UNDER the system bars: the panel spans the whole physical
+		// screen (640x360) at all times. When the nav bar pops up it
+		// becomes a translucent overlay on top of the video instead of
+		// carving out a black strip + letterbox. Also removes the
+		// swapchain resize stall that came with every bar pop.
+		try {
+			Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(
+				Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
+		} catch (...) {
+			Utils::Log("SetDesiredBoundsMode failed\n");
+		}
+		// Fullscreen can succeed while the XAML layout still reserves the
+		// system bar area (panel stuck at 548x360 until a rotation cycle);
+		// force a re-measure whenever the visible bounds change.
+		m_visibleBoundsChangedCookie = Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->VisibleBoundsChanged +=
+			ref new Windows::Foundation::TypedEventHandler<Windows::UI::ViewManagement::ApplicationView^, Platform::Object^>(
+				this, &StreamPage::OnVisibleBoundsChanged);
+		// Physical mice pass through in relative mode: raw deltas go to the
+		// host, which renders its own cursor; hide the local pointer arrow.
+		try {
+			m_mouseDevice = Windows::Devices::Input::MouseDevice::GetForCurrentView();
+			m_mouseMovedCookie = m_mouseDevice->MouseMoved += ref new Windows::Foundation::TypedEventHandler<
+				Windows::Devices::Input::MouseDevice^, Windows::Devices::Input::MouseEventArgs^>(
+				this, &StreamPage::OnMouseMovedRelative);
+		} catch (...) {
+			Utils::Log("MouseDevice relative capture failed\n");
+		}
+		try {
+			Windows::UI::Core::CoreWindow::GetForCurrentThread()->PointerCursor = nullptr;
+		} catch (...) {
+			Utils::Log("PointerCursor hide failed\n");
+		}
+		// Touch on the panel acts as a trackpad for the host cursor.
+		m_pointerPressedCookie = swapChainPanel->PointerPressed += ref new Windows::UI::Xaml::Input::PointerEventHandler(this, &StreamPage::OnPointerPressed);
+		m_pointerMovedCookie = swapChainPanel->PointerMoved += ref new Windows::UI::Xaml::Input::PointerEventHandler(this, &StreamPage::OnPointerMoved);
+		m_pointerReleasedCookie = swapChainPanel->PointerReleased += ref new Windows::UI::Xaml::Input::PointerEventHandler(this, &StreamPage::OnPointerReleased);
+	}
 
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 
@@ -131,6 +197,26 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
+
+	if (Utils::IsWindowsPhone()) {
+		try {
+			Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->ExitFullScreenMode();
+		} catch (...) {
+			Utils::Log("ExitFullScreenMode failed\n");
+		}
+		swapChainPanel->PointerPressed -= m_pointerPressedCookie;
+		swapChainPanel->PointerMoved -= m_pointerMovedCookie;
+		swapChainPanel->PointerReleased -= m_pointerReleasedCookie;
+		Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->VisibleBoundsChanged -= m_visibleBoundsChangedCookie;
+		if (m_mouseDevice != nullptr) {
+			m_mouseDevice->MouseMoved -= m_mouseMovedCookie;
+			m_mouseDevice = nullptr;
+		}
+		try {
+			Windows::UI::Core::CoreWindow::GetForCurrentThread()->PointerCursor =
+				ref new Windows::UI::Core::CoreCursor(Windows::UI::Core::CoreCursorType::Arrow, 0);
+		} catch (...) {}
+	}
 
 	Gamepad::GamepadAdded -= gamepadAddedHandler;
 	Gamepad::GamepadRemoved -= gamepadRemovedHandler;
@@ -209,7 +295,7 @@ void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI:
 				this->m_keyboardView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 			}));
 	} else {
-		CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+		Windows::UI::ViewManagement::InputPane::GetForCurrentView()->TryShow();
 	}
 }
 
@@ -233,6 +319,18 @@ void StreamPage::SetShowStats(bool enabled) {
 }
 
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	// MUST run before the page's first layout pass. Page_Loaded is too
+	// late: the swapchain is created with the stale expanded-nav-bar
+	// size (548x360) and the post-load relayout never fires, leaving a
+	// 92px black strip on the right. With UseCoreWindow set here the
+	// very first layout already uses the full 640x360, so the
+	// swapchain is born full-bleed and no transition can get stuck.
+	try {
+		Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(
+			Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
+	} catch (...) {
+		Utils::Log("OnNavigatedTo SetDesiredBoundsMode failed\n");
+	}
 
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
 	SetStreamConfig(configuration);
@@ -293,6 +391,88 @@ void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Cor
 	}
 	this->m_main->OnKeyUp((unsigned short)e->VirtualKey, modifiers);
 }
+
+	void StreamPage::OnPointerPressed(Platform::Object ^, Windows::UI::Xaml::Input::PointerRoutedEventArgs ^ e) {
+		auto pt = e->GetCurrentPoint(swapChainPanel);
+		auto pos = pt->Position;
+		if (e->Pointer->PointerDeviceType == Windows::Devices::Input::PointerDeviceType::Mouse) {
+			// Physical mouse: passthrough mode, movement comes from MouseDevice
+			// deltas; only the buttons are handled here.
+			int button = pt->Properties->IsRightButtonPressed ? BUTTON_RIGHT : BUTTON_LEFT;
+			LiSendMouseButtonEvent(BUTTON_ACTION_PRESS, button);
+			m_activePointerButton = button;
+		}
+		else {
+			// Touch: trackpad mode. Pressing a finger does NOT move the cursor;
+			// only the slide delta does. A short tap clicks at the cursor.
+			m_touchPointerId = (int)e->Pointer->PointerId;
+			m_touchLastPos = pos;
+			m_touchDownPos = pos;
+			m_touchDownMs = GetTickCount64();
+			m_touchIsDown = true;
+		}
+		e->Handled = true;
+	}
+
+	void StreamPage::OnPointerMoved(Platform::Object ^, Windows::UI::Xaml::Input::PointerRoutedEventArgs ^ e) {
+		auto pt = e->GetCurrentPoint(swapChainPanel);
+		auto pos = pt->Position;
+		// Physical mice are handled by the relative MouseDevice handler; only
+		// touch moves the host cursor here.
+		if (m_touchIsDown && (int)e->Pointer->PointerId == m_touchPointerId) {
+			// Trackpad mode: accumulate the finger delta onto the cursor.
+			double dx = pos.X - m_touchLastPos.X;
+			double dy = pos.Y - m_touchLastPos.Y;
+			m_touchLastPos = pos;
+			m_cursorX = std::max(0, std::min(1279, m_cursorX + (int)dx));
+			m_cursorY = std::max(0, std::min(719, m_cursorY + (int)dy));
+			LiSendMousePositionEvent((short)m_cursorX, (short)m_cursorY, 1280, 720);
+		}
+		e->Handled = true;
+	}
+
+	void StreamPage::OnPointerReleased(Platform::Object ^, Windows::UI::Xaml::Input::PointerRoutedEventArgs ^ e) {
+		auto pt = e->GetCurrentPoint(swapChainPanel);
+		if (e->Pointer->PointerDeviceType == Windows::Devices::Input::PointerDeviceType::Mouse) {
+			LiSendMouseButtonEvent(BUTTON_ACTION_RELEASE,
+				m_activePointerButton ? m_activePointerButton : BUTTON_LEFT);
+			m_activePointerButton = 0;
+		}
+		else if (m_touchIsDown && (int)e->Pointer->PointerId == m_touchPointerId) {
+			auto pos = pt->Position;
+			double dx = pos.X - m_touchDownPos.X;
+			double dy = pos.Y - m_touchDownPos.Y;
+			uint64_t heldMs = GetTickCount64() - m_touchDownMs;
+			// A short tap with <10px of travel sends a click at the cursor's
+			// current position; anything else was pure cursor movement.
+			if (dx * dx + dy * dy < 100.0 && heldMs < 500) {
+				LiSendMousePositionEvent((short)m_cursorX, (short)m_cursorY, 1280, 720);
+				LiSendMouseButtonEvent(BUTTON_ACTION_PRESS, BUTTON_LEFT);
+				LiSendMouseButtonEvent(BUTTON_ACTION_RELEASE, BUTTON_LEFT);
+			}
+			m_touchIsDown = false;
+			m_touchPointerId = -1;
+		}
+		e->Handled = true;
+	}
+
+	void StreamPage::OnVisibleBoundsChanged(Windows::UI::ViewManagement::ApplicationView^, Platform::Object^) {
+		auto b = Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->VisibleBounds;
+		// X/Y offset tells WHICH system bar is covering the screen
+		// (Y>0 = status bar at top, X>0/W deficit = nav bar at a side).
+		Utils::Logf("VisibleBoundsChanged: x=%.0f y=%.0f %.0fx%.0f\n", b.X, b.Y, b.Width, b.Height);
+		// No forced relayout anymore. Rotation and bar transitions re-layout
+		// through the normal XAML pipeline (panel SizeChanged -> swapchain
+		// recreate). Worse, a forced UpdateLayout fired mid-bar-animation
+		// could snap the panel to a transient geometry and freeze it there
+		// (suspected source of the bottom-only black strip). Log only.
+	}
+
+	void StreamPage::OnMouseMovedRelative(Windows::Devices::Input::MouseDevice^, Windows::Devices::Input::MouseEventArgs^ args) {
+		// Raw relative deltas straight to the host; the host renders its own
+		// cursor (passthrough, like moonlight-android capture mode).
+		LiSendMouseMoveEvent((short)args->MouseDelta.X, (short)args->MouseDelta.Y);
+	}
 
 void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;

@@ -16,7 +16,7 @@
             <TextBlock>Moonlight allows your Xbox to control and stream your Computer!</TextBlock>
             <Button Click="GoForward" HorizontalAlignment="Center" Margin="8">
                 <TextBlock>
-                    <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run>
+                    <Run FontFamily="Segoe MDL2 Assets">&#xF093;</Run>
                     <Run FontSize="24">→</Run>
                 </TextBlock>
             </Button>
@@ -38,13 +38,13 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Click="GoBack" Margin="8">
                     <TextBlock>
-                        <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run>
+                        <Run FontFamily="Segoe MDL2 Assets">&#xF094;</Run>
                         <Run FontSize="24">←</Run>
                     </TextBlock>
                 </Button>
                 <Button Click="GoForward" Margin="8">
                     <TextBlock>
-                    <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run>
+                    <Run FontFamily="Segoe MDL2 Assets">&#xF093;</Run>
                     <Run FontSize="24">→</Run>
                     </TextBlock>
                 </Button>
@@ -58,30 +58,30 @@
             </StackPanel>
             <StackPanel  Orientation="Horizontal"  VerticalAlignment="Center">
                 <Image Source="ms-appx:///Assets/play.svg" Width="64" Height="64"></Image>
-                <TextBlock VerticalAlignment="Center">During the stream, you can press <Run FontFamily="Segoe Fluent Icons">&#xEDE3;</Run>+<Run FontFamily="Segoe Fluent Icons">&#xEECA;</Run> to show more options and enable mouse mode</TextBlock>
+                <TextBlock VerticalAlignment="Center">During the stream, you can press <Run FontFamily="Segoe MDL2 Assets">&#xEDE3;</Run>+<Run FontFamily="Segoe MDL2 Assets">&#xEECA;</Run> to show more options and enable mouse mode</TextBlock>
             </StackPanel>
             <StackPanel  Orientation="Horizontal"  VerticalAlignment="Center">
-                <FontIcon FontSize="50" FontFamily="Segoe Fluent Icons" Glyph="&#xE962;" Width="64" Height="64"></FontIcon>
-                <TextBlock VerticalAlignment="Center">In mouse mode, you can move and scroll using your sticks, <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run> Left click <Run FontFamily="Segoe Fluent Icons">&#xF096;</Run> Right click<Run FontFamily="Segoe Fluent Icons">&#xF094;</Run> Guide/Xbox button </TextBlock>
+                <FontIcon FontSize="50" FontFamily="Segoe MDL2 Assets" Glyph="&#xE962;" Width="64" Height="64"></FontIcon>
+                <TextBlock VerticalAlignment="Center">In mouse mode, you can move and scroll using your sticks, <Run FontFamily="Segoe MDL2 Assets">&#xF093;</Run> Left click <Run FontFamily="Segoe MDL2 Assets">&#xF096;</Run> Right click<Run FontFamily="Segoe MDL2 Assets">&#xF094;</Run> Guide/Xbox button </TextBlock>
             </StackPanel>
             <StackPanel Orientation="Horizontal"  VerticalAlignment="Center">
-                <FontIcon FontSize="50" FontFamily="Segoe Fluent Icons" Glyph="&#xE765;" Width="64" Height="64"></FontIcon>
-                <TextBlock VerticalAlignment="Center">In mouse mode, you can press <Run FontFamily="Segoe Fluent Icons">&#xF095;</Run> to show Keyboard. You can also use an USB Keyboard</TextBlock>
+                <FontIcon FontSize="50" FontFamily="Segoe MDL2 Assets" Glyph="&#xE765;" Width="64" Height="64"></FontIcon>
+                <TextBlock VerticalAlignment="Center">In mouse mode, you can press <Run FontFamily="Segoe MDL2 Assets">&#xF095;</Run> to show Keyboard. You can also use an USB Keyboard</TextBlock>
             </StackPanel>
             <StackPanel Orientation="Horizontal"  VerticalAlignment="Center">
-                <FontIcon FontSize="50" FontFamily="Segoe Fluent Icons" Glyph="&#xEA5F;" Width="64" Height="64"></FontIcon>
+                <FontIcon FontSize="50" FontFamily="Segoe MDL2 Assets" Glyph="&#xEA5F;" Width="64" Height="64"></FontIcon>
                 <TextBlock VerticalAlignment="Center">Is your screen a quarter of its size? Change the global composition scale inside the Global Settings of the App</TextBlock>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Click="GoBack" Margin="8">
                     <TextBlock>
-                        <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run>
+                        <Run FontFamily="Segoe MDL2 Assets">&#xF094;</Run>
                         <Run FontSize="24">←</Run>
                     </TextBlock>
                 </Button>
                 <Button Click="GoForward" Margin="8">
                     <TextBlock>
-                    <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run>
+                    <Run FontFamily="Segoe MDL2 Assets">&#xF093;</Run>
                     <Run FontSize="24">→</Run>
                     </TextBlock>
                 </Button>
@@ -101,13 +101,13 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Click="GoBack" Margin="8">
                     <TextBlock>
-                        <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run>
+                        <Run FontFamily="Segoe MDL2 Assets">&#xF094;</Run>
                         <Run FontSize="24">←</Run>
                     </TextBlock>
                 </Button>
                 <Button Name="CloseButton" Click="CloseButton_Click" Margin="8">
                     <TextBlock>
-                    <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run>
+                    <Run FontFamily="Segoe MDL2 Assets">&#xF093;</Run>
                     <Run FontSize="24">→</Run>
                     </TextBlock>
                 </Button>

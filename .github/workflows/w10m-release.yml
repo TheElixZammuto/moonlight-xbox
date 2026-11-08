@@ -1,0 +1,330 @@
+name: W10M Release
+
+# GitHub-hosted Windows runner.
+# The runner image does not include v141 ARM/UWP or Windows SDK 15063, so the
+# workflow installs them before building. This makes the job slower than a
+# self-hosted runner, but requires no local machine.
+#
+# Optional repository secrets:
+#   W10M_CERT_PFX_BASE64  base64-encoded signing .pfx
+#   W10M_CERT_PASSWORD    password for that .pfx
+# If the secret is absent, CI generates a temporary self-signed certificate
+# matching the manifest Publisher and uploads cert.cer with the package.
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (x.y.z)'
+        required: true
+        default: '1.18.3'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: w10m-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Same-repository PRs, master pushes, tags and manual runs are allowed.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: windows-2022
+    timeout-minutes: 240
+    env:
+      VCPKG_DISABLE_METRICS: '1'
+      # Never expose the release signing key to pull-request code.
+      CERT_PFX_BASE64: ${{ github.event_name != 'pull_request' && secrets.W10M_CERT_PFX_BASE64 || '' }}
+      CERT_PASSWORD: ${{ github.event_name != 'pull_request' && secrets.W10M_CERT_PASSWORD || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install v141 ARM/UWP toolset
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installPath = & $vswhere -latest -products * -property installationPath
+          if (-not $installPath) { throw 'Visual Studio installation not found' }
+          $installer = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vs_installer.exe'
+          if (-not (Test-Path $installer)) { throw 'vs_installer.exe not found' }
+
+          & $installer modify `
+            --installPath "$installPath" `
+            --add Microsoft.VisualStudio.Component.VC.v141.ARM `
+            --add Microsoft.VisualStudio.ComponentGroup.UWP.VC.v141 `
+            --quiet --norestart --wait
+
+          if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) {
+            throw "VS Installer failed: $LASTEXITCODE"
+          }
+
+      - name: Install Windows SDK 15063
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sdk = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\Include\10.0.15063.0'
+          if (Test-Path (Join-Path $sdk 'um\windows.h')) {
+            Write-Host 'Windows SDK 15063 already present'
+            exit 0
+          }
+
+          Invoke-WebRequest `
+            -Uri 'https://go.microsoft.com/fwlink/?linkid=845298' `
+            -OutFile winsdksetup.exe
+
+          $p = Start-Process -FilePath .\winsdksetup.exe `
+            -ArgumentList '/features OptionId.WindowsSoftwareDevelopmentKit /quiet /norestart /ceip off' `
+            -Wait -PassThru
+          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) {
+            throw "Windows SDK installer failed: $($p.ExitCode)"
+          }
+          if (-not (Test-Path (Join-Path $sdk 'um\windows.h'))) {
+            throw 'Windows SDK 15063 installation did not produce the expected headers'
+          }
+
+      - name: Cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            vcpkg_installed
+            vcpkg/downloads
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'patches/vcpkg.patch') }}
+
+      - name: Apply submodule patches
+        shell: cmd
+        run: apply-submodule-patches.cmd
+
+      - name: Set package version
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setVersion = $false
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $version = '${{ inputs.version }}'
+            $setVersion = $true
+          } elseif ('${{ github.event_name }}' -eq 'push' -and '${{ github.ref_type }}' -eq 'tag') {
+            $version = '${{ github.ref_name }}'.TrimStart('v')
+            $setVersion = $true
+          } else {
+            # PR / master validation builds keep the manifest version.
+            $manifestText = [IO.File]::ReadAllText('Package.appxmanifest')
+            $match = [regex]::Match($manifestText, 'Version="(\d+\.\d+\.\d+)\.\d+"')
+            if (-not $match.Success) { throw 'Cannot read package version from manifest' }
+            $version = $match.Groups[1].Value
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Invalid version '$version'; expected x.y.z"
+          }
+
+          if ($setVersion) {
+            $manifest = 'Package.appxmanifest'
+            $text = [IO.File]::ReadAllText($manifest)
+            $text = [regex]::Replace(
+              $text,
+              '(<Identity\b[^>]*?\bVersion=")[^"]+(")',
+              ('${1}' + $version + '.0${2}'))
+            [IO.File]::WriteAllText($manifest, $text, [Text.UTF8Encoding]::new($false))
+          }
+
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding ascii
+          Write-Host "Package version: $version.0 (setVersion=$setVersion)"
+
+      - name: Prepare signing certificate
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $password = $env:CERT_PASSWORD
+          $manifest = Get-Content Package.appxmanifest -Raw
+          $publisher = [regex]::Match($manifest, 'Publisher="([^"]+)"').Groups[1].Value
+          if (-not $publisher) { throw 'Manifest Publisher not found' }
+
+          if ([string]::IsNullOrWhiteSpace($env:CERT_PFX_BASE64)) {
+            if ([string]::IsNullOrWhiteSpace($password)) {
+              $password = [Guid]::NewGuid().ToString('N')
+            }
+            $cert = New-SelfSignedCertificate `
+              -Type Custom `
+              -Subject $publisher `
+              -KeyUsage DigitalSignature `
+              -FriendlyName 'W10M CI' `
+              -CertStoreLocation 'Cert:\CurrentUser\My' `
+              -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
+            $secure = ConvertTo-SecureString -String $password -Force -AsPlainText
+            Export-PfxCertificate -Cert $cert -FilePath cert.pfx -Password $secure | Out-Null
+            Write-Host "Generated temporary certificate for $publisher"
+          } else {
+            if ([string]::IsNullOrWhiteSpace($password)) {
+              throw 'W10M_CERT_PASSWORD is required when W10M_CERT_PFX_BASE64 is set'
+            }
+            $bytes = [Convert]::FromBase64String(($env:CERT_PFX_BASE64 -replace '\s', ''))
+            [IO.File]::WriteAllBytes('cert.pfx', $bytes)
+          }
+
+          $x509 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 `
+            -ArgumentList @((Resolve-Path cert.pfx).Path, $password)
+          [IO.File]::WriteAllBytes(
+            'cert.cer',
+            $x509.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+
+          $securePassword = ConvertTo-SecureString -String $password -Force -AsPlainText
+          $imported = Import-PfxCertificate `
+            -FilePath cert.pfx `
+            -CertStoreLocation 'Cert:\CurrentUser\My' `
+            -Password $securePassword `
+            -Exportable
+          "W10M_CERT_THUMBPRINT=$($imported.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding ascii
+          "W10M_CERT_PASSWORD=$password" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding ascii
+          Write-Host "Certificate subject: $($x509.Subject)"
+          Write-Host "Certificate thumbprint: $($imported.Thumbprint)"
+
+      - name: Check v141/15063 toolchain
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) { throw 'vswhere.exe not found' }
+          $installPath = & $vswhere -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.v141.ARM `
+            -requires Microsoft.VisualStudio.ComponentGroup.UWP.VC.v141 `
+            -property installationPath
+          if (-not $installPath) {
+            throw 'VS2022 v141 ARM/UWP components are missing on this runner'
+          }
+          $msbuild = Join-Path $installPath 'MSBuild\Current\Bin\MSBuild.exe'
+          if (-not (Test-Path $msbuild)) { throw "MSBuild not found: $msbuild" }
+
+          $sdk = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\Include\10.0.15063.0'
+          if (-not (Test-Path (Join-Path $sdk 'um\windows.h'))) {
+            throw 'Windows SDK 10.0.15063.0 is missing on this runner'
+          }
+
+          "MSBUILD_PATH=$msbuild" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding ascii
+
+      - name: Restore and build dependencies
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          if (-not (Test-Path 'vcpkg\vcpkg.exe')) {
+            & .\vcpkg\bootstrap-vcpkg.bat
+            if ($LASTEXITCODE -ne 0) { throw 'vcpkg bootstrap failed' }
+          }
+          if (-not (Test-Path 'vcpkg_installed\arm-uwp')) {
+            & .\vcpkg\vcpkg.exe install --triplet arm-uwp --clean-after-build
+            if ($LASTEXITCODE -ne 0) { throw 'vcpkg install failed' }
+          }
+
+          $cmake = (Get-ChildItem 'vcpkg\downloads\tools' -Recurse -Filter cmake.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '4\.4\.0' } |
+            Select-Object -First 1).FullName
+          if (-not $cmake) {
+            $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+            $vsInstall = & $vswhere -latest -products * -property installationPath
+            if ($vsInstall) {
+              $vsCMake = Join-Path $vsInstall 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
+              if (Test-Path $vsCMake) { $cmake = $vsCMake }
+            }
+          }
+          if (-not $cmake) {
+            $cmake = (Get-Command cmake.exe -ErrorAction Stop).Source
+          }
+          $env:PATH = "$(Split-Path $cmake);$env:PATH"
+          Write-Host "CMake: $cmake"
+
+          & .\generate-thirdparty-projects-arm.bat
+          if ($LASTEXITCODE -ne 0) { throw 'third-party project generation failed' }
+
+          & $cmake --build 'third_party\moonlight-common-c\build' --config Release --target moonlight-common-c enet
+          if ($LASTEXITCODE -ne 0) { throw 'moonlight-common-c/enet build failed' }
+
+          & $cmake --build 'libgamestream\build' --config Release --target gamestream
+          if ($LASTEXITCODE -ne 0) { throw 'gamestream build failed' }
+
+      - name: Build signed Appx
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msbuild = $env:MSBUILD_PATH
+          $msbuildArgs = @(
+            'moonlight-xbox-dx.vcxproj',
+            '-t:Build',
+            '-p:Configuration=Release',
+            '-p:Platform=ARM',
+            '-p:AppxPackage=true',
+            '-p:GenerateAppxPackageOnBuild=true',
+            '-p:AppxBundle=Never',
+            '-p:AppxBundlePlatforms=ARM',
+            '-p:UapAppxPackageBuildMode=SideloadOnly',
+            '-p:AppxGeneratePrisForPortableLibrariesEnabled=false',
+            '-p:UseDotNetNativeToolchain=false',
+            "-p:PackageCertificateThumbprint=$env:W10M_CERT_THUMBPRINT",
+            '-v:m',
+            '-nologo'
+          )
+          & $msbuild @msbuildArgs
+          if ($LASTEXITCODE -ne 0) { throw 'MSBuild AppxPackage failed' }
+
+      - name: Collect release files
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $appx = Get-ChildItem 'ARM\Release\AppPackages' -Recurse -Filter '*.appx' |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $appx) { throw 'No .appx produced' }
+
+          $bundleName = "moonlight-w10m_$($env:RELEASE_VERSION).0_ARM"
+          $bundle = Join-Path $PWD $bundleName
+          Remove-Item $bundle -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item $bundle -ItemType Directory | Out-Null
+
+          # Artifact branding is independent of the phone-visible DisplayName.
+          # The manifest still says "Moonlight UWP"; only the file/folder names change.
+          $artifactBase = $bundleName
+          Copy-Item $appx.FullName (Join-Path $bundle "$artifactBase.appx")
+          Copy-Item 'cert.cer' (Join-Path $bundle "$artifactBase.cer")
+          $deps = Join-Path $appx.Directory 'Dependencies\ARM\*.appx'
+          if (Test-Path $deps) {
+            $depDir = Join-Path $bundle 'Dependencies\ARM'
+            New-Item $depDir -ItemType Directory -Force | Out-Null
+            Copy-Item $deps $depDir
+          }
+
+          $zip = Join-Path $PWD "$bundleName.zip"
+          Remove-Item $zip -Force -ErrorAction SilentlyContinue
+          Compress-Archive -Path $bundle -DestinationPath $zip
+          Get-ChildItem $bundle -Recurse -File | Format-Table FullName, Length
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonlight-w10m-${{ env.RELEASE_VERSION }}
+          path: |
+            moonlight-w10m_*_ARM/**
+            moonlight-w10m_*_ARM.zip
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            moonlight-w10m_*_ARM/**
+            moonlight-w10m_*_ARM.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true

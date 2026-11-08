@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
 
 namespace moonlight_xbox_dx {
@@ -22,6 +22,10 @@ namespace moonlight_xbox_dx {
 		std::string PlatformStringToStdString(Platform::String^ input);
 		std::string WideToNarrowString(const std::wstring_view& str);
 		std::wstring NarrowToWideString(const std::string_view& str);
+
+		// True when running on Windows 10 Mobile (device family Windows.Mobile).
+		// Gates the FL 9_3 render path (VideoProcessorBlt) and the H.264-only handshake.
+		bool IsWindowsPhone();
 
 		// Splits "host", "host:port", "1.2.3.4:port", "[v6]", "[v6]:port" or a bare IPv6 literal
 		// (which can never carry a port). The returned host has no brackets; port is 0 when absent.

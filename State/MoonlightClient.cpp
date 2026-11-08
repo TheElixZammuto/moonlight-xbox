@@ -1,4 +1,4 @@
-#include "MoonlightClient.h"
+﻿#include "MoonlightClient.h"
 #include "pch.h"
 
 extern "C" {
@@ -212,6 +212,14 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	LiInitializeStreamConfiguration(&config);
 	config.width = sConfig->width;
 	config.height = sConfig->height;
+	if (Utils::IsWindowsPhone()) {
+		// W10M: match the phone's native panel (720x1280 portrait => 1280x720
+		// landscape stream). Halves decode/render load versus the 1080p default
+		// and maps 1:1 onto the swap chain width.
+		config.width = 1280;
+		config.height = 720;
+		Utils::Log("W10M: streaming resolution forced to 1280x720 (phone panel native)\n");
+	}
 	config.bitrate = sConfig->bitrate;
 	config.fps = sConfig->FPS;
 	if (res->GetRefreshRate() > 0.0 && IsXbox()) {
@@ -272,6 +280,15 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	bool pyrowave420 = sConfig->videoCodec == "PyroWave 4:2:0";
 	bool pyrowave444 = sConfig->videoCodec == "PyroWave 4:4:4";
 	bool wantHevc = sConfig->videoCodec != "H.264";
+	if (Utils::IsWindowsPhone()) {
+		// W10M: the D3D11 device caps at FL 9_3 and the driver only exposes an
+		// H.264 High Profile D3D11 decoder (no HEVC, no PyroWave). Advertising
+		// anything else would make the host pick a codec we cannot decode.
+		Utils::Log("W10M: advertising H.264 only (no HW HEVC at FL 9_3)\n");
+		wantHevc = false;
+		pyrowave420 = false;
+		pyrowave444 = false;
+	}
 	if ((pyrowave420 || pyrowave444) && IsXboxOne()) {
 		// UWP on the Xbox One generation never exposes compute shaders, so the
 		// decoder cannot run there. The settings page hides PyroWave on these
@@ -556,12 +573,15 @@ std::vector<MoonlightApp ^> MoonlightClient::GetApplications(bool fetchAssets) {
 		Concurrency::create_task([folder, folderString, values, this]() {
 			for (auto a : values) {
 				auto imgPath = folderString->Concat(folderString, a->Id + ".png");
+				// W10M: the Image control does not resolve raw drive paths here;
+				// bind via the ms-appdata URI instead.
+				auto imgUri = folderString->Concat(ref new Platform::String(L"ms-appdata:///Local/images/"), a->Id + ".png");
 				// https://stackoverflow.com/a/6218957
 				DWORD dwAttrib = GetFileAttributes(imgPath->Data());
 				if (dwAttrib == INVALID_FILE_ATTRIBUTES) {
 					gs_appasset(&serverData, folder, a->Id);
 				}
-				a->ImagePath = imgPath;
+				a->ImagePath = imgUri;
 			}
 		});
 	}

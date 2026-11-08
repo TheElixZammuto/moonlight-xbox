@@ -28,7 +28,11 @@
 #include <gamingdeviceinformation.h>
 #include "App.xaml.h"
 
-#define IMGUI_USER_CONFIG "Common\imconfig.moonlight.h"
+// IMGUI_USER_CONFIG is NOT defined here: imgui*.cpp TUs compile with
+// PrecompiledHeader=NotUsing and never see pch.h, so a define here would only
+// reach the pch-using TUs and split ImGui into two compile configurations.
+// It is defined globally in moonlight-xbox-dx.vcxproj PreprocessorDefinitions
+// (all platforms/configs) instead, so every TU sees imconfig.moonlight.h.
 #include <imgui.h>
 #include <imgui_impl_uwp.h>
 #include <imgui_impl_dx11.h>

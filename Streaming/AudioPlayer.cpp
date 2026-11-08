@@ -1,11 +1,14 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include <Streaming\AudioPlayer.h>
 #include <Utils.hpp>
 #include <algorithm>
 #include <cstring>
+#include <objbase.h>
 #include <opus/opus_multistream.h>
 #include "..\Plot\ImGuiPlots.h"
 #include "State\Stats.h"
+
+#pragma comment(lib, "xaudio2.lib")
 
 #if defined(_DEBUG)
 #define MA_DEBUG_OUTPUT
@@ -148,6 +151,11 @@ namespace moonlight_xbox_dx {
 	}
 
 	bool AudioPlayer::prepareForPlayback(const POPUS_MULTISTREAM_CONFIGURATION opusConfig) {
+		if (Utils::IsWindowsPhone()) {
+			// W10M: miniaudio's WASAPI path loads mmdevapi.dll, which the
+			// AppContainer blocks. Use XAudio2_8 (present in System32) instead.
+			return prepareForPlaybackXAudio(opusConfig);
+		}
 		// Enforce the "never re-init live objects" rule: release anything a
 		// previous session left behind. The Opus decoder is left alone; it was
 		// just created by audioInitCallback.
@@ -215,6 +223,22 @@ namespace moonlight_xbox_dx {
 	}
 
 	void AudioPlayer::releaseDevice() {
+		if (Utils::IsWindowsPhone()) {
+			if (m_xaSource) {
+				m_xaSource->Stop(0);
+				m_xaSource->DestroyVoice();
+				m_xaSource = nullptr;
+			}
+			if (m_xaMaster) {
+				m_xaMaster->DestroyVoice();
+				m_xaMaster = nullptr;
+			}
+			m_xa.Reset();
+			m_xaPool.clear();
+			m_xaPoolIdx = 0;
+			m_xaInitialized = false;
+			return;
+		}
 		if (deviceInitialized) {
 			ma_device_uninit(&device); // implicitly stops the device first
 			deviceInitialized = false;
@@ -251,6 +275,9 @@ namespace moonlight_xbox_dx {
 	}
 
 	AudioSubmitResult AudioPlayer::submitAudio(int bytesWritten) {
+		if (Utils::IsWindowsPhone()) {
+			return submitAudioXAudio(bytesWritten);
+		}
 		if (bytesWritten <= 0) {
 			return AudioSubmitResult::Queued;
 		}
@@ -322,7 +349,104 @@ namespace moonlight_xbox_dx {
 		return AudioSubmitResult::Queued;
 	}
 
+	// W10M XAudio2 backend --------------------------------------------------
+
+	bool AudioPlayer::prepareForPlaybackXAudio(const POPUS_MULTISTREAM_CONFIGURATION opusConfig) {
+		releaseDevice();
+
+		samplesPerFrame = opusConfig->samplesPerFrame;
+		channelCount = opusConfig->channelCount;
+		sampleRate = (ma_uint32)opusConfig->sampleRate;
+		framesPerMs = sampleRate / 1000;
+
+		HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+		if (FAILED(hr) && hr != RPC_E_CHANGED_MODE && hr != S_FALSE) {
+			Utils::Logf("CoInitializeEx failed 0x%08X\n", (unsigned)hr);
+			return false;
+		}
+		hr = XAudio2Create(&m_xa, 0);
+		if (FAILED(hr)) {
+			Utils::Logf("XAudio2Create failed 0x%08X\n", (unsigned)hr);
+			return false;
+		}
+		hr = m_xa->CreateMasteringVoice(&m_xaMaster);
+		if (FAILED(hr)) {
+			Utils::Logf("CreateMasteringVoice failed 0x%08X\n", (unsigned)hr);
+			return false;
+		}
+
+		WAVEFORMATEX wfx = {};
+		wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
+		wfx.nChannels = (WORD)channelCount;
+		wfx.nSamplesPerSec = sampleRate;
+		wfx.wBitsPerSample = 32;
+		wfx.nBlockAlign = (WORD)(wfx.nChannels * wfx.wBitsPerSample / 8);
+		wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
+		hr = m_xa->CreateSourceVoice(&m_xaSource, &wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO, nullptr, nullptr, nullptr);
+		if (FAILED(hr)) {
+			Utils::Logf("CreateSourceVoice failed 0x%08X\n", (unsigned)hr);
+			return false;
+		}
+
+		// One slot per in-flight packet; the latency trim below keeps the
+		// queue far shorter than the pool, so a slot is always free.
+		m_xaPool.assign(XA_POOL_SLOTS, std::vector<uint8_t>());
+		m_xaPoolIdx = 0;
+		m_xaInitialized = true;
+		Utils::Logf("XAudio2 backend ready: %dch %uHz float32\n", channelCount, sampleRate);
+		return true;
+	}
+
+	AudioSubmitResult AudioPlayer::submitAudioXAudio(int bytesWritten) {
+		if (bytesWritten <= 0) {
+			return AudioSubmitResult::Queued;
+		}
+		if (!m_xaInitialized) {
+			return AudioSubmitResult::Error;
+		}
+
+		// Same latency trim as the miniaudio path: the network queue is the
+		// dominant term; the source-voice queue replaces the ring buffer check.
+		int pendingNetworkMs = LiGetPendingAudioDuration();
+		if (pendingNetworkMs > 30) {
+			latencyDropCount.fetch_add(1, std::memory_order_relaxed);
+			return AudioSubmitResult::DroppedLatency;
+		}
+		XAUDIO2_VOICE_STATE vs = {};
+		m_xaSource->GetState(&vs);
+		UINT32 queuedMs = vs.BuffersQueued * (UINT32)samplesPerFrame / framesPerMs;
+		if (queuedMs > (ma_uint32)bufferSizeMs.load()) {
+			latencyDropCount.fetch_add(1, std::memory_order_relaxed);
+			return AudioSubmitResult::DroppedLatency;
+		}
+
+		// XAudio2 reads pAudioData asynchronously, so hand it a slot from the
+		// rotation pool (the slot comes back around long after playback of
+		// that buffer has finished, kept safe by the latency trim above).
+		std::vector<uint8_t>& slot = m_xaPool[m_xaPoolIdx];
+		slot.resize(bytesWritten);
+		memcpy(slot.data(), decodeBuffer, (size_t)bytesWritten);
+		XAUDIO2_BUFFER buf = {};
+		buf.AudioBytes = (UINT32)bytesWritten;
+		buf.pAudioData = slot.data();
+		if (FAILED(m_xaSource->SubmitSourceBuffer(&buf))) {
+			Utils::Log("SubmitSourceBuffer failed\n");
+			return AudioSubmitResult::Error;
+		}
+		m_xaPoolIdx = (m_xaPoolIdx + 1) % (int)m_xaPool.size();
+
+		ImGuiPlots::instance().observeFloat(PLOT_AUDIO_BUFFER_MS,
+			(float)pendingNetworkMs + (float)queuedMs);
+		return AudioSubmitResult::Queued;
+	}
+
 	void AudioPlayer::start() {
+		if (Utils::IsWindowsPhone()) {
+			if (m_xaInitialized) {
+				m_xaSource->Start(0);
+			}
+			return;
+		}
 		if (!deviceInitialized) {
 			return;
 		}
@@ -338,6 +462,12 @@ namespace moonlight_xbox_dx {
 	}
 
 	void AudioPlayer::stop() {
+		if (Utils::IsWindowsPhone()) {
+			if (m_xaInitialized) {
+				m_xaSource->Stop(0);
+			}
+			return;
+		}
 		if (!deviceInitialized) {
 			return;
 		}

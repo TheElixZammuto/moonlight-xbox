@@ -241,10 +241,12 @@ static bool ImGui_ImplUwp_InitEx(ABI::Windows::UI::Core::ICoreWindow* core_windo
     {
         ComPtr<ABI::Windows::UI::Core::ICoreInputSourceBase> controlInput;
 
-        auto winUI = LoadLibraryW(L"Windows.UI.dll");
-        auto SystemCreateControlInput = (PFN_CreateControlInput)GetProcAddress(winUI, "CreateControlInput");
+        HMODULE winUI = NULL; /* Windows.UI.dll CoreInput is not reachable from the UWP APP family (W10M) */
+        PFN_CreateControlInput SystemCreateControlInput = NULL;
+        if (winUI)
+            SystemCreateControlInput = (PFN_CreateControlInput)GetProcAddress(winUI, "CreateControlInput");
 
-        HRESULT result = SystemCreateControlInput(ABI::Windows::UI::Core::IID_ICoreInputSourceBase, &controlInput);
+        HRESULT result = SystemCreateControlInput ? SystemCreateControlInput(ABI::Windows::UI::Core::IID_ICoreInputSourceBase, &controlInput) : E_FAIL;
         if (SUCCEEDED(result))
         {
 			controlInput->put_IsInputEnabled(true);
@@ -481,17 +483,8 @@ static void ImGui_ImplUwp_UpdateMouseData()
     {
         bool is_app_focused;
 
-        ComPtr<ABI::Windows::UI::Core::ICoreWindow5> coreWindow5;
-        HRESULT hr = bd->CoreWindow->QueryInterface(coreWindow5.GetAddressOf());
-
-        if (hr == S_OK)
-        {
-            ABI::Windows::UI::Core::CoreWindowActivationMode mode;
-            coreWindow5->get_ActivationMode(&mode);
-
-            is_app_focused = mode == ABI::Windows::UI::Core::CoreWindowActivationMode::CoreWindowActivationMode_ActivatedInForeground;
-        }
-        else
+        // W10M (15063): ICoreWindow5 is 16299+; the QueryInterface branch below
+        // would always fail on the phone, so use the legacy path unconditionally.
         {
             boolean inputEnabled;
             boolean visible;
@@ -508,7 +501,7 @@ static void ImGui_ImplUwp_UpdateMouseData()
             if (io.WantSetMousePos)
             {
                 ComPtr<ABI::Windows::UI::Core::ICoreWindow2> coreWindow2;
-                hr = bd->CoreWindow->QueryInterface(coreWindow2.GetAddressOf());
+                HRESULT hr = bd->CoreWindow->QueryInterface(coreWindow2.GetAddressOf());
 
                 if (hr == S_OK)
                 {

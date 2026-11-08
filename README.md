@@ -1,54 +1,29 @@
-﻿# moonlight-xbox 
+# Moonlight for Windows 10 Mobile
 
-[![Download](https://get.microsoft.com/images/en-us%20dark.svg)](https://apps.microsoft.com/store/detail/9MW1BS08ZBTH?launch=true&mode=full)
+A Windows 10 Mobile (ARM32) port of [moonlight-xbox](https://github.com/TheElixZammuto/moonlight-xbox), itself a port of [Moonlight Stream](https://moonlight-stream.org/) for playing games from GeForce Experience or [Sunshine](https://github.com/LizardByte/sunshine).
 
-A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games using GeForce Experience or [Sunshine](https://github.com/LizardByte/sunshine) for the Xbox One and Xbox Series X|S family of consoles
+This repository is the Windows 10 Mobile port, maintained at [FutureZQ/moonlight-windows10mobile](https://github.com/FutureZQ/moonlight-windows10mobile). The upstream Xbox project and its history are credited in the release branch.
 
-**This application is still in early stages of development. Expect things to not work or working badly**
+**Status: experimental.** The target device is a Lumia-class Windows 10 Mobile phone (ARM32, build 15254) with D3D11 feature level 9_3 and H.264 High Profile hardware decode. PC/Xbox targets are not the focus of this fork.
 
-## Installation and Usage
+## What works
 
-### For Retail Mode (you probably want to use this)
+- mDNS host discovery, HTTPS, PIN pairing
+- Host list, app list, cover art
+- ARM32 H.264 decode at 1280x720, NV12 + 9_3 shader rendering
+- Audio, touch/trackpad input, Bluetooth mouse passthrough
+- Graceful disconnect and back-button handling
 
-1. Open Microsoft Edge and click the "Get it from Microsoft" Button above 
-2. Downlad Moonlight UWP from the Microsoft Store
-3. Open Moonlight on Xbox and, if not already, your host app
-4. Press the "+" button, Insert your PC IP Address (IPv4 or IPv6, e.g. `192.168.1.10`, `192.168.1.10:47989` or `[2001:db8::10]:47989`) and press "Connect"
-5. Pair if neeeded
-6. Choose from the list below the application you want to run
-7. ???
-8. Profit!
+## Install (sideload)
 
-### For Dev Mode
+The Windows 10 Mobile Store publishing channel is closed. Install the signed .appx through Device Portal or enterprise sideloading:
 
-**Looking for the Standard Dev Mode Builds? Can be found here:** [Link](https://github.com/TheElixZammuto/moonlight-xbox/releases)
+1. Build or obtain moonlight-xbox-dx_<version>_ARM.appx.
+2. Make sure the signing certificate is trusted on the phone.
+3. Deploy through Device Portal or the package installer.
+4. Start Moonlight, add the host, and pair with the PIN shown by Sunshine.
 
-**Looking for the Bleeding Edge Builds? Can be found here:** [Link](https://github.com/TheElixZammuto/moonlight-xbox/actions)
-
-1. Enable the Dev Mode on your Xbox https://docs.microsoft.com/en-us/windows/uwp/xbox-apps/devkit-activation
-2. Using the Device Portal, install the Application (moonlight-xbox-dx.msixbundle) and, in the following step, add the required dependencies (Microsoft.UI.Xaml.2.7.appx and Microsoft.VCLibs.x64.14.00.appx)
-3. Open Moonlight on Xbox and, if not already, your host app
-4. Your PC should already be on the list. If not, press the "+" button, Insert your PC IP Address (IPv4 or IPv6, e.g. `192.168.1.10`, `192.168.1.10:47989` or `[2001:db8::10]:47989`) and press "Connect"
-5. Pair if neeeded
-6. Choose from the list below the application you want to run
-7. ???
-8. Profit!
-
-## What does work
-- Connection and Pairing
-- Application List fetching
-- Video Streaming (configurable on a host-basis in the settings)
-- Gamepad Input (with Rumble, battery reporting, and a mouse mode to move the pointer using the gamepad)
-- Keyboard (both on-screen and using an Hardware one)
-- Graceful Disconnection
-- Host configuration (for resolution and bitrate) and saved host history
-- Audio
-- HDR
-
-## What does NOT work
-
-- Hardware Mouse (UWP limitations sadly)
-- Everything else not listed above
+The binary/project name remains moonlight-xbox-dx for compatibility with the upstream codebase.
 
 ## Building
 
@@ -57,34 +32,33 @@ A port of [Moonlight Stream](https://moonlight-stream.org/) for playing games us
 - Windows 10
 - Visual Studio 2022
     - WinUI Application Development Workload
-        - Windows 10 SDK (10.0.19041.0) - This is marked as out of support as of VS 2022 version 17.10, but is still necessary for CMake
+        - Windows 10 SDK (10.0.15063.0)
         - Universal Windows Platform Tools
-        - C++ (v141, v142, v143) Universal Windows Platform Tools
+        - C++ (v141) Universal Windows Platform Tools
 
 ### Steps to build
 
 **You have two options:**
 
-1. Clone this repository (`moonlight-xbox`) with submodules enabled!
+1. Clone this repository (`moonlight-windows10mobile`) with submodules enabled!
 1. Install [VCPKG](https://vcpkg.io/en/index.html) and all dependencies:
     1. Run `git submodule update --init --recursive`
+    1. Run `apply-submodule-patches.cmd` to apply the W10M submodule changes
     1. Run `vcpkg\bootstrap-vcpkg.bat`
-    1. Install dependencies: `.\vcpkg\vcpkg.exe install --vcpkg-root vcpkg --triplet x64-uwp`
-1. Run x64 Visual Studio Prompt (Tools → Command Line → Developer Command Prompt)
-    1. Run `generate-thirdparty-projects.bat` to generate `moonlight-common-c` VS project
-    1. Go to `libgamestream` and run `build-uwp.bat` to generate `libgamestream` VS project
-    2. Open `moonlight-xbox-dx.vcxproj` in Visual Studio 2022
-    3. In the solution explorer, right click and build each of these projects, in the following order:
-        - enet
-        - moonlight-common-c
-        - gamestream
-4. In the solution explorer, expand `moonlight-xbox-dx (Universal Windows)`, then double click `Package.appxmanifest`
-5. Under the `Packaging` tab, next to `Publisher`, click the `Choose Certificate` button
-    -If you already have a certificate, select it and skip to the final step
-6. In the `Choose a Certificate` window that appears, click the `Create...` button
-7. Fill out the create prompt which appears, password is unnecessary if only building for personal use and/or debugging purposes.
-8. After all the actions above, you can now build the entire solution.
-1. After all the actions above, you finally can open and build solution.
+    1. Install dependencies: `.\vcpkg\vcpkg.exe install --vcpkg-root vcpkg --triplet arm-uwp`
+1. Run the **x64 Native Tools Command Prompt** (Tools → Command Line → Developer Command Prompt)
+    1. Run `generate-thirdparty-projects-arm.bat` to generate the `moonlight-common-c` and `libgamestream` VS projects
+1. Open `moonlight-xbox-dx.vcxproj` in Visual Studio 2022
+1. In Solution Explorer, build these projects in order:
+    - enet
+    - moonlight-common-c
+    - gamestream
+1. In Solution Explorer, expand `moonlight-xbox-dx (Universal Windows)`, then double click `Package.appxmanifest`
+1. Under the `Packaging` tab, next to `Publisher`, click the `Choose Certificate` button
+    - If you already have a certificate, select it and skip the final step
+1. In the `Choose a Certificate` window, click `Create...`
+1. Fill out the create prompt. A password is unnecessary for personal/debug use.
+1. Build the solution. The UWP project's `GenerateAppxPackageOnBuild` produces the package under `ARM\Release\AppPackages\...`.
 
 **Or**
 

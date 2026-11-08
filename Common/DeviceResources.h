@@ -52,7 +52,8 @@ namespace DX
 		// D3D Accessors.
 		ID3D11Device3*				GetD3DDevice() const					{ return m_d3dDevice.Get(); }
 		ID3D11DeviceContext3*		GetD3DDeviceContext() const				{ return m_d3dContext.Get(); }
-		IDXGISwapChain4*			GetSwapChain() const					{ return m_swapChain.Get(); }
+		// W10M 15254 is DXGI 1.4 era: IDXGISwapChain4 (1.5) does not exist there.
+		IDXGISwapChain2*			GetSwapChain() const					{ return m_swapChain.Get(); }
 		IDXGIOutput*     			GetDXGIOutput() const					{ return m_dxgiOutput.Get(); }
 		auto                        GetDXGIFactory() const noexcept         { return m_dxgiFactory.Get(); }
 		D3D_FEATURE_LEVEL			GetDeviceFeatureLevel() const			{ return m_d3dFeatureLevel; }
@@ -76,7 +77,7 @@ namespace DX
 		Microsoft::WRL::ComPtr<IDXGIFactory2>           m_dxgiFactory;
 		Microsoft::WRL::ComPtr<ID3D11Device3>			m_d3dDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext3>	m_d3dContext;
-		Microsoft::WRL::ComPtr<IDXGISwapChain4>			m_swapChain;
+		Microsoft::WRL::ComPtr<IDXGISwapChain2>			m_swapChain;
 		Microsoft::WRL::ComPtr<IDXGIOutput>             m_dxgiOutput;
 
 		// Direct3D rendering objects. Required for 3D.

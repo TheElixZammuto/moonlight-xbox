@@ -35,6 +35,15 @@ App::App()
 	Suspending += ref new SuspendingEventHandler(this, &App::OnSuspending);
 	Resuming += ref new EventHandler<Object^>(this, &App::OnResuming);
 	displayRequest = ref new Windows::System::Display::DisplayRequest();
+
+	if (Utils::IsWindowsPhone()) {
+		// W10M: the phone panel is 720x1280 portrait while the stream is
+		// 1280x720 landscape. Force landscape so the SwapChainPanel - and
+		// therefore the swap chain - comes up at the stream's native aspect.
+		Windows::Graphics::Display::DisplayInformation::AutoRotationPreferences =
+			Windows::Graphics::Display::DisplayOrientations::Landscape |
+			Windows::Graphics::Display::DisplayOrientations::LandscapeFlipped;
+	}
 }
 
 /// <summary>

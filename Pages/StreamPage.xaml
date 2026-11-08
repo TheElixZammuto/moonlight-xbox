@@ -5,7 +5,7 @@
     xmlns:local="using:moonlight_xbox_dx"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+   
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     Loaded="Page_Loaded"
@@ -25,7 +25,7 @@
             </StackPanel>
             <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1" Opacity="0">
                 <FlyoutBase.AttachedFlyout>
-                    <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
+                    <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="Top">
                         <MenuFlyoutItem x:Name="toggleMouseButton" Text="{x:Bind MouseMode, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Exit Mouse Mode|Enter Mouse Mode'}" Click="toggleMouseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE962;" />
@@ -80,10 +80,10 @@
                             <MenuFlyoutSubItem.Icon>
                                 <FontIcon Glyph="&#xF61F;" />
                             </MenuFlyoutSubItem.Icon>
-                            <MenuFlyoutItem x:Name="audioBufferSliderItem" AllowFocusOnInteraction="True" IsTabStop="True" UseSystemFocusVisuals="False" PreviewKeyDown="audioBufferSliderItem_PreviewKeyDown">
+                            <MenuFlyoutItem x:Name="audioBufferSliderItem" AllowFocusOnInteraction="True" IsTabStop="True" UseSystemFocusVisuals="False">
                                 <MenuFlyoutItem.Template>
                                     <ControlTemplate TargetType="MenuFlyoutItem">
-                                        <StackPanel Width="340" Padding="12,8" Spacing="4">
+                                        <StackPanel Width="340" Padding="12,8">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
@@ -112,8 +112,8 @@
                                                 <TextBlock Grid.Column="3" Text="40ms" HorizontalAlignment="Center" />
                                                 <TextBlock Grid.Column="4" Text="50ms" HorizontalAlignment="Right" />
                                             </Grid>
-                                            <TextBlock FontSize="12px" Text="Small buffer sizes are more likely to have audio glitches." VerticalAlignment="Center" />
-                                            <TextBlock x:Name="audioGlitchText" FontSize="12px" VerticalAlignment="Center" Loaded="audioGlitchText_Loaded" Text="Glitches: 0 / Drops to reduce latency: 0" />
+                                            <TextBlock FontSize="12" Text="Small buffer sizes are more likely to have audio glitches." VerticalAlignment="Center" />
+                                            <TextBlock x:Name="audioGlitchText" FontSize="12" VerticalAlignment="Center" Loaded="audioGlitchText_Loaded" Text="Glitches: 0 / Drops to reduce latency: 0" />
                                         </StackPanel>
                                     </ControlTemplate>
                                 </MenuFlyoutItem.Template>
@@ -143,9 +143,9 @@
         </SwapChainPanel>
         <Grid x:Name="ProgressView" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
             <StackPanel x:Name="ProgressStack" HorizontalAlignment="Center" VerticalAlignment="Center"  Orientation="Vertical">
-                <muxc:ProgressRing x:Name="MainProgressRing" Width="64" Height="64" IsActive="True" Margin="0,0,0,16" />
+                <ProgressRing x:Name="MainProgressRing" Width="64" Height="64" IsActive="True" Margin="0,0,0,16" />
                 <TextBlock x:Name="StatusText" TextAlignment="Center" Text="Initializing Moonlight..."/>
-                <TextBlock x:Name="StepText" FontSize="12px" Foreground="DimGray" TextAlignment="Center" Text="" Margin="0,16,0,0" />
+                <TextBlock x:Name="StepText" FontSize="12" Foreground="DimGray" TextAlignment="Center" Text="" Margin="0,16,0,0" />
             </StackPanel>
         </Grid>
     </Grid>

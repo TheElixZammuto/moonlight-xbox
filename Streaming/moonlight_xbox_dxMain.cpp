@@ -19,7 +19,6 @@ using namespace Platform::Collections;
 using namespace Windows::Foundation;
 using namespace Windows::Gaming::Input;
 using namespace Windows::System::Threading;
-using namespace Windows::UI::ViewManagement::Core;
 
 extern "C" {
 #include <Common/ModalDialog.xaml.h>
@@ -157,6 +156,16 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	// Force disable graphs on Xbox One at 4K, they run too slowly
 	// XXX can we run them at a lower resolution?
 	if (IsXboxOne() && m_deviceResources->GetPixelHeight() >= 2160) {
+		configuration->enableGraphs = false;
+	}
+
+	// W10M: disable the ImGui stats overlay entirely. On imgui 1.92 WIP + ARM32
+	// the render thread crashes in NewFrame->SetCurrentFont(NULL) a few seconds
+	// into streaming (Fonts[0] turns NULL while the app.log shows fonts=1 on the
+	// same context), i.e. heap corruption somewhere in the ImGui/stb path.
+	// The VideoProcessorBlt streaming pipeline is the priority; re-enable after
+	// the ImGui crash is root-caused.
+	if (Utils::IsWindowsPhone()) {
 		configuration->enableGraphs = false;
 	}
 
@@ -618,7 +627,7 @@ void moonlight_xbox_dxMain::ProcessInput(int64_t now) {
 					                                   }));
 					keyboardMode = false;
 				} else {
-					CoreInputView::GetForCurrentView()->TryHide();
+					Windows::UI::ViewManagement::InputPane::GetForCurrentView()->TryHide();
 				}
 			}
 			// X to backspace
@@ -707,7 +716,7 @@ void moonlight_xbox_dxMain::ProcessInput(int64_t now) {
 					                                   }));
 					keyboardMode = true;
 				} else {
-					CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+					Windows::UI::ViewManagement::InputPane::GetForCurrentView()->TryShow();
 				}
 			}
 			// Scroll
@@ -859,11 +868,29 @@ bool moonlight_xbox_dxMain::Render() {
 		m_sceneRenderer->RequestRefreshColorspace();
 	}
 
+	// W10M: the ffmpeg d3d11va decoder, the VideoProcessorBlt path and the
+	// DirectXTK text renderers all drive the SAME immediate context from
+	// different threads. The decoder serializes its context use through
+	// FFMpegDecoder's mutex (AVD3D11VADeviceContext::lock/unlock), but the
+	// render thread touched the context without that lock, and the Qualcomm
+	// UMD (qcdx11um) crashed under the concurrent access ~20s into streaming.
+	// Hold the same lock for the whole frame; the lock order stays safe because
+	// the decode thread never holds the FrameQueue lock while taking it.
+	FFMpegDecoder::LockGuard d3dLock = FFMpegDecoder::Lock();
+
 	// Render the scene objects.
 	bool showImGui = m_deviceResources->GetShowImGui();
 
 	// ImGui setup and update handling (which we don't use)
 	if (showImGui) {
+		// Crash-4 diagnostic: log the context/font state seen by THIS thread before NewFrame.
+		static int s_imguiFrameLog = 0;
+		if (s_imguiFrameLog < 3) {
+			ImGuiContext* dbgCtx = ImGui::GetCurrentContext();
+			Utils::Logf("Render pre-NewFrame: ctx=%p fonts=%d sources=%d\n",
+				(void*)dbgCtx, dbgCtx ? ImGui::GetIO().Fonts->Fonts.Size : -1, dbgCtx ? ImGui::GetIO().Fonts->Sources.Size : -1);
+			s_imguiFrameLog++;
+		}
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplUwp_NewFrame(m_deviceResources->GetPixelWidth(), m_deviceResources->GetPixelHeight());
 		ImGui::NewFrame();

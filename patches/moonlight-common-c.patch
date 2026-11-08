@@ -1,0 +1,18 @@
+diff --git a/src/Platform.c b/src/Platform.c
+index 2fa9f82a89018a36d6b23558fb4a09cd74c7eb23..856b3604625bbe0c1b5cb0e194f303fd64f32702 100644
+--- a/src/Platform.c
++++ b/src/Platform.c
+@@ -37,8 +37,13 @@ typedef HRESULT (WINAPI *SetThreadDescription_t)(HANDLE, PCWSTR);
+ void setThreadNameWin32(const char* name) {
+     SetThreadDescription_t setThreadDescriptionFunc;
+ 
++#if !defined(WINAPI_FAMILY) || WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+     // This function is only supported on Windows 10 RS1 and later
+     setThreadDescriptionFunc = (SetThreadDescription_t)GetProcAddress(GetModuleHandleA("kernel32.dll"), "SetThreadDescription");
++#else
++    /* UWP: module handle APIs are gated off; thread naming is debug-only */
++    setThreadDescriptionFunc = NULL;
++#endif
+     if (setThreadDescriptionFunc != NULL) {
+         WCHAR nameW[16];
+         size_t chars;

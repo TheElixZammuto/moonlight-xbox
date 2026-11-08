@@ -26,7 +26,6 @@ using namespace Windows::UI::Xaml::Data;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
-using namespace Windows::UI::ViewManagement::Core;
 
 HostSettingsPage::HostSettingsPage()
 {
@@ -280,7 +279,7 @@ void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Wind
 void HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
 {
 	if (e->Key == Windows::System::VirtualKey::Enter) {
-		CoreInputView::GetForCurrentView()->TryHide();
+		Windows::UI::ViewManagement::InputPane::GetForCurrentView()->TryHide();
 	}
 }
 

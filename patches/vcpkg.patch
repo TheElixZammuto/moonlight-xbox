@@ -1,0 +1,37 @@
+diff --git a/scripts/detect_compiler/CMakeLists.txt b/scripts/detect_compiler/CMakeLists.txt
+index 852339e839821bd746a0e2b33ddda890a27111b6..9d9d858cb7dd593e1441d6ab821c0754e027f6ce 100644
+--- a/scripts/detect_compiler/CMakeLists.txt
++++ b/scripts/detect_compiler/CMakeLists.txt
+@@ -1,7 +1,7 @@
+ cmake_minimum_required(VERSION 3.20)
+ project(detect_compiler NONE)
+ 
+-if(CMAKE_GENERATOR STREQUAL "Ninja" AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
++if(CMAKE_GENERATOR STREQUAL "Ninja" AND CMAKE_SYSTEM_NAME MATCHES "Windows")
+     set(CMAKE_C_COMPILER_WORKS 1)
+     set(CMAKE_C_COMPILER_FORCED 1)
+     set(CMAKE_CXX_COMPILER_WORKS 1)
+diff --git a/triplets/community/arm-uwp.cmake b/triplets/community/arm-uwp.cmake
+index d632c221185f45b84d8c55de26d69c538bbe5f66..2529f103ff6d8b842b79e06f93162fd0ab6ef41f 100644
+--- a/triplets/community/arm-uwp.cmake
++++ b/triplets/community/arm-uwp.cmake
+@@ -3,5 +3,18 @@ set(VCPKG_CRT_LINKAGE dynamic)
+ set(VCPKG_LIBRARY_LINKAGE dynamic)
+ 
+ set(VCPKG_CMAKE_SYSTEM_NAME WindowsStore)
+-set(VCPKG_CMAKE_SYSTEM_VERSION 10.0)
++set(VCPKG_CMAKE_SYSTEM_VERSION 10.0.15063)
+ 
++set(VCPKG_BUILD_TYPE release)
++set(VCPKG_PLATFORM_TOOLSET v141)
++
++set(W10M_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../..")
++set(W10M_SDK "$ENV{ProgramFiles(x86)}/Windows Kits/10")
++set(W10M_MSVC "$ENV{ProgramFiles}/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.16.27023")
++
++# SDK 15063 ole headers (oaidl.h/propidlbase.h) use a "/##/" macro trick that
++# breaks under MSVC 14.44 in C mode. The compat dir carries the fixed copies
++# from a newer SDK - first in the local include path via VCPKG_C_FLAGS below.
++set(VCPKG_LINKER_FLAGS "/LIBPATH:\"${W10M_SDK}/Lib/10.0.15063.0/um/arm\" /LIBPATH:\"${W10M_SDK}/Lib/10.0.15063.0/ucrt/arm\" /LIBPATH:\"${W10M_MSVC}/lib/arm/store\" crypt32.lib ws2_32.lib gdi32.lib user32.lib kernel32.lib advapi32.lib /EMITVOLATILEMETADATA:NO")
++set(VCPKG_C_FLAGS "-I\"${W10M_ROOT}/w10m-compat\" -DNTDDI_VERSION=0x0A000009")
++set(VCPKG_CXX_FLAGS "-I\"${W10M_ROOT}/w10m-compat\" -DNTDDI_VERSION=0x0A000009")

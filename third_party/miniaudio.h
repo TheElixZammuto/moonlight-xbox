@@ -19353,7 +19353,7 @@ MA_API ma_handle ma_dlopen(ma_log* pLog, const char* filename)
 
         #ifdef MA_WIN32
             /* From MSDN: Desktop applications cannot use LoadPackagedLibrary; if a desktop application calls this function it fails with APPMODEL_ERROR_NO_PACKAGE.*/
-            #if !defined(MA_WIN32_UWP) || !(defined(WINAPI_FAMILY) && ((defined(WINAPI_FAMILY_PHONE_APP) && WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP)))
+            #if !defined(MA_WIN32_UWP) || !(defined(WINAPI_FAMILY) && ((defined(WINAPI_FAMILY_PHONE_APP) && WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP) || WINAPI_FAMILY == WINAPI_FAMILY_APP))
                 handle = (ma_handle)LoadLibraryA(filename);
             #else
                 /* *sigh* It appears there is no ANSI version of LoadPackagedLibrary()... */

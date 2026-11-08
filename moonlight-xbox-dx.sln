@@ -21,8 +21,10 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
+		Debug|ARM = Debug|ARM
 		MinSizeRel|x64 = MinSizeRel|x64
 		Release|x64 = Release|x64
+		Release|ARM = Release|ARM
 		ReleaseWithTracy|x64 = ReleaseWithTracy|x64
 		RelWithDebInfo|x64 = RelWithDebInfo|x64
 	EndGlobalSection
@@ -82,6 +84,28 @@ Global
 		{F4776924-619C-42C7-88B2-82C947CCC9E7}.ReleaseWithTracy|x64.Build.0 = Release|x64
 		{F4776924-619C-42C7-88B2-82C947CCC9E7}.RelWithDebInfo|x64.ActiveCfg = Debug|x64
 		{F4776924-619C-42C7-88B2-82C947CCC9E7}.RelWithDebInfo|x64.Build.0 = Debug|x64
+		{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}.Debug|ARM.ActiveCfg = Debug|ARM
+		{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}.Debug|ARM.Build.0 = Debug|ARM
+		{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}.Debug|ARM.Deploy.0 = Debug|ARM
+		{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}.Release|ARM.ActiveCfg = Release|ARM
+		{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}.Release|ARM.Build.0 = Release|ARM
+		{0D5DFFAA-E5DD-4A61-B3EC-0A73EF86C9B1}.Release|ARM.Deploy.0 = Release|ARM
+		{D1E52174-47C2-3A2A-82C0-D396069D543D}.Debug|ARM.ActiveCfg = Debug|ARM
+		{D1E52174-47C2-3A2A-82C0-D396069D543D}.Debug|ARM.Build.0 = Debug|ARM
+		{D1E52174-47C2-3A2A-82C0-D396069D543D}.Release|ARM.ActiveCfg = Release|ARM
+		{D1E52174-47C2-3A2A-82C0-D396069D543D}.Release|ARM.Build.0 = Release|ARM
+		{627D9B04-BAC4-341A-A765-CA07D5FFB2F1}.Debug|ARM.ActiveCfg = Debug|ARM
+		{627D9B04-BAC4-341A-A765-CA07D5FFB2F1}.Debug|ARM.Build.0 = Debug|ARM
+		{627D9B04-BAC4-341A-A765-CA07D5FFB2F1}.Release|ARM.ActiveCfg = Release|ARM
+		{627D9B04-BAC4-341A-A765-CA07D5FFB2F1}.Release|ARM.Build.0 = Release|ARM
+		{F8027510-2C37-35D0-8915-F50591961004}.Debug|ARM.ActiveCfg = Debug|ARM
+		{F8027510-2C37-35D0-8915-F50591961004}.Debug|ARM.Build.0 = Debug|ARM
+		{F8027510-2C37-35D0-8915-F50591961004}.Release|ARM.ActiveCfg = Release|ARM
+		{F8027510-2C37-35D0-8915-F50591961004}.Release|ARM.Build.0 = Release|ARM
+		{F4776924-619C-42C7-88B2-82C947CCC9E7}.Debug|ARM.ActiveCfg = Debug|ARM
+		{F4776924-619C-42C7-88B2-82C947CCC9E7}.Debug|ARM.Build.0 = Debug|ARM
+		{F4776924-619C-42C7-88B2-82C947CCC9E7}.Release|ARM.ActiveCfg = Release|ARM
+		{F4776924-619C-42C7-88B2-82C947CCC9E7}.Release|ARM.Build.0 = Release|ARM
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

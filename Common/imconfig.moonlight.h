@@ -14,6 +14,12 @@
 
 #pragma once
 
+// NOTE (W10M port): the two macros below are ALSO defined globally in
+// moonlight-xbox-dx.vcxproj PreprocessorDefinitions, because imgui*.cpp TUs
+// compile with PrecompiledHeader=NotUsing and never see pch.h, so they can
+// never receive this file via IMGUI_USER_CONFIG. If you add or change a macro
+// here, mirror it in the vcxproj (and vice versa) to keep every TU consistent.
+
 #define IMGUI_DISABLE_UWP_DEFAULT_CLIPBOARD_FUNCTIONS     // Don't implement default WinRT clipboard handler.
 #define IMGUI_IMPL_UWP_DISABLE_GAMEPAD                    // Don't implement default XInput gamepad handler.
 

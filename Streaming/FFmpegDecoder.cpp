@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "FFMpegDecoder.h"
 #include "PyroWaveDecoder.h"
 #include "../Plot/ImGuiPlots.h"
@@ -6,7 +6,6 @@
 
 #include <chrono>
 #include <ctime>
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -97,6 +96,54 @@ namespace moonlight_xbox_dx {
 	void unlock_context(void *user) {
 		auto me = (FFMpegDecoder*)user;
 		me->m_mutex.unlock();
+	}
+
+	// W10M: copy the freshly decoded slice into a plain (non-array,
+	// non-DECODER) NV12 texture ON THE DECODE THREAD. The video engine is
+	// idle at this point, so the copy does not cross a busy engine fence the
+	// way render-thread copies do (which deadlock). frame->data[0]/[1] are
+	// rewritten to point at the flat texture and its buffer index.
+	bool FFMpegDecoder::copyToFlatNv12(AVFrame *frame) {
+		if (frame->format != AV_PIX_FMT_D3D11) {
+			return false;
+		}
+		ID3D11Texture2D* decTex = (ID3D11Texture2D*)(frame->data[0]);
+		if (!decTex) {
+			return false;
+		}
+		UINT slice = (UINT)(intptr_t)frame->data[1];
+
+		if (!m_FlatNv12[0]) {
+			D3D11_TEXTURE2D_DESC desc = {};
+			decTex->GetDesc(&desc);
+			desc.ArraySize = 1;
+			desc.MipLevels = 1;
+			desc.SampleDesc.Count = 1;
+			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			desc.MiscFlags = 0;
+			desc.CPUAccessFlags = 0;
+			for (int i = 0; i < 2; i++) {
+				if (FAILED(m_deviceResources->GetD3DDevice()->CreateTexture2D(&desc, nullptr, &m_FlatNv12[i]))) {
+					Utils::Log("CreateTexture2D(flat NV12) failed\n");
+					return false;
+				}
+			}
+			Utils::Logf("FFMpegDecoder: flat NV12 double buffer created %ux%u\n", desc.Width, desc.Height);
+		}
+
+		// Serialize against the render thread's use of the immediate context.
+		FFMpegDecoder::LockGuard lk = FFMpegDecoder::Lock();
+		int idx = m_FlatNv12Idx;
+		m_deviceResources->GetD3DDeviceContext()->CopySubresourceRegion(
+			m_FlatNv12[idx].Get(), 0, 0, 0, 0, decTex, slice, nullptr);
+		m_FlatNv12Idx ^= 1;
+
+		// Hand the flat texture to the renderer through the frame. The frame's
+		// buf[0] still owns the pool surface, so av_frame_free keeps returning
+		// it to the decoder pool; the flat textures are owned by us.
+		frame->data[0] = (uint8_t*)(m_FlatNv12[idx].Get());
+		frame->data[1] = (uint8_t*)(intptr_t)idx;
+		return true;
 	}
 
 	void ffmpeg_log_callback(void *ptr, int level, const char *fmt, va_list vl) {
@@ -381,6 +428,17 @@ namespace moonlight_xbox_dx {
 			QueryPerformanceCounter(&decodeEnd);
 			frame_attach_userdata(frame, decodeEnd.QuadPart);
 
+			// W10M: copy the decode slice to a plain NV12 texture on this
+			// thread (video engine idle) so the renderer never touches a
+			// BIND_DECODER surface.
+			if (Utils::IsWindowsPhone()) {
+				if (!copyToFlatNv12(frame)) {
+					Utils::Log("copyToFlatNv12 failed, dropping frame\n");
+					av_frame_free(&frame);
+					return DR_OK;
+				}
+			}
+
 			FQLog("✓ Frame decoded [pts: %.3fms] [in#: %d] [out#: %d] [lost: %d] decode time %.3fms\n",
 				frame->pts / 90.0,
 				decodeUnit->frameNumber, decoder_ctx->frame_num,
@@ -590,8 +648,6 @@ int FFMpegDecoder::CaptureAvioWrite(void* opaque, const uint8_t* buf, int size) 
 
 // Runs on the capture task thread. One file per capture session.
 bool FFMpegDecoder::CaptureOpen() {
-	namespace fs = std::filesystem;
-
 	// Shouldn't happen, but never leak a half-open session.
 	CaptureAbort();
 
@@ -626,19 +682,29 @@ bool FFMpegDecoder::CaptureOpen() {
 			return false;
 		}
 
-		const fs::path candidate = fs::path(basePath->Data()) / filename.str();
+		// W10M (v141/15063): std::filesystem drags in CRT internals that neither
+		// link nor run reliably on the phone; plain wide-path concatenation does
+		// the same job for a one-level filename join.
+		std::wstring candidate;
+		candidate.reserve(basePath->Length() + filename.str().size() + 2);
+		candidate.append(basePath->Data());
+		if (!candidate.empty() && candidate.back() != L'\\') {
+			candidate.push_back(L'\\');
+		}
+		candidate.append(moonlight_xbox_dx::Utils::NarrowToWideString(filename.str()));
 
 		// A failed open sets the stream's fail bit, so clear it before retrying.
 		m_CaptureFile.clear();
-		m_CaptureFile.open(candidate, std::ios::binary | std::ios::trunc);
+		m_CaptureFile.open(candidate.c_str(), std::ios::binary | std::ios::trunc);
 
 		if (!m_CaptureFile.is_open()) {
-			Utils::Logf("Capture: path is unavailable or not writable: %s\n", candidate.string().c_str());
+			std::string narrowPath = moonlight_xbox_dx::Utils::WideToNarrowString(candidate);
+			Utils::Logf("Capture: path is unavailable or not writable: %s\n", narrowPath.c_str());
 			m_CaptureFile.clear();
 			return false;
 		}
 
-		m_CapturePath = candidate.string();
+		m_CapturePath = moonlight_xbox_dx::Utils::WideToNarrowString(candidate);
 		return true;
 	};
 

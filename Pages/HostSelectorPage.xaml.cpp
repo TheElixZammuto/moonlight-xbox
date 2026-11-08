@@ -34,7 +34,6 @@ using namespace Windows::UI::Xaml::Data;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
-using namespace Windows::UI::ViewManagement::Core;
 
 HostSelectorPage::HostSelectorPage() {
 	state = GetApplicationState();
@@ -463,7 +462,7 @@ void HostSelectorPage::OnDeviceWatcherStopped(DeviceWatcher^ sender, Object^ arg
 
 void HostSelectorPage::OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e) {
 	if (e->Key == Windows::System::VirtualKey::Enter) {
-		CoreInputView::GetForCurrentView()->TryHide();
+		Windows::UI::ViewManagement::InputPane::GetForCurrentView()->TryHide();
 	}
 }
 
@@ -534,11 +533,12 @@ void HostSelectorPage::hostDetailsButton_Click(Platform::Object^ sender, Windows
 	if (currentHost == nullptr) return;
 
 	auto panel = ref new Windows::UI::Xaml::Controls::StackPanel();
-	panel->Spacing = 8;
 
+	// W10M: StackPanel.Spacing 为 16299+，用子元素底边距补偿
 	auto addLine = [panel](Platform::String^ label, Platform::String^ value) {
 		auto val = ref new Windows::UI::Xaml::Controls::TextBlock();
 		val->Text = label + " " + value;
+		val->Margin = Windows::UI::Xaml::ThicknessHelper::FromLengths(0, 0, 0, 8);
 		panel->Children->Append(val);
 		};
 
@@ -557,12 +557,7 @@ void HostSelectorPage::hostDetailsButton_Click(Platform::Object^ sender, Windows
 	dialog->Title = Utils::StringFromStdString("Host Details");
 	dialog->Content = scroll;
 	dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
-
-	try {
-		dialog->XamlRoot = this->XamlRoot;
-	}
-	catch (...) {
-	}
+	// W10M: ContentDialog.XamlRoot 为 16299+，15063 上 ShowAsync 自动挂当前窗口
 
 	concurrency::create_task(dialog->ShowAsync());
 }

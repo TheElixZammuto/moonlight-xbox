@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <atomic>
 #include <functional>
@@ -6,6 +6,7 @@
 #include <mutex>
 #include <queue>
 #include <string>
+#include <wrl/client.h>
 #include "../Common/StepTimer.h"
 #include "Pacer.h"
 #include "Utils.hpp"
@@ -57,6 +58,17 @@ class FFMpegDecoder {
 	// D3D11_BIND_SHADER_RESOURCE so the renderer can sample decoder surfaces
 	// directly. Returns false on failure, which aborts decoding.
 	bool setupDirectSampleFramesContext(AVCodecContext *avctx);
+
+	// W10M: every attempt to move data out of a BIND_DECODER surface on the
+	// render thread fails on the Qualcomm 9_3 driver (VP Blt crashes, GPU
+	// copy deadlocks in a cross-engine fence loop with the decode thread).
+	// Instead the DECODE thread copies each frame into one of two plain
+	// NV12 textures right after decoding (video engine idle, no cross-thread
+	// fence), and the renderer just samples those textures with a 9_3
+	// shader. frame->data[0] becomes the flat texture, data[1] the index.
+	bool copyToFlatNv12(AVFrame *frame);
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_FlatNv12[2];
+	int m_FlatNv12Idx = 0;
 
 	int videoFormat, width, height, fps;
 	std::recursive_mutex m_mutex;

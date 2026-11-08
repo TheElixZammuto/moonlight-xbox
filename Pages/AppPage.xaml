@@ -10,7 +10,7 @@
     XYFocusKeyboardNavigation="Disabled"
     >
     <FlyoutBase.AttachedFlyout>
-        <MenuFlyout x:Name="ActionsFlyout" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
+        <MenuFlyout x:Name="ActionsFlyout" AllowFocusOnInteraction="false" Placement="Top">
             <MenuFlyoutItem x:Name="resumeAppButton" Click="resumeAppButton_Click" Text="Resume App" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                 <MenuFlyoutItem.Icon>
                     <SymbolIcon Symbol="Play" />
@@ -43,7 +43,7 @@
                 </Button>
                 <TextBlock VerticalAlignment="Center" Padding="8" FontSize="20" Text="{x:Bind Host.ComputerName}"></TextBlock>
             </StackPanel>
-            <StackPanel  Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="8" Orientation="Horizontal" Spacing="16">
+            <StackPanel  Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="8" Orientation="Horizontal">
                 <Button TabIndex="2" x:Name="settingsButton" Click="settingsButton_Click">
                     <Button.Content>
                         <SymbolIcon Symbol="Setting" />
@@ -60,13 +60,13 @@
                 </ItemsPanelTemplate>
             </GridView.ItemsPanel>
             <GridView.ItemTemplate>
-                <DataTemplate x:DataType="local:MoonlightApp" x:DefaultBindMode="OneWay">
+                <DataTemplate x:DataType="local:MoonlightApp">
                     <StackPanel>
                         <StackPanel Padding="16" VerticalAlignment="Center">
-                            <Image Source="{x:Bind ImagePath}" Stretch="Fill" Height="300" Width="225"/>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Stretch">
-                                <Image Source="ms-appx:///Assets/play.svg" Visibility="{x:Bind CurrentlyRunning}" Width="24" Height="24" />
-                                <TextBlock Text="{x:Bind Name}"></TextBlock>
+                            <Image Source="{x:Bind ImagePath, Mode=OneWay}" Stretch="Fill" Height="300" Width="225"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <Image Source="ms-appx:///Assets/play.png" Visibility="{x:Bind CurrentlyRunning, Mode=OneWay}" Width="24" Height="24" />
+                                <TextBlock Text="{x:Bind Name, Mode=OneWay}"></TextBlock>
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
@@ -74,9 +74,9 @@
             </GridView.ItemTemplate>
         </GridView>
         <TextBlock Grid.Row="2" TextAlignment="Center">
-            <Bold>Useful Shortcuts:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xEDE3;</Run>+<Run FontFamily="Segoe Fluent Icons">&#xEECA;</Run> for toggling Menu and enabling mouse mode.<LineBreak></LineBreak>
-            <Bold>In Mouse mode:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xF093;</Run> Left click <Run FontFamily="Segoe Fluent Icons">&#xF096;</Run> Right click <Run FontFamily="Segoe Fluent Icons">&#xF095;</Run> Show Keyboard <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run> Guide/Xbox button<LineBreak></LineBreak>
-            <Bold>In Keyboard mode:</Bold> <Run FontFamily="Segoe Fluent Icons">&#xF094;</Run> Close <Run FontFamily="Segoe Fluent Icons">&#xF10A;</Run> Left Click <Run FontFamily="Segoe Fluent Icons">&#xF10B;</Run> Right Click <Run FontFamily="Segoe Fluent Icons">&#xF109;</Run> Move <Run FontFamily="Segoe Fluent Icons">&#xF108;</Run> Press to Scroll
+            <Bold>Useful Shortcuts:</Bold> <Run FontFamily="Segoe MDL2 Assets">&#xEDE3;</Run>+<Run FontFamily="Segoe MDL2 Assets">&#xEECA;</Run> for toggling Menu and enabling mouse mode.<LineBreak></LineBreak>
+            <Bold>In Mouse mode:</Bold> <Run FontFamily="Segoe MDL2 Assets">&#xF093;</Run> Left click <Run FontFamily="Segoe MDL2 Assets">&#xF096;</Run> Right click <Run FontFamily="Segoe MDL2 Assets">&#xF095;</Run> Show Keyboard <Run FontFamily="Segoe MDL2 Assets">&#xF094;</Run> Guide/Xbox button<LineBreak></LineBreak>
+            <Bold>In Keyboard mode:</Bold> <Run FontFamily="Segoe MDL2 Assets">&#xF094;</Run> Close <Run FontFamily="Segoe MDL2 Assets">&#xF10A;</Run> Left Click <Run FontFamily="Segoe MDL2 Assets">&#xF10B;</Run> Right Click <Run FontFamily="Segoe MDL2 Assets">&#xF109;</Run> Move <Run FontFamily="Segoe MDL2 Assets">&#xF108;</Run> Press to Scroll
         </TextBlock>
     </Grid>
 </Page>

@@ -1,7 +1,9 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
 #include <atomic>
 #include <cstdint>
+#include <wrl/client.h>
+#include <xaudio2.h>
 extern "C" {
 #include <Limelight.h>
 }
@@ -69,6 +71,21 @@ namespace moonlight_xbox_dx
 		// Tears down device, ring buffer, context and log (but not the Opus
 		// decoder, which is owned by the moonlight-common-c init/cleanup pair).
 		void releaseDevice();
+
+		// W10M XAudio2 backend: miniaudio's WASAPI path can't run in the
+		// AppContainer (loading mmdevapi.dll is blocked), but XAudio2_8.dll is
+		// present and whitelisted. The decode thread submits decoded float
+		// packets directly; a small rotation pool owns the data XAudio2 is
+		// still reading (XAudio2 does not copy pAudioData).
+		bool prepareForPlaybackXAudio(const POPUS_MULTISTREAM_CONFIGURATION opusConfig);
+		AudioSubmitResult submitAudioXAudio(int bytesWritten);
+		Microsoft::WRL::ComPtr<IXAudio2> m_xa;
+		IXAudio2MasteringVoice* m_xaMaster = nullptr;
+		IXAudio2SourceVoice* m_xaSource = nullptr;
+		bool m_xaInitialized = false;
+		static const int XA_POOL_SLOTS = 8;
+		std::vector<std::vector<uint8_t>> m_xaPool;
+		int m_xaPoolIdx = 0;
 
 		ma_pcm_rb rb{};
 		ma_device device{};
