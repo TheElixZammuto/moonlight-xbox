@@ -55,6 +55,12 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr) return;
 	host = mhost;
+
+	auto observableApps = safe_cast<Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^>(host->Apps);
+	m_appsChangedToken = observableApps->VectorChanged += ref new Windows::Foundation::Collections::VectorChangedEventHandler<MoonlightApp^>(this, &AppPage::OnAppsChanged);
+	sortAppsButton->IsChecked = host->sortAppsByName;
+	UpdateFilteredApps();
+
 	host->UpdateHostInfo(true);
 	host->UpdateApps();
 
@@ -71,6 +77,12 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 			try {
 				if (that->host != nullptr) {
 					that->host->UpdateAppRunningStates();
+					Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+						Windows::UI::Core::CoreDispatcherPriority::Normal,
+						ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+							auto inner = weakThis.Resolve<AppPage>();
+							if (inner != nullptr) inner->UpdateFilteredApps();
+						}));
 					if (that->wasConnected.load() && !that->host->Connected) {
 						that->wasConnected.store(false);
 
@@ -131,6 +143,111 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 
 void AppPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	continueAppFetch.store(false);
+
+	if (host != nullptr) {
+		auto observableApps = safe_cast<Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^>(host->Apps);
+		observableApps->VectorChanged -= m_appsChangedToken;
+	}
+}
+
+void AppPage::OnAppsChanged(Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^ sender, Windows::Foundation::Collections::IVectorChangedEventArgs^ e) {
+	// A host refresh appends apps one at a time, so wait for the whole batch before rebuilding the grid
+	if (m_filterUpdatePending) return;
+	m_filterUpdatePending = true;
+
+	Platform::WeakReference weakThis(this);
+	this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+		auto that = weakThis.Resolve<AppPage>();
+		if (that == nullptr) return;
+		that->m_filterUpdatePending = false;
+		that->UpdateFilteredApps();
+	}));
+}
+
+// Host->Apps always stays complete, since running-app checks need the hidden apps too
+void AppPage::UpdateFilteredApps() {
+	if (host == nullptr) return;
+
+	bool showHidden = showHiddenButton->IsChecked != nullptr && showHiddenButton->IsChecked->Value;
+	Platform::String^ query = SearchBox->Text;
+
+	std::vector<MoonlightApp^> matches;
+	for (auto app : host->Apps) {
+		bool hidden = host->hiddenAppIds.count(app->Id) > 0;
+		if (app->Hidden != hidden) app->Hidden = hidden;
+		if (hidden && !showHidden && !app->CurrentlyRunning) continue;
+
+		if (!query->IsEmpty() && app->Name != nullptr &&
+		    FindNLSStringEx(LOCALE_NAME_INVARIANT, FIND_FROMSTART | LINGUISTIC_IGNORECASE, app->Name->Data(), -1, query->Data(), -1, NULL, NULL, NULL, 0) < 0) {
+			continue;
+		}
+		matches.push_back(app);
+	}
+
+	if (host->sortAppsByName) {
+		std::stable_sort(matches.begin(), matches.end(), [](MoonlightApp^ lhs, MoonlightApp^ rhs) {
+			bool lhsPinned = lhs->Name->Data()[0] == L'_';
+			bool rhsPinned = rhs->Name->Data()[0] == L'_';
+			if (lhsPinned != rhsPinned) return lhsPinned;
+			return CompareStringEx(LOCALE_NAME_INVARIANT, LINGUISTIC_IGNORECASE, lhs->Name->Data(), -1, rhs->Name->Data(), -1, NULL, NULL, 0) == CSTR_LESS_THAN;
+		});
+	}
+
+	std::stable_partition(matches.begin(), matches.end(), [](MoonlightApp^ app) { return app->CurrentlyRunning; });
+
+	// Only touch the grid when the result changed, so typing doesn't drop focus or scroll position
+	bool changed = matches.size() != FilteredApps->Size;
+	for (unsigned int i = 0; !changed && i < FilteredApps->Size; ++i) {
+		changed = FilteredApps->GetAt(i) != matches[i];
+	}
+	if (changed) {
+		FilteredApps->Clear();
+		for (auto app : matches) {
+			FilteredApps->Append(app);
+		}
+	}
+
+	showHiddenButton->Visibility = host->hiddenAppIds.empty() ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
+	noAppsText->Visibility = matches.empty() && host->Apps->Size > 0 ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+}
+
+void AppPage::SearchBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e) {
+	UpdateFilteredApps();
+}
+
+void AppPage::showHiddenButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+	UpdateFilteredApps();
+}
+
+void AppPage::sortAppsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+	host->sortAppsByName = sortAppsButton->IsChecked != nullptr && sortAppsButton->IsChecked->Value;
+	UpdateFilteredApps();
+	GetApplicationState()->UpdateFile();
+}
+
+void AppPage::hideAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+	if (this->currentApp == nullptr) return;
+
+	int id = this->currentApp->Id;
+	if (host->hiddenAppIds.erase(id) == 0) {
+		host->hiddenAppIds.insert(id);
+	}
+	if (host->hiddenAppIds.empty()) {
+		showHiddenButton->IsChecked = false;
+	}
+
+	UpdateFilteredApps();
+	GetApplicationState()->UpdateFile();
+
+	// The focused tile may be gone now, and a gamepad can't navigate without focus
+	HostsGrid->Focus(Windows::UI::Xaml::FocusState::Keyboard);
+}
+
+void AppPage::Page_PreviewKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e) {
+	if (e->Key == Windows::System::VirtualKey::GamepadY) {
+		SearchBox->Focus(Windows::UI::Xaml::FocusState::Keyboard);
+		e->Handled = true;
+	}
 }
 
 void AppPage::AppsGrid_ItemClick(Platform::Object ^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs ^ e) {
@@ -235,6 +352,11 @@ void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml:
     this->resumeAppButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
     this->closeAppButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
     this->closeAndStartButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+
+    this->hideAppButton->Visibility = currentApp != nullptr ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+    if (currentApp != nullptr) {
+        this->hideAppButton->Text = currentApp->Hidden ? "Unhide App" : "Hide App";
+    }
 
     if (!anyRunning) {
         this->resumeAppButton->Text = "Open App";
@@ -379,6 +501,14 @@ void AppPage::OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackReques
 	// UWP on Xbox One triggers a back request whenever the B
 	// button is pressed which can result in the app being
 	// suspended if unhandled
+	if (!SearchBox->Text->IsEmpty()) {
+		// B clears an active search before it leaves the page
+		SearchBox->Text = "";
+		HostsGrid->Focus(Windows::UI::Xaml::FocusState::Keyboard);
+		args->Handled = true;
+		return;
+	}
+
 	if (this->Frame->CanGoBack) {
 		this->Frame->GoBack();
 		args->Handled = true;

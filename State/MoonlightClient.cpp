@@ -536,10 +536,10 @@ std::vector<MoonlightApp ^> MoonlightClient::GetApplications(bool fetchAssets) {
 		tempValues.push_back(a);
 		list = list->next;
 	}
-	std::sort(begin(tempValues), end(tempValues), [](struct app &lhs, struct app &rhs) {
-		if (lhs.Name->Data()[0] == '_' && rhs.Name->Data()[0] != '_') return true;
-		if (rhs.Name->Data()[0] == '_' && lhs.Name->Data()[0] != '_') return false;
-		return lhs.Name < rhs.Name;
+	// The parser builds the list backwards, so this restores the host's order. Names starting with _ stay pinned first.
+	std::reverse(begin(tempValues), end(tempValues));
+	std::stable_partition(begin(tempValues), end(tempValues), [](const struct app &a) {
+		return a.Name->Data()[0] == '_';
 	});
 	for (auto s : tempValues) {
 		MoonlightApp ^ a = ref new MoonlightApp();

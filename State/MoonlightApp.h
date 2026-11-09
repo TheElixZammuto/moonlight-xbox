@@ -9,6 +9,7 @@ namespace moonlight_xbox_dx {
         Platform::String^ imagePath = "ms-appx:///Assets/gamepad.svg";
         int id;
         bool currentlyRunning;
+        bool hidden;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -50,6 +51,22 @@ namespace moonlight_xbox_dx {
                 this->currentlyRunning = value;
                 OnPropertyChanged("CurrentlyRunning");
             }
+        }
+
+        property bool Hidden
+        {
+            bool get() { return this->hidden; }
+            void set(bool value) {
+                this->hidden = value;
+                OnPropertyChanged("Hidden");
+                OnPropertyChanged("TileOpacity");
+            }
+        }
+
+        // Hidden apps are dimmed while "Show hidden apps" is on
+        property double TileOpacity
+        {
+            double get() { return this->hidden ? 0.5 : 1.0; }
         }
     };
 }
