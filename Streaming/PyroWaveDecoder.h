@@ -41,6 +41,7 @@ class PyroWaveDecoder {
 	int SubmitDecodeUnit(PDECODE_UNIT decodeUnit);
 
 	bool IsActive() const { return m_active; }
+	bool IsTenBit() const { return m_tenBit; }
 
 	int videoFormat = 0;
 	int width = 0, height = 0;

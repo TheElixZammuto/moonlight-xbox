@@ -3,6 +3,7 @@
 #include "Pacer.h"
 #include <State\MoonlightClient.h>
 #include "PyroWave\FramePool.h"
+#include "PyroWaveDecoder.h"
 #include "..\Common\DirectXHelper.h"
 #include <Utils.hpp>
 #include "..\Common\ModalDialog.xaml.h"
@@ -507,6 +508,13 @@ static inline int getFrameBitsPerChannel(const AVFrame* frame) {
 		return 8;
 	}
 
+	if (frame->format == AV_PIX_FMT_YUV444P16 || frame->format == AV_PIX_FMT_YUV420P16) {
+		// PyroWave gets wrapped in a 16-bit AVFrame, but the pixel values are not
+		// actually shifted to 16-bit by the server side, so we need to ensure the shader
+		// uses the correct 8 or 10-bit CSC offsets.
+		return PyroWaveDecoder::instance().IsTenBit() ? 10 : 8;
+	}
+
 	// This assumes plane 0 is exclusively the Y component
 	return formatDesc->comp[0].depth;
 }
@@ -538,7 +546,11 @@ void VideoRenderer::getFramePremultipliedCscConstants(const AVFrame* frame, std:
 	double uvMax = (fullRange ? (channelRange - 1) : (240 << (bitsPerChannel - 8)));
 	double uvScale = (channelRange - 1) / (uvMax - uvMin);
 
-	// Calculate YUV offsets
+	// Calculate YUV offsets, which should be:
+	// 8-bit limited:  16/255,  128/255,  128/255
+	//       full:     0,       128/255,  128/255
+	// 10-bit limited: 64/1023, 512/1023, 512/1023
+	//        full:    0,       512/1023, 512/1023
 	offsets[0] = yMin / (double)(channelRange - 1);
 	offsets[1] = (channelRange / 2) / (double)(channelRange - 1);
 	offsets[2] = (channelRange / 2) / (double)(channelRange - 1);
@@ -566,13 +578,14 @@ void VideoRenderer::getFramePremultipliedCscConstants(const AVFrame* frame, std:
 		cscMatrix[i] *= uvScale;
 	}
 
-	Utils::Logf("Shader config: %s %d-bit %s, (AVColorSpace %d, AVChromaLocation %d)\n",
+	Utils::Logf("Shader config: %s %d-bit %s, YUV offsets %.0f/%d %d/%d (AVColorSpace %d, AVChromaLocation %d)\n",
 	            colorspace == COLORSPACE_REC_601   ? "Rec. 601"
 	            : colorspace == COLORSPACE_REC_709 ? "Rec. 709"
 	                                               : "Rec. 2020",
 	            bitsPerChannel,
 	            fullRange ? "full range" : "limited/standard range",
-				frame->colorspace,
+	            yMin, channelRange - 1, channelRange / 2, channelRange - 1,
+	            frame->colorspace,
 	            frame->chroma_location);
 }
 
